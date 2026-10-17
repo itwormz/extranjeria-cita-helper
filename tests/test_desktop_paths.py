@@ -1,0 +1,96 @@
+from pathlib import Path
+import sys
+
+from app.desktop.paths import runtime_root, resource_root, worker_arguments, APP_NAME
+
+
+def test_frozen_worker_uses_background_helper(monkeypatch,tmp_path):
+    monkeypatch.setattr(sys,'platform','darwin')
+    from app.desktop.paths import worker_executable
+    executable=tmp_path/'Main.app'/'Contents'/'MacOS'/APP_NAME
+    monkeypatch.setattr(sys,'frozen',True,raising=False)
+    monkeypatch.setattr(sys,'executable',str(executable))
+    assert worker_executable()==executable.parent.parent/'Helpers'/'Cita Worker.app'/'Contents'/'MacOS'/APP_NAME
+
+
+def test_frozen_paths_separate_user_data_from_bundle(monkeypatch,tmp_path):
+    monkeypatch.setattr(sys,'frozen',True,raising=False)
+    monkeypatch.setattr(sys,'_MEIPASS',str(tmp_path/'bundle'),raising=False)
+    monkeypatch.setenv('CITA_DATA_HOME',str(tmp_path/'private'))
+    assert runtime_root()==tmp_path/'private'
+    assert resource_root()==tmp_path/'bundle'
+    assert worker_arguments('profile')==['worker','--task','profile']
+
+
+def test_frozen_default_data_location(monkeypatch):
+    monkeypatch.setattr(sys,'platform','darwin')
+    monkeypatch.setattr(sys,'frozen',True,raising=False)
+    monkeypatch.delenv('CITA_DATA_HOME',raising=False)
+    assert runtime_root()==Path.home()/'Library'/'Application Support'/APP_NAME
+
+
+def test_experimental_bundle_has_separate_data(monkeypatch,tmp_path):
+    monkeypatch.setattr(sys,'platform','darwin')
+    import json
+    monkeypatch.setattr(sys,'frozen',True,raising=False)
+    monkeypatch.setattr(sys,'_MEIPASS',str(tmp_path),raising=False)
+    monkeypatch.delenv('CITA_DATA_HOME',raising=False)
+    (tmp_path/'app-variant.json').write_text(json.dumps({'name':APP_NAME+' Experimental'}))
+    assert runtime_root()==Path.home()/'Library'/'Application Support'/(APP_NAME+' Experimental')
+
+
+def test_source_worker_uses_python_module(monkeypatch):
+    monkeypatch.delattr(sys,'frozen',raising=False)
+    assert worker_arguments('profile')==['-m','app.main','worker','--task','profile']
+
+
+def test_camoufox_launch_uses_packaged_browser(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    import camoufox.async_api
+    from app import site
+    from app.config import Settings
+    executable=Path('/isolated/bundled/Camoufox.app/Contents/MacOS/camoufox')
+    launch=AsyncMock(return_value=SimpleNamespace(new_context=AsyncMock(), on=lambda *args: None))
+    from app.desktop import certificates
+    monkeypatch.setattr(certificates, 'prepare_intermediate_cache', lambda *args: 1)
+    monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch)
+    monkeypatch.setattr('camoufox.pkgman.launch_path', lambda: '/tmp/offline-camoufox')
+    monkeypatch.setattr(site,'bundled_browser',lambda:executable)
+    monkeypatch.setattr(site,'bundled_addons',lambda:[])
+    checker=site.IcpPlusChecker(Settings(browser_session='fresh'))
+    task=SimpleNamespace(id='offline',schedule=SimpleNamespace(timezone='Europe/Madrid'))
+    asyncio.run(checker._launch_camoufox(None,task,headless=True))
+    assert launch.await_args.kwargs['executable_path']==str(executable)
+
+
+def test_camoufox_does_not_raise_windows_for_page_scripts(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    import camoufox.async_api
+    from app import site
+    from app.config import Settings
+    launch = AsyncMock(return_value=SimpleNamespace(new_context=AsyncMock(), on=lambda *args: None))
+    from app.desktop import certificates
+    monkeypatch.setattr(certificates, 'prepare_intermediate_cache', lambda *args: 1)
+    monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch)
+    monkeypatch.setattr('camoufox.pkgman.launch_path', lambda: '/tmp/offline-camoufox')
+    asyncio.run(site.IcpPlusChecker(Settings(browser_session='fresh'))._launch_camoufox(None,SimpleNamespace(id='offline',schedule=SimpleNamespace(timezone='Europe/Madrid')),headless=True))
+    prefs = launch.await_args.kwargs['firefox_user_prefs']
+    assert prefs['dom.disable_window_flip'] is True
+    assert prefs['browser.tabs.loadDivertedInBackground'] is True
+    assert 'focusmanager.testmode' not in prefs
+
+
+def test_windows_portable_marker_selects_adjacent_data(monkeypatch,tmp_path):
+    import sys
+    monkeypatch.setattr(sys,'frozen',True,raising=False)
+    monkeypatch.setattr(sys,'platform','win32')
+    monkeypatch.setattr(sys,'executable',str(tmp_path/'helper.exe'))
+    monkeypatch.delenv('CITA_DATA_HOME',raising=False)
+    (tmp_path/'portable.flag').write_text('')
+    assert runtime_root()==tmp_path/'data'
+    monkeypatch.setenv('CITA_DATA_HOME',str(tmp_path/'override'))
+    assert runtime_root()==tmp_path/'override'

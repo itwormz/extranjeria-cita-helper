@@ -1,0 +1,1183 @@
+{
+  "metadata": {
+    "source": "saved_html_snapshot",
+    "live_verified": false,
+    "reason_not_live_verified": "No browser backend was available in the extraction session",
+    "start_url": "https://icp.administracionelectronica.gob.es/icpplus/index.html",
+    "scope": "All provinces and nationalities; office validation only for Barcelona",
+    "snapshots": [
+      {
+        "file": "1-Proceso automático para la solicitud de cita previa.html",
+        "captured_at": "2026-08-12T17:07:36+02:00"
+      },
+      {
+        "file": "2-Proceso automático para la solicitud de cita previa.html",
+        "captured_at": "2026-08-12T17:08:00+02:00"
+      },
+      {
+        "file": "4-Rellene los campos siguientes.html",
+        "captured_at": "2026-08-12T17:10:03+02:00"
+      }
+    ]
+  },
+  "selectors": {
+    "provinces": {
+      "id": "form",
+      "name": "form",
+      "options": [
+        {
+          "value": "/icpplus/citar?p=15&locale=es",
+          "label": "A Coruña"
+        },
+        {
+          "value": "/icpplus/citar?p=2&locale=es",
+          "label": "Albacete"
+        },
+        {
+          "value": "/icpco/citar?p=3&locale=es",
+          "label": "Alicante"
+        },
+        {
+          "value": "/icpplus/citar?p=4&locale=es",
+          "label": "Almería"
+        },
+        {
+          "value": "/icpplus/citar?p=1&locale=es",
+          "label": "Araba"
+        },
+        {
+          "value": "/icpplus/citar?p=33&locale=es",
+          "label": "Asturias"
+        },
+        {
+          "value": "/icpplus/citar?p=5&locale=es",
+          "label": "Ávila"
+        },
+        {
+          "value": "/icpplus/citar?p=6&locale=es",
+          "label": "Badajoz"
+        },
+        {
+          "value": "/icpplustieb/citar?p=8&locale=es",
+          "label": "Barcelona"
+        },
+        {
+          "value": "/icpplus/citar?p=48&locale=es",
+          "label": "Bizkaia"
+        },
+        {
+          "value": "/icpplus/citar?p=9&locale=es",
+          "label": "Burgos"
+        },
+        {
+          "value": "/icpplus/citar?p=10&locale=es",
+          "label": "Cáceres"
+        },
+        {
+          "value": "/icpplus/citar?p=11&locale=es",
+          "label": "Cádiz"
+        },
+        {
+          "value": "/icpplus/citar?p=39&locale=es",
+          "label": "Cantabria"
+        },
+        {
+          "value": "/icpplus/citar?p=12&locale=es",
+          "label": "Castellón"
+        },
+        {
+          "value": "/icpplus/citar?p=51&locale=es",
+          "label": "Ceuta"
+        },
+        {
+          "value": "/icpplus/citar?p=13&locale=es",
+          "label": "Ciudad Real"
+        },
+        {
+          "value": "/icpplus/citar?p=14&locale=es",
+          "label": "Córdoba"
+        },
+        {
+          "value": "/icpplus/citar?p=16&locale=es",
+          "label": "Cuenca"
+        },
+        {
+          "value": "/icpplus/citar?p=20&locale=es",
+          "label": "Gipuzkoa"
+        },
+        {
+          "value": "/icpplus/citar?p=17&locale=es",
+          "label": "Girona"
+        },
+        {
+          "value": "/icpplus/citar?p=18&locale=es",
+          "label": "Granada"
+        },
+        {
+          "value": "/icpplus/citar?p=19&locale=es",
+          "label": "Guadalajara"
+        },
+        {
+          "value": "/icpplus/citar?p=21&locale=es",
+          "label": "Huelva"
+        },
+        {
+          "value": "/icpplus/citar?p=22&locale=es",
+          "label": "Huesca"
+        },
+        {
+          "value": "/icpplustie/citar?p=7&locale=es",
+          "label": "Illes Balears"
+        },
+        {
+          "value": "/icpplus/citar?p=23&locale=es",
+          "label": "Jaén"
+        },
+        {
+          "value": "/icpplus/citar?p=26&locale=es",
+          "label": "La Rioja"
+        },
+        {
+          "value": "/icpplustie/citar?p=35&locale=es",
+          "label": "Las Palmas"
+        },
+        {
+          "value": "/icpplus/citar?p=24&locale=es",
+          "label": "León"
+        },
+        {
+          "value": "/icpplus/citar?p=25&locale=es",
+          "label": "Lleida"
+        },
+        {
+          "value": "/icpplus/citar?p=27&locale=es",
+          "label": "Lugo"
+        },
+        {
+          "value": "/icpplustiem/citar?p=28&locale=es",
+          "label": "Madrid"
+        },
+        {
+          "value": "/icpplustie/citar?p=29&locale=es",
+          "label": "Málaga"
+        },
+        {
+          "value": "/icpplus/citar?p=52&locale=es",
+          "label": "Melilla"
+        },
+        {
+          "value": "/icpplus/citar?p=30&locale=es",
+          "label": "Murcia"
+        },
+        {
+          "value": "/icpplus/citar?p=31&locale=es",
+          "label": "Navarra"
+        },
+        {
+          "value": "/icpplus/citar?p=32&locale=es",
+          "label": "Ourense"
+        },
+        {
+          "value": "/icpplus/citar?p=34&locale=es",
+          "label": "Palencia"
+        },
+        {
+          "value": "/icpplus/citar?p=36&locale=es",
+          "label": "Pontevedra"
+        },
+        {
+          "value": "/icpplus/citar?p=37&locale=es",
+          "label": "Salamanca"
+        },
+        {
+          "value": "/icpco/citar?p=38&locale=es",
+          "label": "S.Cruz Tenerife"
+        },
+        {
+          "value": "/icpplus/citar?p=40&locale=es",
+          "label": "Segovia"
+        },
+        {
+          "value": "/icpplus/citar?p=41&locale=es",
+          "label": "Sevilla"
+        },
+        {
+          "value": "/icpplus/citar?p=42&locale=es",
+          "label": "Soria"
+        },
+        {
+          "value": "/icpplus/citar?p=43&locale=es",
+          "label": "Tarragona"
+        },
+        {
+          "value": "/icpplus/citar?p=44&locale=es",
+          "label": "Teruel"
+        },
+        {
+          "value": "/icpplus/citar?p=45&locale=es",
+          "label": "Toledo"
+        },
+        {
+          "value": "/icpplus/citar?p=46&locale=es",
+          "label": "Valencia"
+        },
+        {
+          "value": "/icpplus/citar?p=47&locale=es",
+          "label": "Valladolid"
+        },
+        {
+          "value": "/icpplus/citar?p=49&locale=es",
+          "label": "Zamora"
+        },
+        {
+          "value": "/icpplus/citar?p=50&locale=es",
+          "label": "Zaragoza"
+        }
+      ]
+    },
+    "barcelona_offices": {
+      "id": "sede",
+      "name": "sede",
+      "options": [
+        {
+          "value": "99",
+          "label": "Cualquier oficina"
+        },
+        {
+          "value": "18",
+          "label": "CNP COMISARIA BADALONA, AVDA. DELS VENTS, 9, BADALONA"
+        },
+        {
+          "value": "19",
+          "label": "CNP COMISARIA CASTELLDEFELS, PLAÇA DE L`ESPERANTO, 4, CASTELLDEFELS"
+        },
+        {
+          "value": "20",
+          "label": "CNP COMISARIA CERDANYOLA DEL VALLES, VERGE DE LES FEIXES, 4, CERDANYOLA DEL VALLES"
+        },
+        {
+          "value": "21",
+          "label": "CNP COMISARIA CORNELLA DE LLOBREGAT, AV. SANT ILDEFONS, S/N, CORNELLA DE LLOBREGAT"
+        },
+        {
+          "value": "23",
+          "label": "CNP COMISARIA EL PRAT DE LLOBREGAT, CENTRE, 4, EL PRAT DE LLOBREGAT"
+        },
+        {
+          "value": "28",
+          "label": "CNP COMISARIA GRANOLLERS, RICOMA, 65, GRANOLLERS"
+        },
+        {
+          "value": "26",
+          "label": "CNP COMISARIA IGUALADA, PRAT DE LA RIBA, 13, IGUALADA"
+        },
+        {
+          "value": "17",
+          "label": "CNP COMISARIA LHOSPITALET DE LLOBREGAT, Rbla. Just Oliveres, 43, L`HOSPITALET DE LLOBREGAT"
+        },
+        {
+          "value": "38",
+          "label": "CNP COMISARIA MANRESA, SOLER I MARCH, 5, MANRESA"
+        },
+        {
+          "value": "27",
+          "label": "CNP COMISARIA MATARO, AV. GATASSA, 15, MATARO"
+        },
+        {
+          "value": "31",
+          "label": "CNP COMISARIA MONTCADA I REIXAC, MAJOR, 38, MONTCADA I REIXAC"
+        },
+        {
+          "value": "32",
+          "label": "CNP COMISARIA RIPOLLET, TAMARIT, 78, RIPOLLET"
+        },
+        {
+          "value": "29",
+          "label": "CNP COMISARIA RUBI, TERRASSA, 16, RUBI"
+        },
+        {
+          "value": "30",
+          "label": "CNP COMISARIA SABADELL, BATLLEVELL, 115, SABADELL"
+        },
+        {
+          "value": "33",
+          "label": "CNP COMISARIA SANT ADRIA DEL BESOS, AV. JOAN XXIII, 2, SANT ADRIA DEL BESOS"
+        },
+        {
+          "value": "24",
+          "label": "CNP COMISARIA SANT BOI DE LLOBREGAT, RIERA BASTÉ, 43, SANT BOI DE LLOBREGAT"
+        },
+        {
+          "value": "34",
+          "label": "CNP COMISARIA SANT CUGAT DEL VALLES, VALLES, 1, SANT CUGAT DEL VALLES"
+        },
+        {
+          "value": "22",
+          "label": "CNP COMISARIA SANT FELIU DE LLOBREGAT, CARRERETES, 9, SANT FELIU DE LLOBREGAT"
+        },
+        {
+          "value": "35",
+          "label": "CNP COMISARIA SANTA COLOMA DE GRAMENET, IRLANDA, 67, SANTA COLOMA DE GRAMENET"
+        },
+        {
+          "value": "36",
+          "label": "CNP COMISARIA TERRASSA, BALDRICH, 13, TERRASSA"
+        },
+        {
+          "value": "37",
+          "label": "CNP COMISARIA VIC, BISBE MORGADES, 4, VIC"
+        },
+        {
+          "value": "25",
+          "label": "CNP COMISARIA VILADECANS, AVDA. BALLESTER, 2, VILADECANS"
+        },
+        {
+          "value": "46",
+          "label": "CNP COMISARIA VILAFRANCA DEL PENEDES, Avinguda Ronda del Mar, 109, VILAFRANCA DEL PENEDES"
+        },
+        {
+          "value": "49",
+          "label": "CNP COMISARIA VILANOVA I LA GELTRU, CARRER D`OLÉRDOLA, 47, Vilanova i la Geltrú"
+        },
+        {
+          "value": "47",
+          "label": "CNP GUADALAJARA, Guadalajara, 1, Barcelona"
+        },
+        {
+          "value": "14",
+          "label": "CNP MALLORCA GRANADOS, MALLORCA, 213, BARCELONA"
+        },
+        {
+          "value": "43",
+          "label": "CNP PSJ PLANTA BAJA, PASSEIG SANT JOAN, 189, BARCELONA"
+        },
+        {
+          "value": "16",
+          "label": "CNP RAMBLA GUIPUSCOA 74, RAMBLA GUIPUSCOA, 74, BARCELONA"
+        }
+      ]
+    },
+    "nationalities": {
+      "id": "txtPaisNac",
+      "name": "txtPaisNac",
+      "options": [
+        {
+          "value": "401",
+          "label": "AFGANISTAN"
+        },
+        {
+          "value": "102",
+          "label": "ALBANIA"
+        },
+        {
+          "value": "103",
+          "label": "ALEMANIA"
+        },
+        {
+          "value": "133",
+          "label": "ANDORRA"
+        },
+        {
+          "value": "301",
+          "label": "ANGOLA"
+        },
+        {
+          "value": "258",
+          "label": "ANGUILLA"
+        },
+        {
+          "value": "255",
+          "label": "ANTIGUA Y BARBUDA"
+        },
+        {
+          "value": "200",
+          "label": "ANTILLAS NL."
+        },
+        {
+          "value": "600",
+          "label": "APATRIDA"
+        },
+        {
+          "value": "403",
+          "label": "ARABIA SAUDI"
+        },
+        {
+          "value": "304",
+          "label": "ARGELIA"
+        },
+        {
+          "value": "202",
+          "label": "ARGENTINA"
+        },
+        {
+          "value": "142",
+          "label": "ARMENIA"
+        },
+        {
+          "value": "257",
+          "label": "ARUBA"
+        },
+        {
+          "value": "500",
+          "label": "AUSTRALIA"
+        },
+        {
+          "value": "104",
+          "label": "AUSTRIA"
+        },
+        {
+          "value": "143",
+          "label": "AZERBAYAN"
+        },
+        {
+          "value": "203",
+          "label": "BAHAMAS"
+        },
+        {
+          "value": "405",
+          "label": "BAHREIN"
+        },
+        {
+          "value": "432",
+          "label": "BANGLADESH"
+        },
+        {
+          "value": "205",
+          "label": "BARBADOS"
+        },
+        {
+          "value": "105",
+          "label": "BELGICA"
+        },
+        {
+          "value": "207",
+          "label": "BELICE"
+        },
+        {
+          "value": "302",
+          "label": "BENIN"
+        },
+        {
+          "value": "407",
+          "label": "BHUTAN"
+        },
+        {
+          "value": "144",
+          "label": "BIELORRUSIA O BELARUS"
+        },
+        {
+          "value": "204",
+          "label": "BOLIVIA"
+        },
+        {
+          "value": "156",
+          "label": "BOSNIA-HERZEGOVINA"
+        },
+        {
+          "value": "305",
+          "label": "BOTSWANA"
+        },
+        {
+          "value": "206",
+          "label": "BRASIL"
+        },
+        {
+          "value": "409",
+          "label": "BRUNEI DARUSSALAM"
+        },
+        {
+          "value": "134",
+          "label": "BULGARIA"
+        },
+        {
+          "value": "303",
+          "label": "BURKINA FASO"
+        },
+        {
+          "value": "321",
+          "label": "BURUNDI"
+        },
+        {
+          "value": "315",
+          "label": "CABO VERDE"
+        },
+        {
+          "value": "402",
+          "label": "CAMBOYA"
+        },
+        {
+          "value": "308",
+          "label": "CAMERUN"
+        },
+        {
+          "value": "208",
+          "label": "CANADA"
+        },
+        {
+          "value": "310",
+          "label": "CENTROAFRICA REPUBLICA"
+        },
+        {
+          "value": "372",
+          "label": "CHAD"
+        },
+        {
+          "value": "210",
+          "label": "CHILE"
+        },
+        {
+          "value": "406",
+          "label": "CHINA"
+        },
+        {
+          "value": "107",
+          "label": "CHIPRE"
+        },
+        {
+          "value": "212",
+          "label": "COLOMBIA"
+        },
+        {
+          "value": "311",
+          "label": "COMORES"
+        },
+        {
+          "value": "312",
+          "label": "CONGO BRAZZAVILLE"
+        },
+        {
+          "value": "460",
+          "label": "COREA, REP. POP. DEMOC."
+        },
+        {
+          "value": "410",
+          "label": "COREA, REPUBLICA"
+        },
+        {
+          "value": "314",
+          "label": "COSTA DE MARFIL"
+        },
+        {
+          "value": "214",
+          "label": "COSTA RICA"
+        },
+        {
+          "value": "140",
+          "label": "CROACIA"
+        },
+        {
+          "value": "216",
+          "label": "CUBA"
+        },
+        {
+          "value": "108",
+          "label": "DINAMARCA"
+        },
+        {
+          "value": "317",
+          "label": "DJIBOUTI"
+        },
+        {
+          "value": "217",
+          "label": "DOMINICA"
+        },
+        {
+          "value": "218",
+          "label": "DOMINICANA REPUBLICA"
+        },
+        {
+          "value": "222",
+          "label": "ECUADOR"
+        },
+        {
+          "value": "224",
+          "label": "EEUU"
+        },
+        {
+          "value": "300",
+          "label": "EGIPTO"
+        },
+        {
+          "value": "220",
+          "label": "EL SALVADOR"
+        },
+        {
+          "value": "136",
+          "label": "EL VATICANO"
+        },
+        {
+          "value": "429",
+          "label": "EMIRATOS ARABES UNIDOS"
+        },
+        {
+          "value": "384",
+          "label": "ERITREA"
+        },
+        {
+          "value": "158",
+          "label": "ESLOVAQUIA"
+        },
+        {
+          "value": "141",
+          "label": "ESLOVENIA"
+        },
+        {
+          "value": "109",
+          "label": "ESPAÑA"
+        },
+        {
+          "value": "137",
+          "label": "ESTONIA"
+        },
+        {
+          "value": "318",
+          "label": "ETIOPIA"
+        },
+        {
+          "value": "550",
+          "label": "FIDJI"
+        },
+        {
+          "value": "411",
+          "label": "FILIPINAS"
+        },
+        {
+          "value": "110",
+          "label": "FINLANDIA"
+        },
+        {
+          "value": "111",
+          "label": "FRANCIA"
+        },
+        {
+          "value": "320",
+          "label": "GABON"
+        },
+        {
+          "value": "323",
+          "label": "GAMBIA"
+        },
+        {
+          "value": "145",
+          "label": "GEORGIA"
+        },
+        {
+          "value": "322",
+          "label": "GHANA"
+        },
+        {
+          "value": "229",
+          "label": "GRANADA REPUBLICA"
+        },
+        {
+          "value": "113",
+          "label": "GRECIA"
+        },
+        {
+          "value": "228",
+          "label": "GUATEMALA"
+        },
+        {
+          "value": "225",
+          "label": "GUAYANA"
+        },
+        {
+          "value": "324",
+          "label": "GUINEA ECUATORIAL"
+        },
+        {
+          "value": "325",
+          "label": "GUINEA REPUBLICA"
+        },
+        {
+          "value": "328",
+          "label": "GUINEA-BISSAU"
+        },
+        {
+          "value": "230",
+          "label": "HAITI"
+        },
+        {
+          "value": "123",
+          "label": "HOLANDA"
+        },
+        {
+          "value": "232",
+          "label": "HONDURAS"
+        },
+        {
+          "value": "114",
+          "label": "HUNGRIA"
+        },
+        {
+          "value": "412",
+          "label": "INDIA"
+        },
+        {
+          "value": "414",
+          "label": "INDONESIA"
+        },
+        {
+          "value": "413",
+          "label": "IRAK"
+        },
+        {
+          "value": "415",
+          "label": "IRAN"
+        },
+        {
+          "value": "115",
+          "label": "IRLANDA"
+        },
+        {
+          "value": "116",
+          "label": "ISLANDIA"
+        },
+        {
+          "value": "520",
+          "label": "ISLAS MARSCHALL"
+        },
+        {
+          "value": "417",
+          "label": "ISRAEL"
+        },
+        {
+          "value": "117",
+          "label": "ITALIA"
+        },
+        {
+          "value": "233",
+          "label": "JAMAICA"
+        },
+        {
+          "value": "416",
+          "label": "JAPON"
+        },
+        {
+          "value": "419",
+          "label": "JORDANIA"
+        },
+        {
+          "value": "146",
+          "label": "KAZAJSTAN"
+        },
+        {
+          "value": "336",
+          "label": "KENIA"
+        },
+        {
+          "value": "147",
+          "label": "KIRGUISTAN"
+        },
+        {
+          "value": "501",
+          "label": "KIRIBATI"
+        },
+        {
+          "value": "421",
+          "label": "KUWAIT"
+        },
+        {
+          "value": "418",
+          "label": "LAOS"
+        },
+        {
+          "value": "436",
+          "label": "LAS MALDIVAS"
+        },
+        {
+          "value": "337",
+          "label": "LESOTHO"
+        },
+        {
+          "value": "138",
+          "label": "LETONIA"
+        },
+        {
+          "value": "423",
+          "label": "LIBANO"
+        },
+        {
+          "value": "342",
+          "label": "LIBERIA"
+        },
+        {
+          "value": "344",
+          "label": "LIBIA"
+        },
+        {
+          "value": "118",
+          "label": "LIECHTENSTEIN"
+        },
+        {
+          "value": "139",
+          "label": "LITUANIA"
+        },
+        {
+          "value": "119",
+          "label": "LUXEMBURGO"
+        },
+        {
+          "value": "463",
+          "label": "MACAO"
+        },
+        {
+          "value": "159",
+          "label": "MACEDONIA"
+        },
+        {
+          "value": "354",
+          "label": "MADAGASCAR"
+        },
+        {
+          "value": "425",
+          "label": "MALASIA"
+        },
+        {
+          "value": "900",
+          "label": "MALASIA - GRAN BRETAÑA"
+        },
+        {
+          "value": "346",
+          "label": "MALAWI"
+        },
+        {
+          "value": "347",
+          "label": "MALI"
+        },
+        {
+          "value": "120",
+          "label": "MALTA"
+        },
+        {
+          "value": "348",
+          "label": "MARRUECOS"
+        },
+        {
+          "value": "349",
+          "label": "MAURICIO"
+        },
+        {
+          "value": "350",
+          "label": "MAURITANIA"
+        },
+        {
+          "value": "234",
+          "label": "MEJICO"
+        },
+        {
+          "value": "525",
+          "label": "MICRONESIA"
+        },
+        {
+          "value": "148",
+          "label": "MOLDAVIA"
+        },
+        {
+          "value": "121",
+          "label": "MONACO"
+        },
+        {
+          "value": "427",
+          "label": "MONGOLIA"
+        },
+        {
+          "value": "160",
+          "label": "MONTENEGRO"
+        },
+        {
+          "value": "351",
+          "label": "MOZAMBIQUE"
+        },
+        {
+          "value": "400",
+          "label": "MYANMAR"
+        },
+        {
+          "value": "353",
+          "label": "NAMIBIA"
+        },
+        {
+          "value": "541",
+          "label": "NAURU"
+        },
+        {
+          "value": "420",
+          "label": "NEPAL"
+        },
+        {
+          "value": "236",
+          "label": "NICARAGUA"
+        },
+        {
+          "value": "360",
+          "label": "NIGER"
+        },
+        {
+          "value": "352",
+          "label": "NIGERIA"
+        },
+        {
+          "value": "122",
+          "label": "NORUEGA"
+        },
+        {
+          "value": "540",
+          "label": "NUEVA ZELANDA"
+        },
+        {
+          "value": "444",
+          "label": "OMAN"
+        },
+        {
+          "value": "424",
+          "label": "PAKISTAN"
+        },
+        {
+          "value": "920",
+          "label": "PALAOS"
+        },
+        {
+          "value": "910",
+          "label": "PALESTINA"
+        },
+        {
+          "value": "238",
+          "label": "PANAMA"
+        },
+        {
+          "value": "542",
+          "label": "PAPUA NUEVA GUINEA"
+        },
+        {
+          "value": "240",
+          "label": "PARAGUAY"
+        },
+        {
+          "value": "242",
+          "label": "PERU"
+        },
+        {
+          "value": "124",
+          "label": "POLONIA"
+        },
+        {
+          "value": "125",
+          "label": "PORTUGAL"
+        },
+        {
+          "value": "244",
+          "label": "PUERTO RICO"
+        },
+        {
+          "value": "431",
+          "label": "QATAR"
+        },
+        {
+          "value": "112",
+          "label": "REINO UNIDO"
+        },
+        {
+          "value": "380",
+          "label": "REP. DEMOCRATICA DEL CONGO (EX-ZAIRE)"
+        },
+        {
+          "value": "157",
+          "label": "REPUBLICA CHECA"
+        },
+        {
+          "value": "355",
+          "label": "REUNION-COMO"
+        },
+        {
+          "value": "306",
+          "label": "RUANDA"
+        },
+        {
+          "value": "127",
+          "label": "RUMANIA"
+        },
+        {
+          "value": "149",
+          "label": "RUSIA"
+        },
+        {
+          "value": "551",
+          "label": "SALOMON"
+        },
+        {
+          "value": "552",
+          "label": "SAMOA OCCIDENTAL"
+        },
+        {
+          "value": "256",
+          "label": "SAN CRISTOBAL Y NEVIS"
+        },
+        {
+          "value": "135",
+          "label": "SAN MARINO"
+        },
+        {
+          "value": "254",
+          "label": "SAN VICENTE"
+        },
+        {
+          "value": "253",
+          "label": "SANTA LUCIA"
+        },
+        {
+          "value": "361",
+          "label": "SANTO TOME Y PRINCIPE"
+        },
+        {
+          "value": "363",
+          "label": "SEICHELLES"
+        },
+        {
+          "value": "362",
+          "label": "SENEGAL"
+        },
+        {
+          "value": "366",
+          "label": "SENEGAMBIA"
+        },
+        {
+          "value": "155",
+          "label": "SERBIA"
+        },
+        {
+          "value": "364",
+          "label": "SIERRA LEONA"
+        },
+        {
+          "value": "426",
+          "label": "SINGAPUR"
+        },
+        {
+          "value": "433",
+          "label": "SIRIA"
+        },
+        {
+          "value": "365",
+          "label": "SOMALIA"
+        },
+        {
+          "value": "404",
+          "label": "SRI LANKA"
+        },
+        {
+          "value": "367",
+          "label": "SUDAFRICA"
+        },
+        {
+          "value": "368",
+          "label": "SUDAN"
+        },
+        {
+          "value": "128",
+          "label": "SUECIA"
+        },
+        {
+          "value": "129",
+          "label": "SUIZA"
+        },
+        {
+          "value": "250",
+          "label": "SURINAM"
+        },
+        {
+          "value": "371",
+          "label": "SWAZILANDIA"
+        },
+        {
+          "value": "154",
+          "label": "TADJIKISTAN"
+        },
+        {
+          "value": "408",
+          "label": "TAIWAN"
+        },
+        {
+          "value": "370",
+          "label": "TANZANIA"
+        },
+        {
+          "value": "428",
+          "label": "THAILANDIA"
+        },
+        {
+          "value": "465",
+          "label": "TIMOR ORIENTAL"
+        },
+        {
+          "value": "374",
+          "label": "TOGO"
+        },
+        {
+          "value": "554",
+          "label": "TONGA"
+        },
+        {
+          "value": "245",
+          "label": "TRINIDAD Y TOBAGO"
+        },
+        {
+          "value": "378",
+          "label": "TUNEZ"
+        },
+        {
+          "value": "151",
+          "label": "TURKMENIA"
+        },
+        {
+          "value": "130",
+          "label": "TURQUIA"
+        },
+        {
+          "value": "560",
+          "label": "TUVALU"
+        },
+        {
+          "value": "152",
+          "label": "UCRANIA"
+        },
+        {
+          "value": "358",
+          "label": "UGANDA"
+        },
+        {
+          "value": "246",
+          "label": "URUGUAY"
+        },
+        {
+          "value": "153",
+          "label": "UZBEKISTAN"
+        },
+        {
+          "value": "565",
+          "label": "VANUATU"
+        },
+        {
+          "value": "248",
+          "label": "VENEZUELA"
+        },
+        {
+          "value": "430",
+          "label": "VIETNAM"
+        },
+        {
+          "value": "434",
+          "label": "YEMEN"
+        },
+        {
+          "value": "382",
+          "label": "ZAMBIA"
+        },
+        {
+          "value": "357",
+          "label": "ZIMBABWE"
+        }
+      ]
+    }
+  }
+}

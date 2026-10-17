@@ -1,0 +1,137 @@
+name: Build desktop packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      portable:
+        description: Include optional Windows portable ZIP
+        type: boolean
+        default: false
+  push:
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: macos
+            arch: arm64
+            bundle: data/dist/Cita Extranjeria Helper.app
+          - runner: macos-15-intel
+            platform: macos
+            arch: x64
+            bundle: data/dist/Cita Extranjeria Helper.app
+          - runner: ubuntu-22.04
+            platform: linux
+            arch: x64
+            bundle: data/dist/Cita Extranjeria Helper
+          - runner: windows-2022
+            platform: windows
+            arch: x64
+            bundle: data/dist/Cita Extranjeria Helper
+    defaults:
+      run:
+        shell: bash
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: uv sync --frozen --extra desktop --extra build
+      - name: Install Linux native libraries
+        if: runner.os == 'Linux'
+        run: |
+          uv run python -m playwright install-deps firefox
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0
+      - name: Check tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: uv run python scripts/package_release.py --platform '${{ matrix.platform }}' --arch '${{ matrix.arch }}' --check-tag "$RELEASE_TAG"
+      - name: Check source privacy
+        run: uv run python scripts/check_privacy.py --tree .
+      - name: Test
+        run: uv run pytest
+      - name: Fetch public browser
+        run: uv run python -m camoufox fetch
+      - name: Offline browser flow regressions
+        env:
+          CITA_BROWSER_TESTS: '1'
+          CITA_TEST_ENGINE: camoufox
+        run: uv run pytest tests/test_local_assist_browser.py tests/test_contact_fields_browser.py
+      - name: Build native application
+        run: uv run python scripts/build_desktop_app.py
+      - name: Verify macOS signature
+        if: runner.os == 'macOS'
+        run: codesign --verify --deep --strict 'data/dist/Cita Extranjeria Helper.app'
+      - name: Offline packaged browser and worker IPC
+        run: uv run python scripts/verify_bundle.py '${{ matrix.bundle }}'
+      - uses: actions/setup-dotnet@v5
+        if: runner.os == 'Windows'
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install MSI build tools
+        if: runner.os == 'Windows'
+        env:
+          DOTNET_ROLL_FORWARD: Major
+        run: dotnet tool install --global wix --version 4.0.6
+      - name: Prepare AppImage tool
+        if: runner.os == 'Linux'
+        run: uv run python scripts/prepare_appimage.py data/build-appimage-tools
+      - name: Package and checksum
+        env:
+          DOTNET_ROLL_FORWARD: Major
+        run: uv run python scripts/package_release.py --platform '${{ matrix.platform }}' --arch '${{ matrix.arch }}'
+      - name: Verify final AppImage
+        if: runner.os == 'Linux'
+        run: |
+          for image in data/releases/*.AppImage; do
+            uv run python scripts/verify_appimage.py "$image"
+          done
+      - name: Optional Windows portable ZIP
+        if: runner.os == 'Windows' && github.event.inputs.portable == 'true'
+        run: uv run python scripts/package_release.py --platform windows --arch x64 --portable
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-${{ matrix.platform }}-${{ matrix.arch }}
+          path: data/releases/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: package-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify checksums and create draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: uv run --no-project --python 3.13 python scripts/create_draft_release.py release-assets

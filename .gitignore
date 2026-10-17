@@ -1,0 +1,54 @@
+# Private application data and local preparation
+/data/
+/debug/
+/.local/
+/tasks.yml
+/.tasks.yml.lock
+/.profiles-*
+.env
+.env.*
+
+# Python environment, metadata and test output
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage*
+htmlcov/
+
+# Browser data, diagnostics and databases
+/.playwright/
+/browser-profiles/
+/captures/
+/certs/
+*.log
+*.jsonl
+*.har
+*.response.html
+*.response.json
+*.db
+*.sqlite*
+
+# Certificates and private keys
+*.p12
+*.pfx
+*.key
+*.pem
+*.crt
+*.cer
+
+# Generated builds and release packages
+/build/
+/dist/
+*.app/
+*.spec
+*.dmg
+*.msi
+*.AppImage
+*.AppDir/
+*.zip
+*.tar.gz
+
+# macOS Finder metadata
+.DS_Store
