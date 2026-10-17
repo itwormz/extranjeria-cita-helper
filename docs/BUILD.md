@@ -22,7 +22,7 @@ Linux also needs Firefox/Qt system libraries:
 
 ```sh
 uv run python -m playwright install-deps firefox
-sudo apt-get install libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0
+sudo apt-get install libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0 libxcb-keysyms1 libxcb-icccm4 desktop-file-utils
 ```
 
 Output is `data/dist/Cita Extranjeria Helper.app` on macOS and `data/dist/Cita Extranjeria Helper/` on Windows/Linux. Extract and distribute the whole bundle, including `_internal`; a standalone executable is insufficient. Use `--output-dir PATH` to preserve an existing local build.
