@@ -481,10 +481,21 @@ def test_no_slots_reload_returns_province_at_same_url_and_logs_restart():
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
             await page.route('**/*',respond);r=runner_for(page,ctx)
             await page.goto(BASE+'acValidarEntrada')
-            await r.step()
+            # A renderer may still be loading on the first engine tick.
+            # Stop driving once the request was sent, then await its document.
+            for _ in range(10):
+                await r.step()
+                if r.last_action == 'request':
+                    break
+            assert r.last_action == 'request'
+            await page.wait_for_url(BASE+'acCitar')
+            await page.locator('p').wait_for(state='visible')
+            assert searches == 1
             assert (await r.observe()).kind=='request_no_slots'
             await r.step()
+            await page.locator('#form').wait_for(state='visible')
             observed=await r.observe()
+            assert searches == 2
             assert observed.kind=='province' and page.url==BASE+'acCitar'
             r.publish(observed);r.publish(observed)
             rows=r.control.snapshot()['timeline']
