@@ -72,12 +72,19 @@ jobs:
         run: |
           uv run python -m camoufox fetch
           uv run python -c "from camoufox.pkgman import launch_path; print(launch_path())"
+      - name: Offline macOS locked-session input
+        if: runner.os == 'macOS'
+        env:
+          CITA_BROWSER_TESTS: '1'
+          CITA_TEST_ENGINE: camoufox
+          PYTHONUNBUFFERED: '1'
+        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 tests/test_local_assist_browser.py -k locked_desktop
       - name: Offline browser flow regressions
         env:
           CITA_BROWSER_TESTS: '1'
           CITA_TEST_ENGINE: camoufox
           PYTHONUNBUFFERED: '1'
-        run: uv run pytest -v -o addopts='' --durations=10 -o faulthandler_timeout=120 tests/test_local_assist_browser.py tests/test_contact_fields_browser.py
+        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 tests/test_local_assist_browser.py tests/test_contact_fields_browser.py -k 'not locked_desktop'
       - name: Build native application
         run: uv run python scripts/build_desktop_app.py
       - name: Verify macOS signature
