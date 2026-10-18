@@ -573,7 +573,8 @@ def test_slow_navigation_after_sent_click_does_not_resubmit():
     asyncio.run(scenario())
 
 
-def test_manual_booking_with_diagnostics_retains_scroll_and_input(tmp_path, monkeypatch):
+@pytest.mark.parametrize("initial_loading", [False, True])
+def test_manual_booking_with_diagnostics_retains_scroll_and_input(tmp_path, monkeypatch, initial_loading):
     from dataclasses import replace
     from app.diagnostics import PageTrace
     from app.assist import _document_key
@@ -584,14 +585,37 @@ def test_manual_booking_with_diagnostics_retains_scroll_and_input(tmp_path, monk
             browser=await launch_browser(pw)
             ctx=await browser.new_context(viewport={"width":1000,"height":700})
             page=await ctx.new_page()
-            body='<h1>Selecciona una cita</h1><div style="height:3000px"></div><input id="captcha" name="txtCaptcha"><p id="status">Pending</p>'
+            body='<h1>Selecciona una cita</h1><input type="radio" name="cita" value="demo"><div style="height:3000px"></div><input id="captcha" name="txtCaptcha"><p id="status">Pending</p>'
             await page.route('**/*',lambda route:route.fulfill(body=body,content_type='text/html; charset=utf-8'))
             r=runner_for(page,ctx)
             r.checker.settings=replace(r.checker.settings,diagnostics_enabled=True)
             r.control.set_diagnostics(True)
             r.checker._assist_control=r.control
             await page.goto(BASE+'acOfertarCita')
-            await r.step()
+            if initial_loading:
+                observe = r.observe
+                first_tick = True
+                async def slow_first_tick():
+                    nonlocal first_tick
+                    observed = await observe()
+                    if first_tick:
+                        first_tick = False
+                        return replace(observed, kind='loading')
+                    return observed
+                monkeypatch.setattr(r, 'observe', slow_first_tick)
+            # A slow renderer can report loading on the first tick. The
+            # guarantee starts when control is actually handed to the user.
+            for _ in range(10):
+                await r.step()
+                if r.control.booking_handoff:
+                    break
+            assert r.control.booking_handoff
+            images_before = set(tmp_path.rglob('*.png'))
+            screenshot_calls = []
+            async def forbidden_screenshot(*args, **kwargs):
+                screenshot_calls.append(True)
+                raise AssertionError('Manual handoff must not request screenshots')
+            monkeypatch.setattr(page, 'screenshot', forbidden_screenshot)
             trace=PageTrace(page,r.checker,"test","run",_document_key)
             trace.start()
             try:
@@ -610,7 +634,8 @@ def test_manual_booking_with_diagnostics_retains_scroll_and_input(tmp_path, monk
                 assert await page.evaluate('window.scrollY')==position
                 assert await page.locator('#captcha').input_value()=='manual input'
                 assert list(tmp_path.rglob('*.html'))
-                assert not list(tmp_path.rglob('*.png'))
+                assert set(tmp_path.rglob('*.png')) == images_before
+                assert not screenshot_calls
             finally:
                 await trace.stop()
                 r.detach()
