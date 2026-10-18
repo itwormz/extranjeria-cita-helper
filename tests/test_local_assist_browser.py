@@ -649,7 +649,8 @@ def test_manual_booking_with_diagnostics_retains_scroll_and_input(tmp_path, monk
     '<input id="btnEnviar" type="submit" value="Solicitar cita" onclick="if(!event.isTrusted)event.preventDefault()">',
 ])
 @pytest.mark.skipif(sys.platform != "darwin", reason="Locked-session handling is implemented only on macOS")
-def test_locked_desktop_uses_keyboard_for_one_trusted_post(monkeypatch, control):
+@pytest.mark.parametrize("lost_ack", [False, True])
+def test_locked_desktop_uses_keyboard_for_one_trusted_post(monkeypatch, control, lost_ack):
     from app import desktop_session
     monkeypatch.setattr(desktop_session,'screen_locked',lambda:True)
     async def scenario():
@@ -663,6 +664,17 @@ def test_locked_desktop_uses_keyboard_for_one_trusted_post(monkeypatch, control)
                 await request.fulfill(body=body,content_type='text/html; charset=utf-8')
             await page.route('**/*',route)
             r=runner_for(page,ctx)
+            if lost_ack:
+                from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+                activate = r.checker._activate_control
+                async def lose_keyboard_reply(locator, **kwargs):
+                    press = locator.press
+                    async def sent_key(*args, **options):
+                        await press(*args, **options)
+                        raise PlaywrightTimeoutError('Locator.press: acknowledgement lost')
+                    monkeypatch.setattr(locator, 'press', sent_key)
+                    await activate(locator, **kwargs)
+                monkeypatch.setattr(r.checker, '_activate_control', lose_keyboard_reply)
             await page.goto(BASE+'acValidarEntrada')
             async def forbidden(*args,**kwargs):raise AssertionError('Locked desktop must not use mouse dispatch')
             page.mouse.click=forbidden

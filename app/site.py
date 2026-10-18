@@ -307,9 +307,17 @@ class IcpPlusChecker:
                     await locator.click(**options)
             except PlaywrightTimeoutError as exc:
                 message = str(exc)
-                if "click action done" not in message or "waiting for scheduled navigations to finish" not in message:
+                sent_click = ("click action done" in message
+                              and "waiting for scheduled navigations to finish" in message)
+                if not keyboard and not sent_click:
                     raise
-                frame = await navigation
+                # A keyboard dispatch can time out after sending the form,
+                # without the mouse-specific acknowledgement text. Observe
+                # the already registered navigation; never send another key.
+                try:
+                    frame = await navigation
+                except PlaywrightTimeoutError:
+                    raise exc
                 remaining = max(1, budget - int((time.monotonic() - started) * 1000))
                 await frame.wait_for_load_state("domcontentloaded", timeout=remaining)
         finally:

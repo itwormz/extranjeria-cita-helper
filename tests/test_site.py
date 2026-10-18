@@ -779,3 +779,37 @@ def test_certificate_attention_wait_is_single_and_cancelled(monkeypatch, outcome
         await original_sleep(0)
         assert calls == ([] if outcome == 'quick' else [(('certificate_approval' if outcome == 'native' else 'certificate_wait'), False)])
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("navigated", [True, False])
+def test_keyboard_timeout_observes_navigation_without_resending(monkeypatch, navigated):
+    from app import desktop_session
+    from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+    monkeypatch.setattr(desktop_session, 'screen_locked', lambda: True)
+    async def scenario():
+        ready = asyncio.Event()
+        frame = SimpleNamespace(wait_for_load_state=AsyncMock())
+        async def navigation(*args, **kwargs):
+            await ready.wait()
+            if not navigated:
+                raise PlaywrightTimeoutError('no navigation')
+            return frame
+        async def sent_key(*args, **kwargs):
+            ready.set()
+            raise PlaywrightTimeoutError('Locator.press: Timeout 5000ms exceeded')
+        locator = SimpleNamespace(
+            page=SimpleNamespace(main_frame=frame, wait_for_event=navigation),
+            element_handle=AsyncMock(return_value=SimpleNamespace(
+                owner_frame=AsyncMock(return_value=frame), dispose=AsyncMock())),
+            is_visible=AsyncMock(return_value=True), is_enabled=AsyncMock(return_value=True),
+            evaluate=AsyncMock(return_value=True), press=AsyncMock(side_effect=sent_key), click=AsyncMock())
+        checker = IcpPlusChecker(Settings()); checker._assist_guard = object()
+        if navigated:
+            await checker._activate_control(locator, timeout=5000)
+            frame.wait_for_load_state.assert_awaited_once()
+        else:
+            with pytest.raises(PlaywrightTimeoutError, match='Locator.press'):
+                await checker._activate_control(locator, timeout=5000)
+        locator.press.assert_awaited_once()
+        locator.click.assert_not_awaited()
+    asyncio.run(scenario())
