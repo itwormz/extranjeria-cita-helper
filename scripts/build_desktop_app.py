@@ -10,6 +10,23 @@ NAME = 'Cita Extranjeria Helper'
 ROOT = Path(__file__).resolve().parents[1]
 
 
+
+def sign_browser(browser):
+    """Sign nested Mach-O code before its containing browser bundle."""
+    magic = {bytes.fromhex(value) for value in (
+        "feedface", "cefaedfe", "feedfacf", "cffaedfe",
+        "cafebabe", "bebafeca", "cafebabf", "bfbafeca")}
+    info = plistlib.loads((browser / 'Contents' / 'Info.plist').read_bytes())
+    executable = browser / 'Contents' / 'MacOS' / info['CFBundleExecutable']
+    for path in sorted(browser.rglob("*")):
+        if path == executable or path.is_symlink() or not path.is_file():
+            continue
+        with path.open("rb") as stream:
+            is_code = stream.read(4) in magic
+        if is_code:
+            subprocess.run(['codesign', '--force', '--sign', '-', str(path)], check=True)
+    subprocess.run(['codesign', '--force', '--sign', '-', str(browser)], check=True)
+
 def build(*, experimental_no_fonts=False, include_fonts=False, output_directory=None):
     if sys.platform != 'darwin':
         from build_native import build_native
@@ -74,13 +91,11 @@ def build(*, experimental_no_fonts=False, include_fonts=False, output_directory=
     shutil.copytree(browser, destination, symlinks=True, dirs_exist_ok=True, ignore=ignore)
     from build_native import sanitize_certificate_policy
     sanitize_certificate_policy(destination)
-    if not include_fonts:
-        subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
+    sign_browser(destination)
     if experimental_no_fonts:
         import json
         (bundle/'Contents'/'Resources'/'app-variant.json').write_text(json.dumps({'name':display_name,'experimental_no_fonts':True}))
         (bundle/'Contents'/'Frameworks'/'app-variant.json').symlink_to('../Resources/app-variant.json')
-        subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
     # Preserve Camoufox's verified model and freshness stamp: it must never
     # download or write model files inside the signed, potentially read-only app.
     import os

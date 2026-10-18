@@ -1,4 +1,6 @@
 """Visible frame contents: an embedded error overrides its surrounding form."""
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
 from .site import _dead_page_kind, _is_icp_page
 
 
@@ -21,7 +23,12 @@ async def visible_documents(page):
             owner = await frame.frame_element()
             if not await owner.is_visible():
                 continue
-        text = await frame.locator("body").inner_text(timeout=2_000)
+        try:
+            text = await frame.locator("body").inner_text(timeout=2_000)
+        except PlaywrightTimeoutError:
+            # A committing document can temporarily have no body. Treat the
+            # whole page as loading, so surrounding forms are not acted upon.
+            return [(page.main_frame, "")]
         documents.append((frame, text))
     return documents
 
