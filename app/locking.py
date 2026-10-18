@@ -9,10 +9,8 @@ def lock_handle(handle, *, blocking=True, posix_record=False):
     if os.name == 'nt':
         import msvcrt
         handle.seek(0)
-        if os.fstat(handle.fileno()).st_size == 0:
-            handle.write(b'\0')
-            handle.flush()
-        handle.seek(0)
+        # Windows permits byte-range locks beyond EOF. Writing a sentinel
+        # before acquiring the lock races with another handle's byte lock.
         # LK_LOCK has a finite retry window. Poll explicitly for a truly
         # blocking editor lock; workers use one immediate attempt.
         import time
