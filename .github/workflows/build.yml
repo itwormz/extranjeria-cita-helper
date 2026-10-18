@@ -67,7 +67,11 @@ jobs:
       - name: Test
         run: uv run pytest
       - name: Fetch public browser
-        run: uv run python -m camoufox fetch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          uv run python -m camoufox fetch
+          uv run python -c "from camoufox.pkgman import launch_path; print(launch_path())"
       - name: Offline browser flow regressions
         env:
           CITA_BROWSER_TESTS: '1'
