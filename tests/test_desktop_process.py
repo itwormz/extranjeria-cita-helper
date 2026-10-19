@@ -82,11 +82,14 @@ def test_worker_crash_stderr_is_reported_once(tmp_path, catalog_path, qt_app, mo
     monkeypatch.setattr(reports, 'runtime_root', lambda: tmp_path)
     controller = DesktopController(ProfileStore(tmp_path/'tasks.yml', catalog_path))
     errors = []; controller.failed.connect(errors.append)
+    checks = []
+    monkeypatch.setattr(reports, 'bundle_checks', lambda *, external_checks=True: checks.append(external_checks) or {})
     controller.process.start(sys.executable, ['-c', "import sys;sys.stderr.write('ImportError: browser component missing');sys.exit(3)"])
     assert controller.process.waitForFinished(5000)
     assert len(errors) == 1
     report_id = reports.report_id_from_message(errors[0])
     report = reports.read_startup_report(report_id)
     assert report['phase'] == 'worker_exit'
+    assert checks == [False]
     assert 'ImportError' in report['message']
     assert 'browser component missing' not in report['message']

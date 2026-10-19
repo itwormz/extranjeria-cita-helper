@@ -78,3 +78,71 @@ def test_worker_stderr_summary_does_not_keep_arbitrary_values():
     for private in ('PRIVATE_COOKIE', 'FICTITIOUS PERSON', '612345678'):
         assert private not in summary
     assert "missing.module" in worker_exit_summary(1, "ModuleNotFoundError: No module named 'missing.module'")
+
+
+def test_path_probe_distinguishes_missing_denied_and_broken_link(tmp_path, monkeypatch):
+    import errno
+    from app.desktop import startup_report as reports
+    missing = reports.inspect_path(tmp_path / 'missing')
+    assert missing['stat_error']['errno'] == errno.ENOENT
+    link = tmp_path / 'broken'; link.symlink_to('missing')
+    broken = reports.inspect_path(link)
+    assert broken['is_symlink'] and broken['link_target'] == 'missing'
+    assert broken['stat_error']['errno'] == errno.ENOENT
+    original = Path.stat
+    denied = tmp_path / 'denied'
+    def stat(path, **kwargs):
+        if path == denied: raise PermissionError(errno.EACCES, 'Permission denied')
+        return original(path, **kwargs)
+    monkeypatch.setattr(Path, 'stat', stat)
+    assert reports.inspect_path(denied)['stat_error']['errno'] == errno.EACCES
+
+
+def test_macos_bundle_checks_compare_worker_and_main_paths(tmp_path, monkeypatch):
+    from app.desktop import startup_report as reports
+    import sys
+    main = tmp_path / 'Helper.app'
+    helper = main / 'Contents/Helpers/Cita Worker.app/Contents'
+    (helper / 'MacOS').mkdir(parents=True)
+    (helper / 'Resources').symlink_to('../../../Resources', target_is_directory=True)
+    browser = main / 'Contents/Resources/bundled-browser/Camoufox.app/Contents/MacOS/camoufox'
+    browser.parent.mkdir(parents=True); browser.write_text('synthetic'); browser.chmod(0o700)
+    monkeypatch.setattr(sys, 'platform', 'darwin')
+    monkeypatch.setattr(sys, 'frozen', True, raising=False)
+    monkeypatch.setattr(sys, 'executable', str(helper / 'MacOS/Helper'))
+    monkeypatch.setattr(reports, 'verify_signature', lambda path: {'status':'valid'})
+    checks = reports.bundle_checks()
+    assert checks['main_browser']['exists']
+    assert checks['worker_browser']['exists']
+    assert checks['worker_resources']['is_symlink']
+    assert checks['worker_resources']['resolved'] == reports.clean(main / 'Contents/Resources')
+    assert checks['signatures']['application']['status'] == 'valid'
+    (helper / 'Resources').unlink()
+    (helper / 'Resources').symlink_to('../../../MissingResources', target_is_directory=True)
+    checks = reports.bundle_checks(external_checks=False)
+    assert checks['main_browser']['exists']
+    assert not checks['worker_browser']['exists']
+    assert checks['worker_resources']['is_symlink']
+    assert checks['signatures']['application']['status'] == 'not_checked'
+
+
+def test_signature_probe_is_read_only_and_bounded(tmp_path, monkeypatch):
+    import subprocess
+    from app.desktop import startup_report as reports
+    calls = []
+    def run(args, **kwargs):
+        calls.append((args, kwargs))
+        raise subprocess.TimeoutExpired(args, kwargs['timeout'])
+    monkeypatch.setattr(reports.subprocess, 'run', run)
+    assert reports.verify_signature(tmp_path)['status'] == 'timeout'
+    args, options = calls[0]
+    assert args[:4] == ['/usr/bin/codesign','--verify','--deep','--strict']
+    assert options['timeout'] <= 5
+    assert '--force' not in args and '--sign' not in args
+
+
+def test_copy_preserves_complete_structured_report():
+    from app.desktop.startup_report import report_clipboard_text
+    report = {'parts':[{'detail':'technical detail ' * 500} for _ in range(5)]}
+    text = report_clipboard_text('20261019T123456-1234abcd', report)
+    assert json.loads(text.split('\n', 1)[1]) == report

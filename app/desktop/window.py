@@ -873,8 +873,9 @@ class DesktopWindow(QMainWindow):
             widget.setVisible(bool(report))
         if report:
             browser=report.get('browser',{})
-            missing=report.get('phase')=='browser_launch' and report.get('frozen') and not browser.get('exists')
+            missing=report.get('phase')=='browser_launch' and report.get('frozen') and not browser.get('exists') and browser.get('stat_error',{}).get('errno',2) in {2,20}
             title='Встроенный браузер не найден' if missing else 'Не удалось запустить Camoufox'
+            if browser.get('stat_error',{}).get('errno') in {1,13}: title='Нет доступа к встроенному браузеру'
             if report.get('phase') in {'worker','worker_exit'}: title='Не удалось запустить поиск'
             self.error_text.setText(self.t(title))
             self.error_text.setProperty('reportTitle',True)

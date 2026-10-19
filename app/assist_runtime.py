@@ -205,7 +205,7 @@ async def _run_session(task, settings, control, *, max_cycles=None):
             return 0
         if runner is None:
             from .desktop.startup_report import save_startup_error, StartupFailure
-            report_id, summary = save_startup_error(exc, 'browser_launch')
+            report_id, summary = await asyncio.to_thread(save_startup_error, exc, 'browser_launch')
             location = f"startup-errors/{report_id}.json" if report_id else 'report unavailable'
             detail = f"Browser startup failed — {summary} — {location}"
             control.record('fatal_error', detail=detail)

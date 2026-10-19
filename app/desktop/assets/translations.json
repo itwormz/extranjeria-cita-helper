@@ -707,7 +707,8 @@
     "Скопировать отчёт и отправить автору для проверки.": "Copy the report and send it to the author for investigation.",
     "Без данных профиля и содержимого страниц": "Without profile data or page contents",
     "Отчёт скопирован. Вставить текст в Telegram или GitHub Issues.": "Report copied. Paste it into Telegram or GitHub Issues.",
-    "Повторить запуск": "Retry start"
+    "Повторить запуск": "Retry start",
+    "Нет доступа к встроенному браузеру": "Cannot access the bundled browser"
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1417,6 +1418,7 @@
     "Скопировать отчёт и отправить автору для проверки.": "Copiar el informe y enviarlo al autor para su revisión.",
     "Без данных профиля и содержимого страниц": "Sin datos del perfil ni contenido de las páginas",
     "Отчёт скопирован. Вставить текст в Telegram или GitHub Issues.": "Informe copiado. Pegar el texto en Telegram o GitHub Issues.",
-    "Повторить запуск": "Volver a iniciar"
+    "Повторить запуск": "Volver a iniciar",
+    "Нет доступа к встроенному браузеру": "No se puede acceder al navegador incluido"
   }
 }

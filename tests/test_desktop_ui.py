@@ -842,3 +842,18 @@ def test_startup_error_has_copy_report_and_copies_technical_data(window, tmp_pat
 def test_ordinary_error_does_not_offer_unrelated_startup_report(window):
     window.show_error('Example failure')
     assert not window.copy_report_button.isVisible()
+
+
+def test_access_denied_is_not_presented_as_missing_browser(window, tmp_path, monkeypatch):
+    import json
+    from app.desktop import startup_report as reports
+    monkeypatch.setattr(reports, 'runtime_root', lambda: tmp_path)
+    report_id, summary = reports.save_startup_error(PermissionError('denied'), 'browser_launch')
+    path=tmp_path/'startup-errors'/(report_id+'.json')
+    data=json.loads(path.read_text()); data['frozen']=True
+    data['browser']={'exists':False,'stat_error':{'errno':13}}
+    path.write_text(json.dumps(data))
+    window.preferences['language']='ru'
+    window.show_error(f'Browser startup failed — {summary} — startup-errors/{report_id}.json')
+    assert window.error_text.text()=='Нет доступа к встроенному браузеру'
+    assert window.copy_report_button.isVisible()

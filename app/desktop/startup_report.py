@@ -5,6 +5,8 @@ from pathlib import Path
 import platform
 import re
 import sys
+import stat
+import subprocess
 import traceback
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -27,7 +29,7 @@ def clean(value):
     return sanitize(text)[:16000]
 
 
-def save_startup_error(exc, phase):
+def save_startup_error(exc, phase, *, external_checks=True):
     """Return a report ID and safe summary, even when writing is impossible."""
     summary = f"{type(exc).__name__}: {clean(exc)[:600]}"
     try:
@@ -38,9 +40,8 @@ def save_startup_error(exc, phase):
             "macos": platform.mac_ver()[0], "architecture": platform.machine(),
             "frozen": bool(getattr(sys, "frozen", False)),
             "executable": clean(sys.executable), "phase": phase,
-            "browser": {"path": clean(browser) if browser else None,
-                        "exists": bool(browser and browser.is_file()),
-                        "executable": bool(browser and os.access(browser, os.X_OK))},
+            "browser": inspect_path(browser) if browser else {"path": None, "exists": False},
+            "bundle_checks": bundle_checks(external_checks=external_checks),
             "error_type": type(exc).__name__, "message": clean(exc),
             "traceback": [{"file": clean(frame.filename), "line": frame.lineno,
                            "function": frame.name} for frame in traceback.extract_tb(exc.__traceback__)],
@@ -80,8 +81,12 @@ def read_startup_report(report_id):
 
 def report_clipboard_text(report_id, report):
     # Reapply masking when copying: old reports may predate a masking change.
+    def scrub(value):
+        if isinstance(value, dict): return {key: scrub(item) for key, item in value.items()}
+        if isinstance(value, list): return [scrub(item) for item in value]
+        return clean(value) if isinstance(value, str) else value
     return ('Cita Extranjeria Helper — CEH-' + report_id + '\n'
-            + clean(json.dumps(report, ensure_ascii=False, indent=2)).replace('\\n', '\n'))
+            + json.dumps(scrub(report), ensure_ascii=False, indent=2))
 
 
 def worker_exit_summary(code, stderr):
@@ -93,3 +98,84 @@ def worker_exit_summary(code, stderr):
     if missing:
         summary += ' — missing module: ' + missing.group(1)
     return summary
+
+
+def os_error(exc):
+    return {"type": type(exc).__name__, "errno": exc.errno,
+            "reason": os.strerror(exc.errno) if exc.errno else type(exc).__name__}
+
+
+def inspect_path(path):
+    """Use stat explicitly so access denial is not confused with a missing file."""
+    path = Path(path)
+    result = {"path": clean(path), "exists": False, "executable": False}
+    try:
+        info = path.lstat()
+        result['is_symlink'] = stat.S_ISLNK(info.st_mode)
+        if result['is_symlink']:
+            result['link_target'] = clean(os.readlink(path))
+    except OSError as exc:
+        result['lstat_error'] = os_error(exc)
+    try:
+        info = path.stat()
+        result.update(exists=True, is_file=stat.S_ISREG(info.st_mode),
+                      mode=oct(stat.S_IMODE(info.st_mode)), executable=os.access(path, os.X_OK))
+    except OSError as exc:
+        result['stat_error'] = os_error(exc)
+    try:
+        result['resolved'] = clean(path.resolve(strict=True))
+    except (OSError, RuntimeError) as exc:
+        result['resolve_error'] = os_error(exc) if isinstance(exc, OSError) else {"type": type(exc).__name__}
+    return result
+
+
+def verify_signature(path):
+    """Read-only integrity check; valid does not imply notarized or Gatekeeper-approved."""
+    try:
+        result = subprocess.run(['/usr/bin/codesign', '--verify', '--deep', '--strict', str(path)],
+                                capture_output=True, timeout=3, check=False)
+        return {"status": 'valid' if result.returncode == 0 else 'invalid',
+                "exit_code": result.returncode, "detail": clean(result.stderr.decode('utf-8', errors='replace')[:4000])}
+    except subprocess.TimeoutExpired:
+        return {"status": 'timeout'}
+    except OSError as exc:
+        return {"status": 'unavailable', "error": os_error(exc)}
+
+
+def bundle_checks(*, external_checks=True):
+    if sys.platform != 'darwin' or not getattr(sys, 'frozen', False):
+        return {"status": 'not_applicable'}
+    executable = Path(sys.executable)
+    apps = [parent for parent in executable.parents if parent.suffix == '.app']
+    if not apps:
+        return {"status": 'bundle_not_identified'}
+    # Lexical paths preserve the worker resource link for comparison.
+    main = apps[-1]
+    current_contents = executable.parent.parent
+    relative = Path('bundled-browser/Camoufox.app/Contents/MacOS/camoufox')
+    main_browser = main / 'Contents/Resources' / relative
+    worker = main / 'Contents/Helpers/Cita Worker.app/Contents'
+    return {"status": 'checked', "translocated": '/AppTranslocation/' in str(executable),
+            "application": inspect_path(main),
+            "current_resources": inspect_path(current_contents / 'Resources'),
+            "worker_resources": inspect_path(worker / 'Resources'),
+            "worker_frameworks": inspect_path(worker / 'Frameworks'),
+            "main_browser": inspect_path(main_browser),
+            "worker_browser": inspect_path(worker / 'Resources' / relative),
+            "quarantine": {"application": quarantine_state(main) if external_checks else {"status": "not_checked", "reason": "gui_crash_fallback"},
+                           "browser": quarantine_state(main_browser.parents[2]) if external_checks else {"status": "not_checked", "reason": "gui_crash_fallback"}},
+            "signatures": {"application": verify_signature(main) if external_checks else {"status": "not_checked", "reason": "gui_crash_fallback"},
+                           "browser": verify_signature(main_browser.parents[2]) if external_checks else {"status": "not_checked", "reason": "gui_crash_fallback"}}}
+
+
+def quarantine_state(path):
+    """Record only presence of quarantine, never its source URL or metadata."""
+    try:
+        result = subprocess.run(['/usr/bin/xattr', str(path)], capture_output=True, timeout=1, check=False)
+        if result.returncode:
+            return {"status": 'unavailable', "exit_code": result.returncode}
+        return {"status": 'checked', "present": b'com.apple.quarantine' in result.stdout.splitlines()}
+    except subprocess.TimeoutExpired:
+        return {"status": 'timeout'}
+    except OSError as exc:
+        return {"status": 'unavailable', "error": os_error(exc)}

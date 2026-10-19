@@ -177,7 +177,7 @@ async def run_worker(task_id):
         if isinstance(exc, StartupFailure):
             message = str(exc)
         else:
-            report_id, summary = save_startup_error(exc, 'worker')
+            report_id, summary = await asyncio.to_thread(save_startup_error, exc, 'worker')
             location = f'startup-errors/{report_id}.json' if report_id else 'report unavailable'
             message = f'Worker failed — {summary} — {location}'
         emit({'type':'error','message':message})

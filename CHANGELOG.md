@@ -3,6 +3,7 @@
 ## 0.1.1 — Startup error reports
 
 - Browser startup failures now save a small local technical report even when page diagnostics are disabled. Reports include application/OS versions, architecture, bundled-browser availability and a sanitized exception traceback, without collecting profile settings, cookies or page contents.
+- macOS startup reports compare the main app and worker browser paths, include exact filesystem error codes and resource-link targets, quarantine presence, and bounded read-only signature checks. Access denial is distinguished from a missing browser.
 - The error panel shows a concise explanation, a Copy report button with confirmation, and a retry action in English, Russian and Spanish. Reports are copied only on request; nothing is sent automatically.
 - A browser crash during startup is no longer classified as a normal user closure; its failure report is preserved.
 - Unexpected worker exits extract exception types and missing-module names from bounded stderr without saving arbitrary stderr text. Only the latest ten startup reports are retained.

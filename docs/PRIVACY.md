@@ -37,7 +37,12 @@ exception with stack frame locations (without source lines). For unexpected work
 exits, up to 32 KiB of stderr is inspected in memory only to extract the exception
 type and a missing Python module name; arbitrary stderr text is not saved. They do not collect profile settings, cookies or page
 contents. Known applicant values and home-directory paths are masked. Only the
-latest ten reports are retained. **Copy report** copies the report to the clipboard;
+latest ten reports are retained. On macOS, reports also contain sanitized bundle
+paths and resource-link targets, filesystem error codes, quarantine presence
+(without its metadata), and bounded read-only code-signature verification results.
+Signature integrity does not imply notarization or Gatekeeper approval. If the
+worker exits before it can report an error, the GUI fallback skips external
+commands and marks those checks as not performed to keep the interface responsive. **Copy report** copies the report to the clipboard;
 it does not send it anywhere. Review the text before sharing it.
 
 ## Statistics and achievements

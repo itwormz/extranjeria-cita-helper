@@ -117,7 +117,7 @@ class DesktopController(QObject):
         if code and not self.reported_error and not self.stopping:
             from .startup_report import save_startup_error, worker_exit_summary
             error=RuntimeError(worker_exit_summary(code,self.stderr_tail.decode('utf-8',errors='replace')))
-            report_id, summary=save_startup_error(error,'worker_exit')
+            report_id, summary=save_startup_error(error,'worker_exit',external_checks=False)
             location=f'startup-errors/{report_id}.json' if report_id else 'report unavailable'
             self.failed.emit(f'Worker failed — {summary} — {location}')
         self.stderr_tail.clear()
