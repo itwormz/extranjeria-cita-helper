@@ -1,6 +1,6 @@
 # Changelog
 
-## Next release
+## 0.1.2 — Bundled browser startup on clean installations
 
 ### Fixed
 

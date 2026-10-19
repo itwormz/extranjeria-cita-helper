@@ -1,3 +1,3 @@
 """Application version exposed in startup logs and CLI output."""
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"

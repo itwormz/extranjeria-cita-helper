@@ -1,6 +1,6 @@
 # Extranjería Cita Helper
 
-**Versión: 0.1.1** · [Historial de cambios](CHANGELOG.md)
+**Versión: 0.1.2** · [Historial de cambios](CHANGELOG.md)
 
 **💜 Apoyar el desarrollo**
 
