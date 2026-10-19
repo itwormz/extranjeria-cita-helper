@@ -1,13 +1,26 @@
 # Changelog
 
-## 0.1.1 — Startup error reports
+## 0.1.1 — Startup diagnostics and copyable error reports
 
-- Browser startup failures now save a small local technical report even when page diagnostics are disabled. Reports include application/OS versions, architecture, bundled-browser availability and a sanitized exception traceback, without collecting profile settings, cookies or page contents.
-- macOS startup reports compare the main app and worker browser paths, include exact filesystem error codes and resource-link targets, quarantine presence, and bounded read-only signature checks. Access denial is distinguished from a missing browser.
-- The error panel shows a concise explanation, a Copy report button with confirmation, and a retry action in English, Russian and Spanish. Reports are copied only on request; nothing is sent automatically.
-- A browser crash during startup is no longer classified as a normal user closure; its failure report is preserved.
-- Unexpected worker exits extract exception types and missing-module names from bounded stderr without saving arbitrary stderr text. Only the latest ten startup reports are retained.
-- Added regressions for browser startup failure with diagnostics disabled, report sanitizing/copying, worker crashes and macOS bundle relocation. The reported macOS startup failure has not yet been reproduced; this update improves diagnosis rather than claiming a confirmed fix.
+### Added
+
+- Automatic local technical reports for browser startup failures, even with page diagnostics disabled: application/OS versions, architecture, executable paths, exception type and sanitized stack frame locations.
+- A compact error panel with **Copy report**, a copied confirmation and a retry action in English, Russian and Spanish. Copying preserves the complete structured report; sending it remains a manual action.
+- macOS checks comparing the browser paths in the main app and worker, resource symlink targets and resolution, exact filesystem error codes, executable permissions, quarantine presence and App Translocation detection.
+- Bounded read-only signature integrity checks for the main app and Camoufox. Results distinguish valid, invalid, timed-out and unavailable checks; signature validity does not assert notarization or Gatekeeper approval.
+
+### Fixed
+
+- Browser startup crashes reported as `TargetClosedError` are no longer mistaken for normal user closure.
+- Access denial is distinguished from a missing bundled browser in the error panel.
+- Unexpected worker exits retain exception types and missing-module names instead of silently discarding the failure reason.
+- The GUI crash fallback skips external diagnostic commands and explicitly marks them as not performed, keeping the interface responsive.
+
+### Privacy and verification
+
+- Reports do not collect profile settings, cookies or page contents. Known applicant values and home paths are masked; stack source lines and arbitrary worker stderr are excluded. Reports are stored locally with a ten-report retention limit and are never uploaded automatically.
+- Added regressions for disabled diagnostics, missing files, access denial, broken worker links, bundle relocation, signature timeouts, report copying and worker crashes.
+- The originally reported macOS startup failure has not been reproduced. This release improves diagnosis and error handling; it does not claim a confirmed fix for that user's installation.
 
 ## 0.1.0 — Initial release
 
