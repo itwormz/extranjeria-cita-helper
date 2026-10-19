@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.3 — Procedure selection across provinces
+
+### Fixed
+
+- Select the configured fingerprint procedure across all visible service groups instead of assuming it is in the first group. Provinces such as Bizkaia separate Extranjería and Policía Nacional services; the office selector remains unchanged.
+- Recognize procedure forms even when the first service group is hidden. An absent procedure does not trigger Aceptar or select an office with a similar name.
+
+### Verification
+
+- Audited the public procedure forms for all 52 provinces: 46 place the fingerprint service in the second group, six in the first.
+- Before release, verified selection and a simulated Aceptar transition offline in Camoufox for all 52 captured field sets. Added browser regressions to CI for multiple groups, hidden groups, and a missing service. This does not assert live end-to-end booking verification for every province.
+
 ## 0.1.2 — Bundled browser startup on clean installations
 
 ### Fixed

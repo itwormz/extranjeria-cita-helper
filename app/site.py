@@ -652,6 +652,25 @@ class IcpPlusChecker:
         if not selected:
             raise SiteCheckError('FORM_INTERACTION_FAILED', True, 'ACTIVE', 'select.option')
 
+    async def _select_procedure(self, page, label: str) -> None:
+        """Service-family indexes vary by province; match only procedure lists."""
+        deadline = time.monotonic() + self.settings.navigation_timeout_seconds
+        saw_options = False
+        while time.monotonic() < deadline:
+            groups = page.locator('select[id^="tramiteGrupo["]:visible')
+            for group in await groups.all():
+                labels = await group.locator('option').all_inner_texts()
+                saw_options = saw_options or len(labels) > 1
+                if label in labels:
+                    identifier = await group.get_attribute('id')
+                    await self._select_label(page, f'[id={json.dumps(identifier)}]', label, 'request.procedure')
+                    return
+            await page.wait_for_timeout(250)
+        await self._assert_no_challenge(page, 'request.procedure')
+        if saw_options:
+            raise SiteCheckError('CATALOG_VALUE_NOT_FOUND', False, 'BLOCKED_ERROR', 'request.procedure')
+        raise SiteCheckError('FORM_NOT_READY', True, 'ACTIVE', 'request.procedure')
+
     async def _select_label(self, page, selector: str, label: str, error_field: str) -> None:
         deadline = time.monotonic() + self.settings.navigation_timeout_seconds
         saw_visible = False

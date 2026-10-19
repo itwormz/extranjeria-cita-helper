@@ -289,7 +289,7 @@ class AssistRunner:
                 no_slots = any(m in text for m in NO_SLOT_MARKERS)
                 if await self.visible("#form"):
                     kind, evidence = "province", "Виден список провинций"
-                elif await self.visible('[id="tramiteGrupo[0]"]'):
+                elif await self.visible('select[id^="tramiteGrupo["]:visible'):
                     kind, evidence = "procedure", "Виден список услуг — предупреждение не является результатом запроса"
                 elif await self.visible("#btnAccesoClave"):
                     kind, evidence = "auth", "Доступна кнопка con Cl@ve"
@@ -767,7 +767,7 @@ class AssistRunner:
             await self.click(await self.observe(), "#btnAceptar", action="province")
         elif kind == "procedure":
             self.record("action", observed, "Выбрать услугу")
-            await self.checker._select_label(self.page, '[id="tramiteGrupo[0]"]', self.task.procedure, "request.procedure")
+            await self.checker._select_procedure(self.page, self.task.procedure)
             await self.click(await self.observe(), "#btnAceptar", action="procedure")
         elif kind == "auth":
             self.guard_document = self.guard_kind = None
