@@ -60,7 +60,17 @@ Run Linux AppImage with execute permission (`chmod +x file.AppImage`). On system
 
 Set the same numeric version in `app/version.py`, `pyproject.toml`, and the project entry in `uv.lock`; update `CHANGELOG.md`. Versions use MAJOR.MINOR.PATCH: fixes increment PATCH, features MINOR, incompatible changes MAJOR. All CPU architectures share one version. A tag such as `v0.1.0` must match the source version exactly.
 
-After every native build passes, a tag run creates a **draft Release** with two DMGs, one MSI, one Linux AppImage and `SHA256SUMS`. Review the packages, finish the release notes and publish the draft in GitHub. Existing releases are never overwritten by reruns. Build jobs use read-only repository access; only the draft-release job receives `contents: write`. No personal credentials are needed; it uses the scoped GitHub token.
+After every native build and verification passes, a tag run automatically publishes a **GitHub Release** with two DMGs, one MSI, one Linux AppImage and `SHA256SUMS`. Release notes include the matching `CHANGELOG.md` section. Packages are first uploaded to a draft; it becomes public only after all uploads succeed. Failed uploads leave a draft for investigation. Existing releases are never overwritten by reruns. Build jobs use read-only repository access; only the publish-release job receives `contents: write`. No personal credentials are needed; it uses the scoped GitHub token.
+
+For the prepared version, push the source commit and its matching tag:
+
+```sh
+git push origin main
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+A normal push to `main` does not start this workflow or publish a release. Manual workflow runs and pull requests build/test packages without publishing them.
 
 ## Signatures and browser resources
 
@@ -70,4 +80,4 @@ Only public resources are bundled. The macOS builder omits the large Camoufox fo
 
 Local macOS tests do not replace native Windows/Linux CI or manual checks of certificate/Cl@ve authentication, sounds, background operation and final manual booking. CI deliberately never requests real appointments.
 
-References: [PyInstaller](https://pyinstaller.org/en/stable/usage.html), [GitHub runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [draft releases](https://cli.github.com/manual/gh_release_create).
+References: [PyInstaller](https://pyinstaller.org/en/stable/usage.html), [GitHub runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [GitHub releases](https://cli.github.com/manual/gh_release_create).

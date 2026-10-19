@@ -4,6 +4,8 @@
 
 ### Added
 
+- Tag pushes automatically publish the GitHub Release after all platform checks/builds and package uploads succeed. Release notes include the matching changelog entry; incomplete uploads remain drafts.
+
 - Automatic local technical reports for browser startup failures, even with page diagnostics disabled: application/OS versions, architecture, executable paths, exception type and sanitized stack frame locations.
 - A compact error panel with **Copy report**, a copied confirmation and a retry action in English, Russian and Spanish. Copying preserves the complete structured report; sending it remains a manual action.
 - macOS checks comparing the browser paths in the main app and worker, resource symlink targets and resolution, exact filesystem error codes, executable permissions, quarantine presence and App Translocation detection.

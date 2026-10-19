@@ -48,3 +48,69 @@ def test_draft_requires_every_platform_and_rejects_tampering(tmp_path):
     file.write_bytes(b'tampered')
     with pytest.raises(ValueError, match='Checksum mismatch'):
         verified_assets(tmp_path, '0.1.0')
+
+
+def test_tag_release_publishes_only_after_successful_asset_upload(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from scripts import create_draft_release as release
+    calls=[]
+    monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_assets', lambda *args:[tmp_path/'package.msi'])
+    def run(args, **kwargs):
+        calls.append(args)
+        return SimpleNamespace(returncode=1 if args[2]=='view' else 0)
+    monkeypatch.setattr(release.subprocess, 'run', run)
+    release.main(tmp_path, publish=True)
+    assert calls[1][:3]==['gh','release','create'] and '--draft' in calls[1]
+    assert calls[2][:3]==['gh','release','edit'] and '--draft=false' in calls[2]
+    assert '## '+release.VERSION in (tmp_path/'release-notes.md').read_text()
+
+
+def test_failed_upload_never_publishes_release(tmp_path, monkeypatch):
+    import subprocess
+    from types import SimpleNamespace
+    from scripts import create_draft_release as release
+    calls=[]
+    monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_assets', lambda *args:[tmp_path/'package.msi'])
+    def run(args, **kwargs):
+        calls.append(args)
+        if args[2]=='create': raise subprocess.CalledProcessError(1,args)
+        return SimpleNamespace(returncode=1)
+    monkeypatch.setattr(release.subprocess, 'run', run)
+    with pytest.raises(subprocess.CalledProcessError): release.main(tmp_path,publish=True)
+    assert not any(args[2]=='edit' for args in calls)
+
+
+def test_existing_release_is_never_modified(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from scripts import create_draft_release as release
+    calls=[]
+    monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_assets', lambda *args:[])
+    monkeypatch.setattr(release.subprocess, 'run', lambda args, **kwargs: calls.append(args) or SimpleNamespace(returncode=0))
+    with pytest.raises(SystemExit, match='left unchanged'): release.main(tmp_path,publish=True)
+    assert len(calls)==1 and calls[0][2]=='view'
+
+
+def test_manual_script_remains_draft_by_default(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from scripts import create_draft_release as release
+    calls=[]
+    monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_assets', lambda *args:[])
+    monkeypatch.setattr(release.subprocess, 'run', lambda args, **kwargs: calls.append(args) or SimpleNamespace(returncode=1 if args[2]=='view' else 0))
+    release.main(tmp_path)
+    assert len(calls)==2 and '--draft' in calls[-1]
+
+
+def test_publication_workflow_is_gated_by_tag_and_all_platforms():
+    import yaml
+    workflow=yaml.load((Path(__file__).parents[1]/'.github/workflows/build.yml').read_text(),Loader=yaml.BaseLoader)
+    job=workflow['jobs']['publish-release']
+    assert job['if']=="github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')"
+    assert job['needs']=='build'
+    assert job['permissions']['contents']=='write'
+    targets=workflow['jobs']['build']['strategy']['matrix']['include']
+    assert {(t['platform'],t['arch']) for t in targets}=={('macos','arm64'),('macos','x64'),('windows','x64'),('linux','x64')}
+    assert any('--publish' in step.get('run','') for step in job['steps'])
