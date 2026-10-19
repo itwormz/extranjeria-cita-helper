@@ -104,7 +104,7 @@ def test_macos_worker_finds_browser_after_bundle_move(monkeypatch, tmp_path):
     helper = contents / "Helpers" / "Cita Worker.app" / "Contents"
     (helper / "MacOS").mkdir(parents=True)
     (contents / "Resources").mkdir()
-    (helper / "Resources").symlink_to("../../../Resources", target_is_directory=True)
+    (helper / "Resources").symlink_to(Path("..") / ".." / ".." / "Resources", target_is_directory=True)
     browser = contents / "Resources" / "bundled-browser" / "Camoufox.app" / "Contents" / "MacOS" / "camoufox"
     browser.parent.mkdir(parents=True)
     browser.write_text("synthetic executable")

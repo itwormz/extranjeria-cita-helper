@@ -13,6 +13,8 @@
 
 ### Fixed
 
+- macOS bundle tests construct relative symlink targets with native path separators, allowing the same relocation and worker-resource checks to pass on Windows CI.
+
 - Browser startup crashes reported as `TargetClosedError` are no longer mistaken for normal user closure.
 - Access denial is distinguished from a missing bundled browser in the error panel.
 - Unexpected worker exits retain exception types and missing-module names instead of silently discarding the failure reason.

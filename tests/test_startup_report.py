@@ -104,7 +104,7 @@ def test_macos_bundle_checks_compare_worker_and_main_paths(tmp_path, monkeypatch
     main = tmp_path / 'Helper.app'
     helper = main / 'Contents/Helpers/Cita Worker.app/Contents'
     (helper / 'MacOS').mkdir(parents=True)
-    (helper / 'Resources').symlink_to('../../../Resources', target_is_directory=True)
+    (helper / 'Resources').symlink_to(Path('..') / '..' / '..' / 'Resources', target_is_directory=True)
     browser = main / 'Contents/Resources/bundled-browser/Camoufox.app/Contents/MacOS/camoufox'
     browser.parent.mkdir(parents=True); browser.write_text('synthetic'); browser.chmod(0o700)
     monkeypatch.setattr(sys, 'platform', 'darwin')
@@ -118,7 +118,7 @@ def test_macos_bundle_checks_compare_worker_and_main_paths(tmp_path, monkeypatch
     assert checks['worker_resources']['resolved'] == reports.clean(main / 'Contents/Resources')
     assert checks['signatures']['application']['status'] == 'valid'
     (helper / 'Resources').unlink()
-    (helper / 'Resources').symlink_to('../../../MissingResources', target_is_directory=True)
+    (helper / 'Resources').symlink_to(Path('..') / '..' / '..' / 'MissingResources', target_is_directory=True)
     checks = reports.bundle_checks(external_checks=False)
     assert checks['main_browser']['exists']
     assert not checks['worker_browser']['exists']
