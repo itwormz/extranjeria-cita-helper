@@ -1,0 +1,46 @@
+name: Changed website screen
+description: Report a new screen, an extra field or an unrecognised step on the appointment site.
+title: "[Website] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English, Spanish or Russian are welcome. Describe the screen already encountered; there is no need to restart the search or risk an open appointment.
+        This issue is public. Do not share NIE, names, contact details, appointment numbers, CAPTCHA values, cookies or raw page HTML.
+  - type: textarea
+    id: screen
+    attributes:
+      label: What is different?
+      description: Which field, message or button appeared? What did the app do, and what should it have done?
+    validations:
+      required: true
+  - type: input
+    id: province
+    attributes:
+      label: Province
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Application version
+      description: Shown in About. Enter "unknown" if unavailable.
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system
+      description: Include its version and architecture if known.
+    validations:
+      required: true
+  - type: input
+    id: stage
+    attributes:
+      label: Stage or authentication method (optional)
+      placeholder: e.g. procedure selection, certificate login, office selection
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot or timeline excerpt (optional)
+      description: Redact personal and session information. A short visible message is often enough; do not attach raw page captures.

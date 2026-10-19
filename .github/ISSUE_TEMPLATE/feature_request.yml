@@ -1,0 +1,21 @@
+name: Suggest an improvement
+description: Describe a task that could be easier or a useful change.
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English, Spanish or Russian are welcome. This project focuses on Toma de huellas / TIE appointments.
+        Include only information safe to publish.
+  - type: textarea
+    id: need
+    attributes:
+      label: What would this help with?
+      description: Describe the task or difficulty. A proposed implementation is not required.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested behaviour (optional)
+      description: What would a useful result look like? Alternatives or examples are welcome.

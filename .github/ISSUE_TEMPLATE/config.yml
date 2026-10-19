@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How to use the app
+    url: https://github.com/itwormz/extranjeria-cita-helper#readme
+    about: Setup, authentication, known limitations and links to the English, Russian and Spanish guides.
+  - name: Security and confidential reports
+    url: https://github.com/itwormz/extranjeria-cita-helper/blob/main/SECURITY.md
+    about: Read the private reporting instructions before sharing sensitive information.
