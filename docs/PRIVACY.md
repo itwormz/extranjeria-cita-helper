@@ -30,6 +30,16 @@ identifiers. Prefer a timeline line when reporting a problem. Inspect and redact
 any files before sharing them. The application does not upload diagnostics to
 GitHub or an issue service.
 
+Startup failures also save a small technical report in `startup-errors/` inside
+the application data directory, independently of page diagnostics. Reports contain
+application/OS versions, architecture, browser executable availability and a sanitized
+exception with stack frame locations (without source lines). For unexpected worker
+exits, up to 32 KiB of stderr is inspected in memory only to extract the exception
+type and a missing Python module name; arbitrary stderr text is not saved. They do not collect profile settings, cookies or page
+contents. Known applicant values and home-directory paths are masked. Only the
+latest ten reports are retained. **Copy report** copies the report to the clipboard;
+it does not send it anywhere. Review the text before sharing it.
+
 ## Statistics and achievements
 
 Per-profile statistics retain counters, search dates and public office labels locally. They do not upload telemetry. Manually confirmed achievements also store the appointment date, time, office, address and confirmation number locally.

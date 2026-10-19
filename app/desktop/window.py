@@ -273,8 +273,22 @@ class DesktopWindow(QMainWindow):
         self.more_actions.setMenu(menu)
         self.actions.addWidget(self.more_actions); self.actions.addStretch()
         self.error_band=QWidget(); self.error_band.setObjectName('errorBand')
-        error_layout=QHBoxLayout(self.error_band); error_layout.setContentsMargins(12,10,12,10)
-        self.error_text=label(); error_layout.addWidget(self.error_text,1)
+        error_layout=QVBoxLayout(self.error_band); error_layout.setContentsMargins(16,14,16,14); error_layout.setSpacing(10)
+        error_heading=QHBoxLayout(); error_heading.setSpacing(10)
+        self.error_icon=QLabel(); self.error_icon.setFixedSize(20,20); error_heading.addWidget(self.error_icon)
+        self.error_text=label(); error_heading.addWidget(self.error_text,1); error_layout.addLayout(error_heading)
+        self.error_help=label('Скопировать отчёт и отправить автору для проверки.')
+        error_layout.addWidget(self.error_help)
+        report_actions=QHBoxLayout(); report_actions.setSpacing(16)
+        self.copy_report_button=QPushButton('Скопировать отчёт'); self.copy_report_button.setProperty('primary',True)
+        self.copy_report_button.clicked.connect(self.copy_startup_report)
+        report_actions.addWidget(self.copy_report_button)
+        self.report_privacy=label('Без данных профиля и содержимого страниц',muted=True)
+        report_actions.addWidget(self.report_privacy,1); error_layout.addLayout(report_actions)
+        self.report_reference=label(muted=True); error_layout.addWidget(self.report_reference)
+        self.startup_report_id=None
+        self.report_copy_timer=QTimer(self); self.report_copy_timer.setSingleShot(True)
+        self.report_copy_timer.timeout.connect(self.refresh_error_band)
         content.addWidget(self.error_band); self.error_band.hide()
         self.state_rail.hide()
         layout.addWidget(self.status_card)
@@ -850,22 +864,62 @@ class DesktopWindow(QMainWindow):
         path.mkdir(parents=True,exist_ok=True,mode=0o700)
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
+    def refresh_error_band(self):
+        from .startup_report import report_id_from_message, read_startup_report
+        report_id=report_id_from_message(self.errors.get('worker',''))
+        report=read_startup_report(report_id)
+        self.startup_report_id=report_id if report else None
+        for widget in (self.error_icon,self.error_help,self.copy_report_button,self.report_privacy,self.report_reference):
+            widget.setVisible(bool(report))
+        if report:
+            browser=report.get('browser',{})
+            missing=report.get('phase')=='browser_launch' and report.get('frozen') and not browser.get('exists')
+            title='Встроенный браузер не найден' if missing else 'Не удалось запустить Camoufox'
+            if report.get('phase') in {'worker','worker_exit'}: title='Не удалось запустить поиск'
+            self.error_text.setText(self.t(title))
+            self.error_text.setProperty('reportTitle',True)
+            self.error_icon.setPixmap(self.control_icon('alert').pixmap(20,20))
+            self.error_help.setText(self.t('Скопировать отчёт и отправить автору для проверки.'))
+            self.copy_report_button.setIcon(self.control_icon('check' if self.report_copy_timer.isActive() else 'clipboard'))
+            self.copy_report_button.setText(self.t('Отчёт скопирован' if self.report_copy_timer.isActive() else 'Скопировать отчёт'))
+            self.copy_report_button.setProperty('reportCopied',self.report_copy_timer.isActive())
+            self.copy_report_button.style().unpolish(self.copy_report_button); self.copy_report_button.style().polish(self.copy_report_button)
+            self.report_privacy.setText(self.t('Без данных профиля и содержимого страниц'))
+            self.report_reference.setText(self.t('Отчёт')+' CEH-'+report_id)
+            others=[self.t(value) for key,value in self.errors.items() if key!='worker']
+            if others:self.error_text.setText(self.error_text.text()+'\n'+'\n'.join(others))
+        else:
+            self.error_text.setProperty('reportTitle',False)
+            self.error_text.setText('\n'.join(self.t(text) for text in self.errors.values()))
+        self.error_text.style().unpolish(self.error_text); self.error_text.style().polish(self.error_text)
+
+    def copy_startup_report(self):
+        from .startup_report import read_startup_report, report_clipboard_text
+        report=read_startup_report(self.startup_report_id)
+        if not report:
+            self.refresh_error_band()
+            return
+        QApplication.clipboard().setText(report_clipboard_text(self.startup_report_id,report))
+        self.report_copy_timer.start(4000)
+        self.refresh_error_band()
+        self.statusBar().showMessage(self.t('Отчёт скопирован. Вставить текст в Telegram или GitHub Issues.'),4000)
+
     def show_error(self, message, source='worker'):
         self.errors[source]=message
         self.update_application_icon()
-        self.error_text.setText('\n'.join(self.t(text) for text in self.errors.values()))
+        self.refresh_error_band()
         self.error_band.show()
         self.retranslate()
 
     def clear_error(self, source):
         self.errors.pop(source,None)
         self.update_application_icon()
-        self.error_text.setText('\n'.join(self.t(text) for text in self.errors.values()))
+        self.refresh_error_band()
         self.error_band.setVisible(bool(self.errors))
 
     def on_finished(self, code):
         self.profile_combo.setEnabled(True)
-        self.start_button.setText('Запустить')
+        self.start_button.setText('Повторить запуск' if code else 'Запустить')
         for button in (self.restart_button,self.browser_button): button.setEnabled(False)
         if code and not self.errors: self.show_error('Поиск завершился с ошибкой. Проверить диагностику сессии.')
         self.status_label.setText('Поиск остановлен' if not code else 'Поиск завершился с ошибкой')
@@ -887,7 +941,7 @@ class DesktopWindow(QMainWindow):
 
     def retranslate(self):
         if not hasattr(self,'preferences'): return
-        self.error_text.setText('\n'.join(self.errors.values()))
+        self.refresh_error_band()
         def update(key, current, setter):
             source, previous = self._translation_sources.get(key,(current,current))
             if current != previous: source=current
@@ -1091,6 +1145,7 @@ class DesktopWindow(QMainWindow):
 
     def control_icon(self, name):
         paths = {
+            'alert':'<circle cx="12" cy="12" r="9"/><path d="M12 6v7m0 3v1"/>',
             'book':'<path d="M12 5v16M3 4h5l4 2 4-2h5v16h-5l-4 2-4-2H3Z"/>',
             'bug':'<rect x="7" y="7" width="10" height="14" rx="5"/><path d="m8 3 4 4 4-4M2 10h5m10 0h5M2 16h5m10 0h5M12 7v14"/>',
             'plus':'<path d="M12 4v16M4 12h16"/>',
@@ -1139,7 +1194,7 @@ class DesktopWindow(QMainWindow):
             'moon': '<path d="M20 14a8.5 8.5 0 0 1-10-10A8.5 8.5 0 1 0 20 14Z"/>',
             'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
         }
-        color = theme_colors(self.preferences['dark'])['text']
+        color = theme_colors(self.preferences['dark'])['danger' if name=='alert' else 'text']
         svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.6" stroke-linecap="round">{paths[name]}</svg>'
         if name=='github':
             asset=Path(__file__).parent/'assets/social/github.svg'

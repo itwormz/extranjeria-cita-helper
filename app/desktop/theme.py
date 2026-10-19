@@ -80,10 +80,12 @@ def apply_theme(app, *, dark):
         QWidget#stateRail[tone="danger"] {{ background:{c['danger']}; }}
         QLabel#stateLabel[tone="danger"] {{ color:{c['danger']}; }}
         QWidget#errorBand {{ background:{c['danger_soft']}; border-left:3px solid {c['danger']}; border-radius:6px; }}
+        QLabel[reportTitle="true"] {{ font-size:16px; font-weight:600; }}
         QLabel#formError {{ color:{c['danger']}; }}
         QPushButton {{ min-height:18px; padding:8px 16px; border:1px solid {c['line_strong']}; border-radius:6px; background:{c['surface']}; color:{c['text']}; }}
         QPushButton:hover, QToolButton:hover {{ border-color:{c['accent']}; }}
         QPushButton[primary="true"] {{ background:{c['accent']}; color:#FFFFFF; border-color:{c['accent']}; }}
+        QPushButton[reportCopied="true"] {{ background:{c['surface']}; color:{c['success']}; border-color:{c['success']}; }}
         QPushButton:disabled, QPushButton[primary="true"]:disabled {{ color:{c['muted']}; background:{c['bg']}; border:1px solid {c['line']}; }}
         QPushButton:focus, QToolButton:focus, QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {{ border:2px solid {c['accent']}; }}
         QToolButton {{ color:{c['text']}; padding:0; border:1px solid {c['line_strong']}; border-radius:6px; background:{c['surface']}; }}

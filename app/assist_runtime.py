@@ -200,9 +200,16 @@ async def _run_session(task, settings, control, *, max_cycles=None):
             await retain_browser(page, control)
         return 0 if control.stop_requested else 130
     except Exception as exc:
-        if type(exc).__name__ == "TargetClosedError":
+        if type(exc).__name__ == "TargetClosedError" and runner is not None:
             log_event(log, logging.INFO, "assist_browser_closed", task_id=task.id, run_id=run_id)
             return 0
+        if runner is None:
+            from .desktop.startup_report import save_startup_error, StartupFailure
+            report_id, summary = save_startup_error(exc, 'browser_launch')
+            location = f"startup-errors/{report_id}.json" if report_id else 'report unavailable'
+            detail = f"Browser startup failed — {summary} — {location}"
+            control.record('fatal_error', detail=detail)
+            raise StartupFailure(detail) from exc
         if runner is not None:
             runner.save_error_details(exc)
         control.record('fatal_error', detail=f'Ошибка помощника: {type(exc).__name__} — подробности в диагностике сессии')

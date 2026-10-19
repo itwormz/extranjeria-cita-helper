@@ -697,7 +697,17 @@
     "Ошибка проверки сертификата": "Certificate validation error",
     "Сбой сервиса проверки сертификата @Firma": "Certificate validation service @Firma failed",
     "Авторизация длится больше 5 секунд": "Authentication is taking more than 5 seconds",
-    "Проверить браузер — возможно, требуется выбор сертификата": "Check the browser — certificate selection may be required"
+    "Проверить браузер — возможно, требуется выбор сертификата": "Check the browser — certificate selection may be required",
+    "Скопировать отчёт": "Copy report",
+    "Отчёт скопирован": "Report copied",
+    "Отчёт": "Report",
+    "Встроенный браузер не найден": "Bundled browser not found",
+    "Не удалось запустить Camoufox": "Could not start Camoufox",
+    "Не удалось запустить поиск": "Could not start the search",
+    "Скопировать отчёт и отправить автору для проверки.": "Copy the report and send it to the author for investigation.",
+    "Без данных профиля и содержимого страниц": "Without profile data or page contents",
+    "Отчёт скопирован. Вставить текст в Telegram или GitHub Issues.": "Report copied. Paste it into Telegram or GitHub Issues.",
+    "Повторить запуск": "Retry start"
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1397,6 +1407,16 @@
     "Ошибка проверки сертификата": "Error de validación del certificado",
     "Сбой сервиса проверки сертификата @Firma": "Fallo del servicio de validación de certificados @Firma",
     "Авторизация длится больше 5 секунд": "La autenticación tarda más de 5 segundos",
-    "Проверить браузер — возможно, требуется выбор сертификата": "Revisar el navegador — puede ser necesario seleccionar un certificado"
+    "Проверить браузер — возможно, требуется выбор сертификата": "Revisar el navegador — puede ser necesario seleccionar un certificado",
+    "Скопировать отчёт": "Copiar informe",
+    "Отчёт скопирован": "Informe copiado",
+    "Отчёт": "Informe",
+    "Встроенный браузер не найден": "No se encuentra el navegador incluido",
+    "Не удалось запустить Camoufox": "No se ha podido iniciar Camoufox",
+    "Не удалось запустить поиск": "No se ha podido iniciar la búsqueda",
+    "Скопировать отчёт и отправить автору для проверки.": "Copiar el informe y enviarlo al autor para su revisión.",
+    "Без данных профиля и содержимого страниц": "Sin datos del perfil ni contenido de las páginas",
+    "Отчёт скопирован. Вставить текст в Telegram или GitHub Issues.": "Informe copiado. Pegar el texto en Telegram o GitHub Issues.",
+    "Повторить запуск": "Volver a iniciar"
   }
 }

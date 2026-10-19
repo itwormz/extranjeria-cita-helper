@@ -1,6 +1,6 @@
 # Extranjería Cita Helper
 
-**Versión: 0.1.0** · [Historial de cambios](CHANGELOG.md)
+**Versión: 0.1.1** · [Historial de cambios](CHANGELOG.md)
 
 **💜 Apoyar el desarrollo**
 
@@ -122,6 +122,8 @@ Las filas seleccionadas del registro se copian con **⌘C / Ctrl+C**, el botón 
 Los perfiles, preferencias y sesiones del navegador se guardan localmente. Con el diagnóstico activado, el HTML sigue guardándose durante la reserva manual y su confirmación; los diálogos JavaScript de confirmación no se guardan como páginas HTML independientes. En Ajustes puede activar o desactivar las capturas y abrir la carpeta de diagnóstico. Cada sesión registrada tiene su propia carpeta; el historial de acciones se guarda independientemente de las capturas.
 
 El diagnóstico puede contener datos personales. Elimine la información sensible antes de compartir registros o capturas. Consulte las [notas de privacidad](docs/PRIVACY.md).
+
+Si el navegador no se inicia, pulsar **Copiar informe** en el panel de error y enviar el texto al autor o a GitHub Issues. El informe contiene detalles técnicos del fallo, sin ajustes del perfil ni contenido de las páginas; no se envía nada automáticamente.
 
 ## 📣 Un mensaje a las autoridades responsables
 

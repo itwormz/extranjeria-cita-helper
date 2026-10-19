@@ -42,14 +42,19 @@ def display_name():
     return APP_NAME
 
 
-def bundled_browser():
+def bundled_browser_candidate():
     if not getattr(sys, 'frozen', False):
         return None
     if sys.platform == 'darwin':
         browser = Path(sys.executable).parent.parent / 'Resources' / 'bundled-browser' / 'Camoufox.app' / 'Contents' / 'MacOS' / 'camoufox'
     else:
         browser = resource_root() / 'bundled-browser' / ('camoufox.exe' if sys.platform == 'win32' else 'camoufox-bin')
-    return browser if browser.exists() else None
+    return browser
+
+
+def bundled_browser():
+    browser = bundled_browser_candidate()
+    return browser if browser is not None and browser.is_file() else None
 
 
 def worker_arguments(profile_id):

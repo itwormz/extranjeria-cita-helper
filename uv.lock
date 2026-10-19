@@ -501,7 +501,7 @@ wheels = [
 
 [[package]]
 name = "extranjeria-cita-helper"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "camoufox", extra = ["geoip"] },

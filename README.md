@@ -1,6 +1,6 @@
 # Extranjería Cita Helper
 
-**Version: 0.1.0** · [Changelog](CHANGELOG.md)
+**Version: 0.1.1** · [Changelog](CHANGELOG.md)
 
 **💜 Support development**
 
@@ -120,6 +120,8 @@ Selected log rows can be copied with **⌘C / Ctrl+C**, the clipboard button or 
 Profiles, preferences and browser sessions are stored locally. With diagnostics enabled, HTML captures continue through manual booking and confirmation; native JavaScript confirmation dialogs are not saved as separate HTML pages. Settings lets you enable/disable page captures and open the diagnostics folder. Each recorded session has its own directory; the action timeline is recorded independently of page captures.
 
 Diagnostics may contain personal information. Remove sensitive details before sharing logs or screenshots. See [privacy notes](docs/PRIVACY.md).
+
+If the browser fails to start, use **Copy report** in the error panel and send the text to the author or GitHub Issues. The report contains technical failure details, without profile settings or page contents; nothing is sent automatically.
 
 ## 📣 A message to the responsible authorities
 

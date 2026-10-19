@@ -172,8 +172,15 @@ async def run_worker(task_id):
             result = await run_assist(task, profiles.settings(task_id), control=control, open_panel=False)
             emit({'type':'state', 'state':control.snapshot()})
             return result
-    except Exception:
-        emit({'type':'error','message':'Поиск завершился с ошибкой. Проверить диагностику сессии.'})
+    except Exception as exc:
+        from .startup_report import StartupFailure, save_startup_error
+        if isinstance(exc, StartupFailure):
+            message = str(exc)
+        else:
+            report_id, summary = save_startup_error(exc, 'worker')
+            location = f'startup-errors/{report_id}.json' if report_id else 'report unavailable'
+            message = f'Worker failed — {summary} — {location}'
+        emit({'type':'error','message':message})
         return 1
     finally:
         control.flush_statistics()

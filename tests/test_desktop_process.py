@@ -75,3 +75,18 @@ def test_show_grants_only_worker_foreground_permission_before_ipc(monkeypatch):
     calls.clear();controller.active=False
     DesktopController.send(controller,{'command':'show_browser'})
     assert calls==[]
+
+
+def test_worker_crash_stderr_is_reported_once(tmp_path, catalog_path, qt_app, monkeypatch):
+    from app.desktop import startup_report as reports
+    monkeypatch.setattr(reports, 'runtime_root', lambda: tmp_path)
+    controller = DesktopController(ProfileStore(tmp_path/'tasks.yml', catalog_path))
+    errors = []; controller.failed.connect(errors.append)
+    controller.process.start(sys.executable, ['-c', "import sys;sys.stderr.write('ImportError: browser component missing');sys.exit(3)"])
+    assert controller.process.waitForFinished(5000)
+    assert len(errors) == 1
+    report_id = reports.report_id_from_message(errors[0])
+    report = reports.read_startup_report(report_id)
+    assert report['phase'] == 'worker_exit'
+    assert 'ImportError' in report['message']
+    assert 'browser component missing' not in report['message']

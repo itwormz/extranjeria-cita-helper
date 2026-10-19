@@ -94,3 +94,26 @@ def test_windows_portable_marker_selects_adjacent_data(monkeypatch,tmp_path):
     assert runtime_root()==tmp_path/'data'
     monkeypatch.setenv('CITA_DATA_HOME',str(tmp_path/'override'))
     assert runtime_root()==tmp_path/'override'
+
+
+def test_macos_worker_finds_browser_after_bundle_move(monkeypatch, tmp_path):
+    import shutil
+    from app.desktop.paths import bundled_browser
+    bundle = tmp_path / "Mounted DMG" / "Helper.app"
+    contents = bundle / "Contents"
+    helper = contents / "Helpers" / "Cita Worker.app" / "Contents"
+    (helper / "MacOS").mkdir(parents=True)
+    (contents / "Resources").mkdir()
+    (helper / "Resources").symlink_to("../../../Resources", target_is_directory=True)
+    browser = contents / "Resources" / "bundled-browser" / "Camoufox.app" / "Contents" / "MacOS" / "camoufox"
+    browser.parent.mkdir(parents=True)
+    browser.write_text("synthetic executable")
+    destination = tmp_path / "Applications" / "Helper.app"
+    destination.parent.mkdir()
+    shutil.move(bundle, destination)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.setattr(sys, "executable", str(destination / "Contents" / "Helpers" / "Cita Worker.app" / "Contents" / "MacOS" / APP_NAME))
+    found = bundled_browser()
+    assert found is not None
+    assert found.read_text() == "synthetic executable"

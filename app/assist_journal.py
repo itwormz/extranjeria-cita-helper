@@ -203,7 +203,7 @@ class PageJournal:
         controls = {'start', 'finish', 'pause', 'resume', 'flow_start', 'flow_restart',
                     'handoff', 'statistics_error', 'browser_shown', 'browser_show_failed'}
         if event == 'fatal_error' and (not row or row['ended_at']):
-            self.add(event=event, status='failed', message='Работа завершена из-за ошибки', title='Управление', ended_at=stamp(), page=page)
+            self.add(event=event, status='failed', message=detail if detail.startswith('Browser startup failed — ') else 'Работа завершена из-за ошибки', title='Управление', ended_at=stamp(), page=page)
             return
         if event == 'start' and self.sequence:
             return

@@ -20,9 +20,11 @@ class DesktopController(QObject):
         self.process = QProcess(self)
         self.process.setWorkingDirectory(str(runtime_root()))
         self.process.readyReadStandardOutput.connect(self._read)
-        self.process.readyReadStandardError.connect(lambda: self.process.readAllStandardError())
+        self.process.readyReadStandardError.connect(self._read_stderr)
         self.process.finished.connect(self._finished)
         self.process.errorOccurred.connect(self._error)
+        self.stderr_tail = bytearray()
+        self.reported_error = False
         self.decoder = JsonLinesDecoder(limit=2 * 1024 * 1024)
         self.last_state = {}
         self.last_message = 0
@@ -49,6 +51,8 @@ class DesktopController(QObject):
         env.insert('CATALOG_FILE', str(self.store.catalog_path))
         env.insert('PYTHONUNBUFFERED', '1')
         self.process.setProcessEnvironment(env)
+        self.stderr_tail = bytearray()
+        self.reported_error = False
         self.decoder = JsonLinesDecoder(limit=2 * 1024 * 1024)
         self.stopping = False
         self.closing_session = False
@@ -77,6 +81,7 @@ class DesktopController(QObject):
                     self.kill_timer.stop()
                 self.state_changed.emit(self.last_state)
             elif message.get('type') == 'error':
+                self.reported_error = True
                 self.failed.emit(message.get('message', 'Ошибка процесса бота'))
             elif message.get('type') == 'protocol_error':
                 self.failed.emit('Не удалось прочитать сообщение бота — ждём следующее обновление.')
@@ -102,8 +107,20 @@ class DesktopController(QObject):
         if self.active:
             self.process.kill()
 
+    def _read_stderr(self):
+        self.stderr_tail.extend(bytes(self.process.readAllStandardError()))
+        del self.stderr_tail[:-32768]
+
     def _finished(self, code, status):
         self._read()
+        self._read_stderr()
+        if code and not self.reported_error and not self.stopping:
+            from .startup_report import save_startup_error, worker_exit_summary
+            error=RuntimeError(worker_exit_summary(code,self.stderr_tail.decode('utf-8',errors='replace')))
+            report_id, summary=save_startup_error(error,'worker_exit')
+            location=f'startup-errors/{report_id}.json' if report_id else 'report unavailable'
+            self.failed.emit(f'Worker failed — {summary} — {location}')
+        self.stderr_tail.clear()
         for timer in (self.timer, self.terminate_timer, self.kill_timer):
             timer.stop()
         self.finished.emit(code)

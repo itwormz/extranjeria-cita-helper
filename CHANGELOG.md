@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 — Startup error reports
+
+- Browser startup failures now save a small local technical report even when page diagnostics are disabled. Reports include application/OS versions, architecture, bundled-browser availability and a sanitized exception traceback, without collecting profile settings, cookies or page contents.
+- The error panel shows a concise explanation, a Copy report button with confirmation, and a retry action in English, Russian and Spanish. Reports are copied only on request; nothing is sent automatically.
+- A browser crash during startup is no longer classified as a normal user closure; its failure report is preserved.
+- Unexpected worker exits extract exception types and missing-module names from bounded stderr without saving arbitrary stderr text. Only the latest ten startup reports are retained.
+- Added regressions for browser startup failure with diagnostics disabled, report sanitizing/copying, worker crashes and macOS bundle relocation. The reported macOS startup failure has not yet been reproduced; this update improves diagnosis rather than claiming a confirmed fix.
+
 ## 0.1.0 — Initial release
 
 First standalone desktop version of Cita Extranjeria Helper. It assists with **Toma de huellas** appointments for TIE on the official ICP Plus website. Other procedures are outside the supported scope.

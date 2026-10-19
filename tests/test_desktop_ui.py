@@ -817,3 +817,28 @@ def test_empty_journals_hide_table_and_disable_copy_until_rows_arrive(window):
     assert not window.offices.isHidden()
     assert window.offices_empty.isHidden()
     assert window.copy_button.isEnabled()
+
+
+def test_startup_error_has_copy_report_and_copies_technical_data(window, tmp_path, monkeypatch):
+    from app.desktop import startup_report as reports
+    monkeypatch.setattr(reports, 'runtime_root', lambda: tmp_path)
+    monkeypatch.setattr(reports, 'bundled_browser_candidate', lambda: tmp_path / 'missing-browser')
+    monkeypatch.setattr(reports.sys, 'frozen', True, raising=False)
+    report_id, summary = reports.save_startup_error(FileNotFoundError('missing browser'), 'browser_launch')
+    window.preferences['language'] = 'ru'
+    window.show_error(f'Browser startup failed — {summary} — startup-errors/{report_id}.json')
+    assert window.copy_report_button.isVisible()
+    assert window.error_text.text() == 'Встроенный браузер не найден'
+    QTest.mouseClick(window.copy_report_button, Qt.MouseButton.LeftButton)
+    copied = QApplication.clipboard().text()
+    assert report_id in copied
+    assert 'FileNotFoundError' in copied
+    assert 'browser_launch' in copied
+    assert window.copy_report_button.text() == 'Отчёт скопирован'
+    window.clear_error('worker')
+    assert not window.copy_report_button.isVisible()
+
+
+def test_ordinary_error_does_not_offer_unrelated_startup_report(window):
+    window.show_error('Example failure')
+    assert not window.copy_report_button.isVisible()
