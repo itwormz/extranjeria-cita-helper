@@ -5,6 +5,11 @@ Issues and pull requests are welcome in **English, Spanish or Russian**.
 
 ## Report a problem or suggest a change
 
+Use [Discussions](https://github.com/itwormz/extranjeria-cita-helper/discussions)
+for usage questions, early ideas and experiences with the app. See the
+[pinned welcome](https://github.com/itwormz/extranjeria-cita-helper/discussions/1)
+for categories and guidance.
+
 Use the [issue forms](https://github.com/itwormz/extranjeria-cita-helper/issues/new/choose)
 for an application bug, a changed website screen or an improvement.
 Describe what happened and what was expected. Include the application version and

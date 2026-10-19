@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Questions, ideas and success stories
+    url: https://github.com/itwormz/extranjeria-cita-helper/discussions
+    about: Ask for usage help, discuss an idea or share an obtained appointment. English, Spanish and Russian are welcome.
   - name: How to use the app
     url: https://github.com/itwormz/extranjeria-cita-helper#readme
     about: Setup, authentication, known limitations and links to the English, Russian and Spanish guides.
