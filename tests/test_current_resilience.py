@@ -5,14 +5,15 @@ from unittest.mock import AsyncMock
 import pytest
 
 
-def test_tls_network_timeout_does_not_prevent_strict_browser_launch(monkeypatch):
+def test_tls_network_timeout_does_not_prevent_strict_browser_launch(monkeypatch, tmp_path):
     import camoufox.async_api
     from app import site
     from app.config import Settings
     from app.desktop import certificates
     def unavailable(*args):raise TimeoutError('offline')
     launch=AsyncMock(return_value=SimpleNamespace(on=lambda *args:None))
-    monkeypatch.setattr(certificates,'prepare_intermediate_cache',unavailable);monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch);monkeypatch.setattr(site,'bundled_browser',lambda:Path('/isolated/camoufox'));monkeypatch.setattr(site,'bundled_addons',lambda:[])
+    monkeypatch.setattr(certificates,'prepare_intermediate_cache',unavailable);monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch);monkeypatch.setattr(site,'bundled_browser',lambda:tmp_path/'camoufox');monkeypatch.setattr(site,'bundled_addons',lambda:[])
+    (tmp_path/'application.ini').write_text('[App]\nVersion=156.0.1\n')
     checker=site.IcpPlusChecker(Settings(browser_session='fresh'));task=SimpleNamespace(id='test',schedule=SimpleNamespace(timezone='Europe/Madrid'))
     asyncio.run(checker._launch_camoufox(None,task,headless=True));assert launch.await_args.kwargs['ignore_https_errors'] is False
 

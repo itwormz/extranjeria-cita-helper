@@ -1,5 +1,11 @@
 # Changelog
 
+## Next release
+
+### Fixed
+
+- Bundled Camoufox reads its Firefox version from its own application metadata, including macOS Contents/Resources, instead of falling back to a user cache. This fixes CamoufoxNotInstalled on clean installations where the bundled browser exists.
+
 ## 0.1.1 — Startup diagnostics and copyable error reports
 
 ### Added

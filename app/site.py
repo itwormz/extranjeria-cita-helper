@@ -417,7 +417,9 @@ class IcpPlusChecker:
         }
         packaged_browser = bundled_browser()
         if packaged_browser:
+            from .desktop.paths import bundled_browser_major_version
             options['executable_path'] = str(packaged_browser)
+            options['ff_version'] = bundled_browser_major_version(packaged_browser)
             packaged_addons = bundled_addons()
             if packaged_addons:
                 from camoufox.addons import DefaultAddons

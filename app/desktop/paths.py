@@ -72,3 +72,21 @@ def bundled_addons():
     if not getattr(sys,'frozen',False): return []
     root = (Path(sys.executable).parent.parent/'Resources' if sys.platform == 'darwin' else resource_root())/'default-addons'
     return sorted(p for p in root.glob('*') if (p/'manifest.json').exists())
+
+
+def bundled_browser_major_version(executable):
+    """Read the bundled build's version without consulting Camoufox's user cache."""
+    from configparser import ConfigParser
+    import re
+    executable = Path(executable)
+    # macOS separates executable code and metadata inside the browser bundle.
+    metadata = (executable.parent.parent / 'Resources' / 'application.ini'
+                if executable.parent.name == 'MacOS'
+                else executable.parent / 'application.ini')
+    config = ConfigParser(interpolation=None)
+    with metadata.open(encoding='utf-8') as stream:
+        config.read_file(stream)
+    version = config.get('App', 'Version')
+    if not re.fullmatch(r'[1-9][0-9]*\.[0-9]+(?:[.\-+][A-Za-z0-9]+)*', version):
+        raise ValueError('Invalid bundled browser version')
+    return int(version.split('.', 1)[0])

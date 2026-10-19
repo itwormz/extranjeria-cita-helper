@@ -857,3 +857,23 @@ def test_access_denied_is_not_presented_as_missing_browser(window, tmp_path, mon
     window.show_error(f'Browser startup failed — {summary} — startup-errors/{report_id}.json')
     assert window.error_text.text()=='Нет доступа к встроенному браузеру'
     assert window.copy_report_button.isVisible()
+
+
+def test_disabled_automatic_updates_do_not_make_check(window, monkeypatch):
+    calls = []
+    window.preferences['automatic_updates'] = False
+    monkeypatch.setattr(window, 'check_updates', lambda: calls.append('check'))
+    window.automatic_update_check()
+    assert calls == []
+
+
+def test_macos_install_opens_verified_dmg_then_closes_app(window, monkeypatch, tmp_path):
+    import subprocess
+    import sys
+    package = tmp_path / 'update.dmg'
+    calls = []
+    monkeypatch.setattr(sys, 'platform', 'darwin')
+    monkeypatch.setattr(subprocess, 'Popen', lambda args: calls.append(args))
+    monkeypatch.setattr(window, 'close', lambda: calls.append('close'))
+    window.launch_update(package)
+    assert calls == [['/usr/bin/open', str(package)], 'close']

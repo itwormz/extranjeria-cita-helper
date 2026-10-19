@@ -44,14 +44,17 @@ def test_source_worker_uses_python_module(monkeypatch):
     assert worker_arguments('profile')==['-m','app.main','worker','--task','profile']
 
 
-def test_camoufox_launch_uses_packaged_browser(monkeypatch):
+def test_camoufox_launch_uses_packaged_browser(monkeypatch, tmp_path):
     import asyncio
     from types import SimpleNamespace
     from unittest.mock import AsyncMock
     import camoufox.async_api
     from app import site
     from app.config import Settings
-    executable=Path('/isolated/bundled/Camoufox.app/Contents/MacOS/camoufox')
+    executable=tmp_path/'Camoufox.app'/'Contents'/'MacOS'/'camoufox'
+    metadata=executable.parent.parent/'Resources'/'application.ini'
+    metadata.parent.mkdir(parents=True)
+    metadata.write_text('[App]\nVersion=156.0.1-beta.34\n')
     launch=AsyncMock(return_value=SimpleNamespace(new_context=AsyncMock(), on=lambda *args: None))
     from app.desktop import certificates
     monkeypatch.setattr(certificates, 'prepare_intermediate_cache', lambda *args: 1)
@@ -63,6 +66,7 @@ def test_camoufox_launch_uses_packaged_browser(monkeypatch):
     task=SimpleNamespace(id='offline',schedule=SimpleNamespace(timezone='Europe/Madrid'))
     asyncio.run(checker._launch_camoufox(None,task,headless=True))
     assert launch.await_args.kwargs['executable_path']==str(executable)
+    assert launch.await_args.kwargs['ff_version']==156
 
 
 def test_camoufox_does_not_raise_windows_for_page_scripts(monkeypatch):
@@ -117,3 +121,30 @@ def test_macos_worker_finds_browser_after_bundle_move(monkeypatch, tmp_path):
     found = bundled_browser()
     assert found is not None
     assert found.read_text() == "synthetic executable"
+
+
+def test_packaged_macos_version_uses_resources_without_user_cache(tmp_path, monkeypatch):
+    from app.desktop.paths import bundled_browser_major_version
+    import camoufox.utils
+    executable = tmp_path / 'Camoufox.app' / 'Contents' / 'MacOS' / 'camoufox'
+    executable.parent.mkdir(parents=True)
+    resources = executable.parent.parent / 'Resources'
+    resources.mkdir()
+    (resources / 'application.ini').write_text('[App]\nVersion=156.0.1-beta.34\n')
+    def no_cache():
+        raise AssertionError('Bundled browser must not use user cache')
+    monkeypatch.setattr(camoufox.utils, 'installed_verstr', no_cache)
+    assert bundled_browser_major_version(executable) == 156
+
+
+def test_packaged_version_reads_adjacent_metadata_on_other_platforms(tmp_path):
+    from app.desktop.paths import bundled_browser_major_version
+    (tmp_path / 'application.ini').write_text('[App]\nVersion=156.0.1-beta.34\n')
+    assert bundled_browser_major_version(tmp_path / 'camoufox.exe') == 156
+
+
+def test_packaged_version_missing_metadata_fails_without_cache(tmp_path):
+    import pytest
+    from app.desktop.paths import bundled_browser_major_version
+    with pytest.raises(FileNotFoundError):
+        bundled_browser_major_version(tmp_path / 'camoufox-bin')
