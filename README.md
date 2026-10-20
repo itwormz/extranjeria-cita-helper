@@ -1,6 +1,6 @@
 # Extranjería Cita Helper
 
-**Version: 0.1.3** · [Changelog](CHANGELOG.md)
+**Version: 0.1.4** · [Changelog](CHANGELOG.md)
 
 **💜 Support development**
 
@@ -25,6 +25,17 @@ The app is intended only for this workflow. Other services and appointment optio
 4. Leave Camoufox open behind other windows and keep sound alerts enabled. When your participation is needed, switch to the browser. Choose the appointment date/time and confirm the booking yourself.
 
 Packages: **macOS — DMG · Windows — MSI · Linux — AppImage**. The optional Windows portable ZIP stores data next to the application.
+
+## 🔔 Profile notifications
+
+In **Settings → Edit profile → Notifications**, enable Telegram and/or a webhook and choose events independently for each channel: authentication, office selection, appointment selection or search stopped with an error. Routine “no appointments” results do not send messages.
+
+**Telegram:** create a bot with [@BotFather](https://t.me/BotFather), paste its token and click **Check**. Use **+** next to recipients to open the bot or copy a two-minute pairing link for another recipient; confirm the detected chat. Groups and manual Chat ID/channel entry are supported. An existing Telegram webhook is never disconnected. Finish with **Send test** and save the profile.
+
+**Webhook:** enter an HTTPS URL and select POST (JSON) or GET (URL parameters). **Advanced parameters** opens custom headers, URL parameters and a custom JSON template. Values are secret by default; the lock changes that display mode and the eye temporarily reveals a value. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Send a test before saving.
+
+Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province, but no applicant identifiers, appointment details or page captures. Remote booking is not included; manual actions remain in Camoufox.
+
 
 ## 🔄 How it works
 

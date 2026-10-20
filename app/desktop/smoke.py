@@ -80,6 +80,13 @@ def main():
     window.create_profile()
     app.processEvents()
     assert window.profile_editor.isVisible()
+    from .notification_store import NotificationVault
+    assert NotificationVault().backend() is not None
+    window.profile_tabs.setCurrentWidget(window.notifications_panel.scroll)
+    window.notifications_panel.telegram_toggle.setChecked(True)
+    app.processEvents()
+    assert window.notifications_panel.token_box.height()==48
+    assert window.notifications_panel.token.isVisible()
     window.close()
     app.processEvents()
     print(json.dumps({'ok': True, 'gui': True}), flush=True)

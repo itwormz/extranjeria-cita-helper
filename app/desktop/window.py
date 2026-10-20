@@ -154,6 +154,8 @@ class DesktopWindow(QMainWindow):
         self.setMinimumSize(640, 620)
         self.tabs = QTabWidget();self.tabs.tabBar().setObjectName("mainNavigation")
         self.setCentralWidget(self.tabs)
+        try:self.preferences = self.store.preferences()
+        except ProfileValidationError:self.preferences = dict(dark=False, diagnostics=False, sound=True, language='en', automatic_updates=True)
         self._work()
         self._settings()
         self._statistics()
@@ -188,6 +190,9 @@ class DesktopWindow(QMainWindow):
                 popup.setFrameShape(QFrame.Shape.NoFrame); popup.setObjectName('comboPopup')
         for view in self.findChildren(QListWidget)+self.findChildren(QTableWidget):
             view.setItemDelegate(ThemedItemDelegate(view))
+        from .notification_delivery import NotificationDelivery
+        self.notification_delivery=NotificationDelivery(store,self)
+        self.notification_delivery.result.connect(self.notification_result)
         controller.state_changed.connect(self.on_state)
         controller.failed.connect(self.show_error)
         controller.finished.connect(self.on_finished)
@@ -495,7 +500,10 @@ class DesktopWindow(QMainWindow):
         timing_layout.setColumnStretch(0,1);timing_layout.setColumnStretch(1,1)
         timing_layout.setRowStretch(timing_row+1,1)
         timing_scroll=QScrollArea(); timing_scroll.setWidgetResizable(True); timing_scroll.setFrameShape(QScrollArea.Shape.NoFrame); timing_scroll.setWidget(timings_page)
-        profile_tabs.addTab(timing_scroll,'Тайминги и повторы'); form.addWidget(profile_tabs,1)
+        profile_tabs.addTab(timing_scroll,'Тайминги и повторы')
+        from .notification_widgets import NotificationPanel
+        self.notifications_panel=NotificationPanel(self)
+        profile_tabs.addTab(self.notifications_panel.scroll,'Уведомления'); form.addWidget(profile_tabs,1)
         for previous,current in zip(focus_fields,focus_fields[1:]):
             QWidget.setTabOrder(previous,current)
         profile_tabs.currentChanged.connect(self.update_editor_height)
@@ -610,6 +618,7 @@ class DesktopWindow(QMainWindow):
     def open_editor(self, profile_id):
         self.editing_id=profile_id; self.editor_revision=self.store.revision()
         raw=self.store.raw_profile(profile_id) if profile_id else {}
+        self.notifications_panel.load(raw.get('notifications',{}))
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))
@@ -661,10 +670,17 @@ class DesktopWindow(QMainWindow):
             applicant=dict(fill_mode=f['fill_mode'].currentData(),document_type='NIE',document_number=f['document_number'].text(),
                 full_name=f['full_name'].text(),nationality=f['nationality'].currentText(),
                 contact=dict(phone=f['phone'].text(),email=f['email'].text())))
+        from ..notifications import NotificationError
+        created=[];old=[]
         try:
+            notifications,created,old=self.notifications_panel.prepare()
+            data['notifications']=notifications
             profile_id=self.store.save_profile(self.editing_id,data,revision=self.editor_revision)
-        except (ProfileValidationError,ProfileConflictError,OSError) as exc:
+        except (ProfileValidationError,ProfileConflictError,OSError,NotificationError) as exc:
+            for ref in created:self.notifications_panel.vault.delete(ref)
             self.form_error.setText(str(exc) if not isinstance(exc,OSError) else 'Не удалось сохранить файл профилей.'); self.retranslate(); return
+        for ref in old:self.notifications_panel.vault.delete(ref)
+        if self.notification_delivery.profile_id==profile_id:self.notification_delivery.generation+=1
         self.profile_editor.accept(); self.refresh_profiles(profile_id)
         self.statusBar().showMessage(self.t('Профиль сохранён'),5000)
 
@@ -707,6 +723,7 @@ class DesktopWindow(QMainWindow):
             self.controller.send(dict(command='pause',paused=not self.state.get('paused',False)))
         else:
             self.clear_error('worker')
+            self.notification_delivery.reset()
             self.controller.start(self.profile_combo.currentData())
             self.state={}
             self.update_application_icon()
@@ -721,7 +738,12 @@ class DesktopWindow(QMainWindow):
             self.setWindowIcon(self._status_icons[status])
             QApplication.instance().setWindowIcon(self._status_icons[status])
 
+    def notification_result(self,channel,message):
+        self.statusBar().showMessage(channel.title()+': '+self.t(message),7000)
+
     def on_state(self, state):
+        profile_id=getattr(self.controller,'profile_id',None) or self.profile_combo.currentData()
+        self.notification_delivery.observe(profile_id,state,self.preferences['language'])
         previous_mode=self.state.get('mode')
         self.state=state
         self.heading.setText('Сит нет' if state.get('screen')=='Сит нет — требуется новый проход' else state.get('screen','Ищем ситу'))
@@ -926,6 +948,8 @@ class DesktopWindow(QMainWindow):
         self.status_label.setText('Поиск остановлен' if not code else 'Поиск завершился с ошибкой')
         self.next_label.setText('Для начала — «Запустить»')
         self.state=dict(self.state,mode='finished',remaining_seconds=None,failed=bool(code))
+        profile_id=getattr(self.controller,'profile_id',None) or self.profile_combo.currentData()
+        self.notification_delivery.observe(profile_id,self.state,self.preferences['language'])
         self.timer_label.setText('—'); self.timer_label.hide(); self.timer_caption.hide()
         self.update_start(); self.update_state_presentation(); self.retranslate()
         if self.pending_update_install is not None:
@@ -956,8 +980,12 @@ class DesktopWindow(QMainWindow):
             if button:button.setIcon(self.control_icon(icon));button.setIconSize(QSize(17,17))
         self.statistics_panel.refresh()
         for widget in self.findChildren(QLabel)+self.findChildren(QPushButton):
-            if self.statistics_panel.isAncestorOf(widget):continue
-            update((widget,'text'),widget.text(),widget.setText)
+            if widget.property('notificationTestButton'):widget.refresh_text();continue
+            if self.statistics_panel.isAncestorOf(widget) or widget.property('notificationData'):continue
+            if widget.property('notificationDisclosure'):widget.refresh_text();continue
+            source=widget.property('notificationSource')
+            if source:widget.setText(self.t(source))
+            else:update((widget,'text'),widget.text(),widget.setText)
         for widget in self.findChildren(Toggle):
             update((widget,'accessible'),widget.accessibleName(),widget.setAccessibleName)
         for tabs in (self.tabs,self.log_tabs,self.profile_tabs):
@@ -1012,6 +1040,15 @@ class DesktopWindow(QMainWindow):
             box.icon.setPixmap(self.control_icon('bell' if key=='alert_seconds' else 'globe' if key=='reload_seconds' else 'info').pixmap(QSize(17,17)))
             box.help.setPixmap(self.control_icon('info').pixmap(QSize(15,15)))
         for value,button in self.identity_buttons.items():button.setIcon(self.control_icon('key' if value=='copy' else 'pencil'))
+        self.notifications_panel.retranslate()
+        for widget in self.findChildren(QToolButton)+self.findChildren(QPushButton):
+            icon=widget.property('notificationIcon')
+            if icon:widget.setIcon(self.control_icon(icon))
+            title=widget.property('notificationTooltip')
+            if title:widget.setToolTip(self.t(title));widget.setAccessibleName(self.t(title))
+        for widget in self.findChildren(QLabel):
+            icon=widget.property('notificationFieldIcon')
+            if icon:widget.setPixmap(self.control_icon(icon).pixmap(QSize(18,18)))
         self.update_identity_fields()
         self.render_logs()
         self.update_copy_label()
@@ -1149,6 +1186,9 @@ class DesktopWindow(QMainWindow):
             'alert':'<circle cx="12" cy="12" r="9"/><path d="M12 6v7m0 3v1"/>',
             'book':'<path d="M12 5v16M3 4h5l4 2 4-2h5v16h-5l-4 2-4-2H3Z"/>',
             'bug':'<rect x="7" y="7" width="10" height="14" rx="5"/><path d="m8 3 4 4 4-4M2 10h5m10 0h5M2 16h5m10 0h5M12 7v14"/>',
+            'test':'<path d="M9 3h6M10 3v7L4 20a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1l-6-10V3M8 14h8"/>',
+            'trash':'<path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/>',
+            'send':'<path d="m22 2-7 20-4-9L2 9ZM22 2 11 13"/>',
             'plus':'<path d="M12 4v16M4 12h16"/>',
             'close':'<path d="m5 5 14 14M5 19 19 5"/>',
             'folder':'<path d="M3 5h7l2 3h9v13H3Z"/>',
@@ -1218,6 +1258,7 @@ class DesktopWindow(QMainWindow):
         return super().eventFilter(watched,event)
 
     def closeEvent(self, event):
+        self.notification_delivery.stop()
         if self.update_service.busy:
             self.closing=True;self.update_service.cancel()
             if self.controller.active:self.controller.shutdown(close_browser=True)

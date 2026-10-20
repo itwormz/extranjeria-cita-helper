@@ -51,6 +51,14 @@ Per-profile statistics retain counters, search dates and public office labels lo
 
 Public PNG cards and prepared social posts exclude private appointment details and profile names. Calendar exports intentionally contain the appointment date/time and office/address, but exclude the confirmation number. Explicit Google Calendar actions transmit the same event fields to Google; importing an event into a cloud calendar can share those details with its provider. Social buttons open the selected service and prepare text, but never publish posts or upload images automatically.
 
+## Optional notifications
+
+Telegram and outgoing webhooks are off by default and configured per profile. When enabled, selected events send the profile display name, province, event time and a short action message to the configured recipients. Avoid personal details in profile names if they should not be shared. Applicant documents, contacts, passwords, PINs, page captures and appointment confirmation numbers are not sent.
+
+Bot tokens and the complete webhook configuration (URL, headers, parameters and body template) are stored in the native credential service: macOS Keychain, Windows Credential Manager or Linux Secret Service. Profile YAML contains opaque references; copying it does not transfer secrets. An unavailable credential service causes an explicit error, without a plaintext fallback. Header values are excluded from diagnostics even when visually unmasked. All header values are visually masked by default; the lock affects display only. Custom webhook fields are explicitly transmitted to the chosen endpoint.
+
+Telegram pairing temporarily reads bot updates to match an expiring, random code. Only the matching chat is shown for explicit approval. The application never deletes an existing Telegram webhook. A pairing link grants an opportunity to request connection, not access to the bot token or browser session. Test buttons intentionally contact the selected provider before settings are saved. Delivery is best effort; success means the provider accepted the request, not that the recipient read it or heard a sound.
+
 ## Updates and certificates
 
 Automatic update checks can be disabled in Settings. Checks contact GitHub

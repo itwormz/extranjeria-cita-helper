@@ -37,6 +37,8 @@ def apply_theme(app, *, dark):
     assets=Path(__file__).parent/'assets'
     arrow_down=(assets/('chevron-down-dark.svg' if dark else 'chevron-down-light.svg')).as_posix()
     arrow_up=(assets/('chevron-up-dark.svg' if dark else 'chevron-up-light.svg')).as_posix()
+    notification_check=(assets/'notification-check.svg').as_posix()
+    notification_partial=(assets/'notification-partial.svg').as_posix()
     app.setStyleSheet(f'''
         QWidget {{ font-family: "IBM Plex Sans"; font-size: 13px; }}
         QMainWindow, QDialog, QScrollArea, QScrollArea > QWidget > QWidget {{ background: {c['bg']}; }}
@@ -123,6 +125,19 @@ def apply_theme(app, *, dark):
         QCalendarWidget#appointmentCalendar QToolButton {{ color:{c['text']}; border:0; padding:4px; background:{c['surface']}; }}
         QCalendarWidget#appointmentCalendar QSpinBox {{ background:{c['surface']}; color:{c['text']}; border:1px solid {c['accent']}; border-radius:4px; padding:2px; }}
         QCalendarWidget#appointmentCalendar QAbstractItemView {{ outline:0; background:{c['surface']}; color:{c['text']}; selection-background-color:{c['accent']}; selection-color:#FFFFFF; border:0; }}
+        QCheckBox#notificationEvent::indicator {{ width:15px; height:15px; border:1px solid {c['line_strong']}; border-radius:3px; background:{c['surface']}; }}
+        QCheckBox#notificationEvent::indicator:checked {{ background:{c['accent']}; border-color:{c['accent']}; image:url("{notification_check}"); }}
+        QCheckBox#notificationEvent::indicator:indeterminate {{ background:{c['accent']}; border-color:{c['accent']}; image:url("{notification_partial}"); }}
+        QCheckBox#notificationEvent:focus {{ outline:1px solid {c['accent']}; }}
+        QPushButton[notificationTestState="accepted"] {{ color:{c['success']}; }}
+        QPushButton[notificationTestState="error"] {{ color:{c['danger']}; }}
+        QPushButton[notificationTestButton="true"] {{ min-height:0; padding:0 10px; }}
+        QPushButton[recipientChoice="true"] {{ min-height:70px; padding:0; text-align:left; background:{c['surface']}; border:1px solid {c['line_strong']}; }}
+        QPushButton[recipientChoice="true"]:checked {{ background:{c['selection']}; border-color:{c['accent']}; }}
+        QLabel#recipientChoiceIndicator {{ border:1px solid {c['line_strong']}; border-radius:10px; }}
+        QLabel#recipientChoiceIndicator[selected="true"] {{ border-color:{c['accent']}; background:{c['accent']}; }}
+        QLabel#notificationSchema {{ font-family:"IBM Plex Mono"; font-size:12px; background:{c['surface']}; padding:10px; border-radius:7px; }}
+        QFrame#notificationDivider {{ background:{c['line']}; border:0; }}
         QWidget#profileField, QWidget#timingField {{ background:{c['surface']}; border:1px solid {c['line_strong']}; border-radius:7px; }}
         QWidget#profileField[focused="true"] {{ border-color:{c['accent']}; }}
         QWidget#timingField QLineEdit, QWidget#timingField QDoubleSpinBox, QWidget#profileField QLineEdit, QWidget#profileField QComboBox {{ background:transparent; border:0; border-radius:0; padding:0; min-height:0; }}

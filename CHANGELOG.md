@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4 — Profile notifications
+
+- Optional Telegram and HTTPS webhook notifications per profile, with independent authentication, office, appointment and terminal-error events.
+- Compact notification settings reuse the profile fields and theme, with themed request-method/body selectors, collapsible event choices and fixed-size inline test results; one-time recipient pairing supports private chats, groups and manual Chat ID entry. Existing Telegram webhooks are preserved.
+- GET or POST, custom headers and URL parameters, standard/custom JSON, masked values and test delivery. Tokens and webhook configuration use native system credential storage; profile files contain references only.
+- Background delivery with finite retries and stale-event cancellation. No appointment forms, authentication secrets, page captures or confirmation numbers are included. Profile display name and province are included intentionally.
+
 ## 0.1.3 — Procedure selection across provinces
 
 ### Fixed
