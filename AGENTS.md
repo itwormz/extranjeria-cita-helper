@@ -50,6 +50,8 @@ uv run python -m camoufox fetch
 uv run python -m app.main desktop
 ```
 
+Before a release push, run `uv run python scripts/preflight.py` (add `--bundle` for a native bundle check); see `docs/BUILD.md`.
+
 Run tests appropriate to the changed behaviour. Add regressions for meaningful
 bugs; browser tests are opt-in and intercept website requests with synthetic pages.
 

@@ -926,7 +926,9 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
         from playwright.async_api import async_playwright
         async with async_playwright() as pw:
             browser=await launch_browser(pw);ctx=await browser.new_context();page=await ctx.new_page()
-            page.set_default_timeout(300)
+            # CI can take longer to inspect a visible control; bound the old-select
+            # regression separately so a vanished control still fails promptly.
+            page.set_default_timeout(10000)
             page.set_default_navigation_timeout(15000)
             async def respond(route):
                 body = ('<select id="idSede"><option value="1">Office A</option><option value="2">Office B</option></select>'
@@ -941,7 +943,7 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
                 await page.goto(BASE+'acVerFormulario')
             r.save=save
             r.silence=AsyncMock()
-            await r.office(observed)
+            await asyncio.wait_for(r.office(observed), timeout=5)
             r.silence.assert_awaited()
             assert (await r.observe()).kind=='contact'
             await browser.close()

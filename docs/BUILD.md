@@ -81,3 +81,30 @@ Only public resources are bundled. The macOS builder omits the large Camoufox fo
 Local macOS tests do not replace native Windows/Linux CI or manual checks of certificate/Cl@ve authentication, sounds, background operation and final manual booking. CI deliberately never requests real appointments.
 
 References: [PyInstaller](https://pyinstaller.org/en/stable/usage.html), [GitHub runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [GitHub releases](https://cli.github.com/manual/gh_release_create).
+
+## Local gate before pushing
+
+Install `actionlint` (macOS: `brew install actionlint`), synchronize the desktop/build
+dependencies and fetch Camoufox as described above. Then run:
+
+```sh
+uv run python scripts/preflight.py
+# Also build and smoke-test the native bundle on the current OS:
+uv run python scripts/preflight.py --bundle
+```
+
+This checks workflow syntax with actionlint, version consistency, source privacy,
+the standard test suite and the same offline browser regressions as CI. macOS also
+runs the locked-session simulations. All browser requests use synthetic pages;
+the gate does not commit, push, tag or publish. A failure stops the sequence.
+The optional native bundle check does not install the application. Native Windows,
+Linux and Intel macOS results still require their respective CI runners; a local
+pass cannot guarantee identical timing or installer behavior on other systems.
+
+Tag builds produce the Windows portable ZIP alongside MSI. Manual workflow runs
+include it by default and can disable it through the portable input.
+
+For changes that affect builds, use this release order: local preflight → push a
+branch and open a pull request → wait for the native matrix to pass → merge →
+create the release tag. Pull-request builds never publish a release. Alternatively,
+run the workflow manually without a tag to validate packages before tagging.

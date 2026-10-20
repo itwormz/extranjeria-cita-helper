@@ -6,7 +6,7 @@ on:
       portable:
         description: Include optional Windows portable ZIP
         type: boolean
-        default: false
+        default: true
   push:
     tags: ['v*']
   pull_request:
@@ -57,6 +57,8 @@ jobs:
           uv run python -m playwright install-deps firefox
           sudo apt-get update
           sudo apt-get install -y libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0 libxcb-keysyms1 libxcb-icccm4 desktop-file-utils
+      - name: Check release metadata
+        run: uv run python scripts/preflight.py --metadata-only
       - name: Check tag version
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -115,7 +117,7 @@ jobs:
             uv run python scripts/verify_appimage.py "$image"
           done
       - name: Optional Windows portable ZIP
-        if: runner.os == 'Windows' && github.event.inputs.portable == 'true'
+        if: runner.os == 'Windows' && (startsWith(github.ref, 'refs/tags/') || inputs.portable == true)
         run: uv run python scripts/package_release.py --platform windows --arch x64 --portable
       - uses: actions/upload-artifact@v7
         with:

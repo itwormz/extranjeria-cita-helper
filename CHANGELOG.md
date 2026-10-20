@@ -7,6 +7,9 @@
 - GET or POST, custom headers and URL parameters, standard/custom JSON, masked values and test delivery. Tokens and webhook configuration use native system credential storage; profile files contain references only.
 - Background delivery with finite retries and stale-event cancellation. No appointment forms, authentication secrets, page captures or confirmation numbers are included. Profile display name and province are included intentionally.
 
+- Added a local pre-push gate for workflow lint, release metadata, privacy, unit and offline browser tests, with an optional native bundle smoke check.
+- Windows tag builds include the optional portable ZIP alongside MSI. Offline manual-office tests allow normal page-recognition latency while separately bounding the handoff regression.
+
 ## 0.1.3 — Procedure selection across provinces
 
 ### Fixed
