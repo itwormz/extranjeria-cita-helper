@@ -3,7 +3,8 @@
 ## Scope and behaviour
 
 This is a Python desktop assistant for **Toma de huellas / TIE** appointments
-on ICP Plus. Other appointment procedures are outside the supported scope.
+and **Autorización de regreso** appointments on ICP Plus. Other appointment
+procedures are outside the supported scope.
 Read `README.md`, `CHANGELOG.md` and the relevant modules before making changes.
 
 - Appointment date/time, CAPTCHA and final booking confirmation remain manual.

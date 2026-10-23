@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication,
     QListView, QStyledItemDelegate, QStyleOptionViewItem, QStyle,
     QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
-from ..config import TIE_PROCEDURE, _load_catalog, load_dotenv
+from ..config import TIE_PROCEDURE, REGRESO_PROCEDURE, PROCEDURE_NAMES, _load_catalog, load_dotenv
 from ..assist_flow import LABELS
 from .profiles import ProfileStore, ProfileConflictError, ProfileValidationError
 from .process import DesktopController
@@ -230,6 +230,10 @@ class DesktopWindow(QMainWindow):
         self.profile_combo.currentIndexChanged.connect(self.profile_changed)
         profile_row.addWidget(self.profile_combo); profile_row.addStretch()
         outer.addLayout(profile_row)
+        service_row=QHBoxLayout();service_row.setSpacing(8)
+        self.service_icon=QLabel();self.service_icon.setFixedSize(18,18);service_row.addWidget(self.service_icon)
+        self.service_label=label('',muted=True); self.service_label.setObjectName('profileService')
+        service_row.addWidget(self.service_label,1);outer.addLayout(service_row)
         status_page = QWidget(); layout=QVBoxLayout(status_page); layout.setContentsMargins(0,20,0,0); layout.setSpacing(14)
         self.status_card=QWidget(); self.status_card.setObjectName('workStatus')
         self.status_card.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Maximum)
@@ -390,22 +394,25 @@ class DesktopWindow(QMainWindow):
         form=QVBoxLayout(self.profile_editor); form.setContentsMargins(24,20,24,20); form.setSpacing(12)
         self.editor_title=label('Редактирование профиля',name='sectionHeading'); form.addWidget(self.editor_title)
         grid=QGridLayout(); grid.setHorizontalSpacing(12); grid.setVerticalSpacing(8); grid.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.fields={}
-        fields=[('label','Название профиля'),('province','Провинция'),('access_mode','Авторизация'),
-                ('fill_mode','NIE и имя'),('document_number','NIE'),('full_name','Имя и фамилия'),
-                ('nationality','Гражданство'),('phone','Телефон'),('email','Электронная почта'),
-                ('procedure','Услуга'),('delay_min','Задержка действий: минимум, с'),
+        self.fields={};self.profile_grid=grid
+        self._document_drafts={};self._document_kind='NIE';self._regreso_document_type='NIE'
+        self._editor_procedure=TIE_PROCEDURE;self._identity_layout_service=None
+        fields=[('label','Название профиля'),('province','Провинция'),('procedure','Услуга'),('access_mode','Способ авторизации'),
+                ('fill_mode','NIE и имя'),('document_type','Документ'),('document_number','NIE'),('full_name','Имя и фамилия'),
+                ('nationality','Гражданство'),('phone','Телефон'),('email','Почта'),
+                ('delay_min','Задержка действий: минимум, с'),
                 ('delay_max','Задержка действий: максимум, с')]
         countries=sorted(_load_catalog(self.store.catalog_path)['nationalities'])
-        positions={'label':(0,0,1),'province':(0,1,1),'access_mode':(1,0,2),
-                   'fill_mode':(2,0,2),'document_number':(3,0,1),'full_name':(3,1,1),
-                   'nationality':(4,0,1),'phone':(4,1,1),'email':(5,0,2),
-                   'procedure':(6,0,2),'delay_min':(7,0,1),'delay_max':(7,1,1)}
+        positions={'label':(0,0,1),'province':(0,1,1),'procedure':(1,0,1),'access_mode':(1,1,1),
+                   'fill_mode':(2,0,2),'document_type':(3,0,1),'document_number':(3,1,1),'full_name':(4,0,2),
+                   'nationality':(6,0,2),'phone':(5,0,1),'email':(5,1,1),
+                   'delay_min':(7,0,1),'delay_max':(7,1,1)}
+        grid.setColumnStretch(0,1);grid.setColumnStretch(1,1)
         self.profile_field_boxes={}
         self.identity_buttons={}
         identity_group=QButtonGroup(self.profile_editor);identity_group.setExclusive(True)
         for index,(key,title) in enumerate(fields):
-            if key in {'access_mode','fill_mode','nationality','province','procedure'}:
+            if key in {'access_mode','fill_mode','nationality','province','procedure','document_type'}:
                 widget=ProfileComboBox()
                 if key=='access_mode':
                     widget.addItem('Электронный сертификат','certificate'); widget.addItem('Cl@ve Móvil','clave_movil'); widget.addItem('Cl@ve Permanente','clave_permanente')
@@ -414,8 +421,10 @@ class DesktopWindow(QMainWindow):
                 elif key=='nationality':
                     widget.addItems(countries); widget.setEditable(True)
                 elif key=='province': widget.addItems(sorted(_load_catalog(self.store.catalog_path)['provinces']))
+                elif key=='document_type':
+                    for text,value in [('NIE','NIE'),('DNI','DNI'),('Паспорт','PASSPORT')]:widget.addItem(text,value)
                 else:
-                    widget.addItem('Toma de huellas',TIE_PROCEDURE); widget.setEnabled(False)
+                    for value,text in PROCEDURE_NAMES.items():widget.addItem(text,value)
             elif key in {'delay_min', 'delay_max'}:
                 widget=QDoubleSpinBox()
                 widget.setRange(0,10); widget.setDecimals(2); widget.setSingleStep(.1)
@@ -424,27 +433,31 @@ class DesktopWindow(QMainWindow):
                 if key=='document_number': widget.setMaxLength(20)
             widget.setAccessibleName(title); self.fields[key]=widget
             if key=='fill_mode':
-                box=QWidget();column=QVBoxLayout(box);column.setContentsMargins(0,0,0,0);column.setSpacing(6)
-                mode=QHBoxLayout();mode.setSpacing(8);mode.addWidget(label('NIE и имя',muted=True));mode.addStretch()
+                box=QWidget(self.profile_editor);self.identity_box=box;column=QVBoxLayout(box);column.setContentsMargins(0,0,0,0);column.setSpacing(6)
+                mode=QHBoxLayout();mode.setSpacing(8);self.identity_caption=label('NIE и имя',muted=True);mode.addWidget(self.identity_caption);self.identity_caption.hide()
                 for value,text in [('copy','Из авторизации'),('manual','Ввести вручную')]:
-                    button=QPushButton(text);button.setCheckable(True);button.setProperty('profileMode',True)
+                    button=QPushButton(text);button.setCheckable(True);button.setFocusPolicy(Qt.FocusPolicy.StrongFocus);button.setProperty('profileMode',True)
                     button.clicked.connect(lambda checked,v=value:self.fields['fill_mode'].setCurrentIndex(self.fields['fill_mode'].findData(v)))
                     identity_group.addButton(button);self.identity_buttons[value]=button;mode.addWidget(button)
-                column.addLayout(mode);widget.setParent(box);widget.hide()
+                mode.addStretch();column.addLayout(mode);widget.setParent(box);widget.hide()
                 self.identity_note=label('NIE и имя будут взяты после входа на сайт.',muted=True);column.addWidget(self.identity_note)
-            elif key in {'procedure','delay_min','delay_max'}:
+            elif key in {'delay_min','delay_max'}:
                 box=QWidget();column=QVBoxLayout(box);column.setContentsMargins(0,0,0,0);column.addWidget(widget)
             else:
                 box=ProfileField(title,widget);self.profile_field_boxes[key]=box
             row,col,span=positions[key]
             grid.addWidget(box,row,col,1,span)
-            if key=='procedure': box.hide()  # The supported procedure is fixed.
-        focus_fields=[self.fields[key] for key in ('label','province','access_mode')]+[self.identity_buttons['copy'],self.identity_buttons['manual']]+[self.fields[key] for key in ('document_number','full_name','nationality','phone','email')]
+        self.document_fields_row=QWidget();self.document_fields_layout=QHBoxLayout(self.document_fields_row)
+        self.document_fields_layout.setContentsMargins(0,0,0,0);self.document_fields_layout.setSpacing(12)
+        self.profile_field_boxes['document_type'].setFixedWidth(160)
+        self.profile_focus_fields=[self.fields[key] for key in ('label','province','procedure','access_mode')]+[self.identity_buttons['copy'],self.identity_buttons['manual']]+[self.fields[key] for key in ('document_type','document_number','full_name','nationality','phone','email')]
+        self.fields['procedure'].currentIndexChanged.connect(self.update_profile_document)
+        self.fields['document_type'].currentIndexChanged.connect(self.update_profile_document)
         self.fields['access_mode'].currentIndexChanged.connect(self.update_identity_fields)
         self.fields['fill_mode'].currentIndexChanged.connect(self.update_identity_fields)
-        self.update_identity_fields()
         profile_tabs=QTabWidget(); self.profile_tabs=profile_tabs
         details=QWidget(); details.setLayout(grid)
+        self.update_identity_fields()
         details_scroll=QScrollArea(); details_scroll.setWidgetResizable(True); details_scroll.setFrameShape(QScrollArea.Shape.NoFrame); details_scroll.setWidget(details)
         profile_tabs.addTab(details_scroll,'Данные')
         timings_page=QWidget(); timing_layout=QGridLayout(timings_page)
@@ -504,7 +517,7 @@ class DesktopWindow(QMainWindow):
         from .notification_widgets import NotificationPanel
         self.notifications_panel=NotificationPanel(self)
         profile_tabs.addTab(self.notifications_panel.scroll,'Уведомления'); form.addWidget(profile_tabs,1)
-        for previous,current in zip(focus_fields,focus_fields[1:]):
+        for previous,current in zip(self.profile_focus_fields,self.profile_focus_fields[1:]):
             QWidget.setTabOrder(previous,current)
         profile_tabs.currentChanged.connect(self.update_editor_height)
         form.addWidget(label('Пароли и подтверждения — только в Camoufox.',muted=True))
@@ -580,6 +593,9 @@ class DesktopWindow(QMainWindow):
             self.metrics.setText(f"Проверки: 0 за запуск · Всего: {total if total is not None else '—'}")
             self.retranslate()
         self.update_start()
+        task=next((t for t in self.profiles if t.id==self.profile_combo.currentData()),None)
+        self.service_label.setText(self.t('Услуга')+': '+PROCEDURE_NAMES.get(task.procedure,task.procedure) if task else '')
+        self.service_label.setVisible(task is not None);self.service_icon.setVisible(task is not None)
         self.restart_action.setEnabled(bool(self.profile_combo.currentData()) and not self.state.get('browser_retained',False))
 
     def update_start(self):
@@ -587,15 +603,57 @@ class DesktopWindow(QMainWindow):
         task=next((t for t in self.profiles if t.id==self.profile_combo.currentData()),None)
         self.start_button.setEnabled(self.controller.active or bool(task and not task.errors and task.access_mode in {'clave','certificate'}))
 
+    def update_profile_document(self, *_):
+        procedure=self.fields['procedure'].currentData()
+        regreso=procedure==REGRESO_PROCEDURE
+        if self._editor_procedure==REGRESO_PROCEDURE:
+            self._regreso_document_type=self.fields['document_type'].currentData()
+        kind=self._regreso_document_type if regreso else 'NIE'
+        self._document_drafts[self._document_kind]=self.fields['document_number'].text()
+        self._document_kind=kind;self._editor_procedure=procedure
+        self.fields['document_number'].setText(self._document_drafts.get(kind,''))
+        combo=self.fields['document_type'];combo.blockSignals(True)
+        combo.setCurrentIndex(max(0,combo.findData(kind)));combo.blockSignals(False)
+        self.update_identity_fields()
+
     def update_identity_fields(self, *_):
         manual=self.fields['fill_mode'].currentData() != 'copy'
+        regreso=self.fields['procedure'].currentData()==REGRESO_PROCEDURE
+        if self._identity_layout_service!=regreso:
+            for key in ('document_type','document_number','full_name','nationality'):
+                box=self.profile_field_boxes[key];self.profile_grid.removeWidget(box);self.document_fields_layout.removeWidget(box)
+            self.profile_grid.removeWidget(self.document_fields_row)
+            if regreso:
+                self.document_fields_layout.addWidget(self.profile_field_boxes['document_type'])
+                self.document_fields_layout.addWidget(self.profile_field_boxes['document_number'],1)
+                self.profile_grid.addWidget(self.document_fields_row,3,0,1,2)
+                self.profile_grid.addWidget(self.profile_field_boxes['full_name'],4,0,1,2)
+            else:
+                self.profile_grid.addWidget(self.profile_field_boxes['document_number'],3,0)
+                self.profile_grid.addWidget(self.profile_field_boxes['full_name'],3,1)
+                self.profile_grid.addWidget(self.profile_field_boxes['nationality'],4,0,1,2)
+            self._identity_layout_service=regreso
+        self.document_fields_row.setVisible(regreso and manual)
+        self.profile_field_boxes['document_type'].setVisible(regreso and manual)
+        self.profile_field_boxes['nationality'].setVisible(not regreso)
+        self.identity_caption.setText(self.t('Документ и имя' if regreso else 'NIE и имя'))
+        self.identity_note.setText(self.t('Документ и имя будут взяты после входа на сайт.' if regreso else 'NIE и имя будут взяты после входа на сайт.'))
+        number_title=({'NIE':'Номер NIE','DNI':'Номер DNI','PASSPORT':'Номер паспорта'}.get(self.fields['document_type'].currentData(),'Номер документа') if regreso else 'NIE')
+        self.profile_field_boxes['document_number'].caption.setText(self.t(number_title))
+        self.fields['document_number'].setPlaceholderText(self.t(number_title))
+        self.fields['document_number'].setAccessibleName(self.t(number_title))
         for key in ('document_number','full_name'):
             self.fields[key].setEnabled(manual)
             self.profile_field_boxes[key].setVisible(manual)
             self.fields[key].setToolTip(self.t('Берётся из текущей авторизации на сайте') if not manual else '')
 
         self.identity_note.setVisible(not manual)
-        for value,button in self.identity_buttons.items():button.setChecked(value==('manual' if manual else 'copy'))
+        for value,button in self.identity_buttons.items():
+            selected=value==('manual' if manual else 'copy')
+            button.setChecked(selected)
+            button.setFocusPolicy(Qt.FocusPolicy.StrongFocus if selected else Qt.FocusPolicy.ClickFocus)
+        for previous,current in zip(self.profile_focus_fields,self.profile_focus_fields[1:]):
+            QWidget.setTabOrder(previous,current)
 
     def create_profile(self):
         self.open_editor(None)
@@ -613,7 +671,7 @@ class DesktopWindow(QMainWindow):
         request=self.store.raw_profile(profile_id).get('request',{})
         auth=('Электронный сертификат' if request.get('access_mode','certificate')=='certificate'
               else 'Cl@ve Permanente' if request.get('clave_method','movil')=='permanente' else 'Cl@ve Móvil')
-        self.profile_summary.setText(str(request.get('province',''))+' · '+self.t(auth))
+        self.profile_summary.setText(str(request.get('province',''))+' · '+PROCEDURE_NAMES.get(request.get('procedure',TIE_PROCEDURE),'')+' · '+self.t(auth))
 
     def open_editor(self, profile_id):
         self.editing_id=profile_id; self.editor_revision=self.store.revision()
@@ -623,6 +681,14 @@ class DesktopWindow(QMainWindow):
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))
         for key,value in values.items(): self.fields[key].setText(str(value))
+        procedure=raw.get('request',{}).get('procedure',TIE_PROCEDURE)
+        document_type=applicant.get('document_type','NIE')
+        if document_type not in {'NIE','DNI','PASSPORT'}:document_type='NIE'
+        for key,value in [('procedure',procedure),('document_type',document_type if procedure==REGRESO_PROCEDURE else 'NIE')]:
+            combo=self.fields[key];combo.blockSignals(True)
+            combo.setCurrentIndex(max(0,combo.findData(value)));combo.blockSignals(False)
+        self._editor_procedure=procedure;self._document_kind=document_type if procedure==REGRESO_PROCEDURE else 'NIE'
+        self._regreso_document_type=document_type;self._document_drafts={self._document_kind:str(values['document_number'])}
         self.fields['nationality'].setCurrentText(applicant.get('nationality',''))
         self.fields['province'].setCurrentText(raw.get('request',{}).get('province','Barcelona'))
         access=raw.get('request',{}).get('access_mode','certificate')
@@ -666,8 +732,8 @@ class DesktopWindow(QMainWindow):
         access_mode='clave' if selected_auth.startswith('clave_') else 'certificate'
         clave_method=selected_auth.removeprefix('clave_') if access_mode=='clave' else 'movil'
         data=dict(label=f['label'].text().strip(),timings=timings,request=dict(access_mode=access_mode,clave_method=clave_method,
-            province=f['province'].currentText(),office='',procedure=TIE_PROCEDURE,subprocedure=None),
-            applicant=dict(fill_mode=f['fill_mode'].currentData(),document_type='NIE',document_number=f['document_number'].text(),
+            province=f['province'].currentText(),office='',procedure=f['procedure'].currentData(),subprocedure=None),
+            applicant=dict(fill_mode=f['fill_mode'].currentData(),document_type=f['document_type'].currentData() if f['procedure'].currentData()==REGRESO_PROCEDURE else 'NIE',document_number=f['document_number'].text(),
                 full_name=f['full_name'].text(),nationality=f['nationality'].currentText(),
                 contact=dict(phone=f['phone'].text(),email=f['email'].text())))
         from ..notifications import NotificationError
@@ -996,7 +1062,7 @@ class DesktopWindow(QMainWindow):
         for widget in self.fields.values():
             if isinstance(widget,QLineEdit):
                 update((widget,'placeholder'),widget.placeholderText(),widget.setPlaceholderText)
-        for name in ('access_mode','fill_mode','procedure'):
+        for name in ('access_mode','fill_mode','document_type'):
             combo=self.fields[name]; combo.blockSignals(True)
             for index in range(combo.count()):
                 update((combo,index),combo.itemText(index),lambda text,i=index,c=combo:c.setItemText(i,text))
@@ -1029,17 +1095,18 @@ class DesktopWindow(QMainWindow):
         self.sound_button.setIcon(self.control_icon('bell' if self.preferences['sound'] else 'bell_off'))
         self.sound_button.setToolTip(self.t(sound_action)); self.sound_button.setAccessibleName(self.t(sound_action))
         self.browser_button.setIcon(self.control_icon('external'))
+        self.service_icon.setPixmap(self.control_icon('clipboard').pixmap(QSize(18,18)))
         self.about_button.setIcon(self.control_icon('info'))
         self.about_button.setToolTip(self.t('О приложении'))
         self.about_button.setAccessibleName(self.t('О приложении'))
-        field_icons={'label':'user','province':'pin','access_mode':'key','document_number':'id',
+        field_icons={'label':'user','province':'pin','procedure':'clipboard','access_mode':'key','document_type':'id','document_number':'id',
                      'full_name':'user','nationality':'globe','phone':'phone','email':'mail'}
         for key,name in field_icons.items():self.profile_field_boxes[key].icon.setPixmap(self.control_icon(name).pixmap(QSize(18,18)))
         for key,box in self.timing_field_boxes.items():
             box.help.setToolTip(self.t(box.help_text))
             box.icon.setPixmap(self.control_icon('bell' if key=='alert_seconds' else 'globe' if key=='reload_seconds' else 'info').pixmap(QSize(17,17)))
             box.help.setPixmap(self.control_icon('info').pixmap(QSize(15,15)))
-        for value,button in self.identity_buttons.items():button.setIcon(self.control_icon('key' if value=='copy' else 'pencil'))
+        for value,button in self.identity_buttons.items():button.setIcon(self.control_icon('copy' if value=='copy' else 'pencil'))
         self.notifications_panel.retranslate()
         for widget in self.findChildren(QToolButton)+self.findChildren(QPushButton):
             icon=widget.property('notificationIcon')

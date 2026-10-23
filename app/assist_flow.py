@@ -11,6 +11,7 @@ from contextlib import suppress
 from .assist import BOOKING_SELECTORS, CAPTCHA_SELECTORS, _document_key
 from .classifier import NO_SLOT_MARKERS
 from .logging_utils import log_event
+from .config import REGRESO_PROCEDURE
 from .page_inspection import dead_document, visible_documents
 from .site import SiteCheckError, _challenge_code, _flow_endpoint, _is_icp_page, _support_id
 
@@ -799,10 +800,10 @@ class AssistRunner:
                 await self.hold(observed, "Форма уже отправлялась. Проверить ответ и данные")
                 return
             if getattr(self.task, 'applicant_fill_mode', 'manual') == 'copy':
-                self.record("action", observed, "Скопировать NIE и имя из авторизации")
+                self.record("action", observed, "Скопировать документ и имя из авторизации" if getattr(self.task,'procedure',None)==REGRESO_PROCEDURE else "Скопировать NIE и имя из авторизации")
                 await self.checker._fill_applicant_with_clave(self.page, self.task, self.run_id)
             else:
-                self.record("action", observed, "Ввести NIE и имя из профиля")
+                self.record("action", observed, "Ввести документ и имя из профиля" if getattr(self.task,'procedure',None)==REGRESO_PROCEDURE else "Ввести NIE и имя из профиля")
                 await self.checker._fill_applicant_manual(self.page, self.task, self.run_id)
             current = await self.observe()
             if current.kind != "applicant" or current.document != observed.document:

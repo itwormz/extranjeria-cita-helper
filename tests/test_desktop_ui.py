@@ -316,7 +316,7 @@ def test_about_has_current_latest_and_check_button(window):
     dialog.close()
 
 
-@pytest.mark.parametrize('error,expected',[(False,'0.2.0'),(True,'No release has been published')])
+@pytest.mark.parametrize('error,expected',[(False,'9.9.9'),(True,'No release has been published')])
 def test_about_update_check_handles_release_and_failures(window,monkeypatch,error,expected):
     import io,json
     from urllib.error import HTTPError
@@ -324,9 +324,9 @@ def test_about_update_check_handles_release_and_failures(window,monkeypatch,erro
     from app.desktop import updates
     target,arch=updates.release_target()
     extension={'macos':'dmg','windows':'msi','linux':'AppImage'}[target]
-    name=f'extranjeria-cita-helper-0.2.0-{target}-{arch}.{extension}'
-    base=updates.REPOSITORY+'/releases/download/v0.2.0/'
-    payload={'tag_name':'v0.2.0','immutable':True,'assets':[{'name':name,'browser_download_url':base+name,'size':7},
+    name=f'extranjeria-cita-helper-9.9.9-{target}-{arch}.{extension}'
+    base=updates.REPOSITORY+'/releases/download/v9.9.9/'
+    payload={'tag_name':'v9.9.9','immutable':True,'assets':[{'name':name,'browser_download_url':base+name,'size':7},
                                          {'name':'SHA256SUMS','browser_download_url':base+'SHA256SUMS'},
                                          {'name':name+'.sigstore.json','browser_download_url':base+name+'.sigstore.json'}]}
     def fetch(url):
@@ -897,3 +897,110 @@ def test_about_provenance_failure_has_danger_shield_and_clears_on_retry(window,d
     assert dialog.findChild(QFrame,'aboutUpdates').property('tone')=='normal'
     assert not dialog.findChild(QLabel,'aboutUpdateShield').isVisible()
     dialog.close()
+
+
+def test_regreso_profile_uses_its_document_fields_and_saved_service(window):
+    window.create_profile();f=window.fields
+    assert f['procedure'].isEnabled()
+    f['procedure'].setCurrentIndex(f['procedure'].findData('AUTORIZACIÓN DE REGRESO'))
+    assert window.profile_field_boxes['document_type'].isVisible()
+    assert not window.profile_field_boxes['nationality'].isVisible()
+    f['document_type'].setCurrentIndex(f['document_type'].findData('PASSPORT'))
+    for key,value in dict(label='Regreso test',full_name='ALEX EXAMPLE',document_number='PA1234567',phone='600000000',email='alex@example.com').items():f[key].setText(value)
+    window.save_profile()
+    assert not window.profile_editor.isVisible(),window.form_error.text()
+    task=window.store.load()[0]
+    assert task.procedure=='AUTORIZACIÓN DE REGRESO' and task.document_type=='PASSPORT'
+    assert window.service_label.text().endswith('Autorización de regreso')
+    window.open_editor(task.id)
+    assert f['procedure'].currentData()=='AUTORIZACIÓN DE REGRESO'
+    assert f['document_type'].currentData()=='PASSPORT' and f['document_number'].text()=='PA1234567'
+    f['procedure'].setCurrentIndex(f['procedure'].findData(__import__('app.config',fromlist=['TIE_PROCEDURE']).TIE_PROCEDURE))
+    assert not window.profile_field_boxes['document_type'].isVisible()
+    assert window.profile_field_boxes['nationality'].isVisible()
+    assert f['document_number'].text()!='PA1234567'
+    assert window.service_label.text().endswith('Autorización de regreso')
+    f['document_number'].setText('X0000000T')
+    f['procedure'].setCurrentIndex(f['procedure'].findData('AUTORIZACIÓN DE REGRESO'))
+    assert f['document_number'].text()=='PA1234567'
+    f['document_type'].setCurrentIndex(f['document_type'].findData('NIE'))
+    assert f['document_number'].text()=='X0000000T'
+    f['document_type'].setCurrentIndex(f['document_type'].findData('PASSPORT'))
+    assert f['document_number'].text()=='PA1234567'
+    f['fill_mode'].setCurrentIndex(f['fill_mode'].findData('copy'))
+    assert not window.profile_field_boxes['document_type'].isVisible()
+    f['fill_mode'].setCurrentIndex(f['fill_mode'].findData('manual'))
+    assert window.profile_field_boxes['document_type'].isVisible()
+
+
+def test_monitor_uses_selected_saved_service_and_contacts_share_a_row(window,task_mapping):
+    import copy
+    raw=copy.deepcopy(task_mapping['tasks'][0]);raw['request']['access_mode']='certificate'
+    raw['applicant']['contact']=dict(phone='600000000',email='demo@example.com')
+    first=window.store.save_profile(None,raw,revision=window.store.revision())
+    raw['label']='Regreso';raw['request']['procedure']='AUTORIZACIÓN DE REGRESO';raw['applicant']['nationality']=''
+    second=window.store.save_profile(None,raw,revision=window.store.revision())
+    window.refresh_profiles(first)
+    assert window.service_label.text().endswith('Toma de huellas · TIE')
+    window.profile_combo.setCurrentIndex(window.profile_combo.findData(second))
+    assert window.service_label.text().endswith('Autorización de regreso')
+    window.open_editor(second)
+    for procedure in ('AUTORIZACIÓN DE REGRESO',__import__('app.config',fromlist=['TIE_PROCEDURE']).TIE_PROCEDURE):
+        window.fields['procedure'].setCurrentIndex(window.fields['procedure'].findData(procedure));QApplication.processEvents()
+        assert window.profile_field_boxes['phone'].geometry().y()==window.profile_field_boxes['email'].geometry().y()
+    assert window.service_label.text().endswith('Autorización de regreso')
+    window.profile_editor.reject()
+    window.profile_combo.setCurrentIndex(window.profile_combo.findData(first))
+    assert window.service_label.text().endswith('Toma de huellas · TIE')
+
+
+@pytest.fixture
+def all_tab_controls(qt_app):
+    hints=qt_app.styleHints();previous=hints.tabFocusBehavior()
+    hints.setTabFocusBehavior(Qt.TabFocusBehavior.TabFocusAllControls)
+    yield
+    hints.setTabFocusBehavior(previous)
+
+
+@pytest.mark.parametrize('procedure,document,mode',[
+    ('huellas','NIE','manual'),('huellas','NIE','copy'),
+    ('regreso','NIE','manual'),('regreso','DNI','manual'),('regreso','PASSPORT','manual'),('regreso','NIE','copy')])
+def test_profile_tab_visits_inputs_in_visual_order_after_relayout(window,all_tab_controls,procedure,document,mode):
+    from app.config import TIE_PROCEDURE,REGRESO_PROCEDURE
+    window.create_profile();f=window.fields
+    # Reparenting occurs in both directions when switching services.
+    for value in (REGRESO_PROCEDURE,TIE_PROCEDURE,REGRESO_PROCEDURE if procedure=='regreso' else TIE_PROCEDURE):
+        f['procedure'].setCurrentIndex(f['procedure'].findData(value))
+    f['document_type'].setCurrentIndex(f['document_type'].findData(document))
+    f['fill_mode'].setCurrentIndex(f['fill_mode'].findData(mode))
+    window.profile_tabs.setCurrentIndex(0);window.profile_editor.activateWindow();QApplication.processEvents()
+    order=[f[k] for k in ('label','province','procedure','access_mode')]+[window.identity_buttons[mode]]
+    if mode=='manual':
+        if procedure=='regreso':order.append(f['document_type'])
+        order.extend([f['document_number'],f['full_name']])
+    if procedure=='huellas':order.append(f['nationality'])
+    order.extend([f['phone'],f['email']])
+    order[0].setFocus();QApplication.processEvents()
+    for expected in order:
+        current=QApplication.focusWidget()
+        assert current is expected or expected.isAncestorOf(current), (expected.accessibleName(),current.accessibleName() if current else None)
+        QTest.keyClick(current,Qt.Key.Key_Tab);QApplication.processEvents()
+    assert QApplication.focusWidget() is window.findChild(__import__('PySide6.QtWidgets',fromlist=['QPushButton']).QPushButton,'saveProfile')
+
+
+def test_profile_timing_tab_visits_all_values_before_save(window,all_tab_controls):
+    window.create_profile();window.profile_tabs.setCurrentIndex(1);window.profile_editor.activateWindow();QApplication.processEvents()
+    order=[field for fields in window.timing_widgets.values() for field in fields]
+    order[0].setFocus();QApplication.processEvents()
+    for expected in order:
+        current=QApplication.focusWidget()
+        assert current is expected or expected.isAncestorOf(current), (expected.accessibleName(),current.accessibleName() if current else None)
+        QTest.keyClick(current,Qt.Key.Key_Tab);QApplication.processEvents()
+
+
+def test_nie_tab_goes_to_name_after_service_relayout(window,all_tab_controls):
+    window.create_profile();f=window.fields
+    f['procedure'].setCurrentIndex(f['procedure'].findData('AUTORIZACIÓN DE REGRESO'))
+    window.profile_editor.activateWindow();f['document_number'].setFocus();QApplication.processEvents()
+    QTest.keyClick(QApplication.focusWidget(),Qt.Key.Key_Tab);QApplication.processEvents()
+    assert QApplication.focusWidget() is f['full_name']

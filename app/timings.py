@@ -20,7 +20,7 @@ class AssistTimings:
     expired_seconds: tuple[float, ...] = (0, 30, 60, 120, 300)
     server_button_seconds: tuple[float, ...] = (0, 30, 60, 120, 300)
     server_retry_seconds: tuple[float, ...] = (30, 60, 120, 300)
-    blocked_seconds: tuple[float, ...] = (300, 360, 420, 540, 600)
+    blocked_seconds: tuple[float, ...] = (30, 60, 120, 300, 600)
     timeout_retry_seconds: tuple[float, ...] = (2, 5)
     post_timeout_seconds: float = 5
     restart_seconds: float = 5
@@ -47,7 +47,7 @@ TIMING_FIELDS = (
     ('expired_seconds', 'Истёкшая сессия: паузы попыток, с', 0, 3600),
     ('server_button_seconds', 'Кнопка ошибки: паузы попыток, с', 0, 3600),
     ('server_retry_seconds', 'Ошибка сервера без кнопки: паузы, с', 1, 3600),
-    ('blocked_seconds', 'Блокировка: паузы новых сессий, с', 300, 7200),
+    ('blocked_seconds', 'Блокировка: паузы новых сессий, с', 30, 7200),
     ('timeout_retry_seconds', 'Клик не отправлен: паузы повторов, с', .1, 60),
     ('post_timeout_seconds', 'Клик отправлен: ожидание результата, с', 1, 60),
     ('restart_seconds', 'Таймаут действия: пауза перезапуска, с', 1, 60),
@@ -66,6 +66,8 @@ def parse_timings(raw):
         value = raw.get(key, getattr(defaults, key))
         if value is None or value == '':
             value = getattr(defaults, key)
+        if key == 'blocked_seconds' and isinstance(value, (list, tuple)) and tuple(value) == (300, 360, 420, 540, 600):
+            value = defaults.blocked_seconds
         multiple = isinstance(getattr(defaults, key), tuple)
         if multiple and (not isinstance(value, (list, tuple)) or not value or len(value) > 10):
             raise ValueError(title + ': expected a nonempty list (up to 10 values)')

@@ -15,9 +15,9 @@ Si la aplicación te ha ayudado, agradecería una donación para apoyar su desar
 
 <a href="docs/images/monitor-dark.png"><img src="docs/images/monitor-dark.png" alt="Monitor" width="165"></a> <a href="docs/images/profile-dark.png"><img src="docs/images/profile-dark.png" alt="Perfil" width="165"></a> <a href="docs/images/settings-dark.png"><img src="docs/images/settings-dark.png" alt="Ajustes" width="165"></a> <a href="docs/images/timings-dark.png"><img src="docs/images/timings-dark.png" alt="Intervalos" width="165"></a>
 
-Asistente de escritorio para conseguir una cita de Extranjería de **toma de huellas** para la TIE. Rellena formularios en ICP Plus, comprueba la disponibilidad de citas y avisa cuando necesita su intervención.
+Asistente de escritorio para buscar citas de Extranjería: **toma de huellas / TIE** y **autorización de regreso**. Rellena formularios en ICP Plus, comprueba la disponibilidad de citas y avisa cuando necesita su intervención.
 
-La aplicación está destinada exclusivamente a este trámite. Otros servicios y opciones de cita no se contemplaron ni se probaron.
+Solo se admiten estos dos trámites. Otros servicios y opciones de cita no se contemplaron ni se probaron.
 
 ## 🚀 Inicio rápido
 
@@ -55,7 +55,7 @@ Las raíces de confianza se incluyen en la aplicación; no se confía en una cac
 
 ## 🎯 Finalidad y uso responsable
 
-Cita Extranjeria Helper es un asistente independiente para encontrar una cita de toma de huellas a través del servicio oficial. Su única finalidad es reducir las acciones repetitivas y facilitar que cada usuario consiga su propia cita.
+Cita Extranjeria Helper es un asistente independiente para encontrar una cita de toma de huellas o autorización de regreso a través del servicio oficial. Su única finalidad es reducir las acciones repetitivas y facilitar que cada usuario consiga su propia cita.
 
 El proyecto no está vinculado a las administraciones públicas españolas, no garantiza la obtención de una cita ni está destinado a la reventa o al acaparamiento masivo de citas, al uso de credenciales ajenas, al acceso no autorizado ni a perturbar el funcionamiento del servicio público. El uso de la aplicación debe respetar la legislación vigente y las normas del servicio.
 
@@ -115,8 +115,9 @@ Después de confirmar la reserva en la web, marque **Cita conseguida**. Los dato
 | Ajuste | Función |
 | --- | --- |
 | Perfil | Datos del solicitante, contactos, método de acceso y tiempos |
-| Provincia | Seleccione la provincia para la cita de toma de huellas |
-| NIE y nombre | Introducir los datos del perfil o copiarlos de la página autenticada |
+| Provincia | Provincia de la cita |
+| Trámite | Toma de huellas / TIE o autorización de regreso |
+| Documento y nombre | Introducir los datos o copiarlos tras el acceso. Huellas: NIE y nacionalidad; Regreso: NIE, DNI o pasaporte |
 | Tiempos | Intervalos entre acciones, velocidad de escritura, consultas de citas y pausas de recuperación |
 | Variación aleatoria | Pausa aleatoria dentro del intervalo configurado; la variación adicional de recuperación está desactivada por defecto |
 | Sonido | Alertas repetidas cuando necesita intervenir |
@@ -132,7 +133,7 @@ Las filas seleccionadas del registro se copian con **⌘C / Ctrl+C**, el botón 
 ## ⚠️ Problemas conocidos
 
 - **Aplicaciones a pantalla completa en macOS.** Cuando otra aplicación (por ejemplo, Safari) ocupa un Space separado a pantalla completa, las acciones de Camoufox pueden quedarse esperando: los clics y la introducción de texto pueden agotar el tiempo de espera, retrasando la búsqueda o iniciando un nuevo recorrido. Solución provisional: usar la otra aplicación en una ventana normal y mantener Camoufox abierto en el mismo Space; puede permanecer detrás de otras ventanas. La causa exacta aún no está confirmada.
-- **Limitación temporal de solicitudes, incluido HTTP 429 — Too Many Requests.** Espere **5–10 minutos** y evite reinicios manuales frecuentes. Con HTTP 429, el asistente conserva la sesión y comprueba el acceso cada **3 minutos** por defecto; ante un bloqueo reconocido, espera antes de iniciar una sesión nueva.
+- **Limitación temporal de solicitudes, incluido HTTP 429 — Too Many Requests.** Espere **5–10 minutos** y evite reinicios manuales frecuentes. Con HTTP 429, el asistente conserva la sesión y comprueba el acceso cada **3 minutos** por defecto; ante bloqueos consecutivos, las pausas antes de una sesión nueva son de **30, 60, 120, 300 y 600 segundos**. Se conservan las secuencias personalizadas.
 - **Protección contra bots.** Si se reconoce un bloqueo, la sesión debería borrarse automáticamente. Si no ocurre, pulse **Reiniciar sesión** para restablecerla manualmente.
 - **Sesiones caducadas y errores del servidor.** El asistente sigue el botón de recuperación reconocido o repite una comprobación segura tras una pausa. Una pantalla desconocida puede requerir intervención manual; con Cl@ve deberá aprobar nuevos accesos periódicamente.
 

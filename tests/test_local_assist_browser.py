@@ -75,7 +75,7 @@ def test_request_rejected_is_saved_and_kept_visible_during_cooldown():
             await page.route('**/*',respond);r=runner_for(page,ctx);r.save=AsyncMock()
             async def countdown(screen,delay,action):
                 r.save.assert_awaited_with(screen,'HTTP_BLOCKED')
-                assert delay==300 and await page.locator('body').is_visible()
+                assert delay==30 and await page.locator('body').is_visible()
                 return False
             r.countdown=countdown
             await page.goto(BASE+'citar')

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — Autorización de regreso
+
+- Added **Autorización de regreso** alongside Toma de huellas / TIE, selected per profile and shown on the Monitor screen.
+- Regreso profiles support NIE, DNI and passport, manual applicant entry or copying authenticated data; citizenship remains specific to fingerprinting profiles.
+- Kept separate document drafts when switching services or document types, with document validation and protection against silent passport truncation.
+- Corrected keyboard Tab order after switching services; applicant fields and timing values follow their visual order.
+- Reduced the default first blocked-session pause to 30 seconds, followed by 60, 120, 300 and 600 seconds for repeated blocks. Existing profiles using the former default schedule migrate automatically; custom schedules are preserved. HTTP 429 keeps its separate 3-minute pause.
+- Appointment selection, CAPTCHA and final confirmation remain manual; Camoufox stays open and under user control.
+
 ## 0.1.5 — Attested updates
 
 - GitHub tag builds automatically generate Sigstore build provenance for final DMG, MSI, AppImage and portable ZIP packages. Publication verifies every signature, package digest, repository, workflow, tag, hosted runner and source commit before uploading a draft. All Actions are pinned to commit SHAs.

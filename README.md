@@ -15,9 +15,9 @@ If the app helped you, I would appreciate a donation to support its development 
 
 <a href="docs/images/monitor-dark.png"><img src="docs/images/monitor-dark.png" alt="Monitor" width="165"></a> <a href="docs/images/profile-dark.png"><img src="docs/images/profile-dark.png" alt="Profile" width="165"></a> <a href="docs/images/settings-dark.png"><img src="docs/images/settings-dark.png" alt="Settings" width="165"></a> <a href="docs/images/timings-dark.png"><img src="docs/images/timings-dark.png" alt="Timings" width="165"></a>
 
-A desktop assistant for obtaining an Extranjería **fingerprinting appointment — Toma de huellas** for a TIE card. It fills in forms on ICP Plus, checks appointment availability and alerts you when your attention is needed.
+A desktop assistant for finding Extranjería appointments: **Toma de huellas / TIE** and **Autorización de regreso**. It fills in forms on ICP Plus, checks appointment availability and alerts you when your attention is needed.
 
-The app is intended only for this workflow. Other services and appointment options were neither intended nor tested.
+Only these two appointment procedures are supported. Other services and appointment options were neither intended nor tested.
 
 ## 🚀 Quick start
 
@@ -55,7 +55,7 @@ Trust roots ship with the application; verification does not trust a shared loca
 
 ## 🎯 Purpose and responsible use
 
-Cita Extranjeria Helper is an independent assistant for finding a fingerprinting appointment through the official service. Its sole purpose is to reduce repetitive actions and help users obtain their own appointment.
+Cita Extranjeria Helper is an independent assistant for finding a fingerprinting or Autorización de regreso appointment through the official service. Its sole purpose is to reduce repetitive actions and help users obtain their own appointment.
 
 The project is not affiliated with Spanish public authorities, does not guarantee an appointment and is not intended for reselling or bulk hoarding of appointments, using other people's credentials, unauthorized access or disrupting the public service. Use of the application must comply with applicable law and the service's rules.
 
@@ -113,8 +113,9 @@ After completing a booking on the website, mark **Appointment obtained**. Appoin
 | Setting | Purpose |
 | --- | --- |
 | Profile | Applicant details, contacts, authentication method and timing settings |
-| Province | Choose the province for your fingerprinting appointment |
-| NIE and name | Enter profile values or copy them from the authenticated page |
+| Province | Choose the province for the appointment |
+| Service | Toma de huellas / TIE or Autorización de regreso |
+| Document and name | Enter profile values or copy authenticated data. Fingerprinting uses NIE and citizenship; Regreso supports NIE, DNI or passport |
 | Timing | Action intervals, typing speed, appointment-check waits and recovery pauses |
 | Jitter | Random delay within a configured range; additional recovery jitter is off by default |
 | Sound | Repeating alerts when your attention is needed |
@@ -130,7 +131,7 @@ Selected log rows can be copied with **⌘C / Ctrl+C**, the clipboard button or 
 ## ⚠️ Known issues
 
 - **Full-screen applications on macOS.** When another application (for example, Safari) is full-screen in a separate Space, Camoufox actions may stall: clicks and text entry can time out, delaying progress or restarting the search. Workaround: use the other application in a regular window and keep Camoufox open in the same Space; it may remain behind other windows. The underlying cause has not yet been confirmed.
-- **Temporary request-rate limits, including HTTP 429 — Too Many Requests.** Wait **5–10 minutes** and avoid frequent manual restarts. For HTTP 429, the assistant preserves the session and probes access every **3 minutes** by default; a recognized block triggers a pause before a new session.
+- **Temporary request-rate limits, including HTTP 429 — Too Many Requests.** Wait **5–10 minutes** and avoid frequent manual restarts. For HTTP 429, the assistant preserves the session and probes access every **3 minutes** by default; a recognized block starts a new session after pauses of **30, 60, 120, 300 and 600 seconds** for consecutive blocks. Custom timing schedules are preserved.
 - **Anti-bot protection.** A recognized block should automatically clear the session. If it does not, use **Restart session** to reset it manually.
 - **Expired sessions and server errors.** The assistant follows a recognized recovery button or retries a safe check after a pause. An unfamiliar screen may require manual action; Cl@ve users must periodically approve a new sign-in.
 

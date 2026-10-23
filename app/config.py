@@ -16,6 +16,8 @@ TIE_PROCEDURE = (
     "POLICÍA-TOMA DE HUELLAS (EXPEDICIÓN DE TARJETA) INICIAL, RENOVACIÓN, "
     "DUPLICADO Y LEY 14/2013"
 )
+REGRESO_PROCEDURE = "AUTORIZACIÓN DE REGRESO"
+PROCEDURE_NAMES = {TIE_PROCEDURE: "Toma de huellas · TIE", REGRESO_PROCEDURE: "Autorización de regreso"}
 _TASK_ID_RE = re.compile(r"^[a-z0-9_-]+$")
 _NIE_RE = re.compile(r"^[XYZ]\d{7}[A-Z]$")
 _NIE_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE"
@@ -255,21 +257,32 @@ def _task(raw: dict[str, Any], settings: Settings, catalog: dict[str, set[str]])
         errors.append("request.province is not present in catalog")
     if office and province == "Barcelona" and office not in catalog.get("barcelona_offices", set()):
         errors.append("request.office is not present in Barcelona catalog")
-    if procedure != TIE_PROCEDURE:
-        errors.append("request.procedure must be the fixed TIE fingerprints procedure")
+    if procedure not in PROCEDURE_NAMES:
+        errors.append("request.procedure must be TIE fingerprints or autorización de regreso")
     if subprocedure not in (None, ""):
-        errors.append("request.subprocedure must be null in the fingerprints flow")
-    if document_type != "NIE":
+        errors.append("request.subprocedure must be null in the supported flows")
+    if procedure == REGRESO_PROCEDURE:
+        if document_type not in {"NIE", "DNI", "PASSPORT"}:
+            errors.append("applicant.document_type must be NIE, DNI or PASSPORT for regreso")
+    elif document_type != "NIE":
         errors.append("applicant.document_type must be NIE")
     if applicant_fill_mode not in {"manual", "copy"}:
         errors.append("applicant.fill_mode must be manual or copy")
     if applicant_fill_mode == "copy" and access_mode not in {"clave", "certificate"}:
         errors.append("applicant.fill_mode=copy requires certificate or Cl@ve")
-    if applicant_fill_mode != "copy" and not _valid_nie(document_number):
-        errors.append("applicant.document_number is not a valid NIE")
+    if applicant_fill_mode != "copy":
+        if procedure == REGRESO_PROCEDURE and document_type == "DNI":
+            if not (re.fullmatch(r"[0-9]{8}[A-Z]", document_number)
+                    and _NIE_LETTERS[int(document_number[:8]) % 23] == document_number[-1]):
+                errors.append("applicant.document_number is not a valid DNI")
+        elif procedure == REGRESO_PROCEDURE and document_type == "PASSPORT":
+            if not re.fullmatch(r"[A-Z0-9]{1,20}", document_number):
+                errors.append("applicant.document_number must be a passport number of 1-20 letters or digits")
+        elif not _valid_nie(document_number):
+            errors.append("applicant.document_number is not a valid NIE")
     if applicant_fill_mode != "copy" and (not full_name or len(full_name) > 50 or any(ch.isdigit() for ch in full_name)):
         errors.append("applicant.full_name must be 1-50 characters without digits")
-    if nationality not in catalog.get("nationalities", set()):
+    if procedure != REGRESO_PROCEDURE and nationality not in catalog.get("nationalities", set()):
         errors.append("applicant.nationality is not present in catalog")
 
     timezone = str(schedule_raw.get("timezone", settings.timezone))

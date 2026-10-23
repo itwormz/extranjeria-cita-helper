@@ -45,7 +45,7 @@
   <rect class="node" x="60" y="190" width="410" height="60" rx="12" />
   <text x="82" y="226"><tspan class="name">Провинция:</tspan> выбрать</text>
   <rect class="node" x="60" y="280" width="410" height="60" rx="12" />
-  <text x="82" y="316"><tspan class="name">Услуга:</tspan> выбрать Toma de huellas</text>
+  <text x="82" y="316"><tspan class="name">Услуга:</tspan> выбрать по профилю</text>
   <rect class="manual" x="60" y="370" width="410" height="60" rx="12" />
   <text x="82" y="406"><tspan class="name">Вход:</tspan> сертификат / Cl@ve</text>
   <rect class="node" x="60" y="460" width="410" height="60" rx="12" />

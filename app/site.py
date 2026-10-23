@@ -656,14 +656,18 @@ class IcpPlusChecker:
         """Service-family indexes vary by province; match only procedure lists."""
         deadline = time.monotonic() + self.settings.navigation_timeout_seconds
         saw_options = False
+        from .config import REGRESO_PROCEDURE
+        labels_allowed = ({REGRESO_PROCEDURE, "POLICIA-AUTORIZACIÓN DE REGRESO"}
+                          if label == REGRESO_PROCEDURE else {label})
         while time.monotonic() < deadline:
             groups = page.locator('select[id^="tramiteGrupo["]:visible')
             for group in await groups.all():
                 labels = await group.locator('option').all_inner_texts()
                 saw_options = saw_options or len(labels) > 1
-                if label in labels:
+                match = next((text for text in labels if text in labels_allowed), None)
+                if match is not None:
                     identifier = await group.get_attribute('id')
-                    await self._select_label(page, f'[id={json.dumps(identifier)}]', label, 'request.procedure')
+                    await self._select_label(page, f'[id={json.dumps(identifier)}]', match, 'request.procedure')
                     return
             await page.wait_for_timeout(250)
         await self._assert_no_challenge(page, 'request.procedure')
@@ -858,7 +862,9 @@ class IcpPlusChecker:
         except PlaywrightTimeoutError as exc:
             await self._raise_if_dead_page(page, 'applicant.copy_from_clave')
             raise SiteCheckError('FORM_NOT_READY', False, 'BLOCKED_ERROR', 'applicant.copy_from_clave') from exc
-        await self._select_label(page, "#txtPaisNac", task.nationality, "applicant.nationality")
+        from .config import REGRESO_PROCEDURE
+        if getattr(task, "procedure", None) != REGRESO_PROCEDURE:
+            await self._select_label(page, "#txtPaisNac", task.nationality, "applicant.nationality")
         log_event(
             log,
             logging.DEBUG,
@@ -1007,17 +1013,31 @@ class IcpPlusChecker:
         differs from the authenticated person.
         """
         await self._pace(page)
-        nie_radio = page.locator("#rdbTipoDocNie")
-        if await nie_radio.count() and await nie_radio.first.is_visible():
+        from .config import REGRESO_PROCEDURE
+        regreso = getattr(task, "procedure", None) == REGRESO_PROCEDURE
+        kind = getattr(task, "document_type", "NIE") if regreso else "NIE"
+        selector = {"NIE": "#rdbTipoDocNie", "DNI": "#rdbTipoDocDni", "PASSPORT": "#rdbTipoDocPas"}.get(kind)
+        if selector is None:
+            raise SiteCheckError("FORM_NOT_READY", False, "BLOCKED_ERROR", "applicant.document_type")
+        document_radio = page.locator(selector)
+        if await document_radio.count() and await document_radio.first.is_visible():
             from .desktop_session import screen_locked
             if screen_locked():
-                if not await nie_radio.first.is_checked():
-                    await nie_radio.first.press("Space")
+                if not await document_radio.first.is_checked():
+                    await document_radio.first.press("Space")
             else:
-                await nie_radio.first.check()
+                await document_radio.first.check()
+        elif regreso:
+            raise SiteCheckError("FORM_NOT_READY", False, "BLOCKED_ERROR", "applicant.document_type")
+        if regreso:
+            maximum = await page.locator("#txtIdCitado").get_attribute("maxlength")
+            if maximum and maximum.isdigit() and len(task.document_number) > int(maximum):
+                raise SiteCheckError("FORM_NOT_READY", False, "BLOCKED_ERROR", "applicant.document_length")
         await self._type_like_user(page, "#txtIdCitado", task.document_number)
         await self._type_like_user(page, "#txtDesCitado", task.full_name)
-        await self._select_label(page, "#txtPaisNac", task.nationality, "applicant.nationality")
+        from .config import REGRESO_PROCEDURE
+        if getattr(task, "procedure", None) != REGRESO_PROCEDURE:
+            await self._select_label(page, "#txtPaisNac", task.nationality, "applicant.nationality")
         log_event(
             log,
             logging.DEBUG,

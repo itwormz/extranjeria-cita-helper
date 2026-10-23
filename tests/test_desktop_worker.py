@@ -57,7 +57,7 @@ def test_blocked_requests_context_restart_instead_of_reload():
     with pytest.raises(AssistRestartRequested) as error:
         asyncio.run(runner.recover(Observed('blocked','doc','sig',None)))
     assert error.value.clear_profile and error.value.delay_seconds == 0
-    assert runner.countdown.await_args.args[1] == 300
+    assert runner.countdown.await_args.args[1] == 30
     assert control.blocked_streak == 1
     page.reload.assert_not_awaited()
 

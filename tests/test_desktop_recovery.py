@@ -102,7 +102,7 @@ def test_block_keeps_captured_screen_during_cooldown_and_cancel_does_not_reset()
     screen = Observed('blocked', 'doc', 'sig', None, 'Request Rejected; Support ID: 123')
     asyncio.run(r.recover(screen))
     r.save.assert_awaited_once_with(screen, 'HTTP_BLOCKED')
-    assert r.countdown.await_args.args[1] == 300
+    assert r.countdown.await_args.args[1] == 30
     assert not r.control.restart_requested
     assert any('Request Rejected' in row['detail'] for row in r.control.snapshot()['timeline'])
 
