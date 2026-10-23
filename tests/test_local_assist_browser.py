@@ -19,9 +19,10 @@ FORM='<form id="citadoForm"><input id="txtIdCitado"><input id="txtDesCitado"><bu
 
 
 @pytest.mark.parametrize('variant', ['information', 'province'])
-def test_captured_expiry_variants_follow_own_control(variant):
+@pytest.mark.parametrize('render_delay_ms', [0, 600])
+def test_captured_expiry_variants_follow_own_control(variant, render_delay_ms):
     async def scenario():
-        from playwright.async_api import async_playwright
+        from playwright.async_api import async_playwright, expect
         async with async_playwright() as pw:
             browser=await launch_browser(pw);ctx=await browser.new_context();page=await ctx.new_page()
             text='Su sesión ha caducado por permanecer demasiado tiempo inactiva. Deberás iniciar de nuevo la solicitud de la cita previa.'
@@ -40,7 +41,16 @@ def test_captured_expiry_variants_follow_own_control(variant):
                 order.append(('wait',page.url,delay));return True
             r.countdown=countdown
             await page.goto(BASE+'acInfo')
-            screen=await r.observe();assert screen.kind=='expired'
+            if render_delay_ms:
+                await page.evaluate("""delay => {
+                    document.body.style.visibility = 'hidden';
+                    setTimeout(() => document.body.style.visibility = '', delay);
+                }""", render_delay_ms)
+            # load does not guarantee the first rendered body in a cold Firefox
+            # process. observe() intentionally reports loading until it is visible.
+            await expect(page.locator('body')).to_contain_text(text, use_inner_text=True, timeout=10_000)
+            await expect(page.locator('input[type="button"]')).to_be_visible(timeout=10_000)
+            screen=await r.observe();assert screen.kind=='expired', screen
             await r.step()
             assert page.url==BASE+'salirInicio'
             assert len(calls)==2

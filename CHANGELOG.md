@@ -8,6 +8,7 @@
 - About highlights failed provenance verification with a red shield warning and blocks installation. Long update messages remain fully visible in both themes.
 - All three README headers show the latest published release dynamically, with download/change links and prominent language selectors. Local metadata checks no longer require a source-version number in README.
 - Existing installations retain their previous checksum-only updater until upgraded. Provenance establishes build origin; it is not a guarantee that source code or dependencies are safe.
+- Offline expiry-recovery tests wait for rendered fixture text and controls before recognition, avoiding a cold-start Firefox loading race on Windows CI; delayed rendering is covered explicitly.
 
 ## 0.1.4 — Profile notifications
 
