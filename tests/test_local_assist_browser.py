@@ -426,8 +426,9 @@ def test_clave_card_activates_in_background_site_tab():
 
 
 
+@pytest.mark.parametrize('render_delay_ms', [0, 1500])
 @pytest.mark.parametrize('next_kind', ['request_no_slots', 'expired', 'office'])
-def test_no_slots_reload_post_recognizes_next_screen(next_kind):
+def test_no_slots_reload_post_recognizes_next_screen(next_kind, render_delay_ms):
     async def scenario():
         from playwright.async_api import async_playwright
         async with async_playwright() as pw:
@@ -448,12 +449,26 @@ def test_no_slots_reload_post_recognizes_next_screen(next_kind):
             await page.route('**/*', respond)
             r = runner_for(page, ctx)
             await page.goto(menu)
-            await r.step()
+            if render_delay_ms:
+                await page.evaluate("""delay => {
+                    document.body.style.visibility = 'hidden';
+                    setTimeout(() => document.body.style.visibility = '', delay);
+                }""", render_delay_ms)
+            # A cold renderer may report loading on the first engine tick.
+            # Drive the loop until the first request is dispatched, then stop:
+            # another tick on the result would already start the reload.
+            for _ in range(10):
+                await r.step()
+                if r.last_action == 'request':
+                    break
+            assert r.last_action == 'request'
             await page.wait_for_url(result)
+            await page.locator('p').wait_for(state='visible')
             assert (await r.observe()).kind == 'request_no_slots'
             await r.step()
             assert posts == [result, result]
             assert r.control.snapshot()['requests'] == 2
+            await page.locator('#idSede' if next_kind == 'office' else 'p').wait_for(state='visible')
             assert (await r.observe()).kind == next_kind
             await browser.close()
     asyncio.run(scenario())
