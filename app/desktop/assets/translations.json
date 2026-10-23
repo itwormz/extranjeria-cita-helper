@@ -812,7 +812,8 @@
     "Найден чат — выбрать получателя": "Chat found — select recipient",
     "Получен ответ по ссылке подключения.": "A response was received through the pairing link.",
     "Получатель выбран": "Recipient selected",
-    "Дополнительные параметры": "Advanced parameters"
+    "Дополнительные параметры": "Advanced parameters",
+    "Не удалось подтвердить происхождение обновления. Установка заблокирована.": "Update provenance could not be verified. Installation blocked."
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1627,6 +1628,7 @@
     "Найден чат — выбрать получателя": "Chat encontrado — seleccionar destinatario",
     "Получен ответ по ссылке подключения.": "Se recibió una respuesta mediante el enlace de vinculación.",
     "Получатель выбран": "Destinatario seleccionado",
-    "Дополнительные параметры": "Parámetros avanzados"
+    "Дополнительные параметры": "Parámetros avanzados",
+    "Не удалось подтвердить происхождение обновления. Установка заблокирована.": "No se pudo verificar el origen de la actualización. Instalación bloqueada."
   }
 }

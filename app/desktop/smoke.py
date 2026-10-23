@@ -58,6 +58,18 @@ async def run():
 
 
 def main():
+    from ..attestations import _verifier
+    verifier = _verifier()
+    fixture = os.environ.get('CITA_ATTESTATION_SMOKE_BUNDLE')
+    if fixture:
+        from sigstore.models import Bundle
+        from sigstore.verify.policy import Identity
+        media, payload = verifier.verify_dsse(Bundle.from_json(Path(fixture).read_bytes()), Identity(
+            identity='https://github.com/cli/cli/.github/workflows/deployment.yml@refs/heads/trunk',
+            issuer='https://token.actions.githubusercontent.com'))
+        assert media == 'application/vnd.in-toto+json'
+        assert json.loads(payload)['predicateType'] == 'https://slsa.dev/provenance/v1'
+        print(json.dumps({'ok': True, 'sigstore': True}), flush=True)
     asyncio.run(run())
     # Exercise the actual Widgets UI after browser shutdown, without starting
     # a worker or accessing the appointment site.

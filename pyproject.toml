@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "extranjeria-cita-helper"
-version = "0.1.4"
+version = "0.1.5"
 description = "Desktop assistant for Extranjeria appointment forms and availability checks"
 requires-python = ">=3.12"
 dependencies = [
@@ -17,7 +17,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-desktop = ["PySide6-Essentials>=6.8,<7", "keyring>=25,<26"]
+desktop = [
+    "PySide6-Essentials>=6.8,<7",
+    "keyring>=25,<26",
+    "sigstore>=4.5,<5",
+]
 build = [
     "PyInstaller>=6.12,<7",
     "Pillow>=11,<13",

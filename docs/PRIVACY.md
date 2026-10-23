@@ -63,7 +63,7 @@ Telegram pairing temporarily reads bot updates to match an expiring, random code
 
 Automatic update checks can be disabled in Settings. Checks contact GitHub
 Releases; package downloads use GitHub release assets and are verified against
-the published SHA256 checksums. No applicant data is sent to GitHub. Downloading
+the published SHA256 checksums and signed build provenance. The updater also reads the public tag commit from GitHub. Sigstore verification is offline against roots shipped with the application; no signing credentials, GitHub token or account are required. No applicant data is sent to GitHub. Downloading
 and installation require a button press; installation ends the active browser
 session and preserves profiles and settings.
 

@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.version import VERSION
 from scripts.package_release import validate_tag
+from scripts.attest_release import verified_attestations
 
 
 def verified_assets(directory, version):
@@ -48,6 +49,7 @@ def main(directory, *, publish=False):
     tag = os.environ['RELEASE_TAG']
     validate_tag(tag, VERSION)
     assets = verified_assets(directory, VERSION)
+    assets += verified_attestations(assets, VERSION, os.environ.get("GITHUB_SHA"))
     # Existing releases are left untouched, including drafts from earlier runs.
     existing = subprocess.run(['gh','release','view',tag], capture_output=True)
     if existing.returncode == 0:
@@ -55,7 +57,7 @@ def main(directory, *, publish=False):
     notes = directory / 'release-notes.md'
     notes.write_text(changelog_notes(VERSION) + '\n\n---\n\nDesktop packages for macOS (Apple Silicon / Intel), Linux x64 and Windows x64.\n\n'
                      'macOS: open the DMG and drag the app to Applications. Windows: run the MSI installer. Linux: make the AppImage executable and run it.\n'
-                     'SHA256SUMS contains archive checksums.\n\n'
+                     'SHA256SUMS contains archive checksums. Each package includes a .sigstore.json build attestation verified before publication.\n\n'
                      'macOS uses an ad-hoc signature; Windows packages do not have an Authenticode signature.\n', encoding='utf-8')
     subprocess.run(['gh','release','create',tag,*map(str,assets),'--verify-tag','--draft',
                     '--title',f'Cita Extranjeria Helper {VERSION}','--notes-file',str(notes)], check=True)

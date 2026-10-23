@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 — Attested updates
+
+- GitHub tag builds automatically generate Sigstore build provenance for final DMG, MSI, AppImage and portable ZIP packages. Publication verifies every signature, package digest, repository, workflow, tag, hosted runner and source commit before uploading a draft. All Actions are pinned to commit SHAs.
+- The desktop updater requires immutable releases and signed build bundles, compares provenance against the tag commit, and rechecks it before installer launch. Missing or invalid proof blocks installation; no GitHub CLI, account, private signing key or manual release approval is required.
+- Verification uses only production trust roots shipped in the locked Sigstore dependency, not the mutable user TUF cache. Trust-root changes require a verifier/application update. Packaged smoke tests exercise a real public signature offline.
+- About highlights failed provenance verification with a red shield warning and blocks installation. Long update messages remain fully visible in both themes.
+- All three README headers show the latest published release dynamically, with download/change links and prominent language selectors. Local metadata checks no longer require a source-version number in README.
+- Existing installations retain their previous checksum-only updater until upgraded. Provenance establishes build origin; it is not a guarantee that source code or dependencies are safe.
+
 ## 0.1.4 — Profile notifications
 
 - Optional Telegram and HTTPS webhook notifications per profile, with independent authentication, office, appointment and terminal-error events.

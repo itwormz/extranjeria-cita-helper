@@ -84,6 +84,8 @@ def apply_theme(app, *, dark):
         QWidget#errorBand {{ background:{c['danger_soft']}; border-left:3px solid {c['danger']}; border-radius:6px; }}
         QLabel[reportTitle="true"] {{ font-size:16px; font-weight:600; }}
         QLabel#formError {{ color:{c['danger']}; }}
+        QFrame#aboutUpdates[tone="danger"] {{ background:{c['danger_soft']}; border:1px solid {c['danger']}; }}
+        QLabel#latestVersion[tone="danger"] {{ color:{c['danger']}; }}
         QPushButton {{ min-height:18px; padding:8px 16px; border:1px solid {c['line_strong']}; border-radius:6px; background:{c['surface']}; color:{c['text']}; }}
         QPushButton:hover, QToolButton:hover {{ border-color:{c['accent']}; }}
         QPushButton[primary="true"] {{ background:{c['accent']}; color:#FFFFFF; border-color:{c['accent']}; }}

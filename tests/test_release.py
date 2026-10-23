@@ -55,6 +55,7 @@ def test_tag_release_publishes_only_after_successful_asset_upload(tmp_path, monk
     from scripts import create_draft_release as release
     calls=[]
     monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_attestations', lambda *args:[])
     monkeypatch.setattr(release, 'verified_assets', lambda *args:[tmp_path/'package.msi'])
     def run(args, **kwargs):
         calls.append(args)
@@ -72,6 +73,7 @@ def test_failed_upload_never_publishes_release(tmp_path, monkeypatch):
     from scripts import create_draft_release as release
     calls=[]
     monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_attestations', lambda *args:[])
     monkeypatch.setattr(release, 'verified_assets', lambda *args:[tmp_path/'package.msi'])
     def run(args, **kwargs):
         calls.append(args)
@@ -87,6 +89,7 @@ def test_existing_release_is_never_modified(tmp_path, monkeypatch):
     from scripts import create_draft_release as release
     calls=[]
     monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_attestations', lambda *args:[])
     monkeypatch.setattr(release, 'verified_assets', lambda *args:[])
     monkeypatch.setattr(release.subprocess, 'run', lambda args, **kwargs: calls.append(args) or SimpleNamespace(returncode=0))
     with pytest.raises(SystemExit, match='left unchanged'): release.main(tmp_path,publish=True)
@@ -98,6 +101,7 @@ def test_manual_script_remains_draft_by_default(tmp_path, monkeypatch):
     from scripts import create_draft_release as release
     calls=[]
     monkeypatch.setenv('RELEASE_TAG', 'v'+release.VERSION)
+    monkeypatch.setattr(release, 'verified_attestations', lambda *args:[])
     monkeypatch.setattr(release, 'verified_assets', lambda *args:[])
     monkeypatch.setattr(release.subprocess, 'run', lambda args, **kwargs: calls.append(args) or SimpleNamespace(returncode=1 if args[2]=='view' else 0))
     release.main(tmp_path)
@@ -114,3 +118,15 @@ def test_publication_workflow_is_gated_by_tag_and_all_platforms():
     targets=workflow['jobs']['build']['strategy']['matrix']['include']
     assert {(t['platform'],t['arch']) for t in targets}=={('macos','arm64'),('macos','x64'),('windows','x64'),('linux','x64')}
     assert any('--publish' in step.get('run','') for step in job['steps'])
+
+
+def test_invalid_provenance_never_creates_or_publishes_release(tmp_path,monkeypatch):
+    from scripts import create_draft_release as release
+    monkeypatch.setenv('RELEASE_TAG','v'+release.VERSION)
+    monkeypatch.setenv('GITHUB_SHA','b'*40)
+    package=tmp_path/'app.msi';package.write_bytes(b'package')
+    package.with_name(package.name+'.sigstore.json').write_text('{}')
+    monkeypatch.setattr(release,'verified_assets',lambda *args:[package])
+    calls=[];monkeypatch.setattr(release.subprocess,'run',lambda *args,**kwargs:calls.append(args))
+    with pytest.raises(ValueError):release.main(tmp_path,publish=True)
+    assert not calls

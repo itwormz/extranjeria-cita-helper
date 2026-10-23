@@ -21,9 +21,10 @@ def check_versions(root=ROOT):
         if version != VERSION:
             raise ValueError(f'{name}: {version} differs from app.version {VERSION}')
     for name in ('README.md', 'README.ru.md', 'README.es.md'):
-        header = (root / name).read_text(encoding='utf-8').splitlines()[2]
-        if VERSION not in header:
-            raise ValueError(f'{name}: version header differs from {VERSION}')
+        readme = (root / name).read_text(encoding='utf-8')
+        if ('https://img.shields.io/github/v/release/itwormz/extranjeria-cita-helper?' not in readme
+                or 'https://github.com/itwormz/extranjeria-cita-helper/releases/latest' not in readme):
+            raise ValueError(f'{name}: latest published release links are missing')
     if f'## {VERSION} ' not in (root / 'CHANGELOG.md').read_text(encoding='utf-8'):
         raise ValueError('Current version is missing from CHANGELOG.md')
 

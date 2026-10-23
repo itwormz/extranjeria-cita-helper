@@ -326,8 +326,9 @@ def test_about_update_check_handles_release_and_failures(window,monkeypatch,erro
     extension={'macos':'dmg','windows':'msi','linux':'AppImage'}[target]
     name=f'extranjeria-cita-helper-0.2.0-{target}-{arch}.{extension}'
     base=updates.REPOSITORY+'/releases/download/v0.2.0/'
-    payload={'tag_name':'v0.2.0','assets':[{'name':name,'browser_download_url':base+name,'size':7},
-                                         {'name':'SHA256SUMS','browser_download_url':base+'SHA256SUMS'}]}
+    payload={'tag_name':'v0.2.0','immutable':True,'assets':[{'name':name,'browser_download_url':base+name,'size':7},
+                                         {'name':'SHA256SUMS','browser_download_url':base+'SHA256SUMS'},
+                                         {'name':name+'.sigstore.json','browser_download_url':base+name+'.sigstore.json'}]}
     def fetch(url):
         assert url==updates.API
         if error:raise HTTPError(url,404,'missing',{},None)
@@ -877,3 +878,22 @@ def test_macos_install_opens_verified_dmg_then_closes_app(window, monkeypatch, t
     monkeypatch.setattr(window, 'close', lambda: calls.append('close'))
     window.launch_update(package)
     assert calls == [['/usr/bin/open', str(package)], 'close']
+
+
+@pytest.mark.parametrize('dark',[False,True])
+def test_about_provenance_failure_has_danger_shield_and_clears_on_retry(window,dark):
+    from PySide6.QtWidgets import QLabel,QFrame,QPushButton
+    window.dark_toggle.setChecked(dark)
+    window.show_about()
+    window.update_failed('provenance');QApplication.processEvents()
+    dialog=window.about_dialog
+    assert dialog.findChild(QFrame,'aboutUpdates').property('tone')=='danger'
+    assert dialog.findChild(QLabel,'aboutUpdateShield').isVisible()
+    status=dialog.findChild(QLabel,'latestVersion')
+    assert status.property('tone')=='danger'
+    assert status.height()>=status.heightForWidth(status.width())
+    assert not dialog.findChild(QPushButton,'installUpdate').isVisible()
+    window.update_checked(None);QApplication.processEvents()
+    assert dialog.findChild(QFrame,'aboutUpdates').property('tone')=='normal'
+    assert not dialog.findChild(QLabel,'aboutUpdateShield').isVisible()
+    dialog.close()

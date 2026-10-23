@@ -16,6 +16,10 @@ permissions:
 
 jobs:
   build:
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
@@ -45,7 +49,7 @@ jobs:
       QT_QPA_PLATFORM: offscreen
       PYTHONUTF8: '1'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: '3.13'
@@ -94,7 +98,7 @@ jobs:
         run: codesign --verify --deep --strict 'data/dist/Cita Extranjeria Helper.app'
       - name: Offline packaged browser and worker IPC
         run: uv run python scripts/verify_bundle.py '${{ matrix.bundle }}'
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         if: runner.os == 'Windows'
         with:
           dotnet-version: '8.0.x'
@@ -119,7 +123,22 @@ jobs:
       - name: Optional Windows portable ZIP
         if: runner.os == 'Windows' && (startsWith(github.ref, 'refs/tags/') || inputs.portable == true)
         run: uv run python scripts/package_release.py --platform windows --arch x64 --portable
-      - uses: actions/upload-artifact@v7
+      - name: Attest final release packages
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: |
+            data/releases/*.dmg
+            data/releases/*.msi
+            data/releases/*.AppImage
+            data/releases/*-portable.zip
+      - name: Attach verification bundles
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: uv run python scripts/attest_release.py data/releases --bundle "$ATTESTATION_BUNDLE"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: package-${{ matrix.platform }}-${{ matrix.arch }}
           path: data/releases/*
@@ -134,11 +153,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: '3.13'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: package-*
           path: release-assets
@@ -148,4 +167,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: uv run --no-project --python 3.13 python scripts/create_draft_release.py release-assets --publish
+        run: uv run --frozen --extra desktop python scripts/create_draft_release.py release-assets --publish

@@ -1077,7 +1077,7 @@ class DesktopWindow(QMainWindow):
             game=AppointmentChase(dialog,self.t,language=self.preferences['language']);self.appointment_chase=game;game.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose);game.show()
         version.activated.connect(open_chase);words.addWidget(version);identity.addLayout(words,1);layout.addLayout(identity)
         layout.addWidget(label(self.t('Помощник для записи на отпечатки пальцев в Extranjería. Заполняет формы, проверяет доступные ситы и сообщает, когда требуется участие.')))
-        updates=QFrame();updates.setObjectName('aboutUpdates');updates_layout=QHBoxLayout(updates);updates_layout.setContentsMargins(14,12,14,12);updates_layout.setSpacing(12);status=QVBoxLayout();status.setSpacing(4);status.addWidget(label(self.t('Обновления'),name='sectionHeading'))
+        updates=QFrame();updates.setObjectName('aboutUpdates');updates_layout=QHBoxLayout(updates);updates_layout.setContentsMargins(14,12,14,12);updates_layout.setSpacing(12);shield=QLabel();shield.setObjectName('aboutUpdateShield');shield.setFixedSize(22,22);shield.hide();updates_layout.addWidget(shield);status=QVBoxLayout();status.setSpacing(4);status.addWidget(label(self.t('Обновления'),name='sectionHeading'))
         latest=label(self.t('Последняя версия')+': '+self.t('Ещё не проверена'),muted=True);latest.setObjectName('latestVersion');status.addWidget(latest);updates_layout.addLayout(status,1)
         check=QPushButton(self.t('Проверить'));check.setObjectName('checkUpdates');updates_layout.addWidget(check);layout.addWidget(updates)
         repository='https://github.com/itwormz/extranjeria-cita-helper';readme={'ru':'README.ru.md','es':'README.es.md'}.get(self.preferences['language'],'README.md');links=QHBoxLayout();links.setSpacing(8)
@@ -1095,9 +1095,9 @@ class DesktopWindow(QMainWindow):
         install.clicked.connect(self.install_update)
         cancel.clicked.connect(self.update_service.cancel)
         self.render_updates()
-        dialog.ensurePolished()
+        dialog.ensurePolished();dialog.layout().activate()
         for text in dialog.findChildren(QLabel):
-            if text.wordWrap(): text.setMinimumHeight(text.heightForWidth(dialog.width()-48))
+            if text.wordWrap(): text.setMinimumHeight(max(0,text.heightForWidth(text.width())))
         dialog.adjustSize()
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose); dialog.show()
 
@@ -1123,7 +1123,9 @@ class DesktopWindow(QMainWindow):
 
     def update_failed(self,reason):
         self.update_install_requested=False
-        self.update_message={'no_release':'Релиз ещё не опубликован','cancelled':'Скачивание отменено',
+        if reason=='provenance':self.update_path=None
+        self.update_message={'provenance':'Не удалось подтвердить происхождение обновления. Установка заблокирована.',
+                             'no_release':'Релиз ещё не опубликован','cancelled':'Скачивание отменено',
                              'network':'Не удалось проверить обновления. Повторить попытку позже.'}.get(reason,'Не удалось проверить или скачать обновление. Повторить попытку позже.')
         self.render_updates()
 
@@ -1142,6 +1144,13 @@ class DesktopWindow(QMainWindow):
         if not isValid(dialog):return
         version=' · '+self.update_release.version if self.update_release else ''
         latest.setText(self.t(self.update_message)+version)
+        blocked=self.update_message=='Не удалось подтвердить происхождение обновления. Установка заблокирована.'
+        tone='danger' if blocked else 'normal'
+        frame=dialog.findChild(QFrame,'aboutUpdates')
+        for widget in (frame,latest):
+            widget.setProperty('tone',tone);widget.style().unpolish(widget);widget.style().polish(widget)
+        shield=dialog.findChild(QLabel,'aboutUpdateShield')
+        shield.setPixmap(self.control_icon('shield-alert').pixmap(QSize(22,22)));shield.setVisible(blocked)
         busy=self.update_service.busy
         check.setEnabled(not busy)
         download.setEnabled(bool(self.update_release) and not busy)
@@ -1150,6 +1159,9 @@ class DesktopWindow(QMainWindow):
         cancel.setVisible(busy and bool(self.update_release))
         hint=dialog.findChild(QLabel,'aboutInstallHint')
         if hint:hint.setVisible(bool(self.update_release or self.update_path))
+        if dialog.isVisible():
+            latest.setMinimumHeight(0);dialog.layout().activate()
+            latest.setMinimumHeight(max(0,latest.heightForWidth(latest.width())));dialog.adjustSize()
 
     def install_update(self):
         if self.update_path and not self.update_service.busy:
@@ -1210,6 +1222,7 @@ class DesktopWindow(QMainWindow):
             'list':'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
             'office':'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1M10 21v-3h4v3"/>',
             'server':'<rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/><path d="M7 6h.2M7 17h.2"/>',
+            'shield-alert':'<path d="m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6Z"/><path d="M12 7v6m0 3v1"/>',
             'shield':'<path d="m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6Z"/>',
             'check':'<path d="m4 12 5 5L20 5"/>',
             'clipboard':'<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="2" width="6" height="5" rx="1"/>',
@@ -1235,7 +1248,7 @@ class DesktopWindow(QMainWindow):
             'moon': '<path d="M20 14a8.5 8.5 0 0 1-10-10A8.5 8.5 0 1 0 20 14Z"/>',
             'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
         }
-        color = theme_colors(self.preferences['dark'])['danger' if name=='alert' else 'text']
+        color = theme_colors(self.preferences['dark'])['danger' if name in {'alert','shield-alert'} else 'text']
         svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.6" stroke-linecap="round">{paths[name]}</svg>'
         if name=='github':
             asset=Path(__file__).parent/'assets/social/github.svg'

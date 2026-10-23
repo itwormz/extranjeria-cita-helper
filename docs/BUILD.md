@@ -56,11 +56,11 @@ Run Linux AppImage with execute permission (`chmod +x file.AppImage`). On system
 
 ## GitHub Actions
 
-`.github/workflows/build.yml` runs on pull requests, manually through **Actions → Build desktop packages → Run workflow**, and on `v*` tags. It tests source/privacy, builds all four packages, verifies the browser and worker offline, then uploads packages with SHA256 sidecars as Actions artifacts (14 days).
+`.github/workflows/build.yml` runs on pull requests, manually through **Actions → Build desktop packages → Run workflow**, and on `v*` tags. It tests source/privacy, builds all four native targets, verifies the browser and worker offline, then uploads packages with SHA256 sidecars as Actions artifacts (14 days).
 
-Set the same numeric version in `app/version.py`, `pyproject.toml`, and the project entry in `uv.lock`; update `CHANGELOG.md`. Versions use MAJOR.MINOR.PATCH: fixes increment PATCH, features MINOR, incompatible changes MAJOR. All CPU architectures share one version. A tag such as `v0.1.0` must match the source version exactly.
+Set the same numeric version in `app/version.py`, `pyproject.toml`, and the project entry in `uv.lock`; update `CHANGELOG.md`. Versions use MAJOR.MINOR.PATCH: fixes increment PATCH, features MINOR, incompatible changes MAJOR. All CPU architectures share one version. README headers use a dynamic latest-published-release badge and do not need a source-version edit. A tag such as `v0.1.0` must match the source version exactly.
 
-After every native build and verification passes, a tag run automatically publishes a **GitHub Release** with two DMGs, one MSI, one Linux AppImage and `SHA256SUMS`. Release notes include the matching `CHANGELOG.md` section. Packages are first uploaded to a draft; it becomes public only after all uploads succeed. Failed uploads leave a draft for investigation. Existing releases are never overwritten by reruns. Build jobs use read-only repository access; only the publish-release job receives `contents: write`. No personal credentials are needed; it uses the scoped GitHub token.
+After every native build and verification passes, a tag run automatically publishes a **GitHub Release** with two DMGs, one MSI, one Windows portable ZIP, one Linux AppImage, their Sigstore bundles and `SHA256SUMS`. Release notes include the matching `CHANGELOG.md` section. Packages are first uploaded to a draft; it becomes public only after all uploads succeed. Failed uploads leave a draft for investigation. Existing releases are never overwritten by reruns. Build jobs have read-only repository contents access plus `id-token: write` and `attestations: write` for keyless tag-build attestations; only the publish-release job receives `contents: write`. No personal credentials are needed; it uses the scoped GitHub token.
 
 For the prepared version, push the source commit and its matching tag:
 
@@ -108,3 +108,26 @@ For changes that affect builds, use this release order: local preflight → push
 branch and open a pull request → wait for the native matrix to pass → merge →
 create the release tag. Pull-request builds never publish a release. Alternatively,
 run the workflow manually without a tag to validate packages before tagging.
+
+## Signed build provenance
+
+Tag builds use pinned `actions/attest` after final packaging, then attach its public
+Sigstore bundle as `<package>.sigstore.json` for each package. Before any release
+upload, `scripts/create_draft_release.py` calls the same verifier as the updater
+and requires the workflow source commit to equal `GITHUB_SHA`. Missing or invalid
+bundles abort publication. Manual/PR builds do not mint release attestations.
+
+The application uses the Sigstore Python verifier against the production trusted
+root embedded in its locked dependency. It does not read user TUF caches, request
+OIDC credentials, contact Sigstore during verification, or invoke GitHub CLI.
+Unknown signing roots fail closed and require a verifier/application update. The
+public bundle is verified for the exact repository, `build.yml`, release tag,
+GitHub-hosted runner, source commit and package SHA256; installers are rechecked.
+Native package smoke tests verify an authentic public GitHub CLI build bundle
+offline, exercising the bundled cryptographic libraries and root resources.
+
+Repository release immutability is enabled. Finish all uploads in the draft before
+publishing; after publication use a new version/tag for fixes, never rewrite one.
+An initial upgrade from an older checksum-only client cannot retroactively gain
+provenance checks. A provenance signature does not approve the source code; branch
+and workflow access controls remain necessary.

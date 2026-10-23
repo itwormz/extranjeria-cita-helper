@@ -25,12 +25,14 @@ def verify(bundle):
     assert not any(qt.glob('QtQml*')) and not any(qt.glob('QtQuick*')), 'Unused QML modules were bundled'
     with tempfile.TemporaryDirectory(prefix='cita-offline-') as private:
         env = dict(os.environ, CITA_DATA_HOME=private, QT_QPA_PLATFORM='offscreen')
+        env['CITA_ATTESTATION_SMOKE_BUNDLE'] = str(Path(__file__).resolve().parents[1]/'tests/fixtures/github-cli-build.sigstore.json')
         program = str(executable(bundle))
         smoke = subprocess.run([program, '--smoke-test'], env=env, capture_output=True, timeout=120)
         assert smoke.returncode == 0, smoke.stderr.decode('utf-8', errors='replace')
         records = [json.loads(line) for line in smoke.stdout.decode('utf-8').splitlines() if line.startswith('{')]
         assert any(record.get('ok') and record.get('browser') for record in records), smoke.stdout
         assert any(record.get('ok') and record.get('gui') for record in records), smoke.stdout
+        assert any(record.get('ok') and record.get('sigstore') for record in records), smoke.stdout
         commands = b'{"command":"pause","paused":true}\n{"command":"stop"}\n'
         ipc = subprocess.run([program, '--ipc-smoke-test'], input=commands, env=env, capture_output=True, timeout=15)
         assert ipc.returncode == 0, ipc.stderr.decode('utf-8', errors='replace')

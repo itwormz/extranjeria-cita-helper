@@ -80,6 +80,9 @@ def build(*, experimental_no_fonts=False, include_fonts=False, output_directory=
             '--additional-hooks-dir', str(ROOT / 'scripts' / 'pyinstaller_hooks'),
             '--exclude-module', 'PIL', '--exclude-module', 'pygments.formatters.img',
             '--collect-data', 'language_tags',
+            '--collect-all', 'sigstore',
+            '--collect-all', 'sigstore_models',
+            '--recursive-copy-metadata', 'sigstore',
             '--hidden-import', 'app.desktop.window', '--hidden-import', 'app.desktop.worker',
             *model_args, str(ROOT / 'scripts' / 'desktop_entry.py')], cwd=ROOT, check=True)
     bundle = output / (NAME + '.app')

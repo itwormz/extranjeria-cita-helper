@@ -1,6 +1,10 @@
 # Extranjería Cita Helper
 
-**Versión: 0.1.4** · [Historial de cambios](CHANGELOG.md)
+🇬🇧 [English](README.md) · 🇷🇺 [Русский](README.ru.md) · 🇪🇸 **Español**
+
+[![Última versión](https://img.shields.io/github/v/release/itwormz/extranjeria-cita-helper?sort=date&display_name=tag&label=versi%C3%B3n&color=626bdf&logo=github)](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)
+
+[Descargar](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Novedades](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Historial completo](CHANGELOG.md)
 
 **💜 Apoyar el desarrollo**
 
@@ -8,8 +12,6 @@ Si la aplicación te ha ayudado, agradecería una donación para apoyar su desar
 
 [![Apoyar en GitHub](https://img.shields.io/badge/Apoyar%20en%20GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/itwormz)
 [![Donar con criptomonedas](https://img.shields.io/badge/Donar%20con%20criptomonedas-5b5bd6)](https://nowpayments.io/donation/itworm)
-
-[English](README.md) · [Русский](README.ru.md)
 
 <a href="docs/images/monitor-dark.png"><img src="docs/images/monitor-dark.png" alt="Monitor" width="165"></a> <a href="docs/images/profile-dark.png"><img src="docs/images/profile-dark.png" alt="Perfil" width="165"></a> <a href="docs/images/settings-dark.png"><img src="docs/images/settings-dark.png" alt="Ajustes" width="165"></a> <a href="docs/images/timings-dark.png"><img src="docs/images/timings-dark.png" alt="Intervalos" width="165"></a>
 
@@ -36,6 +38,12 @@ En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un web
 
 Las credenciales se guardan en macOS Keychain, Windows Credential Manager o Linux Secret Service (requiere un proveedor de secretos desbloqueado). No se guardan en texto plano; al trasladar un perfil a otro equipo deben introducirse de nuevo. Los mensajes incluyen el nombre del perfil y la provincia, sin identificadores del solicitante, datos de la cita ni capturas. La reserva remota no está incluida; las acciones manuales siguen realizándose en Camoufox.
 
+
+## Integridad de las actualizaciones
+
+El workflow con atestaciones compila los paquetes en runners alojados por GitHub y solo publica tras verificar su procedencia firmada con Sigstore. El actualizador verifica el hash, nuestro repositorio y workflow, la etiqueta y el commit; repite la verificación antes de ejecutar el instalador. Si falta la prueba o no es válida, se bloquea la instalación. No requiere GitHub CLI, cuenta ni aprobación manual de cada versión. Los paquetes y etiquetas de una versión inmutable publicada no pueden sustituirse.
+
+Las raíces de confianza se incluyen en la aplicación; no se confía en una caché local compartida de Sigstore. Las versiones antiguas mantienen la comprobación solo por SHA256 hasta actualizarse. La atestación acredita el origen de la compilación, no la seguridad del código fuente.
 
 ## 🔄 Cómo funciona
 

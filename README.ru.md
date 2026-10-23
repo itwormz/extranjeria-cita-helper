@@ -1,6 +1,10 @@
 # Extranjería Cita Helper
 
-**Версия: 0.1.4** · [История изменений](CHANGELOG.md)
+🇬🇧 [English](README.md) · 🇷🇺 **Русский** · 🇪🇸 [Español](README.es.md)
+
+[![Последний релиз](https://img.shields.io/github/v/release/itwormz/extranjeria-cita-helper?sort=date&display_name=tag&label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=626bdf&logo=github)](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)
+
+[Скачать](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Что нового](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Полный чейнджлог](CHANGELOG.md)
 
 **💜 Поддержать разработку**
 
@@ -8,8 +12,6 @@
 
 [![Поддержать на GitHub](https://img.shields.io/badge/%D0%9F%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C%20%D0%BD%D0%B0%20GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/itwormz)
 [![Донат криптовалютой](https://img.shields.io/badge/%D0%94%D0%BE%D0%BD%D0%B0%D1%82%20%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B2%D0%B0%D0%BB%D1%8E%D1%82%D0%BE%D0%B9-5b5bd6)](https://nowpayments.io/donation/itworm)
-
-[English](README.md) · [Español](README.es.md)
 
 <a href="docs/images/monitor-dark.png"><img src="docs/images/monitor-dark.png" alt="Работа" width="165"></a> <a href="docs/images/profile-dark.png"><img src="docs/images/profile-dark.png" alt="Профиль" width="165"></a> <a href="docs/images/settings-dark.png"><img src="docs/images/settings-dark.png" alt="Настройки" width="165"></a> <a href="docs/images/timings-dark.png"><img src="docs/images/timings-dark.png" alt="Тайминги" width="165"></a>
 
@@ -36,6 +38,12 @@
 
 Секреты хранятся в macOS Keychain, Windows Credential Manager или Linux Secret Service (нужен разблокированный сервис хранения секретов). Открытого текстового резервного хранилища нет; после переноса профиля на другой компьютер секреты потребуется ввести заново. Сообщения содержат название профиля и провинцию, без идентификаторов заявителя, данных записи и захватов страниц. Удалённое бронирование не предусмотрено: ручные действия остаются в Camoufox.
 
+
+## Проверка обновлений
+
+Релизный workflow с поддержкой аттестаций собирает пакеты на GitHub-hosted runners и публикует их только после проверки подписанного Sigstore-подтверждения происхождения. Обновлятор проверяет хеш пакета, наш репозиторий и workflow, релизный тег и коммит, затем повторяет проверку перед запуском установщика. Отсутствие или неверное подтверждение блокирует установку. GitHub CLI, аккаунт и ручное одобрение релизов не требуются. В опубликованных неизменяемых релизах нельзя заменить пакеты или тег.
+
+Корни доверия поставляются с приложением; пользовательский кэш Sigstore не используется. Старые версии до обновления сохраняют прежнюю проверку только по SHA256. Аттестация подтверждает происхождение сборки, а не безопасность исходного кода.
 
 ## 🔄 Как работает приложение
 

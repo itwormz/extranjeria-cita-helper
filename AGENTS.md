@@ -75,7 +75,8 @@ or installer validation. Preserve an active browser session when rebuilding.
 - Keep the three README files consistent. Use only fictitious data in screenshots,
   with the same rectangular dimensions for the gallery.
 - Version changes must agree in `app/version.py`, `pyproject.toml`, `uv.lock`,
-  README headers and `CHANGELOG.md`. Use MAJOR.MINOR.PATCH.
+  and `CHANGELOG.md`. Use MAJOR.MINOR.PATCH. README headers show the latest
+  published release through a dynamic badge; do not replace it with the source version.
 
 ## Privacy and repository hygiene
 

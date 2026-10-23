@@ -14,6 +14,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from PySide6.QtCore import QObject,QThread,Signal
+from ..attestations import verify_attestation, MAX_BUNDLE, AttestationError
 
 REPOSITORY='https://github.com/itwormz/extranjeria-cita-helper'
 API='https://api.github.com/repos/itwormz/extranjeria-cita-helper/releases/latest'
@@ -42,6 +43,7 @@ class Release:
     url:str
     sums_url:str
     size:int
+    attestation_url:str
 
 
 def select_release(data,current,target,arch,*,portable=False):
@@ -65,14 +67,18 @@ def select_release(data,current,target,arch,*,portable=False):
         if len(found)!=1 or found[0].get('browser_download_url')!=base+name:
             raise ValueError('Missing or untrusted release asset')
         return found[0]
-    package=asset(name);sums=asset('SHA256SUMS');size=package.get('size')
+    if data.get('immutable') is not True:raise AttestationError('Update release is not immutable')
+    package=asset(name);sums=asset('SHA256SUMS')
+    try:proof=asset(name+'.sigstore.json')
+    except ValueError as exc:raise AttestationError('Update provenance is missing') from exc
+    size=package.get('size')
     if not isinstance(size,int) or isinstance(size,bool) or not 0<size<=MAX_PACKAGE:
         raise ValueError('Invalid package size')
-    return Release(version,name,package['browser_download_url'],sums['browser_download_url'],size)
+    return Release(version,name,package['browser_download_url'],sums['browser_download_url'],size,proof['browser_download_url'])
 
 
 def fetch(url):
-    return urlopen(Request(url,headers={'User-Agent':'Extranjeria-Cita-Helper','Accept':'application/vnd.github+json' if url==API else 'application/octet-stream'}),timeout=10,context=ssl.create_default_context(cafile=certifi.where()))
+    return urlopen(Request(url,headers={'User-Agent':'Extranjeria-Cita-Helper','Accept':'application/vnd.github+json' if url.startswith('https://api.github.com/') else 'application/octet-stream'}),timeout=10,context=ssl.create_default_context(cafile=certifi.where()))
 
 
 def checksum_for(data,name):
@@ -83,6 +89,19 @@ def checksum_for(data,name):
         if match and match[2]==name:candidates.append(match[1].lower())
     if len(candidates)!=1:raise ValueError('Missing or ambiguous checksum')
     return candidates[0]
+
+
+def release_commit(version, fetch):
+    url=f'https://api.github.com/repos/itwormz/extranjeria-cita-helper/git/ref/tags/v{version}'
+    for _ in range(4):
+        with fetch(url) as response:raw=response.read(16385)
+        if len(raw)>16384:raise ValueError('Release tag response too large')
+        obj=json.loads(raw)['object'];sha=obj['sha']
+        if not re.fullmatch(r'[a-f0-9]{40}',sha):raise ValueError('Invalid release commit')
+        if obj['type']=='commit':return sha
+        if obj['type']!='tag':raise ValueError('Invalid release tag object')
+        url=f'https://api.github.com/repos/itwormz/extranjeria-cita-helper/git/tags/{sha}'
+    raise ValueError('Too many nested release tags')
 
 
 def download_release(release,directory,cancel,*,fetch=fetch,progress=lambda value:None):
@@ -105,6 +124,14 @@ def download_release(release,directory,cancel,*,fetch=fetch,progress=lambda valu
                 actual.update(chunk);output.write(chunk);progress(int(count*100/release.size))
         if count!=release.size or actual.hexdigest()!=digest:
             raise ValueError('Package checksum mismatch')
+        commit=release_commit(release.version,fetch)
+        try:
+            with fetch(release.attestation_url) as response:proof=response.read(MAX_BUNDLE+1)
+        except HTTPError as exc:raise AttestationError('Update provenance is unavailable') from exc
+        verify_attestation(proof,release.name,actual.hexdigest(),release.version,expected_commit=commit)
+        if cancel.is_set():raise InterruptedError('Download cancelled')
+        receipt=dict(version=release.version,commit=commit,bundle=json.loads(proof))
+        destination.with_name(destination.name+'.provenance.json').write_text(json.dumps(receipt),encoding='utf-8')
         os.replace(partial,destination)
         destination.with_name(destination.name+'.sha256').write_text(digest+'  '+destination.name+'\n')
         return destination
@@ -118,6 +145,10 @@ def verify_download(path):
     with path.open('rb') as stream:
         if hashlib.file_digest(stream,'sha256').hexdigest()!=digest:
             raise ValueError('Downloaded package changed')
+    receipt_path=path.with_name(path.name+'.provenance.json')
+    if receipt_path.stat().st_size>MAX_BUNDLE+4096:raise ValueError('Update provenance too large')
+    receipt=json.loads(receipt_path.read_bytes())
+    verify_attestation(json.dumps(receipt['bundle']),path.name,digest,receipt['version'],expected_commit=receipt['commit'])
     return path
 
 
@@ -130,6 +161,7 @@ class UpdateJob(QThread):
     def run(self):
         try:self.result.emit(self.operation(self))
         except InterruptedError:self.failed.emit('cancelled')
+        except AttestationError:self.failed.emit('provenance')
         except HTTPError as exc:self.failed.emit('no_release' if exc.code==404 else 'network')
         except Exception:self.failed.emit('failed')
 

@@ -1,6 +1,10 @@
 # Extranjería Cita Helper
 
-**Version: 0.1.4** · [Changelog](CHANGELOG.md)
+🇬🇧 **English** · 🇷🇺 [Русский](README.ru.md) · 🇪🇸 [Español](README.es.md)
+
+[![Latest release](https://img.shields.io/github/v/release/itwormz/extranjeria-cita-helper?sort=date&display_name=tag&label=release&color=626bdf&logo=github)](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)
+
+[Download](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [What’s new](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Full changelog](CHANGELOG.md)
 
 **💜 Support development**
 
@@ -8,8 +12,6 @@ If the app helped you, I would appreciate a donation to support its development 
 
 [![Support on GitHub](https://img.shields.io/badge/Support%20on%20GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/itwormz)
 [![Donate with crypto](https://img.shields.io/badge/Donate%20with%20crypto-5b5bd6)](https://nowpayments.io/donation/itworm)
-
-[Русский](README.ru.md) · [Español](README.es.md)
 
 <a href="docs/images/monitor-dark.png"><img src="docs/images/monitor-dark.png" alt="Monitor" width="165"></a> <a href="docs/images/profile-dark.png"><img src="docs/images/profile-dark.png" alt="Profile" width="165"></a> <a href="docs/images/settings-dark.png"><img src="docs/images/settings-dark.png" alt="Settings" width="165"></a> <a href="docs/images/timings-dark.png"><img src="docs/images/timings-dark.png" alt="Timings" width="165"></a>
 
@@ -36,6 +38,12 @@ In **Settings → Edit profile → Notifications**, enable Telegram and/or a web
 
 Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province, but no applicant identifiers, appointment details or page captures. Remote booking is not included; manual actions remain in Camoufox.
 
+
+## Update integrity
+
+The attestation-enabled release workflow builds packages on GitHub-hosted runners and publishes only after verifying their signed Sigstore build provenance. The updater checks the package hash, our repository and workflow, release tag and source commit, then verifies again before launching the installer. Missing or invalid proof blocks installation. No GitHub CLI, account or manual release approval is required. Published immutable releases cannot have their packages or tags replaced.
+
+Trust roots ship with the application; verification does not trust a shared local Sigstore cache. Older app versions keep their checksum-only updater until upgraded. Provenance confirms build origin, not the safety of the source code.
 
 ## 🔄 How it works
 
