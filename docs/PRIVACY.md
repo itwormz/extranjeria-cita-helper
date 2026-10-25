@@ -25,8 +25,8 @@ The action timeline is recorded independently. External authentication pages are
 excluded from HTML and screenshot captures; only limited navigation metadata is
 retained.
 
-Appointment-site captures may contain NIE, names, phone/email and session
-identifiers. Prefer a timeline line when reporting a problem. Inspect and redact
+Appointment-site captures may contain NIE, DNI or passport numbers, names,
+phone/email and session identifiers. Prefer a timeline line when reporting a problem. Inspect and redact
 any files before sharing them. The application does not upload diagnostics to
 GitHub or an issue service.
 

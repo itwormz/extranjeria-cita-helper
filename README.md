@@ -22,9 +22,9 @@ Only these two appointment procedures are supported. Other services and appointm
 ## 🚀 Quick start
 
 1. **[Download the latest release](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)**. Supported platforms: **<img src="docs/images/platform-macos.svg" width="16" height="16" alt=""> macOS (Apple Silicon and Intel), <img src="docs/images/platform-windows.svg" width="16" height="16" alt=""> Windows x64 and <img src="docs/images/platform-linux.svg" width="16" height="16" alt=""> Linux x64**.
-2. Open **Settings → Create profile**. Select the province and authentication method, configure NIE/name entry or copying, and enter your phone and email. Save the profile.
+2. Open **Settings → Create profile**. Select the province, service and authentication method, configure document/name entry or copying, and enter your phone and email. Save the profile.
 3. In **Monitor**, select the profile and click **Start**. Complete authentication in Camoufox. See [Authentication](#-authentication) for the available methods.
-4. Leave Camoufox open behind other windows and keep sound alerts enabled. When your participation is needed, switch to the browser. Choose the appointment date/time and confirm the booking yourself.
+4. Leave Camoufox open behind other windows and keep sound alerts enabled. When your participation is needed, switch to the browser. Complete CAPTCHA if shown, choose the appointment date/time and confirm the booking yourself.
 
 Packages: **macOS — DMG · Windows — MSI · Linux — AppImage**. The optional Windows portable ZIP stores data next to the application.
 
@@ -90,7 +90,7 @@ Sign in with a permanent password; an additional SMS code may be required. You w
 
 [Activate and manage your password](https://clave.gob.es/clave-permanente/procedimientos.html)
 
-**Booking for someone else.** The person authenticating and the appointment recipient can be different people. Enter the recipient’s NIE and name in the profile and select **Enter profile details**, rather than copying them from the authenticated page. The authentication holder completes sign-in themselves.
+**Booking for someone else.** The person authenticating and the appointment recipient can be different people. Enter the recipient’s document details and name in the profile and select **Enter profile details**, rather than copying them from the authenticated page. The authentication holder completes sign-in themselves.
 
 **Passwords and PINs are entered only on the official website in Camoufox.** The application does not intercept or store them. You choose the date and time and complete the final booking confirmation yourself.
 
@@ -179,7 +179,7 @@ These are reports of investigations and arrests, not confirmation of final crimi
 - **Complaints about access to public services:** complaints to the Defensor del Pueblo are free, available to foreign nationals regardless of their legal status and do not require a lawyer. [Who can complain and how](https://www.defensordelpueblo.es/el-defensor/como-te-podemos-ayudar/) · [Submit a complaint](https://portal-sac.defensordelpueblo.es/es/form/queja). Complaints do not suspend administrative deadlines.
 - **Official recommendations:** the Defensor del Pueblo has already [called for improved access to appointments](https://www.defensordelpueblo.es/resoluciones/dificultades-para-concertar-cita-previa-para-solicitar-asilo/) and timely booking.
 
-If you face the same problem, record the dates of attempts, error messages and support enquiries. Describe your own experience accurately and submit it through official channels. Documented complaints help show the scale of the problem. Do not publish NIE numbers, certificates, cookies or other personal data.
+If you face the same problem, record the dates of attempts, error messages and support enquiries. Describe your own experience accurately and submit it through official channels. Documented complaints help show the scale of the problem. Do not publish NIE, DNI or passport numbers, certificates, cookies or other personal data.
 
 ## 🧰 Technology stack
 

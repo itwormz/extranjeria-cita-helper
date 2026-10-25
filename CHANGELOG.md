@@ -8,6 +8,8 @@
 - Hover highlights complete clips, events and empty periods. Drag selects whole clips; additive selection reports union duration and recorded counters without duplicated events. Historical reconstruction remains labelled; period/profile changes and daylight-saving boundaries preserve valid selections.
 - Corrected grouped-office selection bounds to fit the counter text. HTTP 429 recognition no longer depends on a body-text branch skipped for rate-limit responses. Sleep/resume records the missing interval from the last worker tick, without extending the previous page through suspended time. Manual form revisits preserve manual state and avoid screenshots.
 - Updated certifi, cryptography/PyOpenSSL, Pillow, fonttools and setuptools to patched locked versions. TLS certificate discovery explicitly requires TLS 1.2 or newer; complete certificate verification remains mandatory before caching. Cleaned up URL matching in updater test fixtures flagged by CodeQL.
+- Updated contributor guidance, issue forms and all three READMEs for both supported services and their document fields. Calendar preview, Google Calendar and ICS now use the accurate shared title “Extranjería — Cita”; saved appointment data is unchanged. Windows package details mention both services.
+- Made the manual-office browser regression separate fixture navigation from the unchanged five-second production handoff bound, avoiding false failures on slow Intel runners.
 - Appointment selection, CAPTCHA and confirmation remain manual. Statistics stay local, with no automatic upload or diagnostic-archive importer shipped to users.
 
 ## 0.2.0 — Autorización de regreso

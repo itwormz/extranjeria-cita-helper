@@ -4,6 +4,9 @@ from pathlib import Path
 import uuid
 from .achievements import snapshot
 
+# Achievement records do not retain a service snapshot. Keep historical events accurate.
+CALENDAR_TITLE = 'Extranjería — Cita'
+
 _LABELS = {
 'en': ('Sita obtained', 'days of searching', 'Checks', 'Active search', 'Office appearances', 'Unique offices', 'Booking screens', 'First availability', 'Server errors', 'HTTP 429 responses', 'Blocked responses', 'Passes from the start'),
 'es': ('Cita conseguida', 'días de búsqueda', 'Comprobaciones', 'Búsqueda activa', 'Apariciones de oficinas', 'Oficinas distintas', 'Pantallas de cita', 'Primera disponibilidad', 'Errores del servidor', 'Respuestas HTTP 429', 'Bloqueos', 'Recorridos desde el inicio'),
@@ -100,7 +103,7 @@ def google_calendar_url(achievement):
     start=datetime.strptime(appointment['date']+' '+appointment['time'],'%Y-%m-%d %H:%M').replace(tzinfo=ZoneInfo(zone))
     instant=start.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     location=', '.join(appointment.get(key,'') for key in ('office','address') if appointment.get(key))
-    return 'https://calendar.google.com/calendar/render?'+urlencode(dict(action='TEMPLATE',text='Extranjería — Toma de huellas',dates=instant+'/'+instant,ctz=zone,location=location))
+    return 'https://calendar.google.com/calendar/render?'+urlencode(dict(action='TEMPLATE',text=CALENDAR_TITLE,dates=instant+'/'+instant,ctz=zone,location=location))
 
 
 def write_calendar(achievement, path):
@@ -126,7 +129,7 @@ def write_calendar(achievement, path):
              'CALSCALE:GREGORIAN'] + vtimezone + ['BEGIN:VEVENT', f'UID:{identifier}@cita-helper.local',
              'DTSTAMP:' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'),
              f'DTSTART;TZID={zone}:' + start.strftime('%Y%m%dT%H%M%S'),
-             'SUMMARY:Extranjería — Toma de huellas', 'LOCATION:' + _ics_escape(location),
+             'SUMMARY:' + CALENDAR_TITLE, 'LOCATION:' + _ics_escape(location),
              'END:VEVENT', 'END:VCALENDAR']
     path = Path(path)
     path.write_bytes(('\r\n'.join(_fold(line) for line in lines) + '\r\n').encode('utf-8'))

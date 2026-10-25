@@ -101,3 +101,39 @@ def test_missing_or_malformed_start_has_unknown_duration():
         value['statistics']['started_at'] = start
         assert public_duration(value) == '—'
         assert 'PRIVATE' not in public_post(value, detailed=True)
+
+
+@pytest.mark.parametrize('service', ['huellas', 'regreso', None])
+@pytest.mark.parametrize('format', ['google', 'ics'])
+def test_calendar_exports_use_accurate_title_without_service_snapshot(tmp_path, service, format):
+    from urllib.parse import parse_qs, urlsplit
+    from app.desktop.achievement_exports import google_calendar_url
+    value = example()
+    # Achievement storage has no preserved service; a profile may now use either.
+    if service is not None:
+        value['statistics']['service'] = service
+    query = parse_qs(urlsplit(google_calendar_url(value)).query)
+    if format == 'google':
+        assert query['text'] == ['Extranjería — Cita']
+    assert query['location'] == ['PRIVATE OFFICE, PRIVATE ADDRESS']
+    assert query['dates'] == ['20261022T083000Z/20261022T083000Z']
+    data = write_calendar(value, tmp_path / 'appointment.ics').read_text()
+    if format == 'ics':
+        assert 'SUMMARY:Extranjería — Cita' in data
+    assert r'LOCATION:PRIVATE OFFICE\, PRIVATE ADDRESS' in data
+    assert 'DTSTART;TZID=Europe/Madrid:20261022T103000' in data
+    assert 'PRIVATE TOKEN' not in data
+    assert 'PRIVATE TOKEN' not in google_calendar_url(value)
+
+
+def test_calendar_preview_uses_same_accurate_appointment_title(qt_app):
+    from PySide6.QtWidgets import QWidget, QLabel
+    from app.desktop.calendar_dialog import CalendarDialog
+    host = QWidget()
+    host.t = lambda value: value
+    host.preferences = {'language': 'en'}
+    dialog = CalendarDialog(host, example())
+    titles = [label.text() for label in dialog.findChildren(QLabel)]
+    assert 'Extranjería — Cita' in titles
+    assert not any('Toma de huellas' in title for title in titles)
+    dialog.close()

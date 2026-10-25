@@ -6,8 +6,20 @@ body:
     attributes:
       value: |
         English, Spanish or Russian are welcome. Describe what is already known; there is no need to repeat a live search.
-        This issue is public. Remove personal data, appointment numbers, credentials and session identifiers. Do not attach raw HTML or browser profiles.
+        This issue is public. Remove personal data, including NIE/DNI/passport numbers, appointment numbers, credentials and session identifiers. Do not attach raw HTML or browser profiles.
         For a suspected vulnerability, follow [SECURITY.md](https://github.com/itwormz/extranjeria-cita-helper/blob/main/SECURITY.md).
+  - type: dropdown
+    id: service
+    attributes:
+      label: Appointment service
+      description: Select the service configured in the profile, or indicate a general issue.
+      options:
+        - Toma de huellas / TIE
+        - Autorización de regreso
+        - Both / general application issue
+        - Not sure
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
@@ -20,7 +32,7 @@ body:
     attributes:
       label: Application version
       description: Shown in About. Enter "unknown" if unavailable.
-      placeholder: e.g. 0.1.3
+      placeholder: e.g. 0.2.1
     validations:
       required: true
   - type: input

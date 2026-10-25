@@ -1,6 +1,6 @@
 ## Problem and change
 
-<!-- English, Spanish or Russian are welcome. What was wrong, and what changes? Link a related issue if available. -->
+<!-- English, Spanish or Russian are welcome. What was wrong, and what changes? For appointment-flow changes, name the affected service: Toma de huellas / TIE, Autorización de regreso, or both. Link a related issue if available. -->
 
 ## Verification
 
@@ -8,6 +8,6 @@
 
 ## Review checklist
 
-- [ ] The diff contains no personal profiles, credentials, session data or build output.
+- [ ] The diff contains no personal profiles, NIE/DNI/passport numbers, credentials, session data or build output.
 - [ ] Relevant tests and documentation/translations were updated where needed.
-- [ ] Manual appointment controls and request pauses are preserved, if affected.
+- [ ] Manual CAPTCHA, date/time selection, final booking confirmation and request pauses are preserved, if affected.

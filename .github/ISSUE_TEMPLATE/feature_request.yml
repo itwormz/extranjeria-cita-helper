@@ -5,8 +5,20 @@ body:
   - type: markdown
     attributes:
       value: |
-        English, Spanish or Russian are welcome. This project focuses on Toma de huellas / TIE appointments.
-        Include only information safe to publish.
+        English, Spanish or Russian are welcome. This project supports Toma de huellas / TIE and Autorización de regreso appointments.
+        Include only information safe to publish. Do not share NIE/DNI/passport numbers, names, contact details, appointment numbers, credentials or session data.
+  - type: dropdown
+    id: service
+    attributes:
+      label: Appointment service
+      description: Select the service configured in the profile, or indicate a general issue.
+      options:
+        - Toma de huellas / TIE
+        - Autorización de regreso
+        - Both / general application issue
+        - Not sure
+    validations:
+      required: true
   - type: textarea
     id: need
     attributes:

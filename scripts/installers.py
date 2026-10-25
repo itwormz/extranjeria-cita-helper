@@ -40,7 +40,7 @@ def write_wix_source(bundle, output, version, license_file=None):
                     UpgradeCode=UPGRADE_CODE,Scope='perUser',InstallerVersion='500')
     element(package,'MajorUpgrade',DowngradeErrorMessage='A newer version is already installed.',Schedule='afterInstallInitialize')
     element(package,'MediaTemplate',EmbedCab='yes',CompressionLevel='high')
-    element(package,'Property',Id='ARPCOMMENTS',Value='Appointment helper for Extranjería fingerprinting')
+    element(package,'Property',Id='ARPCOMMENTS',Value='Appointment helper for Extranjería: fingerprinting and autorización de regreso')
     element(package,'Property',Id='ARPURLINFOABOUT',Value='https://github.com/itwormz/extranjeria-cita-helper')
     element(package,'Icon',Id='AppIcon',SourceFile=str(bundle/(APP_NAME+'.exe')))
     element(package,'Property',Id='ARPPRODUCTICON',Value='AppIcon')

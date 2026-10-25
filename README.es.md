@@ -22,9 +22,9 @@ Solo se admiten estos dos trámites. Otros servicios y opciones de cita no se co
 ## 🚀 Inicio rápido
 
 1. **[Descargue la última versión](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)**. Plataformas compatibles: **<img src="docs/images/platform-macos.svg" width="16" height="16" alt=""> macOS (Apple Silicon e Intel), <img src="docs/images/platform-windows.svg" width="16" height="16" alt=""> Windows x64 y <img src="docs/images/platform-linux.svg" width="16" height="16" alt=""> Linux x64**.
-2. Abra **Ajustes → Crear perfil**. Seleccione la provincia y el método de autenticación, configure la introducción o copia del NIE/nombre e indique teléfono y correo. Guarde el perfil.
+2. Abra **Ajustes → Crear perfil**. Seleccione la provincia, el trámite y el método de autenticación, configure la introducción o copia del documento/nombre e indique teléfono y correo. Guarde el perfil.
 3. En **Seguimiento**, seleccione el perfil y pulse **Iniciar**. Complete la autenticación en Camoufox. Consulte los métodos disponibles en [Autenticación](#-autenticación).
-4. Deje Camoufox abierto detrás de otras ventanas y active las alertas sonoras. Cuando necesite intervenir, vuelva al navegador. Elija la fecha y la hora y confirme personalmente la cita.
+4. Deje Camoufox abierto detrás de otras ventanas y active las alertas sonoras. Cuando necesite intervenir, vuelva al navegador. Resuelva el CAPTCHA si aparece, elija la fecha y la hora y confirme personalmente la cita.
 
 Paquetes: **macOS — DMG · Windows — MSI · Linux — AppImage**. El ZIP portátil opcional para Windows guarda los datos junto a la aplicación.
 
@@ -90,7 +90,7 @@ Acceso con una contraseña permanente; en ocasiones se requiere también un cód
 
 [Activación y gestión de la contraseña](https://clave.gob.es/clave-permanente/procedimientos.html)
 
-**Cita para otra persona.** Quien se autentica y quien acudirá a la cita pueden ser personas distintas. Introduzca el NIE y el nombre del destinatario en el perfil y seleccione **Introducir datos del perfil**, en lugar de copiarlos de la página autenticada. El titular del certificado o de Cl@ve realiza personalmente el inicio de sesión.
+**Cita para otra persona.** Quien se autentica y quien acudirá a la cita pueden ser personas distintas. Introduzca los datos del documento y el nombre del destinatario en el perfil y seleccione **Introducir datos del perfil**, en lugar de copiarlos de la página autenticada. El titular del certificado o de Cl@ve realiza personalmente el inicio de sesión.
 
 **Las contraseñas y los PIN se introducen únicamente en el sitio oficial dentro de Camoufox.** La aplicación no los intercepta ni los guarda. La fecha, la hora y la confirmación final de la cita las elige usted.
 
@@ -180,7 +180,7 @@ Estos comunicados describen investigaciones y detenciones, no acreditan la exist
 - **Quejas sobre el acceso a servicios públicos:** acudir al Defensor del Pueblo es gratuito, está al alcance de las personas extranjeras con independencia de su situación legal y no requiere abogado. [Quién puede quejarse y cómo](https://www.defensordelpueblo.es/el-defensor/como-te-podemos-ayudar/) · [Presentar una queja](https://portal-sac.defensordelpueblo.es/es/form/queja). La presentación de una queja no suspende los plazos administrativos.
 - **Recomendaciones oficiales:** el Defensor del Pueblo ya ha [reclamado mejoras en el acceso a las citas](https://www.defensordelpueblo.es/resoluciones/dificultades-para-concertar-cita-previa-para-solicitar-asilo/) y su obtención en tiempo y forma.
 
-Si se encuentra con este problema, anote las fechas de sus intentos, los mensajes de error y las consultas al soporte. Describa su propia experiencia con precisión y preséntela por los canales oficiales. Las quejas documentadas ayudan a mostrar la magnitud del problema. No publique su NIE, certificados, cookies ni otros datos personales.
+Si se encuentra con este problema, anote las fechas de sus intentos, los mensajes de error y las consultas al soporte. Describa su propia experiencia con precisión y preséntela por los canales oficiales. Las quejas documentadas ayudan a mostrar la magnitud del problema. No publique números de NIE, DNI o pasaporte, certificados, cookies ni otros datos personales.
 
 ## 🧰 Tecnologías utilizadas
 

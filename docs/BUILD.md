@@ -62,12 +62,13 @@ Set the same numeric version in `app/version.py`, `pyproject.toml`, and the proj
 
 After every native build and verification passes, a tag run automatically publishes a **GitHub Release** with two DMGs, one MSI, one Windows portable ZIP, one Linux AppImage, their Sigstore bundles and `SHA256SUMS`. Release notes include the matching `CHANGELOG.md` section. Packages are first uploaded to a draft; it becomes public only after all uploads succeed. Failed uploads leave a draft for investigation. Existing releases are never overwritten by reruns. Build jobs have read-only repository contents access plus `id-token: write` and `attestations: write` for keyless tag-build attestations; only the publish-release job receives `contents: write`. No personal credentials are needed; it uses the scoped GitHub token.
 
-For the prepared version, push the source commit and its matching tag:
+For a prepared source version of `0.2.1`, push the source commit and its matching
+tag (use the actual source version for later releases):
 
 ```sh
 git push origin main
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
 A normal push to `main` does not start this workflow or publish a release. Manual workflow runs and pull requests build/test packages without publishing them.
@@ -94,8 +95,9 @@ uv run python scripts/preflight.py --bundle
 ```
 
 This checks workflow syntax with actionlint, version consistency, source privacy,
-the standard test suite and the same offline browser regressions as CI. macOS also
-runs the locked-session simulations. All browser requests use synthetic pages;
+the standard test suite and the same offline browser regressions as CI, including
+Toma de huellas / TIE and Autorización de regreso (`tests/test_regreso_browser.py`).
+macOS also runs the locked-session simulations. All browser requests use synthetic pages;
 the gate does not commit, push, tag or publish. A failure stops the sequence.
 The optional native bundle check does not install the application. Native Windows,
 Linux and Intel macOS results still require their respective CI runners; a local

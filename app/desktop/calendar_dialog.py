@@ -3,14 +3,14 @@ from pathlib import Path
 from PySide6.QtCore import Qt,QUrl,QDate,QLocale,QSize
 from PySide6.QtGui import QDesktopServices,QIcon
 from PySide6.QtWidgets import QDialog,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QFileDialog,QFrame
-from .achievement_exports import write_calendar,google_calendar_url
+from .achievement_exports import write_calendar,google_calendar_url,CALENDAR_TITLE
 
 
 class CalendarDialog(QDialog):
     def __init__(self,host,achievement):
         super().__init__(host);self.host=host;self.achievement=achievement;self.saved_path=None;t=host.t
         self.setWindowTitle(t('Добавить в календарь'));self.setMinimumWidth(500);layout=QVBoxLayout(self);layout.setContentsMargins(22,20,22,20);layout.setSpacing(14)
-        event=QFrame();event.setObjectName('calendarPreview');box=QVBoxLayout(event);box.setContentsMargins(14,12,14,12);box.setSpacing(7);title=QLabel('Extranjería — Toma de huellas');title.setObjectName('statisticsSection');box.addWidget(title)
+        event=QFrame();event.setObjectName('calendarPreview');box=QVBoxLayout(event);box.setContentsMargins(14,12,14,12);box.setSpacing(7);title=QLabel(CALENDAR_TITLE);title.setObjectName('statisticsSection');box.addWidget(title)
         appointment=achievement['appointment'];locale=QLocale({'ru':'ru_RU','es':'es_ES'}.get(host.preferences['language'],'en_GB'));date=QDate.fromString(appointment.get('date',''),'yyyy-MM-dd');value=locale.toString(date,'d MMMM yyyy')+' · '+appointment.get('time','');box.addWidget(self.label(value));note=self.label(t('Местное время офиса'));note.setProperty('muted',True);box.addWidget(note)
         box.addWidget(self.label(appointment.get('office','')));address=self.label(appointment.get('address',''));address.setProperty('muted',True);box.addWidget(address);layout.addWidget(event)
         choices=QHBoxLayout();self.google=QPushButton('Google Calendar');self.google.setIcon(QIcon(str(Path(__file__).parent/'assets/brands/google-calendar.png')));self.google.setIconSize(QSize(22,22));self.google.clicked.connect(self.open_google);choices.addWidget(self.google)

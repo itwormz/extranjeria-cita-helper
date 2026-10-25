@@ -952,8 +952,8 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
         from playwright.async_api import async_playwright
         async with async_playwright() as pw:
             browser=await launch_browser(pw);ctx=await browser.new_context();page=await ctx.new_page()
-            # CI can take longer to inspect a visible control; bound the old-select
-            # regression separately so a vanished control still fails promptly.
+            # Fixture navigation has its own browser timeout. Start the tighter
+            # old-select regression bound only after the contact form is ready.
             page.set_default_timeout(10000)
             page.set_default_navigation_timeout(15000)
             async def respond(route):
@@ -965,12 +965,28 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
             r=runner_for(page,ctx)
             await page.goto(BASE+'acCitar')
             observed=await r.observe()
+            navigation_ready=asyncio.Event()
+            continue_after_capture=asyncio.Event()
             async def save(observed,reason):
                 await page.goto(BASE+'acVerFormulario')
+                await page.locator('#emailDOS').wait_for(state='visible')
+                navigation_ready.set()
+                await continue_after_capture.wait()
             r.save=save
             r.silence=AsyncMock()
-            await asyncio.wait_for(r.office(observed), timeout=5)
-            r.silence.assert_awaited()
-            assert (await r.observe()).kind=='contact'
-            await browser.close()
+            operation=asyncio.create_task(r.office(observed))
+            ready=asyncio.create_task(navigation_ready.wait())
+            try:
+                done,_=await asyncio.wait((operation,ready),return_when=asyncio.FIRST_COMPLETED)
+                if operation in done:
+                    await operation  # Surface fixture/navigation failures directly.
+                assert navigation_ready.is_set()
+                continue_after_capture.set()
+                await asyncio.wait_for(operation,timeout=5)
+                r.silence.assert_awaited()
+                assert (await r.observe()).kind=='contact'
+            finally:
+                operation.cancel();ready.cancel()
+                await asyncio.gather(operation,ready,return_exceptions=True)
+                await browser.close()
     asyncio.run(scenario())

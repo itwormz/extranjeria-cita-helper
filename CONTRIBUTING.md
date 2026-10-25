@@ -13,14 +13,15 @@ for categories and guidance.
 Use the [issue forms](https://github.com/itwormz/extranjeria-cita-helper/issues/new/choose)
 for an application bug, a changed website screen or an improvement.
 Describe what happened and what was expected. Include the application version and
-operating system; for website problems, include the province. Share additional
-technical details only if available. There is no need to repeat a live search or
+operating system; for website problems, include the province and selected service.
+Share additional technical details only if available. There is no need to repeat a live search or
 risk an open appointment to reproduce a problem.
 
 For a startup failure, **Copy report** in the error panel provides technical
 information. Review it before posting. Screenshots and timeline excerpts are
-optional. Do not publish NIE numbers, names, phone/email, appointment confirmation
-numbers, credentials, cookies, certificates, browser profiles or raw page captures.
+optional. Do not publish NIE, DNI or passport numbers, names, phone/email,
+appointment confirmation numbers, credentials, cookies, certificates, browser
+profiles or raw page captures.
 See [privacy notes](docs/PRIVACY.md). Report vulnerabilities through
 [the security policy](SECURITY.md), rather than a public bug report.
 
@@ -29,8 +30,11 @@ response time, a fix or an appointment.
 
 ## Scope
 
-The supported procedure is **Toma de huellas / TIE** on the official ICP Plus site.
-Date/time selection, CAPTCHA and final booking confirmation remain manual.
+The supported procedures are **Toma de huellas / TIE** and **Autorización de regreso**
+on the official ICP Plus site. Select the service in each profile. Fingerprinting
+uses NIE and citizenship; Regreso supports NIE, DNI or passport. Other procedures
+are outside the supported scope. Date/time selection, CAPTCHA and final booking
+confirmation remain manual.
 Changes must preserve user control of manual screens and existing request pauses.
 Bulk appointment capture, resale, CAPTCHA solving and aggressive polling are
 outside this project's scope.
@@ -54,8 +58,13 @@ uv run python scripts/check_privacy.py --tree .
 Browser regressions run offline with intercepted requests and synthetic pages:
 
 ```sh
-CITA_BROWSER_TESTS=1 CITA_TEST_ENGINE=camoufox uv run pytest tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py
+CITA_BROWSER_TESTS=1 CITA_TEST_ENGINE=camoufox uv run pytest tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py
 ```
+
+Before a release push, run `uv run python scripts/preflight.py`; add `--bundle`
+to build and verify the native package on the current OS. The preflight includes
+version/privacy/workflow checks and the standard and offline browser suites for
+both supported services; it requires `actionlint`.
 
 The environment-variable syntax above is for a POSIX shell. Native packaging and
 platform checks are documented in [docs/BUILD.md](docs/BUILD.md).

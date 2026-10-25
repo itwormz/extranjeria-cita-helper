@@ -23,7 +23,8 @@ A private report can include:
 - Minimal reproduction steps using fictitious data, if available.
 
 Do not send private keys, passwords, session cookies, full browser profiles or real
-appointment confirmation numbers. Redact personal information from evidence.
+appointment confirmation numbers. Redact NIE, DNI and passport numbers and other
+personal information from evidence.
 Please avoid testing against other people's data or the live appointment service.
 
 ## Supported versions and response

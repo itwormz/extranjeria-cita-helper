@@ -6,7 +6,19 @@ body:
     attributes:
       value: |
         English, Spanish or Russian are welcome. Describe the screen already encountered; there is no need to restart the search or risk an open appointment.
-        This issue is public. Do not share NIE, names, contact details, appointment numbers, CAPTCHA values, cookies or raw page HTML.
+        This issue is public. Do not share NIE/DNI/passport numbers, names, contact details, appointment numbers, CAPTCHA values, cookies or raw page HTML.
+  - type: dropdown
+    id: service
+    attributes:
+      label: Appointment service
+      description: Select the service configured in the profile, or indicate a general issue.
+      options:
+        - Toma de huellas / TIE
+        - Autorización de regreso
+        - Both / general application issue
+        - Not sure
+    validations:
+      required: true
   - type: textarea
     id: screen
     attributes:
