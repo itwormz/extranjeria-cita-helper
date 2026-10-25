@@ -38,7 +38,6 @@ En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un web
 
 Las credenciales se guardan en macOS Keychain, Windows Credential Manager o Linux Secret Service (requiere un proveedor de secretos desbloqueado). No se guardan en texto plano; al trasladar un perfil a otro equipo deben introducirse de nuevo. Los mensajes incluyen el nombre del perfil y la provincia, sin identificadores del solicitante, datos de la cita ni capturas. La reserva remota no está incluida; las acciones manuales siguen realizándose en Camoufox.
 
-
 ## Integridad de las actualizaciones
 
 El workflow con atestaciones compila los paquetes en runners alojados por GitHub y solo publica tras verificar su procedencia firmada con Sigstore. El actualizador verifica el hash, nuestro repositorio y workflow, la etiqueta y el commit; repite la verificación antes de ejecutar el instalador. Si falta la prueba o no es válida, se bloquea la instalación. No requiere GitHub CLI, cuenta ni aprobación manual de cada versión. Los paquetes y etiquetas de una versión inmutable publicada no pueden sustituirse.
@@ -97,7 +96,6 @@ Acceso con una contraseña permanente; en ocasiones se requiere también un cód
 
 ## 🎛️ Controles y selección de cita
 
-
 Si solo hay una oficina disponible, el asistente la selecciona y continúa automáticamente. Si hay varias, espera su elección. Después rellena los datos de contacto y deja la selección de fecha y hora en sus manos.
 
 **Pausa / Continuar** pausa y reanuda las acciones automáticas. **Reiniciar sesión**, en el menú de acciones, borra la sesión del navegador y comienza el recorrido de nuevo. Cerrar la ventana de la aplicación finaliza la búsqueda y cierra Camoufox.
@@ -106,7 +104,12 @@ Antes de iniciar, **Restablecer sesión** borra la sesión del navegador del per
 
 ## 📊 Estadísticas y logros del perfil
 
-La pestaña Estadísticas conserva contadores separados para cada perfil: comprobaciones de citas, disponibilidad de oficinas, pantallas de reserva, errores del servidor, límites de solicitudes, bloqueos y tiempo de búsqueda activa. Seleccionar un perfil para consultar sus estadísticas no cambia la búsqueda en curso.
+La pestaña Estadísticas ofrece **Hoy / Todo el tiempo** para cada perfil: comprobaciones, tiempo acumulado de búsqueda activa, oficinas, selección de fecha, errores del servidor, HTTP 429, restricciones de acceso y recorridos repetidos. La línea temporal local distingue páginas observadas, recuperación, control manual y periodos sin observaciones; las oficinas muestran las fechas registradas de aparición. Las horas usan Europe/Madrid. Seleccionar un perfil estadístico no cambia la búsqueda en curso.
+
+Las estadísticas se guardan en SQLite independientemente del diagnóstico y se conservan entre reinicios. Los totales anteriores migran automáticamente manteniendo el original y una copia de seguridad; los contadores sin fecha no se convierten en un historial diario inventado. No se envían estadísticas automáticamente. Una página sin citas con Cod. Oper. se registra como estado observado, no como prueba de bloqueo por documento.
+Al pasar por la línea temporal se resalta el tramo o evento; un clic muestra su duración y contadores. Arrastrar selecciona tramos completos; **Seleccionar varios** o ⌘/Ctrl-clic combina la selección. Se excluyen los intervalos no seleccionados y los eventos no se cuentan dos veces. Arrastrar el espacio vacío o usar Alt permite desplazar la vista; se mantienen los gestos del panel táctil.
+
+El historial muestra inicialmente todos los días con observaciones; **Periodo** permite seleccionar fechas. Las fechas y duraciones se conservan por separado: el plazo anterior hasta la primera disponibilidad no es tiempo de búsqueda activa. **≥** indica un mínimo confirmado cuando el historial está incompleto.
 
 Después de confirmar la reserva en la web, marque **Cita conseguida**. Los datos de la cita se guardan localmente; **Añadir al calendario** exporta un evento privado. La tarjeta PNG pública y el texto preparado para redes sociales incluyen solo estadísticas de búsqueda, sin fecha de cita, oficina ni número de confirmación. La publicación y la imagen se adjuntan manualmente. Marcar una cita como conseguida detiene la búsqueda y mantiene Camoufox abierto para consultar o gestionar la reserva. El formulario propone la última oficina conocida del perfil; la oficina, la dirección y el número de confirmación guardados se pueden seleccionar y copiar.
 

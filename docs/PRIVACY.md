@@ -47,7 +47,9 @@ it does not send it anywhere. Review the text before sharing it.
 
 ## Statistics and achievements
 
-Per-profile statistics retain counters, search dates and public office labels locally. They do not upload telemetry. Manually confirmed achievements also store the appointment date, time, office, address and confirmation number locally.
+Per-profile statistics are collected locally in `data/profile-statistics.sqlite3` even when page diagnostics are disabled. They retain session/version/platform context, public province/service/authentication categories, typed page/action/error observations, active-time intervals and public office appearances. Document identities and unknown-page structure fingerprints are hashed; arbitrary page text, URLs, form values, NIE/DNI/passport, contacts, passwords, tokens, CAPTCHA, operation codes and appointment confirmation numbers are not included in this database. Observation gaps remain explicit. The database and any SQLite sidecar files are private local data; they are not a public sharing format.
+
+Existing JSON totals migrate transactionally once. The original remains unchanged and `profile-statistics.json.bak` preserves a backup. Undated historical totals do not imply exact daily or page history. Statistics are not uploaded automatically; diagnostic archive conversion is not a product feature. Local history is currently retained without automatic eviction. Manually confirmed achievements separately store the appointment date, time, office, address and confirmation number locally.
 
 Public PNG cards and prepared social posts exclude private appointment details and profile names. Calendar exports intentionally contain the appointment date/time and office/address, but exclude the confirmation number. Explicit Google Calendar actions transmit the same event fields to Google; importing an event into a cloud calendar can share those details with its provider. Social buttons open the selected service and prepare text, but never publish posts or upload images automatically.
 

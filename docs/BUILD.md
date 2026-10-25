@@ -131,3 +131,7 @@ publishing; after publication use a new version/tag for fixes, never rewrite one
 An initial upgrade from an older checksum-only client cannot retroactively gain
 provenance checks. A provenance signature does not approve the source code; branch
 and workflow access controls remain necessary.
+
+## Security checks before a release
+
+Review open CodeQL, Dependabot and secret-scanning alerts before tagging. Update manifest constraints and `uv.lock` together, then run the local preflight and native package verification with the frozen updated environment. A dependency audit is a point-in-time check; a green package build does not replace it. GitHub closes addressed findings only after it analyzes the pushed commit. Never dismiss an alert just to make the release gate green.

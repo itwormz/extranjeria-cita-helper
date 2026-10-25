@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 — Search history and security fixes
+
+- Added persistent per-profile SQLite statistics, independent of page diagnostics: Today/All time counters, cumulative active search, office appearances and dates, appointment-selection screens, site errors and repeated passes.
+- Existing JSON totals migrate once with the original and backup preserved. Undated totals remain undated; incomplete history is marked rather than converted into invented daily observations. Duplicate event replays no longer add activity days.
+- Added a compact timeline of continuous search, Cod. Oper. waits, site failures, session anomalies, manual control and observation gaps. Raised building/calendar/reset markers show availability and browser resets; office-to-date handoff stays one availability episode.
+- Hover highlights complete clips, events and empty periods. Drag selects whole clips; additive selection reports union duration and recorded counters without duplicated events. Historical reconstruction remains labelled; period/profile changes and daylight-saving boundaries preserve valid selections.
+- Corrected grouped-office selection bounds to fit the counter text. HTTP 429 recognition no longer depends on a body-text branch skipped for rate-limit responses. Sleep/resume records the missing interval from the last worker tick, without extending the previous page through suspended time. Manual form revisits preserve manual state and avoid screenshots.
+- Updated certifi, cryptography/PyOpenSSL, Pillow, fonttools and setuptools to patched locked versions. TLS certificate discovery explicitly requires TLS 1.2 or newer; complete certificate verification remains mandatory before caching. Cleaned up URL matching in updater test fixtures flagged by CodeQL.
+- Appointment selection, CAPTCHA and confirmation remain manual. Statistics stay local, with no automatic upload or diagnostic-archive importer shipped to users.
+
 ## 0.2.0 — Autorización de regreso
 
 - Added **Autorización de regreso** alongside Toma de huellas / TIE, selected per profile and shown on the Monitor screen.

@@ -2,6 +2,7 @@ import hashlib
 import json
 import threading
 from pathlib import Path
+from urllib.parse import urlsplit
 import pytest
 
 
@@ -41,7 +42,7 @@ def test_download_verifies_checksum_and_never_keeps_corrupt_payload(tmp_path,mon
     data=b'package';digest=hashlib.sha256(data).hexdigest()
     def fetch(url):
         import io
-        if 'api.github.com' in url:return io.BytesIO(json.dumps({'object':{'type':'commit','sha':'b'*40}}).encode())
+        if urlsplit(url).hostname == 'api.github.com':return io.BytesIO(json.dumps({'object':{'type':'commit','sha':'b'*40}}).encode())
         if url.endswith('.sigstore.json'):return io.BytesIO(b'{}')
         return io.BytesIO((digest+'  '+item.name+'\n').encode() if url.endswith('SHA256SUMS') else data)
     output=download_release(item,tmp_path,threading.Event(),fetch=fetch)
@@ -113,7 +114,7 @@ def test_replaced_package_and_checksum_cannot_bypass_provenance(tmp_path):
     payload=b'malware';digest=hashlib.sha256(payload).hexdigest()
     def fetch(url):
         if url.endswith('SHA256SUMS'):return io.BytesIO((digest+'  '+item.name+'\n').encode())
-        if 'api.github.com' in url:return io.BytesIO(json.dumps({'object':{'type':'commit','sha':'b'*40}}).encode())
+        if urlsplit(url).hostname == 'api.github.com':return io.BytesIO(json.dumps({'object':{'type':'commit','sha':'b'*40}}).encode())
         if url.endswith('.sigstore.json'):return io.BytesIO(b'{}')
         return io.BytesIO(payload)
     with pytest.raises(ValueError):download_release(item,tmp_path,threading.Event(),fetch=fetch)

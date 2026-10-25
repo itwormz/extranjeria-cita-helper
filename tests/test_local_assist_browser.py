@@ -110,7 +110,8 @@ def test_http_429_overrides_block_page_and_probes_once_per_cooldown():
             await page.route('**/*',respond)
             r=runner_for(page,ctx);r.countdown=AsyncMock(return_value=True)
             await page.goto(BASE+'index.html')
-            assert (await r.observe()).kind=='rate_limited'
+            observed=await r.observe()
+            assert observed.kind=='rate_limited' and not observed.operation_code
             await r.step()
             assert calls==['GET','GET'] and (await r.observe()).kind=='rate_limited'
             await r.step()

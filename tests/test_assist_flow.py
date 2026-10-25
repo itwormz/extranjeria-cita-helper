@@ -47,6 +47,47 @@ def test_pause_before_action_survives_page_reload():
     assert not control.paused
 
 
+def test_manual_revisit_keeps_manual_period_without_capture_or_actions():
+    control = AssistControl()
+    control.set_diagnostics(True)
+    history = []
+    control.set_history_sink(lambda kind, **fields: history.append((kind, fields)))
+    control.publish(screen='', evidence='', next_action='', mode='manual')
+    page = SimpleNamespace(url='about:blank', wait_for_timeout=AsyncMock())
+    runner = assist_flow.AssistRunner(page, SimpleNamespace(), SimpleNamespace(),
+        SimpleNamespace(id='test'), 'run', control, SimpleNamespace(), SimpleNamespace())
+    runner.manual_signature = 'manual-form'
+    runner.observe = AsyncMock(return_value=assist_flow.Observed('applicant', 'doc', 'manual-form', None))
+    runner.save = AsyncMock()
+    runner.guard = AsyncMock()
+    asyncio.run(runner.step())
+    runner.save.assert_not_awaited()
+    runner.guard.assert_not_awaited()
+    page.wait_for_timeout.assert_awaited_once_with(500)
+    assert control.snapshot()['mode'] == 'manual'
+    assert [fields['mode'] for kind, fields in history if kind == 'phase'] == ['manual']
+
+
+def test_slow_manual_read_keeps_manual_period():
+    async def scenario():
+        control = AssistControl()
+        control.publish(screen='', evidence='', next_action='', mode='manual')
+        runner = assist_flow.AssistRunner(SimpleNamespace(), SimpleNamespace(), SimpleNamespace(),
+            SimpleNamespace(id='test'), 'run', control, SimpleNamespace(), SimpleNamespace())
+        runner.manual_signature = 'manual-form'
+        event = asyncio.Event()
+        runner._observe = AsyncMock(side_effect=event.wait)
+        read = asyncio.create_task(runner.observe())
+        try:
+            await asyncio.sleep(.6)
+            assert control.snapshot()['mode'] == 'manual'
+        finally:
+            read.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await read
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize("stage", ["province","procedure","auth","applicant","request_menu","office","contact"])
 def test_embedded_expiry_blocks_actions_at_every_stage(stage):
     from app.site import SiteCheckError

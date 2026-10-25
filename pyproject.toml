@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=84.1.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "extranjeria-cita-helper"
-version = "0.2.0"
+version = "0.2.1"
 description = "Desktop assistant for Extranjeria appointment forms and availability checks"
 requires-python = ">=3.12"
 dependencies = [
   "camoufox[geoip]>=0.5.7,<0.6",
-  "certifi>=2025.1",
-  "cryptography>=45,<47",
+  "certifi>=2026.10.19",
+  "cryptography>=50,<51",
   "playwright>=1.49,<2",
   "PyYAML>=6,<7",
   "tzdata>=2025.1",
@@ -24,8 +24,8 @@ desktop = [
 ]
 build = [
     "PyInstaller>=6.12,<7",
-    "Pillow>=11,<13",
-    "fonttools==4.60.1",
+    "Pillow>=13,<14",
+    "fonttools==4.60.2",
 ]
 
 [dependency-groups]

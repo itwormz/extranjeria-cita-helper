@@ -1262,6 +1262,8 @@ class DesktopWindow(QMainWindow):
 
     def control_icon(self, name):
         paths = {
+            'zoom_in':'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6M6 10h8M10 6v8"/>',
+            'zoom_out':'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6M6 10h8"/>',
             'alert':'<circle cx="12" cy="12" r="9"/><path d="M12 6v7m0 3v1"/>',
             'book':'<path d="M12 5v16M3 4h5l4 2 4-2h5v16h-5l-4 2-4-2H3Z"/>',
             'bug':'<rect x="7" y="7" width="10" height="14" rx="5"/><path d="m8 3 4 4 4-4M2 10h5m10 0h5M2 16h5m10 0h5M12 7v14"/>',

@@ -156,6 +156,7 @@ async def _run_session(task, settings, control, *, max_cycles=None):
         playwright = await async_playwright().start()
         context = await checker.launch_context(playwright, task, force_headed=True)
         page = await checker.page_for_context(context)
+        control.browser_session_started()
         page.set_default_timeout(settings.navigation_timeout_seconds * 1000)
         _install_lifecycle_logging(page, context, task.id, run_id)
         control.publish(screen="Загрузка страницы", evidence="Camoufox запущен", next_action="Открыть сайт", mode="working")

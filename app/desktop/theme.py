@@ -4,11 +4,11 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase, QPalette
 
 
 def theme_colors(dark):
-    return (dict(bg='#1D1E22', surface='#26272C', text='#E8E8E8', muted='#9A9B9F',
+    return (dict(history_search='#777B86',history_cod='#7074EF',history_selection='#F1C65A',history_anomaly='#DC8A50',history_restart='#DC8A50',history_recovery='#D6A44A',history_gap='#393B42',history_manual='#575B66',history_office='#55B5D4',history_available='#64B991',history_fatal='#E46767',bg='#1D1E22', surface='#26272C', text='#E8E8E8', muted='#9A9B9F',
         line='#3A3B40', line_strong='#767780', accent='#5E6AD2', accent_text='#8A93F5',
         attention='#E9B44C', danger='#E4685D', success='#6BCF8E', selection='#33354D',
         attention_soft='#38301C', danger_soft='#3A2422', bitcoin='#F7931A', on_brand='#FFFFFF') if dark else
-        dict(bg='#FFFFFF', surface='#F7F6F5', text='#282A30', muted='#6F6F6F',
+        dict(history_search='#9A9DA6',history_cod='#5E63D6',history_selection='#A56C00',history_anomaly='#B55A19',history_restart='#B55A19',history_recovery='#BF8C29',history_gap='#E6E6E6',history_manual='#BABDC6',history_office='#197E9E',history_available='#26805B',history_fatal='#B03A2E',bg='#FFFFFF', surface='#F7F6F5', text='#282A30', muted='#6F6F6F',
         line='#E6E6E6', line_strong='#8A8A8A', accent='#5E6AD2', accent_text='#5E6AD2',
         attention='#8A5A00', danger='#B03A2E', success='#1B7A5A', selection='#E6E8F6',
         attention_soft='#FFF0D0', danger_soft='#FBE4E0', bitcoin='#F7931A', on_brand='#FFFFFF'))
@@ -40,6 +40,22 @@ def apply_theme(app, *, dark):
     notification_check=(assets/'notification-check.svg').as_posix()
     notification_partial=(assets/'notification-partial.svg').as_posix()
     app.setStyleSheet(f'''
+        QPushButton#statisticsSuccess {{ min-height:20px; max-height:20px; padding:8px 16px; }}
+        QPushButton#historyTab {{ border:0; border-bottom:2px solid transparent; border-radius:0; background:transparent; padding:7px 10px; color:{c['muted']}; }}
+        QPushButton#historyTab:checked {{ border-bottom:2px solid {c['accent']}; background:transparent; color:{c['text']}; }}
+        QPushButton#historyNavigate {{ padding:3px; border:0; background:transparent; }}
+        QDateEdit#historyRangeDate {{ padding:7px 10px; border:1px solid {c['line_strong']}; border-radius:6px; background:{c['surface']}; color:{c['text']}; }}
+        QDateEdit#historyRangeDate::drop-down {{ subcontrol-origin:padding; subcontrol-position:top right; width:26px; border:0; background:transparent; }}
+        QDateEdit#historyRangeDate::down-arrow {{ image:url("{arrow_down}"); width:14px; height:14px; }}
+        QDateEdit#historyRangeDate:focus {{ border:1px solid {c['accent']}; }}
+        QDateEdit#historyRangeDate QLineEdit {{ selection-background-color:{c['accent']}; selection-color:#FFFFFF; }}
+        QFrame#historyDetail {{ background:{c['surface']}; border:1px solid {c['line']}; border-radius:7px; }}
+        QPushButton#statisticsPeriod {{ border:0; background:transparent; padding:7px 12px; color:{c['muted']}; }}
+        QPushButton#statisticsPeriod:checked {{ background:{c['selection']}; color:{c['accent_text']}; border-radius:6px; }}
+        QPushButton#officeCount {{ border:0; border-bottom:1px dotted {c['muted']}; background:transparent; color:{c['text']}; padding:4px; }}
+        QPushButton#officeCount:hover, QPushButton#officeCount:focus {{ color:{c['accent_text']}; }}
+        QFrame#officePopup {{ background:{c['surface']}; border:1px solid {c['line_strong']}; border-radius:8px; }}
+        QLabel#statisticsWarning {{ color:{c['attention']}; }}
         QWidget {{ font-family: "IBM Plex Sans"; font-size: 13px; }}
         QMainWindow, QDialog, QScrollArea, QScrollArea > QWidget > QWidget {{ background: {c['bg']}; }}
         QLabel#heading, QLabel#pageHeading {{ font-size:22px; font-weight:600; }}

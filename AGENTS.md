@@ -32,6 +32,7 @@ Read `README.md`, `CHANGELOG.md` and the relevant modules before making changes.
 | Worker / controller communication | `app/desktop/worker.py`, `process.py`, `protocol.py`, `app/assist_control.py` |
 | UI, themes and translations | `app/desktop/window.py`, `theme.py`, `i18n.py`, `assets/translations.json` |
 | Profiles, timings and counters | `app/desktop/profiles.py`, `statistics.py`, `app/config.py`, `app/timings.py` |
+| Persistent statistics / history | `app/desktop/statistics.py`, `statistics_session.py`, `statistics_timeline.py`, `statistics_history.py`, `statistics_selection.py` |
 | User timeline / page diagnostics | `app/assist_journal.py`, `app/diagnostics.py`, `app/logging_utils.py` |
 | Updates / TLS intermediates | `app/desktop/updates.py`, `certificates.py` |
 | Public dictionaries | `catalogs/snapshot-2026-08-12.json`, `catalogs/README.md` |
@@ -93,3 +94,7 @@ or installer validation. Preserve an active browser session when rebuilding.
   or publish unless requested. Do not alter Git author identity implicitly.
 - Project code uses PolyForm Noncommercial 1.0.0. Preserve its notice and the
   separate licences/notices of bundled third-party components.
+
+## Local preview artifacts
+
+Local preview builds, their isolated runtime, verification logs and screenshots belong in `.local/builds/`. Reuse that location; do not create numbered preview/build directories elsewhere in `.local/`. Keep active builds and runtime data intact when replacing artifacts.

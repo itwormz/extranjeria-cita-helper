@@ -151,6 +151,8 @@ async def run_worker(task_id):
             emit({'type':'state', 'state':control.snapshot()})
             await asyncio.sleep(0.5)
 
+    statistics_session = None
+    statistics_end_reason = 'interrupted'
     incoming = asyncio.create_task(consume_commands(sys.stdin.buffer, control, emit))
     outgoing = asyncio.create_task(states())
     try:
@@ -160,16 +162,11 @@ async def run_worker(task_id):
                 return 1
             from .statistics import ProfileStatistics
             statistics = ProfileStatistics(profiles.path.parent / 'data' / 'profile-statistics.json')
-            try:
-                control.set_check_counter(statistics.total(task_id), lambda: statistics.increment(task_id))
-                statistics.add_active(task_id, 0)
-                control.set_statistics_sink(
-                    lambda kind, document, **kwargs: statistics.observe(task_id, kind, document, **kwargs),
-                    lambda seconds: statistics.add_active(task_id, seconds))
-            except (OSError, ValueError):
-                pass
+            from .statistics_session import StatisticsSession
+            statistics_session = StatisticsSession(statistics, task, control)
             emit({'type':'ready', 'profile_id':task_id})
             result = await run_assist(task, profiles.settings(task_id), control=control, open_panel=False)
+            statistics_end_reason = 'completed' if result == 0 else 'failed'
             emit({'type':'state', 'state':control.snapshot()})
             return result
     except Exception as exc:
@@ -184,6 +181,8 @@ async def run_worker(task_id):
         return 1
     finally:
         control.flush_statistics()
+        if statistics_session:
+            statistics_session.close(statistics_end_reason)
         for pending in (incoming, outgoing):
             pending.cancel()
             with suppress(asyncio.CancelledError):

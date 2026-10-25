@@ -90,17 +90,15 @@ def test_corrupt_legacy_statistics_are_not_overwritten(tmp_path):
     assert path.read_text() == '{"a": -1}'
 
 
-def test_observation_cache_is_bounded_and_duplicates_do_not_write(tmp_path):
-    import json
+def test_observations_remain_deduplicated_beyond_old_cache_limit(tmp_path):
     path = tmp_path / 'statistics.json'
     stats = ProfileStatistics(path)
     stats.observe('a', 'blocked', 'one')
-    before = path.stat().st_mtime_ns
-    stats.observe('a', 'blocked', 'one')
-    assert path.stat().st_mtime_ns == before
     for index in range(1030):
         stats.observe('a', 'blocked', str(index))
-    assert len(json.loads(path.read_text())['a']['_observations']) == 1024
+    stats.observe('a', 'blocked', 'one')
+    assert stats.get('a')['blocked'] == 1031
+    assert not path.exists()  # SQLite is the sole new-data writer.
 
 
 def test_active_time_batches_and_flushes_on_pause():

@@ -8,15 +8,17 @@ from PySide6.QtWidgets import (QWidget, QLabel, QPushButton, QToolButton, QCombo
     QVBoxLayout, QHBoxLayout, QGridLayout, QStackedWidget, QFrame, QDialog,
     QDialogButtonBox, QSizePolicy, QDateEdit, QTimeEdit, QAbstractSpinBox, QLineEdit, QFileDialog, QApplication, QMenu, QLayout)
 from .theme import theme_colors
+from .page_stack import CurrentPageStack
 from .statistics import ProfileStatistics
+from .statistics_history import StatisticsHistory, MADRID, stamp
 from .achievements import AchievementStore
 from .achievement_exports import public_post, write_calendar, render_card, share_url, public_duration
 
 METRICS=(('checks','Проверок','search'),('active_seconds','Активный поиск','clock'),
     ('unique_offices','Разных офисов','pin'),('booking_screens','Экранов ситы','calendar'),
     ('offices_seen','Появлений офисов','office'),('server_errors','Ошибок сервера','server'),
-    ('rate_limited','HTTP 429','clock'),('blocked','Блокировок','shield'),
-    ('flow_passes','Проходов с начала','restart'),('first_available_seconds','До первой доступности','clock'))
+    ('rate_limited','HTTP 429','clock'),('blocked','Ограничения доступа','shield'),
+    ('flow_passes','Повторные проходы','restart'),('first_available_seconds','До первой доступности','clock'))
 
 
 def duration(seconds,t):
@@ -24,32 +26,6 @@ def duration(seconds,t):
     minutes=int(seconds)//60
     hours,minutes=divmod(minutes,60)
     return f'{hours} {t("ч")} {minutes} {t("мин")}' if hours else f'{minutes} {t("мин")}'
-
-
-class CurrentPageStack(QWidget):
-    """Only the visible page participates in layout sizing."""
-    currentChanged=Signal(int)
-
-    def __init__(self):
-        super().__init__();self.pages=[];self.current=-1
-        layout=QVBoxLayout(self);layout.setContentsMargins(0,0,0,0);layout.setSpacing(0)
-
-    def addWidget(self,page):
-        self.pages.append(page);self.layout().addWidget(page);page.hide()
-        if self.current<0:self.setCurrentWidget(page)
-
-    def currentWidget(self):
-        return self.pages[self.current] if self.current>=0 else None
-
-    def currentIndex(self):return self.current
-    def count(self):return len(self.pages)
-    def widget(self,index):return self.pages[index]
-
-    def setCurrentWidget(self,page):
-        index=self.pages.index(page)
-        if index==self.current:return
-        if self.current>=0:self.pages[self.current].hide()
-        self.current=index;page.show();self.layout().invalidate();self.updateGeometry();self.currentChanged.emit(index)
 
 
 class FoodSticker(QWidget):
@@ -79,15 +55,24 @@ class StatisticsPanel(QWidget):
         layout.addLayout(header);self.stack=CurrentPageStack();self.stack.layout().setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint);self.stack.currentChanged.connect(self.fit_current_page);layout.addWidget(self.stack)
         self.stats_page=QWidget();self.stats_layout=QVBoxLayout(self.stats_page);self.stats_layout.setContentsMargins(0,0,0,0);self.stats_layout.setSpacing(16)
         self.stats_hint=QLabel();self.stats_hint.setProperty('muted',True);self.stats_layout.addWidget(self.stats_hint);self.stats_hint.hide()
+        period_row=QHBoxLayout();self.today_button=self.button('Сегодня',None,lambda:self.set_period('today'));self.all_button=self.button('За всё время',None,lambda:self.set_period('all'));self.period='all'
+        for control in (self.today_button,self.all_button):control.setCheckable(True);control.setObjectName('statisticsPeriod');period_row.addWidget(control)
+        period_row.addStretch();self.stats_layout.addLayout(period_row)
+        self.statistics_warning=self.text('Не удалось сохранить часть статистики. Поиск продолжается; в истории возможны пропуски.');self.statistics_warning.setObjectName('statisticsWarning');self.stats_layout.addWidget(self.statistics_warning);self.statistics_warning.hide()
         self.stat_values=self.statistics_overview(self.stats_layout)
         first_separator=QFrame();first_separator.setObjectName('journalSeparator');first_separator.setFixedHeight(1);self.stats_layout.addWidget(first_separator)
-        first_row=QHBoxLayout();first_row.setSpacing(12);first_row.addWidget(self.icon_label('clock'))
-        self.first_caption=self.text('До первого офиса или ситы',muted=True);self.first_caption.setWordWrap(False);first_row.addWidget(self.first_caption)
-        self.first_value=QLabel('—');first_row.addWidget(self.first_value);first_row.addStretch();self.stats_layout.addLayout(first_row)
+        first_grid=QGridLayout();first_grid.setHorizontalSpacing(12);first_grid.setVerticalSpacing(10)
+        self.first_caption=self.text('Первый офис',muted=True);self.first_booking_caption=self.text('Первый выбор даты',muted=True)
+        self.first_value=QLabel('—');self.first_booking_value=QLabel('—')
+        for row,(icon,caption,value) in enumerate((('clock',self.first_caption,self.first_value),('calendar',self.first_booking_caption,self.first_booking_value))):
+            caption.setMaximumWidth(190);value.setWordWrap(True)
+            first_grid.addWidget(self.icon_label(icon),row,0,Qt.AlignmentFlag.AlignTop);first_grid.addWidget(caption,row,1);first_grid.addWidget(value,row,2)
+        first_grid.setColumnMinimumWidth(1,190);first_grid.setColumnStretch(2,1);self.stats_layout.addLayout(first_grid)
         self.success_note=self.text('После оформления ситы можно сохранить данные записи, добавить её в календарь и поделиться статистикой поиска.',muted=True)
-        self.stats_layout.addWidget(self.success_note)
-        actions=QHBoxLayout();actions.setSpacing(12);self.success_button=self.button('Отметить получение ситы','calendar',self.confirm_success,primary=True);actions.addWidget(self.success_button)
+        actions=QHBoxLayout();actions.setSpacing(12);self.success_button=self.button('Сита получена','check',self.confirm_success,primary=True);self.success_button.setObjectName('statisticsSuccess');self.success_button.setFixedHeight(38);self.success_button.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed);actions.addWidget(self.success_button)
         self.achievement_button=self.button('Достижения профиля','calendar',self.show_achievement);actions.addWidget(self.achievement_button);actions.addStretch();self.stats_layout.addLayout(actions)
+        self.stats_layout.addWidget(self.success_note)
+        self.history_panel=StatisticsHistory(host,self.statistics);self.stats_layout.addWidget(self.history_panel)
         self.stats_layout.addStretch();self.stack.addWidget(self.stats_page)
         self.achievement_page=QWidget();body=QVBoxLayout(self.achievement_page);body.setContentsMargins(0,0,0,0);body.setSpacing(12)
         card=QFrame();card.setObjectName('achievementCard');card_layout=QVBoxLayout(card);card_layout.setContentsMargins(20,16,20,16);card_layout.setSpacing(14)
@@ -140,14 +125,14 @@ class StatisticsPanel(QWidget):
 
     def statistics_overview(self,layout):
         values={};overview=QHBoxLayout();overview.setSpacing(16)
-        for key,title,icon in [('checks','Проверок сит','search'),('active_seconds','Активный поиск','clock'),('days','С начала поиска','calendar_days')]:
+        for key,title,icon in [('checks','Проверок сит','search'),('active_seconds','Активный поиск','clock'),('days','Дни с поиском','calendar_days')]:
             frame=QFrame();frame.setObjectName('statisticsOverview');cell=QVBoxLayout(frame);cell.setContentsMargins(16,14,16,14);cell.setSpacing(8);number=QLabel('—');number.setObjectName('overviewValue');cell.addWidget(number);cell.addWidget(self.section_heading(title,icon));overview.addWidget(frame,1);values[key]=number
         layout.addLayout(overview);groups=QHBoxLayout();groups.setSpacing(32)
         for title,icon,keys in [('Доступность','eye',['offices_seen','unique_offices','booking_screens','successes']),('Ошибки и восстановление','wrench',['server_errors','rate_limited','blocked','flow_passes'])]:
             frame=QWidget();column=QVBoxLayout(frame);column.setContentsMargins(0,0,0,0);column.setSpacing(8);column.addWidget(self.section_heading(title,icon))
             for key in keys:
                 _,caption,glyph=next((m for m in METRICS if m[0]==key),('successes','Полученные ситы','calendar'))
-                row_frame=QFrame();row_frame.setObjectName('statisticRow');row=QHBoxLayout(row_frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8);row.addWidget(self.icon_label(glyph));row.addWidget(self.text({'booking_screens':'Экранов выбора ситы','successes':'Получено сит','rate_limited':'Ограничений HTTP 429'}.get(key,caption)),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;column.addWidget(row_frame)
+                row_frame=QFrame();row_frame.setObjectName('statisticRow');row=QHBoxLayout(row_frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8);row.addWidget(self.icon_label(glyph));row.addWidget(self.text({'booking_screens':'Появления выбора даты','successes':'Получено сит','rate_limited':'Ограничений HTTP 429'}.get(key,caption)),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;column.addWidget(row_frame)
             groups.addWidget(frame,1)
         layout.addLayout(groups);return values
 
@@ -173,6 +158,9 @@ class StatisticsPanel(QWidget):
         self.current_achievement=None;self.stack.setCurrentWidget(self.stats_page);self.message.clear();self.refresh()
         if was_achievement:self.show_achievement()
 
+    def set_period(self,period):
+        self.period=period;self.refresh()
+
     def poll(self):
         if self.isVisible():self.refresh()
 
@@ -188,6 +176,7 @@ class StatisticsPanel(QWidget):
         self.edit_action.setText(t('Исправить данные записи'));self.more.setVisible(self.stack.currentWidget()==self.achievement_page);self.edit_action.setEnabled(bool(self.current_achievement))
         if hasattr(self.host,'control_icon') and hasattr(self.host,'preferences'):
             for widget,name in self._icon_bindings:
+                if not name:continue
                 icon=self.host.control_icon(name)
                 if isinstance(widget,QLabel):widget.setPixmap(icon.pixmap(18,18))
                 else:widget.setIcon(icon)
@@ -200,21 +189,38 @@ class StatisticsPanel(QWidget):
             asset=Path(__file__).parent/'assets'/'social'/f'{network}.svg'
             if asset.exists():button.setIcon(QIcon(str(asset)))
             else:button.setText({'telegram':'↗','x':'𝕏','facebook':'f','instagram':'◎'}[network])
+        self.today_button.setChecked(self.period=='today');self.all_button.setChecked(self.period=='all')
+        warning=bool(getattr(self.host,'state',{}).get('statistics_error'));self.statistics_warning.setVisible(warning)
         profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id))
         if not profile_id:self.achievement_button.hide();self.first_value.setText(t('Ещё не появлялись'));return
-        try:data=self.statistics.get(profile_id);records=self.achievements.list(profile_id)
+        try:
+            data=self.statistics.get(profile_id,period=self.period);records=self.achievements.list(profile_id)
+            self.history_panel.refresh(profile_id,self.period,baseline=bool(data.get('legacy_baseline')))
         except (OSError,ValueError) as exc:self.message.setText(t('Не удалось прочитать статистику профиля'));return
         for key,widget in self.stat_values.items():
-            if key=='days':
-                started=data.get('started_at');days=max(0,(datetime.now(timezone.utc)-datetime.fromisoformat(started)).days) if started else None;widget.setText(t('Менее суток') if days==0 else str(days)+' '+t('дн.') if days is not None else '—')
-            elif key=='successes':widget.setText(str(len(records)))
+            if key=='days':widget.setText('—' if not data.get('days') and any(data.get(k) for k in ('checks','active_seconds','offices_seen','booking_screens')) else str(data.get('days',0)))
+            elif key=='successes':
+                visible_records=records if self.period=='all' else [record for record in records if datetime.fromisoformat(record['recorded_at'].replace('Z','+00:00')).astimezone(MADRID).date()==datetime.now(MADRID).date()]
+                widget.setText(str(len(visible_records)))
             else:widget.setText(duration(data.get(key),t) if key.endswith('seconds') else str(data.get(key,0)))
-        seconds=data.get('first_available_seconds')
-        if seconds is None:self.first_value.setText(t('Ещё не появлялись'))
-        else:
-            days,hours=divmod(int(seconds)//3600,24)
-            self.first_value.setText(f'{days} {t("дн.")} {hours} {t("ч")}' if days else duration(seconds,t))
-        self.first_caption.setToolTip(t('Время от начала поиска до первого офиса или экрана выбора ситы'))
+        for prefix,widget,caption in [('first_office',self.first_value,self.first_caption),('first_booking',self.first_booking_value,self.first_booking_caption)]:
+            when=data.get(prefix+'_at');seconds=data.get(prefix+'_seconds');quality=data.get(prefix+'_active_quality','unknown');status=data.get(prefix+'_status','unknown')
+            base='Первый офис' if prefix=='first_office' else 'Первый выбор даты'
+            caption.setText(t(base+' сегодня' if self.period=='today' else base+' в истории' if status=='recorded' else base))
+            text=stamp(when) if when else t('Дата неизвестна') if status=='unknown' else t('Ещё не появлялись')
+            if when and seconds is not None:
+                amount=f'{int(seconds)} {t("с")}' if seconds<60 else duration(seconds,t)
+                text+=' · '+('≥ ' if quality=='minimum' else '')+t('{duration} поиска').format(duration=amount)
+            widget.setText(text)
+            hints=['Europe/Madrid']
+            if status=='recorded':hints.append(t('Первое событие в сохранённой истории; более ранние события могли не сохраниться.'))
+            if quality=='minimum':hints.append(t('Не менее указанного времени: учтены подтверждённые интервалы, в истории есть пропуски.'))
+            elif when and seconds is None:hints.append(t('Дата известна; длительность активного поиска до события не сохранена.'))
+            if data.get('legacy_first_available_at'):
+                hints.append(t('Старая первая доступность')+': '+stamp(data['legacy_first_available_at']))
+            widget.setToolTip('\n'.join(hints));caption.setToolTip(widget.toolTip())
+        for key,widget in self.stat_values.items():
+            widget.setToolTip(t('До обновления этот показатель не сохранялся; показаны новые наблюдения.') if key in data.get('legacy_unknown_fields',[]) else '')
         self.achievement_button.setVisible(bool(records));self.achievement_button.setEnabled(bool(records))
         if self.current_achievement:
             stats=self.current_achievement['statistics']

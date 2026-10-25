@@ -103,10 +103,10 @@ def test_statistics_actions_and_first_availability_copy(tmp_path,qt_app):
     panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
     assert panel.stats_hint.isHidden()
     assert panel.achievement_button.isHidden()
-    assert panel.success_button.text()=='Mark appointment as obtained'
+    assert panel.success_button.text()=='Sita obtained'
     assert panel.first_value.text()=='Not seen yet'
     panel.statistics.observe('one','pass','start');panel.refresh()
-    assert panel.stat_values['days'].text()=='Less than a day'
+    assert panel.stat_values['days'].text()=='1'
     panel.achievements.record('one',{'checks':1},{'date':'2026-10-22','time':'09:00','office':'Test office'})
     panel.refresh();assert not panel.achievement_button.isHidden()
     panel.deleteLater();host.deleteLater()
@@ -127,4 +127,100 @@ def test_saved_appointment_values_can_be_selected_and_copied(tmp_path,qt_app):
         assert field.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByKeyboard
     assert panel.private_fields['office'].text()=='Office A\nStreet A'
     assert panel.private_fields['confirmation'].text()=='DEMO-123'
+    panel.deleteLater();host.deleteLater()
+
+
+def test_period_changes_all_metrics_and_history_and_warning(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    from datetime import datetime,timedelta,timezone
+    host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona')])
+    host.state['statistics_error']=True
+    panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
+    panel.statistics.increment('one',at=datetime.now(timezone.utc)-timedelta(days=3))
+    panel.statistics.observe('one','office','old',offices=['Old office'],at=datetime.now(timezone.utc)-timedelta(days=3))
+    panel.refresh();assert panel.stat_values['checks'].text()=='1'
+    assert not panel.statistics_warning.isHidden()
+    panel.today_button.click()
+    assert panel.stat_values['checks'].text()=='0'
+    assert panel.history_panel.period=='today'
+    assert not panel.history_panel.office_rows
+    assert panel.first_booking_value.text()=='Not seen yet'
+    from app.desktop.theme import apply_theme
+    apply_theme(qt_app,dark=True);panel.show();qt_app.processEvents()
+    assert panel.success_button.minimumHeight()==38
+    assert panel.success_button.height()==38
+    panel.deleteLater();host.deleteLater()
+
+
+def test_today_counts_recorded_appointments_and_baseline_has_no_fake_days(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona')])
+    panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
+    panel.achievements.record('one',{'checks':100},{'date':'2026-11-01','office':'Test'})
+    panel.today_button.click()
+    assert panel.stat_values['successes'].text()=='1'
+    assert panel.stat_values['days'].text()=='0'
+    panel.deleteLater();host.deleteLater()
+
+
+def test_offices_and_first_events_follow_profile_period(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    from datetime import datetime,timezone,timedelta
+    host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona'),SimpleNamespace(id='two',label='Two',province='Barcelona')])
+    panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
+    panel.statistics.observe('one','office','a',offices=['Office A'])
+    panel.statistics.observe('two','office','b',offices=['Office B'])
+    panel.statistics.observe('one','booking','c')
+    panel.refresh()
+    assert [row['label'] for row in panel.history_panel.office_rows]==['Office A']
+    assert panel.first_booking_value.text()!='Not seen yet'
+    panel.profile_combo.setCurrentIndex(1)
+    assert [row['label'] for row in panel.history_panel.office_rows]==['Office B']
+    assert panel.first_booking_value.text()=='Not seen yet'
+    panel.deleteLater();host.deleteLater()
+
+
+def test_legacy_totals_do_not_claim_unknown_dates_or_zero_known_days(tmp_path,qt_app):
+    import json
+    from app.desktop.statistics_panel import StatisticsPanel
+    target=tmp_path/'data/profile-statistics.json';target.parent.mkdir()
+    target.write_text(json.dumps({'one':{'checks':100,'offices_seen':3,'booking_screens':2}}))
+    host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona')]);panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
+    assert panel.stat_values['checks'].text()=='100'
+    assert panel.stat_values['days'].text()=='—'
+    assert panel.first_value.text()=='Date unknown'
+    assert panel.first_booking_value.text()=='Date unknown'
+    panel.deleteLater();host.deleteLater()
+
+
+def test_first_recorded_duration_uses_minimum_and_keeps_unknown_in_tooltip(tmp_path,qt_app):
+    import json
+    from datetime import datetime,timedelta,timezone
+    from app.desktop.statistics_panel import StatisticsPanel
+    target=tmp_path/'data/profile-statistics.json';target.parent.mkdir()
+    target.write_text(json.dumps({'one':{'checks':100,'offices_seen':1,'active_seconds':1000}}))
+    host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona')])
+    panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
+    at=datetime.now(timezone.utc)
+    panel.statistics.add_observed_active('one',at-timedelta(seconds=65),at,session_id='archive-test')
+    panel.statistics.observe('one','office','new-office',offices=['Office'],at=at)
+    panel.refresh()
+    assert '≥ 1 min' in panel.first_value.text()
+    assert 'recorded' in panel.first_caption.text().lower()
+    assert 'unknown' not in panel.first_value.text().lower()
+    assert panel.statistics.get('one')['active_seconds']==1000
+    panel.statistics.observe('one','booking','date',at=at)
+    panel.refresh();assert '≥ 1 min' in panel.first_booking_value.text()
+    panel.deleteLater();host.deleteLater()
+
+
+def test_subminute_first_duration_is_shown_in_seconds(tmp_path,qt_app):
+    from datetime import datetime,timedelta,timezone
+    from app.desktop.statistics_panel import StatisticsPanel
+    host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona')])
+    panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one');at=datetime.now(timezone.utc)
+    panel.statistics.add_observed_active('one',at-timedelta(seconds=56),at,session_id='archive-test')
+    panel.statistics.observe('one','office','new-office',offices=['Office'],at=at);panel.refresh()
+    assert '≥ 56 s' in panel.first_value.text()
+    assert '0 min' not in panel.first_value.text()
     panel.deleteLater();host.deleteLater()

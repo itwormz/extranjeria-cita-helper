@@ -49,6 +49,8 @@ class Observed:
     evidence: str = ""
     recovery_action_first: bool = False
     certificate_validation_error: bool = False
+    variant: str = ""
+    operation_code: bool = False
 
 
 def loading_placeholder(text):
@@ -203,6 +205,8 @@ class AssistRunner:
         if response.request.is_navigation_request():
             self.http_statuses[response.request.frame] = (response.url, response.status)
             if response.request.frame == self.page.main_frame:
+                self.control.response_observed(response.status)
+            if response.request.frame == self.page.main_frame:
                 self.record("response", self.last_observed,
                             f"{response.request.method} → HTTP {response.status} — документ получен, ожидаем распознавания",
                             page_url=response.url)
@@ -219,7 +223,8 @@ class AssistRunner:
         async def slow_read():
             await asyncio.sleep(0.5)
             self.control.publish(screen="Проверяем страницу", evidence="Чтение документа ещё не завершено",
-                                 next_action="Дождаться распознавания нового состояния", mode="waiting")
+                                 next_action="Дождаться распознавания нового состояния",
+                                 mode="manual" if self.manual_signature is not None else "waiting")
         notice = asyncio.create_task(slow_read())
         try:
             return await self._observe()
@@ -322,7 +327,18 @@ class AssistRunner:
             kind, evidence = 'loading', 'Пустой документ: ожидается ответ сайта'
         if document != await _document_key(self.page):
             raise SiteCheckError("SCREEN_CHANGED", True)
-        result = Observed(kind, document, signature, source, evidence, recovery_action_first, certificate_validation_error)
+        variant = ''
+        if kind == 'unknown' and not self.control.booking_handoff:
+            # Only element counts/types, never values, labels, IDs or page text.
+            shape = await source.evaluate("""() => ({forms:document.forms.length,
+                selects:document.querySelectorAll('select').length,
+                buttons:document.querySelectorAll('button,input[type=submit]').length,
+                inputs:['text','password','checkbox','radio','email','tel','date'].map(
+                    type=>document.querySelectorAll('input[type="'+type+'"]').length)})""")
+            import json
+            variant = hashlib.sha256(json.dumps(shape,sort_keys=True).encode()).hexdigest()
+        operation_code = kind in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and bool(re.search(r'cod\.?\s*oper',text,re.I))
+        result = Observed(kind, document, signature, source, evidence, recovery_action_first, certificate_validation_error, variant, operation_code)
         self.last_observed = result
         if kind in {'booking', 'expired', 'server_error', 'rate_limited', 'blocked'}:
             self.control.observe_statistics(kind, document)
@@ -358,7 +374,9 @@ class AssistRunner:
         parts = urlsplit(self.page.url)
         path = "/".join(segment.split(";", 1)[0] for segment in parts.path.split("/"))
         self.control.observe_visit(document=observed.document, stage=observed.kind,
-            page=urlunsplit((parts.scheme, parts.netloc, path, "", "")), title=title)
+            page=urlunsplit((parts.scheme, parts.netloc, path, "", "")), title=title,
+            recognition=observed.kind if observed.kind in {"unknown", "loading"} else "known", variant=observed.variant,
+            evidence=('no_appointments','operation_code') if observed.kind in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and observed.operation_code else ())
         if observed.kind not in {"loading", "auth_wait"}:
             self.previous_stage = observed.kind
         if observed.kind == "province":
@@ -692,6 +710,10 @@ class AssistRunner:
         observed = await self.observe()
         self.action_phase = ""
         if observed.kind!="loading":self.loading_started=None;self.loading_document=None
+        if observed.signature == self.manual_signature:
+            self.publish(observed, next_action="Ожидаем ручного перехода на сайте", mode="manual")
+            await self.page.wait_for_timeout(500)
+            return
         self.publish(observed, mode="manual" if observed.kind in {"booking", "captcha"} else "working")
         if observed.kind in {"booking", "captcha"}:
             # Notify before diagnostics, which may be slow or fail.
@@ -700,10 +722,6 @@ class AssistRunner:
         log_event(log, logging.INFO, "assist_screen_recognized", task_id=self.task.id,
                   run_id=self.run_id, stage=observed.kind)
         await self.save(observed, "TRACE_SCREEN")
-        if observed.signature == self.manual_signature:
-            self.publish(observed, next_action="Ожидаем ручного перехода на сайте", mode="manual")
-            await self.page.wait_for_timeout(500)
-            return
         self.manual_signature = None
         if observed.kind in {"applicant", "office", "contact", "booking", "request_no_slots", "request_no_slots_restart", "post_contact_no_slots"}:
             self.control.blocked_streak = 0

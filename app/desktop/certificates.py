@@ -33,6 +33,7 @@ def get_chain(host):
         raise ValueError('Invalid TLS hostname')
     # Discovery only: validation happens in verify_chain before use or storage.
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with socket.create_connection((host, 443), timeout=10) as tcp:

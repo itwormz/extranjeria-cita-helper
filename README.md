@@ -38,7 +38,6 @@ In **Settings → Edit profile → Notifications**, enable Telegram and/or a web
 
 Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province, but no applicant identifiers, appointment details or page captures. Remote booking is not included; manual actions remain in Camoufox.
 
-
 ## Update integrity
 
 The attestation-enabled release workflow builds packages on GitHub-hosted runners and publishes only after verifying their signed Sigstore build provenance. The updater checks the package hash, our repository and workflow, release tag and source commit, then verifies again before launching the installer. Missing or invalid proof blocks installation. No GitHub CLI, account or manual release approval is required. Published immutable releases cannot have their packages or tags replaced.
@@ -97,14 +96,19 @@ Sign in with a permanent password; an additional SMS code may be required. You w
 
 ## 🎛️ Controls and appointment selection
 
-
 If exactly one office is available, the assistant selects it and continues automatically. With multiple offices, it waits for your choice. It then fills contact details and leaves date/time selection to you.
 
 **Pause / Resume** pauses and resumes automated actions. **Restart session** in the actions menu clears the browser session and starts the flow again. Before starting, **Reset session** clears the selected profile’s browser session without starting the search or removing profile details. The bell button at the top toggles sound alerts. Closing the application window ends the search and closes Camoufox.
 
 ## 📊 Profile statistics and achievements
 
-The Statistics tab keeps lifetime counters separately for each profile: appointment checks, office availability, booking screens, server errors, request limits, blocks and active search time. Selecting a statistics profile does not change the running search.
+The Statistics tab keeps **Today / All time** counters separately for each profile, including checks, cumulative active search time, offices, appointment-selection screens, server errors, HTTP 429, access restrictions and repeated passes. A local timeline distinguishes observed pages, recovery, manual control and gaps; the office list shows recorded appearance dates. Times use Europe/Madrid. Selecting a statistics profile does not change the running search.
+
+Hover over the timeline to highlight a segment or event; click for its duration and counters. Drag across complete segments to select a range; **Select multiple** or ⌘/Ctrl-click combines selections. Unselected gaps are excluded and events are not counted twice. Drag empty space or Alt-drag to pan; trackpad gestures remain available.
+
+Statistics are stored in SQLite independently of page diagnostics and survive application restarts. Existing totals migrate automatically with an unchanged original and a backup; undated old totals do not become invented daily history. No statistics are uploaded automatically. A no-appointments page with Cod. Oper. is an observed state, not proof of a document-specific ban.
+
+History initially shows all observed days; **Period** selects a date range. Known dates and durations remain separate: the old elapsed time to first availability is not active search time. **≥** marks a confirmed minimum when history is incomplete.
 
 After completing a booking on the website, mark **Appointment obtained**. Appointment details remain local; **Add to calendar** exports a private calendar event. Public PNG cards and prepared social posts contain search statistics only, without the appointment date, office or confirmation number. Posting and attaching the card remain manual. Marking an appointment as obtained stops the search and keeps Camoufox open for viewing or managing the booking. The note suggests the latest known office for the profile; saved office/address and confirmation values can be selected and copied.
 
