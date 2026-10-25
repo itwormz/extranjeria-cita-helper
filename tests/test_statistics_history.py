@@ -306,7 +306,7 @@ def test_timeline_axis_is_three_hourly_and_zoom_preserves_actual_duration(qt_app
     timeline.deleteLater()
 
 
-def test_timeline_tooltip_contains_clock_and_observed_cod_duration(qt_app):
+def test_timeline_tooltip_contains_clock_and_observed_cod_duration(qt_app,monkeypatch):
     from types import SimpleNamespace
     from PySide6.QtCore import QPointF,QEvent,Qt
     from PySide6.QtGui import QMouseEvent
@@ -314,15 +314,22 @@ def test_timeline_tooltip_contains_clock_and_observed_cod_duration(qt_app):
     from app.desktop.statistics_history import Timeline
     timeline=Timeline(SimpleNamespace(t=lambda t:t,preferences={'dark':True,'language':'ru'}));timeline.resize(1100,100)
     row=dict(id='cod',kind='page',stage='cod_oper',mode='',start='2026-10-23T10:00:00Z',end='2026-10-23T10:03:10Z',last_seen='2026-10-23T10:03:10Z',confirmed_end=True,event=False)
-    timeline.set_rows([row],date(2026,10,23),1);timeline.show();qt_app.processEvents()
+    # Render hit geometry without a native surface: offscreen QPA backends
+    # may dismiss a global tooltip when they synthesize window/leave events.
+    timeline.set_rows([row],date(2026,10,23),1);timeline.grab()
+    shown=[]
+    monkeypatch.setattr(QToolTip,'showText',lambda position,text,*args:shown.append(text))
+    from PySide6.QtTest import QSignalSpy
+    timeout=QSignalSpy(timeline.tooltip_timer.timeout)
     rect=next(rect for rect,rows in timeline.hit if rows[0].get('id')=='cod')
     point=rect.center();event=QMouseEvent(QEvent.Type.MouseMove,point,QPointF(timeline.mapToGlobal(point.toPoint())),Qt.MouseButton.NoButton,Qt.MouseButton.NoButton,Qt.KeyboardModifier.NoModifier)
-    qt_app.sendEvent(timeline,event);qt_app.processEvents()
-    from PySide6.QtTest import QTest
-    QTest.qWait(400)
-    assert 'Cod. Oper.' in QToolTip.text()
-    assert '3 мин 10 с' in QToolTip.text()
-    assert '23.10.2026' in QToolTip.text()
+    qt_app.sendEvent(timeline,event)
+    assert timeline.tooltip_timer.isActive()
+    assert timeout.wait(2000)
+    assert len(shown)==1
+    assert 'Cod. Oper.' in shown[0]
+    assert '3 мин 10 с' in shown[0]
+    assert '23.10.2026' in shown[0]
     QToolTip.hideText();timeline.deleteLater()
 
 
