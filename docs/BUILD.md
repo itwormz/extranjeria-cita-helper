@@ -137,3 +137,5 @@ and workflow access controls remain necessary.
 ## Security checks before a release
 
 Review open CodeQL, Dependabot and secret-scanning alerts before tagging. Update manifest constraints and `uv.lock` together, then run the local preflight and native package verification with the frozen updated environment. A dependency audit is a point-in-time check; a green package build does not replace it. GitHub closes addressed findings only after it analyzes the pushed commit. Never dismiss an alert just to make the release gate green.
+
+Windows CI validates the .NET 8 SDK and runtime already installed in the pinned runner family before installing WiX 4.0.6. Missing prerequisites fail explicitly; the workflow does not download another SDK through `aka.ms`. This avoids an unnecessary dependency on SDK download redirects while preserving the native MSI build and verification steps.

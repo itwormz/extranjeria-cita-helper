@@ -98,10 +98,21 @@ jobs:
         run: codesign --verify --deep --strict 'data/dist/Cita Extranjeria Helper.app'
       - name: Offline packaged browser and worker IPC
         run: uv run python scripts/verify_bundle.py '${{ matrix.bundle }}'
-      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+      - name: Verify preinstalled .NET build tools
         if: runner.os == 'Windows'
-        with:
-          dotnet-version: '8.0.x'
+        shell: pwsh
+        run: |
+          # windows-2022 supplies .NET 8; avoid downloading another SDK through aka.ms.
+          $sdks = dotnet --list-sdks
+          if ($LASTEXITCODE -ne 0 -or -not ($sdks -match '^8\.0\.\d+\s')) {
+            throw 'Windows runner must provide a .NET 8 SDK'
+          }
+          $runtimes = dotnet --list-runtimes
+          if ($LASTEXITCODE -ne 0 -or -not ($runtimes -match '^Microsoft\.NETCore\.App 8\.0\.\d+\s')) {
+            throw 'Windows runner must provide a .NET 8 runtime'
+          }
+          dotnet --info
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet diagnostics failed' }
       - name: Install MSI build tools
         if: runner.os == 'Windows'
         env:
