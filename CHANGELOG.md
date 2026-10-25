@@ -10,6 +10,7 @@
 - Updated certifi, cryptography/PyOpenSSL, Pillow, fonttools and setuptools to patched locked versions. TLS certificate discovery explicitly requires TLS 1.2 or newer; complete certificate verification remains mandatory before caching. Cleaned up URL matching in updater test fixtures flagged by CodeQL.
 - Updated contributor guidance, issue forms and all three READMEs for both supported services and their document fields. Calendar preview, Google Calendar and ICS now use the accurate shared title “Extranjería — Cita”; saved appointment data is unchanged. Windows package details mention both services.
 - Made the manual-office browser regression separate fixture navigation from the unchanged five-second production handoff bound, avoiding false failures on slow Intel runners.
+- Source-built cryptography links OpenSSL statically, preventing a macOS Intel bundle conflict with Python’s older OpenSSL libraries.
 - Windows packaging validates the runner-provided .NET 8 SDK/runtime instead of re-downloading them through an unavailable Microsoft redirect; pinned WiX and package checks remain unchanged.
 - Appointment selection, CAPTCHA and confirmation remain manual. Statistics stay local, with no automatic upload or diagnostic-archive importer shipped to users.
 

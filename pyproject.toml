@@ -43,3 +43,7 @@ include = ["app*"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+
+# Source builds (notably macOS Intel) must not share Python's OpenSSL dylibs.
+[tool.uv.extra-build-variables]
+cryptography = { OPENSSL_STATIC = "1" }
