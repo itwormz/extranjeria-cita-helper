@@ -207,9 +207,16 @@ class NotificationPanel(QWidget):
             box=edit.parentWidget()
             if isinstance(box,ActionField):edit.setPlaceholderText(self.owner.t(box.caption.property('notificationSource') or ''))
 
-    def load(self,raw):
+    def ensure_secrets_loaded(self):
+        if not self.secrets_loaded:self.load(self.config)
+
+    def load(self,raw,*,defer_secrets=False):
         self.generation+=1;self.config=settings(raw);self.loaded_secrets={};self.load_error=''
+        self.secrets_loaded=not defer_secrets
         for channel in ('telegram','webhook'):
+            if defer_secrets:
+                self.loaded_secrets[channel]={}
+                continue
             try:self.loaded_secrets[channel]=self.vault.get(self.config[channel].get('secret_ref',''))
             except NotificationError as exc:self.loaded_secrets[channel]={};self.load_error=str(exc)
         self.token.setText(self.loaded_secrets['telegram'].get('token',''));self.token.setEchoMode(QLineEdit.EchoMode.Password)
@@ -286,6 +293,7 @@ class NotificationPanel(QWidget):
     def prepare(self):
         """Create fresh entries before YAML replace; caller commits or rolls back refs."""
         config=copy.deepcopy(self.config);created=[];old=[]
+        if not self.secrets_loaded:return config,created,old
         if self.load_error:raise NotificationError(self.load_error)
         try:
             token=self.token.text().strip();hook=self.hook_config()

@@ -533,7 +533,7 @@ class DesktopWindow(QMainWindow):
         profile_tabs.addTab(self.notifications_panel.scroll,'Уведомления'); form.addWidget(profile_tabs,1)
         for previous,current in zip(self.profile_focus_fields,self.profile_focus_fields[1:]):
             QWidget.setTabOrder(previous,current)
-        profile_tabs.currentChanged.connect(self.update_editor_height)
+        profile_tabs.currentChanged.connect(self.profile_tab_changed)
         form.addWidget(label('Пароли и подтверждения — только в Camoufox.',muted=True))
         self.form_error=label(name='formError'); form.addWidget(self.form_error)
         actions=QHBoxLayout(); actions.addStretch(); save=QPushButton('Сохранить профиль');save.setObjectName('saveProfile'); save.setProperty('primary',True)
@@ -700,10 +700,15 @@ class DesktopWindow(QMainWindow):
               else 'Cl@ve Permanente' if request.get('clave_method','movil')=='permanente' else 'Cl@ve Móvil')
         self.profile_summary.setText(str(request.get('province',''))+' · '+PROCEDURE_NAMES.get(request.get('procedure',TIE_PROCEDURE),'')+' · '+self.t(auth))
 
+    def profile_tab_changed(self,index):
+        if index==self.profile_tabs.indexOf(self.notifications_panel.scroll):
+            self.notifications_panel.ensure_secrets_loaded()
+        self.update_editor_height()
+
     def open_editor(self, profile_id):
         self.editing_id=profile_id; self.editor_revision=self.store.revision()
         raw=self.store.raw_profile(profile_id) if profile_id else {}
-        self.notifications_panel.load(raw.get('notifications',{}))
+        self.notifications_panel.load(raw.get('notifications',{}),defer_secrets=True)
         self.no_slots_mode_combo.setCurrentIndex(max(0,self.no_slots_mode_combo.findData(raw.get('request',{}).get('no_slots_mode','reload'))))
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
@@ -742,6 +747,7 @@ class DesktopWindow(QMainWindow):
         self.form_error.clear(); self.editor_title.setText('Редактирование профиля' if profile_id else 'Создание профиля')
         self.tabs.setCurrentIndex(1); self.profile_editor.setWindowTitle(self.t('Редактирование профиля' if profile_id else 'Создание профиля')); self.profile_editor.show()
         self.retranslate()
+        self.profile_tab_changed(self.profile_tabs.currentIndex())
 
     def save_profile(self):
         f=self.fields

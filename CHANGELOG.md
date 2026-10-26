@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2.dev5 — Local development
+
+- Read notification secrets only when opening the profile Notifications tab. Saving profile data or timings without visiting that tab preserves notification configuration and secret references without accessing the system credential store.
+
 ## 0.2.2.dev4 — Local development
 
 - Add profile-controlled repeat checking: reload the result (default) or pause and follow the website’s real Salir button. Recognize the request menu returned at acOpcDirect; missing or ambiguous Salir controls require review instead of silently reloading. Applicant no-slot warnings still prevent identity entry in both modes.
