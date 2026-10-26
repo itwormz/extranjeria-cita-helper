@@ -153,7 +153,7 @@
     "Чтение документа ещё не завершено": "Document reading is not finished yet",
     "Проверяем страницу": "Checking page",
     "Виден список провинций": "Province list is visible",
-    "Видимая форма заявителя": "Applicant form is visible",
+    "Видимая форма заявителя": "Visible applicant form",
     "Видимое сообщение «нет сит»": "No-appointment message is visible",
     "Виден селектор доступных офисов": "Available office selector is visible",
     "Видны телефон и два поля email": "Phone and two email fields are visible",
@@ -935,7 +935,9 @@
     "Не найдена единственная кнопка Salir. Проверить страницу": "A unique Salir button was not found. Check the page",
     "Нажать Salir: продолжить по предложенному сайтом пути": "Click Salir and follow the website flow",
     "Salir отправлен — распознать ответ сайта": "Salir sent — recognize the website response",
-    "Отправлена форма заявителя — значения не сохраняются": "Applicant form sent — values are not recorded"
+    "Отправлена форма заявителя — значения не сохраняются": "Applicant form sent — values are not recorded",
+    "На форме заявителя нет сит — ожидать без ввода данных": "No appointments on the applicant form — wait without entering data",
+    "Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку": "The form followed a data submission. Automatic refresh is stopped to prevent resubmission"
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1091,7 +1093,7 @@
     "Чтение документа ещё не завершено": "La lectura del documento aún no ha terminado",
     "Проверяем страницу": "Comprobando página",
     "Виден список провинций": "La lista de provincias está visible",
-    "Видимая форма заявителя": "El formulario del solicitante está visible",
+    "Видимая форма заявителя": "Formulario del solicitante visible",
     "Видимое сообщение «нет сит»": "Mensaje de ausencia de citas visible",
     "Виден селектор доступных офисов": "Selector de oficinas disponibles visible",
     "Видны телефон и два поля email": "El teléfono y dos campos de correo están visibles",
@@ -1873,6 +1875,8 @@
     "Не найдена единственная кнопка Salir. Проверить страницу": "No se encontró un único botón Salir. Revisar la página",
     "Нажать Salir: продолжить по предложенному сайтом пути": "Pulsar Salir y seguir el recorrido de la web",
     "Salir отправлен — распознать ответ сайта": "Salir enviado — reconocer la respuesta de la web",
-    "Отправлена форма заявителя — значения не сохраняются": "Formulario del solicitante enviado — no se registran los valores"
+    "Отправлена форма заявителя — значения не сохраняются": "Formulario del solicitante enviado — no se registran los valores",
+    "На форме заявителя нет сит — ожидать без ввода данных": "No hay citas en el formulario — esperar sin introducir datos",
+    "Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку": "El formulario se recibió tras enviar datos. Se detiene la recarga automática para evitar un reenvío"
   }
 }

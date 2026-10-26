@@ -6,7 +6,9 @@
 
 - Default ordinary no-appointment checks to the website’s real **Salir** control after the configured pause, following recognized pages including the request menu at `acOpcDirect`. Profiles can still select result reloads; explicitly saved choices are preserved. A missing or ambiguous Salir button requires review instead of an automatic fallback.
 - If the applicant form already reports no appointments, wait and reload that form without entering or copying identity data. Resume filling only after the warning disappears. No daily document-input threshold is assumed, and a reduction in submissions or blocking risk is not claimed.
+- Prevent applicant no-slot refreshes from replaying a POST; only a confirmed GET can be reloaded automatically. Unknown/POST origins require review.
 - Remember the last working profile and initially show its statistics. The statistics selector remains independent while exploring other profiles.
+- Keep startup usable if saving the last-profile preference fails, exclude certificate-attention pages from automated effort, localize applicant evidence, and tolerate malformed script/base URLs in diagnostics.
 - Read notification credentials only when opening the Notifications tab. Saving other profile fields preserves notification settings and secret references without accessing the system credential store.
 
 ### Statistics and timeline

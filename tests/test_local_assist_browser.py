@@ -1054,3 +1054,27 @@ def test_profile_salir_mode_follows_actual_button_without_replaying_search(outco
                     assert calls[-1]==('POST','acCitar') and r.control.snapshot()['checks']==1
             finally:await browser.close()
     asyncio.run(scenario())
+
+
+def test_applicant_warning_after_post_never_resubmits_identity():
+    async def scenario():
+        from playwright.async_api import async_playwright,expect
+        async with async_playwright() as pw:
+            browser=await launch_browser(pw)
+            try:
+                ctx=await browser.new_context();page=await ctx.new_page();calls=[]
+                async def respond(route):
+                    path=route.request.url.rsplit('/',1)[-1];calls.append((route.request.method,path))
+                    body='<form action="acEntrada" method="post"><button>Open form</button></form>' if path=='citar' else FORM+'<p>No hay citas disponibles</p>'
+                    await route.fulfill(body=body,content_type='text/html; charset=utf-8')
+                await page.route('**/*',respond);runner=runner_for(page,ctx)
+                runner.countdown=AsyncMock(return_value=True);runner.hold=AsyncMock()
+                await page.goto(BASE+'citar');await page.get_by_role('button',name='Open form').click()
+                await expect(page.locator('#txtIdCitado')).to_be_visible(timeout=10_000)
+                assert runner.last_method=='POST'
+                await runner.step()
+                assert calls==[('GET','citar'),('POST','acEntrada')]
+                assert await page.locator('#txtIdCitado').input_value()==''
+                runner.hold.assert_awaited_once();runner.countdown.assert_not_awaited()
+            finally:await browser.close()
+    asyncio.run(scenario())

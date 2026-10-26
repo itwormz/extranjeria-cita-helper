@@ -559,3 +559,35 @@ def test_applicant_submission_is_distinct_from_availability_without_reading_valu
     runner._requested(request)
     assert [row['event'] for row in control.snapshot()['timeline']].count('applicant_submitted')==1
     assert control.snapshot()['checks']==0
+
+
+@pytest.mark.parametrize('method',['POST',None])
+def test_applicant_no_slots_never_replays_non_get_navigation(method):
+    page=SimpleNamespace(url='https://example.test/acValidarEntrada',reload=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)),SimpleNamespace(id='test'),'run',AssistControl(),SimpleNamespace(),SimpleNamespace(next_delay=lambda **kw:30))
+    runner.last_method=method;runner.countdown=AsyncMock(return_value=True);runner.guard=AsyncMock(return_value=True);runner.save=AsyncMock();runner.hold=AsyncMock()
+    asyncio.run(runner.act(assist_flow.Observed('applicant_no_slots','doc','sig',None)))
+    page.reload.assert_not_awaited();runner.countdown.assert_not_awaited();runner.hold.assert_awaited_once()
+
+
+def test_certificate_attention_excludes_human_auth_pages_from_effort():
+    control=AssistControl();events=[];control.set_statistics_sink(lambda kind,doc,**kwargs:events.append((kind,doc)),lambda seconds:None)
+    page=SimpleNamespace(url='https://example.test/')
+    async def enter(page,task,run_id,on_attention):await on_attention('certificate_approval')
+    checker=SimpleNamespace(_enter_with_certificate=enter)
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),checker,SimpleNamespace(id='test',access_mode='certificate'),'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
+    asyncio.run(runner.act(assist_flow.Observed('auth','entry','entry',None)))
+    runner.publish(assist_flow.Observed('auth_wait','human','human',None))
+    runner.publish(assist_flow.Observed('applicant','automatic','automatic',None))
+    assert ('processed_page','human') not in events
+    assert ('processed_page','automatic') in events
+
+
+def test_applicant_warning_does_not_reload_if_post_starts_during_wait():
+    page=SimpleNamespace(url='https://example.test/acEntrada',reload=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)),SimpleNamespace(id='test'),'run',AssistControl(),SimpleNamespace(),SimpleNamespace(next_delay=lambda **kw:30))
+    runner.last_method='GET'
+    async def begin_post(*args):runner.last_method='POST';return True
+    runner.countdown=begin_post;runner.guard=AsyncMock(return_value=True);runner.save=AsyncMock();runner.hold=AsyncMock()
+    asyncio.run(runner.act(assist_flow.Observed('applicant_no_slots','doc','sig',None)))
+    page.reload.assert_not_awaited();runner.hold.assert_awaited_once()

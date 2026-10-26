@@ -612,7 +612,7 @@ class DesktopWindow(QMainWindow):
         profile_id=self.profile_combo.currentData()
         if profile_id and any(task.id==profile_id for task in self.profiles):
             try:self.store.save_last_profile(profile_id)
-            except ProfileValidationError:
+            except (ProfileValidationError,ProfileConflictError,OSError):
                 self.show_error('Не удалось сохранить настройки. Изменения не применены.','last_profile')
             else:self.clear_error('last_profile')
         if not self.controller.active and hasattr(self, 'metrics'):
@@ -847,7 +847,7 @@ class DesktopWindow(QMainWindow):
         previous_mode=self.state.get('mode')
         self.state=state
         self.heading.setText('Сит нет' if state.get('screen')=='Сит нет — требуется новый проход' else state.get('screen','Ищем ситу'))
-        self.evidence.setText(state.get('evidence',''))
+        self.evidence.setText(self.t(state.get('evidence','')))
         self.next_label.setText(state.get('next_action',''))
         mode={'working':'Бот работает','waiting':'Ожидание','paused':'Приостановлен','manual':'Требуется участие','recovery':'Восстановление','finished':'Остановлен'}.get(state.get('mode'),'Запуск')
         if state.get('booking_handoff'):mode='Управление передано'

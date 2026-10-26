@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QObject, Signal, Qt
 from PySide6.QtTest import QTest
 from app.desktop.window import DesktopWindow
-from app.desktop.profiles import ProfileStore
+from app.desktop.profiles import ProfileStore, ProfileConflictError
 
 class Controller(QObject):
     state_changed = Signal(dict)
@@ -1046,3 +1046,25 @@ def test_no_slots_mode_editor_roundtrips_in_timing_tab(window,task_mapping):
     window.set_language('es')
     assert window.no_slots_mode_combo.currentText()=='Mediante Salir'
     assert window.no_slots_mode_combo.currentData()=='salir'
+
+
+@pytest.mark.parametrize('language',['en','es'])
+def test_applicant_no_slots_evidence_is_localized(window,language):
+    from app.desktop.i18n import translate
+    source='На форме заявителя нет сит — ожидать без ввода данных'
+    window.preferences['language']=language
+    window.on_state({'evidence':source,'mode':'waiting'})
+    assert window.evidence.text()==translate(source,language)
+    assert window.evidence.text()!=source
+
+
+@pytest.mark.parametrize('error',[OSError('read only'),ProfileConflictError('changed')])
+def test_last_profile_storage_error_does_not_abort_window_start(tmp_path,catalog_path,qt_app,task_mapping,monkeypatch,error):
+    from tests.test_desktop_profiles import fields
+    store=ProfileStore(tmp_path/'tasks.yml',catalog_path)
+    store.save_profile(None,fields(task_mapping),revision=store.revision())
+    def fail(*args):raise error
+    monkeypatch.setattr(store,'save_last_profile',fail)
+    w=DesktopWindow(store,Controller())
+    assert w.profile_combo.count()==1 and 'last_profile' in w.errors
+    w.close();w.deleteLater();qt_app.processEvents()

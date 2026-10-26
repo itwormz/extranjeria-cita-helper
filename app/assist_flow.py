@@ -806,6 +806,7 @@ class AssistRunner:
         elif kind == "auth":
             self.guard_document = self.guard_kind = None
             async def attention(reason, repeat=False):
+                self._manual_auth_active=True
                 waiting = reason == 'certificate_wait'
                 self.control.publish(screen="Авторизация сертификатом",
                                      evidence="Авторизация длится больше 5 секунд" if waiting else "Портал запросил подтверждение",
@@ -860,6 +861,9 @@ class AssistRunner:
                 self.attempted.add(attempt)
         elif kind in {"applicant_no_slots", "request_no_slots"}:
             applicant_wait = kind == "applicant_no_slots"
+            if applicant_wait and self.last_method != 'GET':
+                await self.hold(observed,'Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку')
+                return
             attempt = (observed.document, "applicant_reload" if applicant_wait else "request_reload")
             if attempt in self.attempted:
                 await self.hold(observed, "Повтор уже отправлялся. Ожидаем новый ответ — повторная отправка остановлена")
@@ -889,6 +893,9 @@ class AssistRunner:
                 await self.checker._activate_control(button,timeout=5_000)
                 self.pending_action=None
                 self.record('action_completed',observed,'Salir отправлен — распознать ответ сайта')
+                return
+            if applicant_wait and self.last_method != 'GET':
+                await self.hold(observed,'Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку')
                 return
             self.attempted.add(attempt)
             self.pending_action = "applicant_reload" if applicant_wait else "request"

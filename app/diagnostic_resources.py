@@ -144,11 +144,14 @@ def snapshot_references(directory, documents):
     for url, html in documents:
         parser = _Scripts()
         parser.feed(html)
-        base=urljoin(url,parser.base) if parser.base else url
+        try:base=urljoin(url,parser.base) if parser.base else url
+        except ValueError:base=url
         for source in parser.sources:
-            safe = script_url(urljoin(base, source))
+            try:joined=urljoin(base,source)
+            except ValueError:continue
+            safe = script_url(joined)
             if safe:
-                reference = script_reference(urljoin(base, source))
+                reference = script_reference(joined)
                 record = latest.get(reference)
                 digest = record["sha256"] if record else None
                 result.append({"url": safe, "reference": reference, "sha256": digest,

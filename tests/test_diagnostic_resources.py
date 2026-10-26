@@ -208,3 +208,13 @@ def test_snapshot_resolves_script_against_html_base(tmp_path):
     refs=snapshot_references(directory,[('https://icp.administracionelectronica.gob.es/icpplus/nested/page','<base href="/icpplustieb/resources/"><script src="js/main.js"></script>')])
     assert refs[0]['reference']==script_reference(target)
     assert refs[0]['sha256']==digest
+
+
+@pytest.mark.parametrize('html',[
+    '<base href="//[bad/"><script src="main.js"></script>',
+    '<script src="//[bad/x.js"></script><script src="main.js"></script>',
+])
+def test_snapshot_references_skip_malformed_base_and_script_urls(tmp_path,html):
+    directory=prepare_session(tmp_path,'test',30)
+    refs=snapshot_references(directory,[(URL,html)])
+    assert [row['url'] for row in refs]==[URL]
