@@ -52,7 +52,7 @@ class TaskConfig:
     errors: tuple[str, ...] = field(default_factory=tuple)
     applicant_fill_mode: str = "manual"
     clave_method: str = "movil"
-    no_slots_mode: str = "reload"
+    no_slots_mode: str = "salir"
 
     @property
     def valid(self) -> bool:
@@ -226,7 +226,7 @@ def _task(raw: dict[str, Any], settings: Settings, catalog: dict[str, set[str]])
 
     access_mode = str(request.get("access_mode", "without_clave")).lower()
     clave_method = str(request.get("clave_method", "movil")).lower()
-    no_slots_mode = str(request.get("no_slots_mode", "reload")).lower()
+    no_slots_mode = str(request.get("no_slots_mode", "salir")).lower()
     province = str(request.get("province", ""))
     office = str(request.get("office", ""))
     procedure = str(request.get("procedure", ""))

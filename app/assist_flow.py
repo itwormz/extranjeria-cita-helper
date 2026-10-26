@@ -866,7 +866,7 @@ class AssistRunner:
                 return
             self.empty_streak += 1
             delay = self.policy.next_delay(recent_activity=False, empty_streak=self.empty_streak)
-            via_salir=not applicant_wait and getattr(self.task,'no_slots_mode','reload')=='salir'
+            via_salir=not applicant_wait and getattr(self.task,'no_slots_mode','salir')=='salir'
             next_action = ("Обновить форму без ввода данных" if applicant_wait else
                            "Нажать Salir и продолжить по сайту" if via_salir else
                            "Обновить результат запроса в текущей сессии")

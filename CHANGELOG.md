@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2.dev6 — Local development
+
+- Default repeat checking to the website’s Salir control for new profiles and profiles without a saved mode; retain an explicitly saved reload preference. Existing pauses and applicant no-slot handling remain unchanged.
+
 ## 0.2.2.dev5 — Local development
 
 - Read notification secrets only when opening the profile Notifications tab. Saving profile data or timings without visiting that tab preserves notification configuration and secret references without accessing the system credential store.

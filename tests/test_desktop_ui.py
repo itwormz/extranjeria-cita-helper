@@ -1036,7 +1036,7 @@ def test_no_slots_mode_editor_roundtrips_in_timing_tab(window,task_mapping):
     from tests.test_desktop_profiles import fields
     profile=window.store.save_profile(None,fields(task_mapping),revision=window.store.revision())
     window.refresh_profiles(selected=profile);window.open_editor(profile)
-    assert window.no_slots_mode_combo.currentData()=='reload'
+    assert window.no_slots_mode_combo.currentData()=='salir'
     assert window.no_slots_mode_combo.parentWidget() is window.no_slots_mode_box
     window.no_slots_mode_combo.setCurrentIndex(window.no_slots_mode_combo.findData('salir'))
     window.save_profile()

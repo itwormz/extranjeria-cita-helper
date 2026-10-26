@@ -709,7 +709,7 @@ class DesktopWindow(QMainWindow):
         self.editing_id=profile_id; self.editor_revision=self.store.revision()
         raw=self.store.raw_profile(profile_id) if profile_id else {}
         self.notifications_panel.load(raw.get('notifications',{}),defer_secrets=True)
-        self.no_slots_mode_combo.setCurrentIndex(max(0,self.no_slots_mode_combo.findData(raw.get('request',{}).get('no_slots_mode','reload'))))
+        self.no_slots_mode_combo.setCurrentIndex(max(0,self.no_slots_mode_combo.findData(raw.get('request',{}).get('no_slots_mode','salir'))))
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))

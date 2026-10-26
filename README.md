@@ -108,7 +108,7 @@ Hover over the timeline to highlight a segment or event; click for its duration 
 
 Actions performed and pages processed measure automated work: one completed activation, selection, field fill or reload counts as one action; a recognized document is counted once. Manual actions and repeated recognition are excluded. These counters start with the updated app and do not reconstruct earlier work.
 
-In profile **Timings and retries**, **Repeat check** selects result reloads (the default) or **Via Salir**. The latter waits and clicks the website’s actual Salir button, then follows recognized pages; an absent or ambiguous button requires review. Both modes wait without entering applicant data while its form reports no appointments. No reduction in document submissions is assumed.
+In profile **Timings and retries**, **Repeat check** selects **Via Salir** (the default) or result reloads. Salir mode waits and clicks the website’s actual Salir button, then follows recognized pages; an absent or ambiguous button requires review. Both modes wait without entering applicant data while its form reports no appointments. No reduction in document submissions is assumed.
 
 Statistics are stored in SQLite independently of page diagnostics and survive application restarts. Existing totals migrate automatically with an unchanged original and a backup; undated old totals do not become invented daily history. No statistics are uploaded automatically. A no-appointments page with Cod. Oper. is an observed state, not proof of a document-specific ban.
 

@@ -168,7 +168,7 @@ def test_timeline_urls_remove_auth_and_matrix_tokens():
 @pytest.mark.parametrize("lost_reply", [False, True])
 def test_no_slots_waits_then_reloads_once(lost_reply):
     page = SimpleNamespace(url='https://example.test/acCitar', reload=AsyncMock(), go_back=AsyncMock())
-    r = assist_flow.AssistRunner(page, SimpleNamespace(), SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)), SimpleNamespace(id='test'), 'run', AssistControl(), SimpleNamespace(), SimpleNamespace(next_delay=lambda **kw: 30))
+    r = assist_flow.AssistRunner(page, SimpleNamespace(), SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)), SimpleNamespace(id='test',no_slots_mode='reload'), 'run', AssistControl(), SimpleNamespace(), SimpleNamespace(next_delay=lambda **kw: 30))
     if lost_reply:
         page.reload.side_effect = RuntimeError("reply lost after send")
     observed = assist_flow.Observed('request_no_slots', 'doc', 'sig', None)
