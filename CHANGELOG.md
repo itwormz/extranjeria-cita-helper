@@ -1,35 +1,31 @@
 # Changelog
 
-## 0.2.2.dev6 — Local development
+## 0.2.2 — Search modes and automation statistics
 
-- Default repeat checking to the website’s Salir control for new profiles and profiles without a saved mode; retain an explicitly saved reload preference. Existing pauses and applicant no-slot handling remain unchanged.
+### Search and profiles
 
-## 0.2.2.dev5 — Local development
+- Default ordinary no-appointment checks to the website’s real **Salir** control after the configured pause, following recognized pages including the request menu at `acOpcDirect`. Profiles can still select result reloads; explicitly saved choices are preserved. A missing or ambiguous Salir button requires review instead of an automatic fallback.
+- If the applicant form already reports no appointments, wait and reload that form without entering or copying identity data. Resume filling only after the warning disappears. No daily document-input threshold is assumed, and a reduction in submissions or blocking risk is not claimed.
+- Remember the last working profile and initially show its statistics. The statistics selector remains independent while exploring other profiles.
+- Read notification credentials only when opening the Notifications tab. Saving other profile fields preserves notification settings and secret references without accessing the system credential store.
 
-- Read notification secrets only when opening the profile Notifications tab. Saving profile data or timings without visiting that tab preserves notification configuration and secret references without accessing the system credential store.
+### Statistics and timeline
 
-## 0.2.2.dev4 — Local development
+- Add confirmed automated actions and unique recognized pages to Today/All time statistics, selected-period summaries, achievements, posts and PNG cards. Focus, individual keystrokes, failed actions, repeated recognition and manual work are excluded. Historic unmeasured counters stay unknown; the tracking-start date is available in the metric tooltip.
+- Place both effort counters in a compact Automation section with distinct icons below availability and site-error statistics.
+- Keep Cod. Oper. periods through intermediate navigation until a normal availability result is observed, retaining errors, manual work and observation gaps separately.
+- Remove the dotted office-count underline; hover previews no longer capture focus and close when the pointer leaves the count and preview. Click/keyboard activation retains an interactive popup.
+- Clear transient statistics read errors after a successful refresh and log only the failing component and exception type, without profile values or raw error text.
+- Remove automatic first/last-clip selection. Cleared selection stays cleared through refresh and zoom; Escape clears a selection, and an explicitly selected valid clip remains selected.
+- Record applicant-form submissions separately from availability checks without storing submitted values, and retain the selected repeat mode in typed session context.
 
-- Add profile-controlled repeat checking: reload the result (default) or pause and follow the website’s real Salir button. Recognize the request menu returned at acOpcDirect; missing or ambiguous Salir controls require review instead of silently reloading. Applicant no-slot warnings still prevent identity entry in both modes.
-- Record applicant-form submissions separately from availability requests without recording submitted values, and retain the selected mode in typed session context for comparison. The Salir route is not claimed to reduce document submissions until observed on the live site.
-- Passively archive browser-loaded first-party ICP JavaScript during diagnostics: gzip objects deduplicated by content hash, sanitized per-session load manifests, exact-reference links from HTML snapshots, bounded background capture and reference-aware retention cleanup. External authentication scripts are excluded, and capturing resources does not request them again or touch manual browser control.
+### Diagnostics, updates and maintenance
 
-## 0.2.2.dev3 — Local development
-
-- Group automated actions and processed pages under “Automation” below availability and error statistics, matching the approved compact layout with distinct pointer/document icons.
-
-## 0.2.2.dev2 — Local development
-
-- Track confirmed bot actions and unique recognized pages locally, independently of diagnostics, with today/all totals and selected-period counts. Focus, individual keystrokes, repeated recognition, manual work and failed operations are excluded.
-- Include the effort counters in achievement snapshots, posts and PNG cards. Historical snapshots without these measurements show unknown values; earlier totals are not reconstructed. Tracking start is available in the metric tooltip.
-
-## 0.2.2.dev1 — Local development
-
-- Keep Cod. Oper. timeline periods through navigation until a normal availability result is observed; retain errors and observation gaps separately.
-- Wait and reload applicant forms reporting no appointments without entering or copying identity data. Resume filling when that message disappears, using existing pauses and no assumed daily input limit.
-- Select timeline segments only on user input; preserve cleared selection through zoom and refresh, with Escape to clear it.
-- Remember the last working profile and open its statistics on entry, while allowing independent exploration of other profiles.
-- Use numbered development versions locally, including native bundle metadata and stable-update comparison. Development versions cannot be published through stable release tags.
+- Passively archive already-loaded first-party ICP JavaScript when diagnostics are enabled. Gzip objects are deduplicated by content hash, with sanitized session manifests, exact-reference links from snapshots, bounded capture and reference-aware retention. External authentication scripts are excluded; capture makes no extra network requests and does not touch manual browser control.
+- Accept numbered local development versions in native metadata and stable-update comparisons, while keeping development releases outside stable publication.
+- Update Sigstore to 4.5.1, fonttools to 4.67.0 and tzdata to 2026.5. Sigstore no longer brings pyOpenSSL or pyasn1 into the locked dependency set.
+- Run explicit Python and GitHub Actions CodeQL analyses for Dependabot PRs. PRs run lightweight tests; full native packages run manually or for release tags. Pin updated checkout/setup-uv Actions and temporarily exclude Playwright versions incompatible with Camoufox.
+- Make the copy-from-authentication browser regression wait for the rendered fixture before a single processing step, with explicit delayed-render coverage. Production action timeouts and POST replay protection are unchanged.
 
 ## 0.2.1 — Search history and security fixes
 

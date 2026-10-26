@@ -46,7 +46,7 @@ def main():
     actionlint = shutil.which('actionlint')
     if not actionlint:
         raise SystemExit('actionlint is required. Install it (macOS: brew install actionlint) and rerun.')
-    run([actionlint, '-shellcheck=', '.github/workflows/build.yml'])
+    run([actionlint, '-shellcheck='])
     run([sys.executable, 'scripts/check_privacy.py', '--tree', '.'])
     run([sys.executable, '-m', 'pytest'])
     env = dict(os.environ, CITA_BROWSER_TESTS='1', CITA_TEST_ENGINE='camoufox', PYTHONUNBUFFERED='1')
@@ -54,7 +54,7 @@ def main():
     if platform.system() == 'Darwin':
         run(base + ['tests/test_local_assist_browser.py', '-k', 'locked_desktop'], env)
     run(base + ['tests/test_local_assist_browser.py', 'tests/test_contact_fields_browser.py',
-                'tests/test_procedure_groups_browser.py', 'tests/test_regreso_browser.py', '-k', 'not locked_desktop'], env)
+                'tests/test_procedure_groups_browser.py', 'tests/test_regreso_browser.py', 'tests/test_resource_capture_browser.py', '-k', 'not locked_desktop'], env)
     if args.bundle:
         run([sys.executable, 'scripts/build_desktop_app.py'])
         suffix = '.app' if platform.system() == 'Darwin' else ''

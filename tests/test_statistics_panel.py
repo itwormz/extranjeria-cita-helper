@@ -257,3 +257,19 @@ def test_automation_section_follows_availability_and_errors(tmp_path,qt_app):
     assert 'pointer' in [name for widget,name in panel._icon_bindings]
     assert 'file_text' in [name for widget,name in panel._icon_bindings]
     panel.close();panel.deleteLater();host.deleteLater()
+
+
+def test_transient_statistics_read_error_clears_after_successful_refresh(tmp_path,qt_app,monkeypatch,caplog):
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    read=panel.statistics.get
+    def unavailable(*args,**kwargs):raise OSError('temporary read failure')
+    monkeypatch.setattr(panel.statistics,'get',unavailable);panel.refresh()
+    assert panel.message.text()==host.t('Не удалось прочитать статистику профиля')
+    failures=[record for record in caplog.records if getattr(record,'event',None)=='profile_statistics_read_failed']
+    assert len(failures)==1 and failures[0].fields=={'component':'totals','error_type':'OSError'}
+    assert 'temporary read failure' not in caplog.text
+    monkeypatch.setattr(panel.statistics,'get',read);panel.refresh()
+    assert panel.message.text()==''
+    panel.deleteLater();host.deleteLater()

@@ -1,4 +1,6 @@
 """Per-profile observations and locally confirmed appointment achievements."""
+import logging
+from ..logging_utils import log_event
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,6 +15,8 @@ from .statistics import ProfileStatistics
 from .statistics_history import StatisticsHistory, MADRID, stamp
 from .achievements import AchievementStore
 from .achievement_exports import public_post, write_calendar, render_card, share_url, public_duration
+
+log=logging.getLogger(__name__)
 
 METRICS=(('checks','Проверок','search'),('active_seconds','Активный поиск','clock'),
     ('unique_offices','Разных офисов','pin'),('booking_screens','Экранов ситы','calendar'),
@@ -43,7 +47,7 @@ class FoodSticker(QWidget):
 
 class StatisticsPanel(QWidget):
     def __init__(self,host):
-        super().__init__();self.setObjectName("statisticsPanel");self.host=host;self.profiles=[];self.current_achievement=None;self._signature=None
+        super().__init__();self.setObjectName("statisticsPanel");self.host=host;self.profiles=[];self.current_achievement=None;self._signature=None;self._statistics_read_failure=None;self._statistics_read_message=None
         data=host.store.path.parent/'data';self.statistics=ProfileStatistics(data/'profile-statistics.json')
         self.achievements=AchievementStore(data/'achievements.json')
         self._text_bindings=[];self._icon_bindings=[];self._payment_buttons=[]
@@ -173,6 +177,14 @@ class StatisticsPanel(QWidget):
 
     def tr_text(self,text):return self.host.t(text)
 
+    def report_read_error(self,component,exc):
+        failure=(component,type(exc).__name__)
+        if failure!=self._statistics_read_failure:
+            log_event(log,logging.WARNING,'profile_statistics_read_failed',component=component,error_type=type(exc).__name__)
+        self._statistics_read_failure=failure
+        self._statistics_read_message=self.tr_text('Не удалось прочитать статистику профиля')
+        self.message.setText(self._statistics_read_message)
+
     def refresh(self):
         t=self.tr_text
         for widget,source in self._text_bindings:widget.setText(t(source))
@@ -201,9 +213,13 @@ class StatisticsPanel(QWidget):
         profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id))
         if not profile_id:self.achievement_button.hide();self.first_value.setText(t('Ещё не появлялись'));return
         try:
-            data=self.statistics.get(profile_id,period=self.period);records=self.achievements.list(profile_id)
-            self.history_panel.refresh(profile_id,self.period,baseline=bool(data.get('legacy_baseline')))
-        except (OSError,ValueError) as exc:self.message.setText(t('Не удалось прочитать статистику профиля'));return
+            component='totals';data=self.statistics.get(profile_id,period=self.period)
+            component='achievements';records=self.achievements.list(profile_id)
+            component='history';self.history_panel.refresh(profile_id,self.period,baseline=bool(data.get('legacy_baseline')))
+        except (OSError,ValueError) as exc:self.report_read_error(component,exc);return
+        if self._statistics_read_failure:
+            if self.message.text()==self._statistics_read_message:self.message.clear()
+            self._statistics_read_failure=None;self._statistics_read_message=None
         for key,widget in self.stat_values.items():
             if key=='days':widget.setText('—' if not data.get('days') and any(data.get(k) for k in ('checks','active_seconds','offices_seen','booking_screens')) else str(data.get('days',0)))
             elif key in {'actions_performed','pages_processed'}:
@@ -251,7 +267,7 @@ class StatisticsPanel(QWidget):
 
     def show_achievement(self):
         try:records=self.achievements.list(self.profile_combo.currentData())
-        except (OSError,ValueError):self.message.setText(self.tr_text('Не удалось прочитать статистику профиля'));return
+        except (OSError,ValueError) as exc:self.report_read_error('achievements',exc);return
         if records:self.current_achievement=records[-1];self.stack.setCurrentWidget(self.achievement_page)
         else:self.current_achievement=None;self.stack.setCurrentWidget(self.empty_page)
         self.refresh()

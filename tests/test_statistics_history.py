@@ -404,3 +404,36 @@ def test_compact_legend_opens_complete_explanation(qt_app):
     text=' '.join(label.text() for label in panel.legend_popup.findChildren(QLabel))
     assert 'Ручное управление' in text and 'Новая сессия' in text and 'HTTP 429' in text
     panel.legend_popup.close();panel.deleteLater()
+
+
+def test_office_hover_preview_closes_after_leaving_button_and_preview(qt_app,monkeypatch):
+    from app.desktop.statistics_history import OfficeCountButton
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QCursor
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QApplication
+    button=OfficeCountButton([dict(time='2026-10-26T10:00:00+00:00')],lambda text:text)
+    button.show();qt_app.processEvents()
+    button.open_popup(interactive=False)
+    assert button.popup.isVisible()
+    assert QApplication.activePopupWidget() is not button.popup
+    inside=button.popup.mapToGlobal(button.popup.rect().center())
+    monkeypatch.setattr(QCursor,'pos',lambda:inside)
+    QTest.qWait(220);assert button.popup.isVisible()
+    monkeypatch.setattr(QCursor,'pos',lambda:QPoint(-1000,-1000))
+    QTest.qWait(300);assert not button.popup.isVisible()
+    button.close();button.deleteLater()
+
+
+def test_office_preview_keyboard_activation_and_escape(qt_app):
+    from app.desktop.statistics_history import OfficeCountButton
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    button=OfficeCountButton([dict(time='2026-10-26T10:00:00+00:00')],lambda text:text)
+    button.show();button.setFocus();qt_app.processEvents()
+    assert not button.popup_interactive
+    QTest.keyClick(button,Qt.Key.Key_Space);qt_app.processEvents()
+    assert button.popup_interactive and button.popup.isVisible()
+    QTest.keyClick(button.popup,Qt.Key.Key_Escape);qt_app.processEvents()
+    assert not button.popup.isVisible()
+    button.close();button.deleteLater()

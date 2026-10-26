@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from PySide6.QtCore import Qt, QDate, QRectF, Signal, QLocale, QPointF, QEvent, QTimer
-from PySide6.QtGui import QColor, QPainter, QBrush, QTextCharFormat, QIcon, QTransform, QPen, QPolygonF
+from PySide6.QtGui import QCursor, QColor, QPainter, QBrush, QTextCharFormat, QIcon, QTransform, QPen, QPolygonF
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QDateEdit, QStackedWidget, QFrame, QListWidget, QDialog, QCalendarWidget, QToolButton, QGridLayout, QAbstractSpinBox, QToolTip)
 from .theme import theme_colors
@@ -440,16 +440,36 @@ class OfficeCountButton(QPushButton):
         source='Предложен 1 раз' if count==1 else 'Предложен {count} раза' if 2<=count%10<=4 and not 12<=count%100<=14 else 'Предложен {count} раз'
         super().__init__(t(source).format(count=count),parent)
         self.setObjectName('officeCount');self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.popup=None;self.preview_labels=[];self.full_list=None;self.clicked.connect(self.open_popup)
+        self.popup=None;self.preview_labels=[];self.full_list=None;self.popup_interactive=False;self.hover_suppressed=False
+        self.hover_timer=QTimer(self);self.hover_timer.setInterval(120);self.hover_timer.timeout.connect(self.check_hover)
+        self.clicked.connect(lambda checked=False:self.open_popup(interactive=True))
     def enterEvent(self,event):
-        self.open_popup();super().enterEvent(event)
-    def focusInEvent(self,event):
-        super().focusInEvent(event)
-        if event.reason() in (Qt.FocusReason.TabFocusReason,Qt.FocusReason.BacktabFocusReason):self.open_popup()
-    def open_popup(self):
-        if self.popup and self.popup.isVisible():return
+        if not self.hover_suppressed and self.rect().contains(self.mapFromGlobal(QCursor.pos())):self.open_popup(interactive=False)
+        super().enterEvent(event)
+    def eventFilter(self,watched,event):
+        if watched is self.popup:
+            if event.type()==QEvent.Type.KeyPress and event.key()==Qt.Key.Key_Escape:
+                self.popup.hide();return True
+            if event.type()==QEvent.Type.Hide and self.popup_interactive:
+                self.hover_suppressed=True;self.hover_timer.start()
+        return super().eventFilter(watched,event)
+    def check_hover(self):
+        if self.hover_suppressed:
+            if not self.rect().contains(self.mapFromGlobal(QCursor.pos())):
+                self.hover_suppressed=False;self.hover_timer.stop()
+            return
+        if not self.popup or not self.popup.isVisible():self.hover_timer.stop();return
+        point=QCursor.pos()
+        if not self.rect().contains(self.mapFromGlobal(point)) and not self.popup.rect().contains(self.popup.mapFromGlobal(point)):
+            self.popup.hide();self.hover_timer.stop()
+    def open_popup(self,interactive=True):
+        if self.popup and self.popup.isVisible():
+            if self.popup_interactive or not interactive:return
+            self.popup.hide()
         if self.popup:self.popup.deleteLater()
-        self.popup=QFrame(self,Qt.WindowType.Popup);self.popup.setObjectName('officePopup');layout=QVBoxLayout(self.popup)
+        self.hover_timer.stop();self.popup_interactive=interactive;self.hover_suppressed=False
+        self.popup=QFrame(self,Qt.WindowType.Popup if interactive else Qt.WindowType.ToolTip);self.popup.setObjectName('officePopup');self.popup.installEventFilter(self);layout=QVBoxLayout(self.popup)
+        if not interactive:self.popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         layout.addWidget(QLabel(self.t('Появления офиса')+''));self.preview_labels=[]
         for row in self.appearances[:4]:
             label=QLabel(stamp(row['time']));self.preview_labels.append(label);layout.addWidget(label)
@@ -458,7 +478,9 @@ class OfficeCountButton(QPushButton):
         position.setX(max(bounds.left(),min(position.x(),bounds.right()-self.popup.width())))
         position.setY(max(bounds.top(),min(position.y(),bounds.bottom()-self.popup.height())))
         self.popup.move(position);self.popup.show()
+        if not interactive:self.hover_timer.start()
     def show_all(self):
+        self.hover_timer.stop()
         if self.popup:self.popup.hide()
         self.full_dialog=QDialog(self.window());self.full_dialog.setWindowTitle(self.t('Все появления')+'');layout=QVBoxLayout(self.full_dialog)
         self.full_list=QListWidget();self.full_list.addItems([stamp(row['time']) for row in self.appearances]);layout.addWidget(self.full_list)
@@ -572,6 +594,7 @@ class StatisticsHistory(QWidget):
             last=QLabel(stamp(row['last_seen']) if row['last_seen'] else t('Дата неизвестна'));last.setProperty('muted',True);words.addWidget(last);line.addLayout(words,1)
             button=OfficeCountButton(row['appearances'],t) if row['appearances'] else QPushButton(t('Нет истории появлений'))
             if not row['appearances']:button.setEnabled(False)
+            if row['appearances'] and hasattr(self.host,'control_icon'):button.setIcon(self.host.control_icon('clock'))
             line.addWidget(button);self.offices_layout.addWidget(frame)
         if not self.office_rows:
             label=QLabel(t('Старые итоги сохранены. Подробная история отсутствует.') if baseline else t('Офисы пока не появлялись'));label.setWordWrap(True);self.offices_layout.addWidget(label)

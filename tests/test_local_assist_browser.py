@@ -151,7 +151,7 @@ def test_applicant_warning_reloads_without_identity_until_warning_disappears(fil
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
             await page.route('**/*',respond)
             r=runner_for(page,ctx)
-            r.task=SimpleNamespace(id="test",document_number="X0000000T",full_name="Test Applicant",nationality="España",applicant_fill_mode=fill_mode)
+            r.task=SimpleNamespace(id="test",document_number="X0000000T",full_name="Test Applicant",nationality="España",applicant_fill_mode=fill_mode,no_slots_mode='reload')
             effort=[]
             r.control.set_statistics_sink(lambda kind,doc,**kwargs:effort.append(kind),lambda seconds:None)
             r.policy.next_delay=lambda **kwargs:47
@@ -467,6 +467,7 @@ def test_no_slots_reload_post_recognizes_next_screen(next_kind, render_delay_ms)
                 await route.fulfill(body=body, content_type='text/html; charset=utf-8')
             await page.route('**/*', respond)
             r = runner_for(page, ctx)
+            r.task.no_slots_mode = 'reload'
             await page.goto(menu)
             if render_delay_ms:
                 await page.evaluate("""delay => {
@@ -523,7 +524,7 @@ def test_no_slots_reload_returns_province_at_same_url_and_logs_restart():
                     searches+=1
                     body='<p>En este momento no hay citas disponibles</p>' if searches==1 else '<select id="form"><option>Barcelona</option></select>'
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
-            await page.route('**/*',respond);r=runner_for(page,ctx)
+            await page.route('**/*',respond);r=runner_for(page,ctx);r.task.no_slots_mode='reload'
             await page.goto(BASE+'acValidarEntrada')
             # A renderer may still be loading on the first engine tick.
             # Stop driving once the request was sent, then await its document.
@@ -775,9 +776,10 @@ def test_http_500_after_no_slots_exit_loads_entry_without_replaying_post():
 
 
 @pytest.mark.parametrize('readonly,delay', [(False,0),(True,200)])
-def test_copy_from_auth_continues_and_uses_fresh_identity(readonly,delay):
+@pytest.mark.parametrize('render_delay_ms', [0, 600])
+def test_copy_from_auth_continues_and_uses_fresh_identity(readonly,delay,render_delay_ms):
     async def scenario():
-        from playwright.async_api import async_playwright
+        from playwright.async_api import async_playwright, expect
         from urllib.parse import parse_qs
         async with async_playwright() as pw:
             browser=await launch_browser(pw);ctx=await browser.new_context();page=await ctx.new_page()
@@ -800,7 +802,14 @@ def test_copy_from_auth_continues_and_uses_fresh_identity(readonly,delay):
             await page.route('**/*',respond);r=runner_for(page,ctx)
             r.task=SimpleNamespace(id='test',applicant_fill_mode='copy',document_number='DO NOT USE',full_name='DO NOT USE',nationality='España')
             for _ in range(2):
-                await page.goto(BASE+'acEntrada');await r.step()
+                await page.goto(BASE+'acEntrada')
+                if render_delay_ms:
+                    await page.evaluate("delay => {document.body.style.visibility='hidden'; setTimeout(()=>document.body.style.visibility='',delay)}",render_delay_ms)
+                # Navigation load does not imply the fixture is rendered.
+                # One runner tick may correctly yield while the body is hidden.
+                await expect(page.locator('#txtIdCitado')).to_be_visible(timeout=10_000)
+                await expect(page.locator('#btnCopiar')).to_be_visible(timeout=10_000)
+                await r.step()
                 assert (await r.observe()).kind=='request_menu'
                 assert r.manual_signature is None
             assert posts==[{'document':['X0000000T'],'name':['AUTH ONE'],'nationality':['ES']},
