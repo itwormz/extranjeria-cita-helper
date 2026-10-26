@@ -136,6 +136,25 @@ and workflow access controls remain necessary.
 
 ## Security checks before a release
 
+CodeQL uses the explicit `.github/workflows/codeql.yml` workflow (Advanced setup),
+with separate Python and GitHub Actions analyses on pull requests to `main`, pushes
+to `main`, a weekly schedule and manual runs. Pull requests use `pull_request`,
+including Dependabot; never use `pull_request_target` to analyze untrusted code.
+The job only reads repository content and uploads code-scanning results. It does
+not install application dependencies, access application secrets or publish packages.
+Both `Analyze (python)` and `Analyze (actions)` must finish successfully before
+merging; a neutral "configurations not found" result is not a successful scan.
+
+Disable Default setup only when activating this explicit workflow, and verify that
+both `/language:python` and `/language:actions` results appear on `main` and the PR.
+Do not enable both setup modes: Default setup blocks advanced CodeQL uploads.
+
+Dependabot temporarily excludes Playwright versions `>=1.63`, matching Camoufox's
+current compatibility ceiling. Revisit this exclusion when upgrading Camoufox;
+do not force an unsupported driver/browser combination. This is not an exemption
+from reviewing dependency vulnerability alerts or testing browser flows.
+
+
 Review open CodeQL, Dependabot and secret-scanning alerts before tagging. Update manifest constraints and `uv.lock` together, then run the local preflight and native package verification with the frozen updated environment. A dependency audit is a point-in-time check; a green package build does not replace it. GitHub closes addressed findings only after it analyzes the pushed commit. Never dismiss an alert just to make the release gate green.
 
 Windows CI validates the .NET 8 SDK and runtime already installed in the pinned runner family before installing WiX 4.0.6. Missing prerequisites fail explicitly; the workflow does not download another SDK through `aka.ms`. This avoids an unnecessary dependency on SDK download redirects while preserving the native MSI build and verification steps.
