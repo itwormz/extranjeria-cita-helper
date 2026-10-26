@@ -107,9 +107,13 @@ Tag builds produce the Windows portable ZIP alongside MSI. Manual workflow runs
 include it by default and can disable it through the portable input.
 
 For changes that affect builds, use this release order: local preflight → push a
-branch and open a pull request → wait for the native matrix to pass → merge →
-create the release tag. Pull-request builds never publish a release. Alternatively,
-run the workflow manually without a tag to validate packages before tagging.
+branch and open a pull request → wait for Tests and both CodeQL analyses → run
+the native matrix manually on that branch when build/runtime changes need it →
+merge → create the release tag. PRs run the lightweight Linux test suite without
+downloading Camoufox or packaging four platforms. Full native builds run only
+manually or for release tags; only tag builds publish a release. New manual runs
+on the same ref cancel older package runs; release tag builds are never cancelled
+by a newer run. PR test and CodeQL runs supersede older runs for the same PR.
 
 ## Signed build provenance
 
