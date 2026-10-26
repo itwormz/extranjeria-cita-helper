@@ -107,9 +107,13 @@ Tag builds produce the Windows portable ZIP alongside MSI. Manual workflow runs
 include it by default and can disable it through the portable input.
 
 For changes that affect builds, use this release order: local preflight → push a
-branch and open a pull request → wait for the native matrix to pass → merge →
-create the release tag. Pull-request builds never publish a release. Alternatively,
-run the workflow manually without a tag to validate packages before tagging.
+branch and open a pull request → wait for Tests and both CodeQL analyses → run
+the native matrix manually on that branch when build/runtime changes need it →
+merge → create the release tag. PRs run the lightweight Linux test suite without
+downloading Camoufox or packaging four platforms. Full native builds run only
+manually or for release tags; only tag builds publish a release. New manual runs
+on the same ref cancel older package runs; release tag builds are never cancelled
+by a newer run. PR test and CodeQL runs supersede older runs for the same PR.
 
 ## Signed build provenance
 
@@ -135,6 +139,25 @@ provenance checks. A provenance signature does not approve the source code; bran
 and workflow access controls remain necessary.
 
 ## Security checks before a release
+
+CodeQL uses the explicit `.github/workflows/codeql.yml` workflow (Advanced setup),
+with separate Python and GitHub Actions analyses on pull requests to `main`, pushes
+to `main`, a weekly schedule and manual runs. Pull requests use `pull_request`,
+including Dependabot; never use `pull_request_target` to analyze untrusted code.
+The job only reads repository content and uploads code-scanning results. It does
+not install application dependencies, access application secrets or publish packages.
+Both `Analyze (python)` and `Analyze (actions)` must finish successfully before
+merging; a neutral "configurations not found" result is not a successful scan.
+
+Disable Default setup only when activating this explicit workflow, and verify that
+both `/language:python` and `/language:actions` results appear on `main` and the PR.
+Do not enable both setup modes: Default setup blocks advanced CodeQL uploads.
+
+Dependabot temporarily excludes Playwright versions `>=1.63`, matching Camoufox's
+current compatibility ceiling. Revisit this exclusion when upgrading Camoufox;
+do not force an unsupported driver/browser combination. This is not an exemption
+from reviewing dependency vulnerability alerts or testing browser flows.
+
 
 Review open CodeQL, Dependabot and secret-scanning alerts before tagging. Update manifest constraints and `uv.lock` together, then run the local preflight and native package verification with the frozen updated environment. A dependency audit is a point-in-time check; a green package build does not replace it. GitHub closes addressed findings only after it analyzes the pushed commit. Never dismiss an alert just to make the release gate green.
 
