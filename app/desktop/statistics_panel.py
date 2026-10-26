@@ -18,7 +18,7 @@ METRICS=(('checks','Проверок','search'),('active_seconds','Активн�
     ('unique_offices','Разных офисов','pin'),('booking_screens','Экранов ситы','calendar'),
     ('offices_seen','Появлений офисов','office'),('server_errors','Ошибок сервера','server'),
     ('rate_limited','HTTP 429','clock'),('blocked','Ограничения доступа','shield'),
-    ('flow_passes','Повторные проходы','restart'),('actions_performed','Действий выполнено','activity'),('pages_processed','Страниц обработано','copy'),('first_available_seconds','До первой доступности','clock'))
+    ('flow_passes','Повторные проходы','restart'),('actions_performed','Действий выполнено','pointer'),('pages_processed','Страниц обработано','file_text'),('first_available_seconds','До первой доступности','clock'))
 
 
 def duration(seconds,t):
@@ -129,17 +129,19 @@ class StatisticsPanel(QWidget):
             frame=QFrame();frame.setObjectName('statisticsOverview');cell=QVBoxLayout(frame);cell.setContentsMargins(16,14,16,14);cell.setSpacing(8);number=QLabel('—');number.setObjectName('overviewValue');cell.addWidget(number);cell.addWidget(self.section_heading(title,icon));overview.addWidget(frame,1);values[key]=number
         layout.addLayout(overview)
         effort=QHBoxLayout();effort.setSpacing(32)
-        for key,title,icon in [('actions_performed','Действий выполнено','activity'),('pages_processed','Страниц обработано','copy')]:
+        for key,title,icon in [('actions_performed','Действий выполнено','pointer'),('pages_processed','Страниц обработано','file_text')]:
             frame=QFrame();frame.setObjectName('statisticRow');row=QHBoxLayout(frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8)
             row.addWidget(self.icon_label(icon));row.addWidget(self.text(title),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;effort.addWidget(frame,1)
-        layout.addLayout(effort);groups=QHBoxLayout();groups.setSpacing(32)
+        groups=QHBoxLayout();groups.setSpacing(32)
         for title,icon,keys in [('Доступность','eye',['offices_seen','unique_offices','booking_screens','successes']),('Ошибки и восстановление','wrench',['server_errors','rate_limited','blocked','flow_passes'])]:
             frame=QWidget();column=QVBoxLayout(frame);column.setContentsMargins(0,0,0,0);column.setSpacing(8);column.addWidget(self.section_heading(title,icon))
             for key in keys:
                 _,caption,glyph=next((m for m in METRICS if m[0]==key),('successes','Полученные ситы','calendar'))
                 row_frame=QFrame();row_frame.setObjectName('statisticRow');row=QHBoxLayout(row_frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8);row.addWidget(self.icon_label(glyph));row.addWidget(self.text({'booking_screens':'Появления выбора даты','successes':'Получено сит','rate_limited':'Ограничений HTTP 429'}.get(key,caption)),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;column.addWidget(row_frame)
             groups.addWidget(frame,1)
-        layout.addLayout(groups);return values
+        layout.addLayout(groups)
+        layout.addWidget(self.section_heading('Автоматизация','settings'))
+        layout.addLayout(effort);return values
 
     def metric_grid(self,layout,include_first):
         grid=QGridLayout();grid.setHorizontalSpacing(24);grid.setVerticalSpacing(8);grid.setColumnStretch(0,1);grid.setColumnStretch(1,1);values={}

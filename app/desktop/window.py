@@ -1310,6 +1310,8 @@ class DesktopWindow(QMainWindow):
             'check':'<path d="m4 12 5 5L20 5"/>',
             'clipboard':'<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="2" width="6" height="5" rx="1"/>',
             'external':'<path d="M14 3h7v7M21 3L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>',
+            'pointer':'<path d="M5 3l14 10-7 1-3 7z"/><path d="M12 14l4 7"/>',
+            'file_text':'<path d="M14 2H5v20h14V7z"/><path d="M14 2v5h5M8 12h8M8 16h6"/>',
             'copy':'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
             'download':'<path d="M12 2v13m-5-5 5 5 5-5M3 17v4h18v-4"/>',
             'credit_card':'<rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 9h20M6 15h5"/>',

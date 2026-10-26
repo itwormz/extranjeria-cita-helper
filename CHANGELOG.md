@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2.dev3 — Local development
+
+- Group automated actions and processed pages under “Automation” below availability and error statistics, matching the approved compact layout with distinct pointer/document icons.
+
 ## 0.2.2.dev2 — Local development
 
 - Track confirmed bot actions and unique recognized pages locally, independently of diagnostics, with today/all totals and selected-period counts. Focus, individual keystrokes, repeated recognition, manual work and failed operations are excluded.

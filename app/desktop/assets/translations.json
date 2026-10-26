@@ -925,7 +925,8 @@
     "Действий выполнено": "Actions performed",
     "Страниц обработано": "Pages processed",
     "Учёт с {time}. Ранние действия и страницы не восстанавливаются.": "Tracked since {time}. Earlier actions and pages are not reconstructed.",
-    "Ранее этот показатель не сохранялся.": "This metric was not recorded previously."
+    "Ранее этот показатель не сохранялся.": "This metric was not recorded previously.",
+    "Автоматизация": "Automation"
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1853,6 +1854,7 @@
     "Действий выполнено": "Acciones realizadas",
     "Страниц обработано": "Páginas procesadas",
     "Учёт с {time}. Ранние действия и страницы не восстанавливаются.": "Registro desde {time}. No se reconstruyen acciones ni páginas anteriores.",
-    "Ранее этот показатель не сохранялся.": "Este dato no se registraba anteriormente."
+    "Ранее этот показатель не сохранялся.": "Este dato no se registraba anteriormente.",
+    "Автоматизация": "Automatización"
   }
 }

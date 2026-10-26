@@ -241,3 +241,19 @@ def test_effort_values_show_unknown_then_persist_today_and_all(tmp_path,qt_app):
     assert panel.stat_values['actions_performed'].text()=='1'
     assert panel.stat_values['pages_processed'].text()=='1'
     panel.deleteLater();host.deleteLater()
+
+
+def test_automation_section_follows_availability_and_errors(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    from PySide6.QtWidgets import QLabel
+    profiles=[SimpleNamespace(id='one',label='One',province='Test')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    panel.resize(1050,1000);panel.show();qt_app.processEvents()
+    heading=next(label for label in panel.findChildren(QLabel) if label.text()=='Automation')
+    y=lambda widget:widget.mapTo(panel,widget.rect().center()).y()
+    assert y(heading)>y(panel.stat_values['blocked'])
+    assert y(panel.stat_values['actions_performed'])>y(heading)
+    assert y(panel.stat_values['pages_processed'])==y(panel.stat_values['actions_performed'])
+    assert 'pointer' in [name for widget,name in panel._icon_bindings]
+    assert 'file_text' in [name for widget,name in panel._icon_bindings]
+    panel.close();panel.deleteLater();host.deleteLater()
