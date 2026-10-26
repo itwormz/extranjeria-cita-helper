@@ -114,3 +114,30 @@ def test_active_time_batches_and_flushes_on_pause():
     control.statistics_tick(10.5)
     control.flush_statistics()
     assert writes == [4.5]
+
+
+def test_effort_counters_deduplicate_documents_and_keep_daily_totals(tmp_path):
+    from app.desktop.statistics import ProfileStatistics
+    store=ProfileStatistics(tmp_path/'stats.json')
+    for _ in range(2):
+        store.event('p','processed_page','doc',session_id='s',at='2026-10-25T10:00:00+00:00')
+    store.event('p','automation_action','a1',session_id='s',at='2026-10-25T10:00:00+00:00')
+    store.event('p','automation_action','a2',session_id='s',at='2026-10-26T10:00:00+00:00')
+    reopened=ProfileStatistics(tmp_path/'stats.json')
+    assert reopened.get('p')['pages_processed']==1
+    assert reopened.get('p')['actions_performed']==2
+    assert reopened.get('p','today',at='2026-10-26T12:00:00+00:00')['actions_performed']==1
+    assert reopened.get('other')['actions_performed']==0
+
+
+def test_legacy_effort_remains_unknown_until_tracking_begins(tmp_path):
+    import json
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.achievements import snapshot
+    path=tmp_path/'stats.json';path.write_text(json.dumps({'p':{'checks':100}}))
+    store=ProfileStatistics(path)
+    assert snapshot(store.get('p'))['actions_performed'] is None
+    store.event('p','effort_started',counted=False)
+    result=store.get('p')
+    assert result['checks']==100 and result['actions_performed']==0
+    assert snapshot(result)['actions_performed']==0

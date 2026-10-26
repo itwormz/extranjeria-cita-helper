@@ -35,11 +35,14 @@ def test_regreso_applicant_submits_selected_document_without_nationality(kind,nu
                     await route.fulfill(body=html,content_type='text/html; charset=utf-8')
                 await page.route('**/*',respond)
                 r=runner_for(page,ctx);r.checker.settings=replace(r.checker.settings,navigation_timeout_seconds=1)
+                effort=[]
+                r.control.set_statistics_sink(lambda event,doc,**kwargs:effort.append(event),lambda seconds:None)
                 r.task=SimpleNamespace(id='regreso_test',procedure=REGRESO,document_type=kind,document_number=number,full_name='ALEX EXAMPLE',nationality='',applicant_fill_mode=mode)
                 await page.goto(BASE+'acEntrada');await page.locator('#btnEnviar').wait_for()
                 assert (await r.observe()).kind=='applicant'
                 await r.step()
                 assert submitted==[{'rdbTipoDoc':[{'NIE':'N.I.E.','DNI':'D.N.I.','PASSPORT':'PASAPORTE'}[kind]],'txtIdCitado':[number],'txtDesCitado':['AUTH EXAMPLE' if mode=='copy' else 'ALEX EXAMPLE']}]
+                assert effort.count('automation_action')==(2 if mode=='copy' else 3+(kind!='NIE'))
                 assert (await r.observe()).kind=='request_menu'
             finally:await browser.close()
     asyncio.run(scenario())

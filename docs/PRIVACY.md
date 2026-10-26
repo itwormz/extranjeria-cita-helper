@@ -80,3 +80,5 @@ The repository contains application code, synthetic tests, public dictionaries,
 build scripts and documentation. Personal profiles, credentials, certificates,
 browser profiles, captures, logs and build output are excluded. Build scripts
 bundle explicit public resources rather than the project directory.
+
+Automated effort counters retain only typed completion events and hashed document/event identities: unique recognized pages and completed activations, option selections, field fills or reloads. They do not store selectors, field contents or individual keystrokes, and do not count manual work. A local tracking-start timestamp distinguishes newly collected metrics from unmeasured historical activity.

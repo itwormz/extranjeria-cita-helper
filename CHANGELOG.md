@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2.dev2 — Local development
+
+- Track confirmed bot actions and unique recognized pages locally, independently of diagnostics, with today/all totals and selected-period counts. Focus, individual keystrokes, repeated recognition, manual work and failed operations are excluded.
+- Include the effort counters in achievement snapshots, posts and PNG cards. Historical snapshots without these measurements show unknown values; earlier totals are not reconstructed. Tracking start is available in the metric tooltip.
+
 ## 0.2.2.dev1 — Local development
 
 - Keep Cod. Oper. timeline periods through navigation until a normal availability result is observed; retain errors and observation gaps separately.

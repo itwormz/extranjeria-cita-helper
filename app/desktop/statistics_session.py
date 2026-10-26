@@ -24,6 +24,7 @@ class StatisticsSession:
                 'app_version': VERSION, 'os': platform.system(),
                 'architecture': platform.machine(),
             })
+            statistics.event(task.id,'effort_started',session_id=self.session_id,counted=False)
             control.set_check_counter(statistics.total(task.id), self.increment)
             control.set_statistics_sink(self.observe, self.add_active, add_active_at=self.add_active_at)
         except Exception:

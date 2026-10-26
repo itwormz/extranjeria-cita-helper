@@ -106,6 +106,8 @@ The Statistics tab keeps **Today / All time** counters separately for each profi
 
 Hover over the timeline to highlight a segment or event; click for its duration and counters. Drag across complete segments to select a range; **Select multiple** or ⌘/Ctrl-click combines selections. Unselected gaps are excluded and events are not counted twice. Drag empty space or Alt-drag to pan; trackpad gestures remain available.
 
+Actions performed and pages processed measure automated work: one completed activation, selection, field fill or reload counts as one action; a recognized document is counted once. Manual actions and repeated recognition are excluded. These counters start with the updated app and do not reconstruct earlier work.
+
 Statistics are stored in SQLite independently of page diagnostics and survive application restarts. Existing totals migrate automatically with an unchanged original and a backup; undated old totals do not become invented daily history. No statistics are uploaded automatically. A no-appointments page with Cod. Oper. is an observed state, not proof of a document-specific ban.
 
 History initially shows all observed days; **Period** selects a date range. Known dates and durations remain separate: the old elapsed time to first availability is not active search time. **≥** marks a confirmed minimum when history is incomplete.

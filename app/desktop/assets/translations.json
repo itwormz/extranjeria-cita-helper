@@ -921,7 +921,11 @@
     "Сит нет на форме заявителя": "No appointments on the applicant form",
     "Подождать и обновить форму без ввода данных": "Wait and reload the form without entering data",
     "Обновить форму без ввода данных": "Reload the form without entering data",
-    "Обновляем форму без ввода данных": "Reloading the form without entering data"
+    "Обновляем форму без ввода данных": "Reloading the form without entering data",
+    "Действий выполнено": "Actions performed",
+    "Страниц обработано": "Pages processed",
+    "Учёт с {time}. Ранние действия и страницы не восстанавливаются.": "Tracked since {time}. Earlier actions and pages are not reconstructed.",
+    "Ранее этот показатель не сохранялся.": "This metric was not recorded previously."
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1845,6 +1849,10 @@
     "Сит нет на форме заявителя": "Sin citas en el formulario de solicitante",
     "Подождать и обновить форму без ввода данных": "Esperar y recargar el formulario sin introducir datos",
     "Обновить форму без ввода данных": "Recargar el formulario sin introducir datos",
-    "Обновляем форму без ввода данных": "Recargando el formulario sin introducir datos"
+    "Обновляем форму без ввода данных": "Recargando el formulario sin introducir datos",
+    "Действий выполнено": "Acciones realizadas",
+    "Страниц обработано": "Páginas procesadas",
+    "Учёт с {time}. Ранние действия и страницы не восстанавливаются.": "Registro desde {time}. No se reconstruyen acciones ni páginas anteriores.",
+    "Ранее этот показатель не сохранялся.": "Este dato no se registraba anteriormente."
   }
 }

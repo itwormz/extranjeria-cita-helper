@@ -12,8 +12,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 COUNTERS = ('checks', 'offices_seen', 'server_errors', 'rate_limited', 'blocked',
-            'booking_screens', 'expired_sessions', 'flow_passes')
-COUNTER_KIND = {'check': 'checks', 'office': 'offices_seen', 'booking': 'booking_screens',
+            'booking_screens', 'expired_sessions', 'flow_passes', 'actions_performed', 'pages_processed')
+COUNTER_KIND = {'automation_action':'actions_performed','processed_page':'pages_processed','check': 'checks', 'office': 'offices_seen', 'booking': 'booking_screens',
                 'pass': 'flow_passes', 'expired': 'expired_sessions',
                 'server_error': 'server_errors', 'rate_limited': 'rate_limited', 'blocked': 'blocked'}
 MADRID = ZoneInfo('Europe/Madrid')
@@ -24,7 +24,7 @@ MODES = {'working','waiting','recovery','manual','paused','finished','booking_ha
 EVENTS = set(COUNTER_KIND) | STAGES | {'start','finish','action','action_completed','action_interrupted',
     'browser_session_started','interaction_retry','flow_start','flow_restart','wait','recovery','recovery_button',
     'manual_required','office_selected','office_submitted','handoff','fatal_error',
-    'pause','resume','http_response','network_error','timeout'}
+    'pause','resume','http_response','network_error','timeout','effort_started'}
 
 
 def _empty():
@@ -301,6 +301,8 @@ class ProfileStatistics:
             facts = db.execute(f"SELECT {counters},MIN(time) AS started,MIN(CASE WHEN kind='office' AND offices!='[]' THEN time END) AS office,MIN(CASE WHEN kind='booking' THEN time END) AS booking FROM events WHERE {where}", args).fetchone()
             for counter in COUNTERS:
                 row[counter] += facts[counter] or 0
+            effort=db.execute("SELECT MIN(time) FROM events WHERE profile=? AND kind IN ('effort_started','automation_action','processed_page')",(profile_id,)).fetchone()[0]
+            row['effort_started_at']=effort
             first_office, first_booking = facts['office'], facts['booking']
             if lower is None and upper is None:
                 activity=db.execute('SELECT SUM(seconds) AS seconds,MIN(start) AS started FROM active WHERE profile=?',(profile_id,)).fetchone()
@@ -364,7 +366,7 @@ class ProfileStatistics:
         if available and (not row['first_available_at'] or available != row['first_available_at']):
             row['first_available_seconds'] = max(0, (_time(available)-_time(row['started_at'])).total_seconds())
         return {k: row[k] for k in (*COUNTERS, 'active_seconds', 'started_at', 'first_available_seconds')} | dict(
-            first_available_at=available, unique_offices=len(offices), days=days,
+            first_available_at=available, unique_offices=len(offices), days=days, effort_started_at=row['effort_started_at'],
             legacy_first_available_at=provenance.get('legacy_first_available_at'),
             legacy_first_available_elapsed_seconds=provenance.get('legacy_first_available_elapsed_seconds'),
             legacy_unknown_fields=[('unique_offices' if key == '_offices' else key) for key in

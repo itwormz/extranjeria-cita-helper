@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from ..locking import locked_file
 
-COUNT_KEYS = ('checks', 'offices_seen', 'unique_offices', 'server_errors', 'rate_limited', 'blocked', 'booking_screens', 'flow_passes')
+COUNT_KEYS = ('checks', 'offices_seen', 'unique_offices', 'server_errors', 'rate_limited', 'blocked', 'booking_screens', 'flow_passes', 'actions_performed', 'pages_processed')
 STAT_KEYS = COUNT_KEYS + ('active_seconds', 'started_at', 'first_available_at', 'first_available_seconds')
 APPOINTMENT_KEYS = ('date', 'time', 'office', 'address', 'confirmation', 'timezone')
 
@@ -18,10 +18,11 @@ def snapshot(statistics):
     result = {}
     for key in COUNT_KEYS + ('active_seconds', 'first_available_seconds'):
         value = statistics.get(key)
-        if key == 'first_available_seconds' and value is None:
+        if key in {'first_available_seconds','actions_performed','pages_processed'} and value is None:
             result[key] = None
         else:
-            result[key] = value if type(value) in (int, float) and math.isfinite(value) and value >= 0 else 0
+            if key in {'actions_performed','pages_processed'} and 'effort_started_at' in statistics and not statistics['effort_started_at']:value=None
+            result[key] = value if type(value) in (int, float) and math.isfinite(value) and value >= 0 else (None if key in {'actions_performed','pages_processed'} else 0)
     for key in ('started_at', 'first_available_at'):
         value = statistics.get(key)
         try:

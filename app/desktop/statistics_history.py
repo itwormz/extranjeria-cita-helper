@@ -630,7 +630,7 @@ class StatisticsHistory(QWidget):
             metrics.append(('С наблюдениями',observed_duration(summary['observed_seconds'],t)))
             if summary['gap_seconds']:metrics.append(('Без наблюдений',observed_duration(summary['gap_seconds'],t)))
             notes.append(t('Промежутки между выбранными участками не включены. События учитываются один раз.'))
-        counter_names={'checks':'Проверок сит','flow_passes':'Проходов с начала','offices_seen':'Появлений офисов','booking_screens':'Появлений выбора даты','server_errors':'Ошибок сервера','rate_limited':'Ограничений HTTP 429','expired_sessions':'Истекших сессий','blocked':'Ограничений доступа','browser_resets':'Сбросов браузера','unknown_errors':'Неизвестных ошибок','fatal_errors':'Остановок с ошибкой'}
+        counter_names={'actions_performed':'Действий выполнено','pages_processed':'Страниц обработано','checks':'Проверок сит','flow_passes':'Проходов с начала','offices_seen':'Появлений офисов','booking_screens':'Появлений выбора даты','server_errors':'Ошибок сервера','rate_limited':'Ограничений HTTP 429','expired_sessions':'Истекших сессий','blocked':'Ограничений доступа','browser_resets':'Сбросов браузера','unknown_errors':'Неизвестных ошибок','fatal_errors':'Остановок с ошибкой'}
         metrics.extend((name,str(summary['counts'][key])) for key,name in counter_names.items() if summary['counts'][key])
         if summary['offices']:metrics.append(('Разных офисов',str(len(summary['offices']))))
         if kind=='gap' and not many:notes.append(t('Нет записей о состоянии сайта. Проверки и активное время неизвестны.'))

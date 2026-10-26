@@ -88,6 +88,7 @@ class AssistRunner:
         self.server_attempts = 0
         self.server_button_attempts = 0
         self.manual_signature = None
+        self._manual_auth_active = False
         self.action_phase = ""
         self.attempted = set()
         self.captures = {}
@@ -114,6 +115,7 @@ class AssistRunner:
                 page.on(event, handler)
                 self._listeners.append((event, handler))
         checker._assist_guard = self.action_guard
+        checker._assist_action = control.automation_action
 
     @property
     def timings(self):
@@ -225,7 +227,7 @@ class AssistRunner:
             await asyncio.sleep(0.5)
             self.control.publish(screen="Проверяем страницу", evidence="Чтение документа ещё не завершено",
                                  next_action="Дождаться распознавания нового состояния",
-                                 mode="manual" if self.manual_signature is not None else "waiting")
+                                 mode="manual" if self.manual_signature is not None or self._manual_auth_active else "waiting")
         notice = asyncio.create_task(slow_read())
         try:
             return await self._observe()
@@ -346,6 +348,10 @@ class AssistRunner:
         return result
 
     def publish(self, observed, *, next_action=None, mode="working", remaining=None):
+        if observed.kind=='auth_wait' and mode=='manual':
+            self._manual_auth_active=True
+        elif observed.kind not in {'auth_wait','loading','unknown'}:
+            self._manual_auth_active=False
         title, action = LABELS[observed.kind]
         if observed.certificate_validation_error:title="Ошибка проверки сертификата"
         if observed.kind == 'auth_wait':
@@ -377,6 +383,7 @@ class AssistRunner:
         self.control.observe_visit(document=observed.document, stage=observed.kind,
             page=urlunsplit((parts.scheme, parts.netloc, path, "", "")), title=title,
             recognition=observed.kind if observed.kind in {"unknown", "loading"} else "known", variant=observed.variant,
+            automated=mode!='manual' and not self._manual_auth_active,
             evidence=('no_appointments','operation_code') if observed.kind in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and observed.operation_code else ())
         if observed.kind not in {"loading", "auth_wait"}:
             self.previous_stage = observed.kind
@@ -576,6 +583,7 @@ class AssistRunner:
             self.record('recovery', observed, 'Проба после HTTP 429: один GET — профиль и cookies сохранены')
             self.last_action = self.pending_action = None
             await self.page.goto(target, wait_until='domcontentloaded')
+            self.control.automation_action()
             return
         if observed.kind == 'blocked':
             from .assist_runtime import AssistRestartRequested
@@ -665,16 +673,19 @@ class AssistRunner:
             return
         if self.last_method == "GET":
             await self.page.reload(wait_until="domcontentloaded")
+            self.control.automation_action()
         elif observed.kind != "blocked" and _flow_endpoint(self.page.url) == "acCitar" and (self.pending_action or self.last_action) == "request":
             self.pending_action = "request"
             self.pending_counted = False
             self.record("recovery", observed, "Повторить поиск сит после серверной ошибки")
             await self.page.reload(wait_until="domcontentloaded")
+            self.control.automation_action()
             self.pending_action = None
         elif observed.kind != "blocked" and (self.pending_action or self.last_action) != "contact" and (not _is_icp_page(self.page.url) or _flow_endpoint(self.page.url) in {"acInfo", "acEntrada", "procesarRespuestaClave"}):
             from .config import DEFAULT_START_URL
             self.record("recovery", observed, "Безопасный GET начальной страницы после сбоя авторизации")
             await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+            self.control.automation_action()
             self.pending_action = None
             self.last_action = None
         elif (_is_icp_page(self.page.url)
@@ -685,6 +696,7 @@ class AssistRunner:
             from .config import DEFAULT_START_URL
             self.record("recovery", observed, "Ошибка при завершении прохода — открыть начальную страницу через GET")
             await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+            self.control.automation_action()
             self.last_action = self.pending_action = None
         else:
             await self.hold(observed, "Неопределённый результат отправки. Проверить ответ вручную — повторная отправка отключена")
@@ -864,6 +876,7 @@ class AssistRunner:
             self.last_action = self.pending_action
             self.record("action", observed, "Обновить форму без ввода данных" if applicant_wait else "Обновить результат: повтор POST acCitar")
             await self.page.reload(wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
+            self.control.automation_action()
             self.pending_action = None
             self.record("action_completed", observed, "Обновление завершено — распознать ответ")
         elif kind == "post_contact_no_slots":
@@ -1034,6 +1047,7 @@ class AssistRunner:
         raise AssistRestartRequested('таймаут действия — новый проход', clear_profile=False, delay_seconds=self.timings.recovery_delay(self.timings.restart_seconds))
 
     def detach(self):
+        self.checker._assist_action=None
         from contextlib import suppress
         listeners, self._listeners = self._listeners, []
         if hasattr(self.page, "remove_listener"):

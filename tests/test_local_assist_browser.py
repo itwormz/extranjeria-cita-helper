@@ -152,6 +152,8 @@ def test_applicant_warning_reloads_without_identity_until_warning_disappears(fil
             await page.route('**/*',respond)
             r=runner_for(page,ctx)
             r.task=SimpleNamespace(id="test",document_number="X0000000T",full_name="Test Applicant",nationality="España",applicant_fill_mode=fill_mode)
+            effort=[]
+            r.control.set_statistics_sink(lambda kind,doc,**kwargs:effort.append(kind),lambda seconds:None)
             r.policy.next_delay=lambda **kwargs:47
             r.countdown=AsyncMock(return_value=True)
             await page.goto(BASE+'acEntrada')
@@ -162,10 +164,12 @@ def test_applicant_warning_reloads_without_identity_until_warning_disappears(fil
                 await r.step()
                 assert not applicant_data
                 assert r.control.snapshot()['checks']==0
+            assert effort.count('automation_action')==2
             assert [call.args[1] for call in r.countdown.await_args_list]==[47,47]
             assert (await r.observe()).kind=='applicant'
             await r.step()
             assert applicant_data==[{'document':['X0000000T'],'name':['Test Applicant'],'nationality':['ES']}]
+            assert effort.count('automation_action')==(6 if fill_mode=='manual' else 5)
             assert (await r.observe()).kind=='request_menu'
             await r.step()
             assert (await r.observe()).kind=='request_no_slots'

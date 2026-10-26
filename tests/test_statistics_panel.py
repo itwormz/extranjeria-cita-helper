@@ -224,3 +224,20 @@ def test_subminute_first_duration_is_shown_in_seconds(tmp_path,qt_app):
     assert '≥ 56 s' in panel.first_value.text()
     assert '0 min' not in panel.first_value.text()
     panel.deleteLater();host.deleteLater()
+
+
+def test_effort_values_show_unknown_then_persist_today_and_all(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Test')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    assert panel.stat_values['actions_performed'].text()=='—'
+    panel.statistics.event('one','automation_action','old',at='2020-01-01T12:00:00+00:00')
+    panel.statistics.event('one','automation_action','today')
+    for _ in range(2):panel.statistics.event('one','processed_page','same-document')
+    panel.period='all';panel.refresh()
+    assert panel.stat_values['actions_performed'].text()=='2'
+    assert panel.stat_values['pages_processed'].text()=='1'
+    panel.period='today';panel.refresh()
+    assert panel.stat_values['actions_performed'].text()=='1'
+    assert panel.stat_values['pages_processed'].text()=='1'
+    panel.deleteLater();host.deleteLater()

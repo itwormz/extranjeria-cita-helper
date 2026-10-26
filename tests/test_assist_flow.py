@@ -509,3 +509,44 @@ def test_cookie_banner_is_dismissed_before_automatic_form_action(kind):
     asyncio.run(r.step())
     checker._accept_cookies.assert_awaited_once_with(r.page)
     r.act.assert_not_awaited()
+
+
+def test_effort_counts_unique_automatic_pages_and_ignores_manual_pause(tmp_path):
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.statistics_session import StatisticsSession
+    store=ProfileStatistics(tmp_path/'stats.json');control=AssistControl()
+    task=SimpleNamespace(id='p',province='Test',procedure='Test',access_mode='certificate')
+    session=StatisticsSession(store,task,control)
+    def visit(doc,stage='province'):
+        control.observe_visit(document=doc,stage=stage,page='',title='')
+    visit('a');visit('a');visit('loading','loading');visit('unknown','unknown')
+    control.set_paused(True);visit('paused');control.set_paused(False)
+    visit('b');control.automation_action();control.automation_action()
+    control.booking_handoff=True;visit('manual');control.automation_action()
+    result=store.get('p')
+    assert result['pages_processed']==2 and result['actions_performed']==2
+    session.close('stopped')
+
+
+def test_manual_auth_pages_are_not_effort_but_automatic_return_is(tmp_path):
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.statistics_session import StatisticsSession
+    store=ProfileStatistics(tmp_path/'stats.json');control=AssistControl()
+    task=SimpleNamespace(id='p',province='Test',procedure='Test',access_mode='clave')
+    session=StatisticsSession(store,task,control)
+    runner=assist_flow.AssistRunner(SimpleNamespace(url='https://example.test/'),SimpleNamespace(),SimpleNamespace(),task,'run',control,SimpleNamespace(),SimpleNamespace())
+    runner.publish(assist_flow.Observed('auth_wait','auto','a',None))
+    runner.publish(assist_flow.Observed('auth_wait','auto','a',None),mode='manual')
+    runner.publish(assist_flow.Observed('auth_wait','human-otp','b',None))
+    runner.publish(assist_flow.Observed('auth_wait','human-otp','b',None),mode='manual')
+    control.automation_action()
+    async def slow_observation():
+        await asyncio.sleep(.6)
+        return assist_flow.Observed('auth_wait','human-slow','slow',None)
+    runner._observe=slow_observation
+    runner.publish(asyncio.run(runner.observe()))
+    runner.publish(assist_flow.Observed('auth_wait','human-slow','slow',None))
+    runner.publish(assist_flow.Observed('applicant','return','c',None))
+    assert store.get('p')['pages_processed']==2
+    assert store.get('p')['actions_performed']==0
+    session.close('stopped')

@@ -18,7 +18,7 @@ METRICS=(('checks','Проверок','search'),('active_seconds','Активн�
     ('unique_offices','Разных офисов','pin'),('booking_screens','Экранов ситы','calendar'),
     ('offices_seen','Появлений офисов','office'),('server_errors','Ошибок сервера','server'),
     ('rate_limited','HTTP 429','clock'),('blocked','Ограничения доступа','shield'),
-    ('flow_passes','Повторные проходы','restart'),('first_available_seconds','До первой доступности','clock'))
+    ('flow_passes','Повторные проходы','restart'),('actions_performed','Действий выполнено','activity'),('pages_processed','Страниц обработано','copy'),('first_available_seconds','До первой доступности','clock'))
 
 
 def duration(seconds,t):
@@ -127,7 +127,12 @@ class StatisticsPanel(QWidget):
         values={};overview=QHBoxLayout();overview.setSpacing(16)
         for key,title,icon in [('checks','Проверок сит','search'),('active_seconds','Активный поиск','clock'),('days','Дни с поиском','calendar_days')]:
             frame=QFrame();frame.setObjectName('statisticsOverview');cell=QVBoxLayout(frame);cell.setContentsMargins(16,14,16,14);cell.setSpacing(8);number=QLabel('—');number.setObjectName('overviewValue');cell.addWidget(number);cell.addWidget(self.section_heading(title,icon));overview.addWidget(frame,1);values[key]=number
-        layout.addLayout(overview);groups=QHBoxLayout();groups.setSpacing(32)
+        layout.addLayout(overview)
+        effort=QHBoxLayout();effort.setSpacing(32)
+        for key,title,icon in [('actions_performed','Действий выполнено','activity'),('pages_processed','Страниц обработано','copy')]:
+            frame=QFrame();frame.setObjectName('statisticRow');row=QHBoxLayout(frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8)
+            row.addWidget(self.icon_label(icon));row.addWidget(self.text(title),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;effort.addWidget(frame,1)
+        layout.addLayout(effort);groups=QHBoxLayout();groups.setSpacing(32)
         for title,icon,keys in [('Доступность','eye',['offices_seen','unique_offices','booking_screens','successes']),('Ошибки и восстановление','wrench',['server_errors','rate_limited','blocked','flow_passes'])]:
             frame=QWidget();column=QVBoxLayout(frame);column.setContentsMargins(0,0,0,0);column.setSpacing(8);column.addWidget(self.section_heading(title,icon))
             for key in keys:
@@ -199,6 +204,8 @@ class StatisticsPanel(QWidget):
         except (OSError,ValueError) as exc:self.message.setText(t('Не удалось прочитать статистику профиля'));return
         for key,widget in self.stat_values.items():
             if key=='days':widget.setText('—' if not data.get('days') and any(data.get(k) for k in ('checks','active_seconds','offices_seen','booking_screens')) else str(data.get('days',0)))
+            elif key in {'actions_performed','pages_processed'}:
+                widget.setText(str(data[key]) if data.get('effort_started_at') else '—')
             elif key=='successes':
                 visible_records=records if self.period=='all' else [record for record in records if datetime.fromisoformat(record['recorded_at'].replace('Z','+00:00')).astimezone(MADRID).date()==datetime.now(MADRID).date()]
                 widget.setText(str(len(visible_records)))
@@ -221,10 +228,13 @@ class StatisticsPanel(QWidget):
             widget.setToolTip('\n'.join(hints));caption.setToolTip(widget.toolTip())
         for key,widget in self.stat_values.items():
             widget.setToolTip(t('До обновления этот показатель не сохранялся; показаны новые наблюдения.') if key in data.get('legacy_unknown_fields',[]) else '')
+            if key in {'actions_performed','pages_processed'}:
+                started=data.get('effort_started_at')
+                widget.setToolTip(t('Учёт с {time}. Ранние действия и страницы не восстанавливаются.').format(time=stamp(started)) if started else t('Ранее этот показатель не сохранялся.'))
         self.achievement_button.setVisible(bool(records));self.achievement_button.setEnabled(bool(records))
         if self.current_achievement:
             stats=self.current_achievement['statistics']
-            for key,widget in self.achievement_values.items():widget.setText(duration(stats.get(key),t) if key.endswith('seconds') else str(stats.get(key,0)))
+            for key,widget in self.achievement_values.items():widget.setText(duration(stats.get(key),t) if key.endswith('seconds') else ('—' if stats.get(key) is None else str(stats.get(key,0))))
             self.achievement_duration.setText(public_duration(self.current_achievement, self.host.preferences["language"]))
             a=self.current_achievement['appointment'];self.private_fields['date'].setText(a.get('date','')+' · '+a.get('time',''));self.private_fields['office'].setText('\n'.join(filter(None,[a.get('office',''),a.get('address','')])) or '—');self.private_fields['confirmation'].setText(a.get('confirmation','') or '—')
 

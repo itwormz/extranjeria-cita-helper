@@ -266,12 +266,17 @@ class IcpPlusChecker:
     def __init__(self, settings: Settings):
         self.settings = settings
 
+    def _completed_action(self):
+        callback=getattr(self,'_assist_action',None)
+        if callback is not None:callback()
+
     async def _activate_control(self, locator, *, timeout=None, force=False, keyboard=False):
         options = {} if timeout is None else {"timeout": timeout}
         if force:
             options["force"] = True
         if getattr(self, "_assist_guard", None) is None:
             await locator.click(**options)
+            self._completed_action()
             return
         from .desktop_session import screen_locked
         keyboard = (keyboard or screen_locked()) and await locator.evaluate("""el =>
@@ -320,6 +325,7 @@ class IcpPlusChecker:
                     raise exc
                 remaining = max(1, budget - int((time.monotonic() - started) * 1000))
                 await frame.wait_for_load_state("domcontentloaded", timeout=remaining)
+            self._completed_action()
         finally:
             navigation.cancel()
             with suppress(asyncio.CancelledError, Exception):
@@ -548,6 +554,7 @@ class IcpPlusChecker:
             )
             await self._pace(page)
             response = await page.reload(wait_until="domcontentloaded")
+            self._completed_action()
             await self._settle(page)
             last_status = response.status if response else None
             visible_text = await page.locator("body").inner_text()
@@ -651,6 +658,7 @@ class IcpPlusChecker:
         selected = await page.evaluate(expression, {'selector': selector, 'label': label, 'value': value})
         if not selected:
             raise SiteCheckError('FORM_INTERACTION_FAILED', True, 'ACTIVE', 'select.option')
+        self._completed_action()
 
     async def _select_procedure(self, page, label: str) -> None:
         """Service-family indexes vary by province; match only procedure lists."""
@@ -717,6 +725,7 @@ class IcpPlusChecker:
             # `fill` is the supported fallback for characters that cannot be
             # represented as individual keyboard events on the current OS.
             await locator.fill(value)
+        self._completed_action()
 
     async def _raise_if_dead_page(self, page, error_field: str) -> None:
         """A dead server page is an outage to retry, not a missing sign-in.
@@ -1022,11 +1031,12 @@ class IcpPlusChecker:
         document_radio = page.locator(selector)
         if await document_radio.count() and await document_radio.first.is_visible():
             from .desktop_session import screen_locked
-            if screen_locked():
-                if not await document_radio.first.is_checked():
+            if not await document_radio.first.is_checked():
+                if screen_locked():
                     await document_radio.first.press("Space")
-            else:
-                await document_radio.first.check()
+                else:
+                    await document_radio.first.check()
+                self._completed_action()
         elif regreso:
             raise SiteCheckError("FORM_NOT_READY", False, "BLOCKED_ERROR", "applicant.document_type")
         if regreso:
@@ -1127,6 +1137,7 @@ class IcpPlusChecker:
                 await locator.click(timeout=3_000)
             await locator.fill("", timeout=3_000)
             await locator.press_sequentially(value, delay=round(random.uniform(*self.settings.assist_timings.contact_typing_ms)), timeout=20_000)
+            self._completed_action()
             return True
         except Exception:
             return False
@@ -1135,6 +1146,7 @@ class IcpPlusChecker:
 
     async def _open_entry(self, page, task: TaskConfig, run_id: str) -> None:
         response = await page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+        self._completed_action()
         if response and response.status == 429:
             raise SiteCheckError('HTTP_RATE_LIMITED', True, 'COOLDOWN', 'entry')
         if response and response.status == 403:
@@ -1161,6 +1173,7 @@ class IcpPlusChecker:
             if guard is not None:
                 await guard(page)
             response = await page.reload(wait_until="domcontentloaded")
+            self._completed_action()
             await self._settle(page)
             await page.wait_for_timeout(int(random.uniform(wait_min, wait_max) * 1000))
             try:
