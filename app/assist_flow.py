@@ -196,6 +196,8 @@ class AssistRunner:
             self.http_statuses.pop(self.page.main_frame, None)
             self.control.publish(screen="Загрузка страницы", evidence="Ожидаем результат перехода",
                                  next_action="Распознать новый документ", mode="working")
+            if request.method == 'POST' and _flow_endpoint(request.url)=='acValidarEntrada':
+                self.record('applicant_submitted',self.last_observed,'Отправлена форма заявителя — значения не сохраняются',page_url=request.url)
             if request.method == "POST" and _flow_endpoint(request.url) == "acCitar":
                 self.control.availability_checked()
                 self.record("check", self.last_observed, f"Проверка сит: отправлен Solicitar cita — в сессии {self.control.snapshot()['checks']}, для профиля {self.control.snapshot()['profile_checks']}", page_url=request.url)
@@ -315,7 +317,7 @@ class AssistRunner:
                         if re.fullmatch(r"aceptar", label, re.I):
                             kind = "request_no_slots_restart"
                             evidence = "Сит нет. Aceptar завершает текущий проход; быстрое обновление не требуется"
-                elif _flow_endpoint(self.page.url) == "acValidarEntrada" and await self.visible("#btnEnviar"):
+                elif _flow_endpoint(self.page.url) in {"acValidarEntrada","acOpcDirect"} and await self.visible("#btnEnviar"):
                     button = self.page.locator("#btnEnviar").first
                     label = (await button.get_attribute("value") or await button.inner_text()).lower()
                     if "solicitar" in label:
@@ -864,11 +866,29 @@ class AssistRunner:
                 return
             self.empty_streak += 1
             delay = self.policy.next_delay(recent_activity=False, empty_streak=self.empty_streak)
-            next_action = "Обновить форму без ввода данных" if applicant_wait else "Обновить результат запроса в текущей сессии"
+            via_salir=not applicant_wait and getattr(self.task,'no_slots_mode','reload')=='salir'
+            next_action = ("Обновить форму без ввода данных" if applicant_wait else
+                           "Нажать Salir и продолжить по сайту" if via_salir else
+                           "Обновить результат запроса в текущей сессии")
             if not await self.countdown(observed, delay, next_action):
                 return
             await self.save(observed, "STEP_BEFORE_ACTION")
             if not await self.guard(observed):
+                return
+            if via_salir:
+                button=await self.continuation(observed.source,r"salir")
+                if button is None:
+                    await self.hold(observed,"Не найдена единственная кнопка Salir. Проверить страницу")
+                    return
+                if not await self.guard(observed):return
+                self.attempted.add(attempt)
+                self.pending_action=self.last_action='no_slots_salir'
+                self.pending_counted=False
+                self.action_phase='no_slots.salir'
+                self.record('action',observed,'Нажать Salir: продолжить по предложенному сайтом пути')
+                await self.checker._activate_control(button,timeout=5_000)
+                self.pending_action=None
+                self.record('action_completed',observed,'Salir отправлен — распознать ответ сайта')
                 return
             self.attempted.add(attempt)
             self.pending_action = "applicant_reload" if applicant_wait else "request"

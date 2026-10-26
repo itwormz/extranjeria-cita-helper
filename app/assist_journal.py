@@ -30,7 +30,7 @@ EXPECTED = {
     'request_menu': {'office', 'contact', 'booking'} | NO_SLOTS,
     'office': {'contact', 'booking'} | NO_SLOTS,
     'contact': {'booking'} | NO_SLOTS,
-    'request_no_slots': {'office', 'contact', 'booking'} | NO_SLOTS,
+    'request_no_slots': {'request_menu','province','applicant','applicant_no_slots','office', 'contact', 'booking'} | NO_SLOTS,
     'request_no_slots_restart': {'province'}, 'post_contact_no_slots': {'province'},
     'captcha': {'booking', 'office', 'contact', 'applicant', 'request_menu'},
     'booking': {'contact', 'booking'},

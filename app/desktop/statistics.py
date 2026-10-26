@@ -24,7 +24,7 @@ MODES = {'working','waiting','recovery','manual','paused','finished','booking_ha
 EVENTS = set(COUNTER_KIND) | STAGES | {'start','finish','action','action_completed','action_interrupted',
     'browser_session_started','interaction_retry','flow_start','flow_restart','wait','recovery','recovery_button',
     'manual_required','office_selected','office_submitted','handoff','fatal_error',
-    'pause','resume','http_response','network_error','timeout','effort_started'}
+    'pause','resume','http_response','network_error','timeout','effort_started','applicant_submitted'}
 
 
 def _empty():
@@ -55,6 +55,7 @@ def _context(context):
     allowed={
         'authentication':{'certificate','clave'}, 'auth':{'certificate','clave'},
         'clave_method':{'movil','permanente'},
+        'no_slots_mode':{'reload','salir'},
         'platform':{'Darwin','Windows','Linux'}, 'os':{'Darwin','Windows','Linux'},
         'architecture':{'arm64','aarch64','x86_64','AMD64','i386','x86'},
         'procedure':{TIE_PROCEDURE,REGRESO_PROCEDURE,'huellas','regreso'},

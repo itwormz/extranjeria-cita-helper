@@ -466,6 +466,7 @@ class DesktopWindow(QMainWindow):
         self.timing_widgets={}
         from ..timings import AssistTimings, TIMING_FIELDS, SEQUENCE_KEYS
         self.timing_field_boxes={}
+        self.timing_focus_fields=[]
         short_titles={
             'action_delay_seconds':'Между действиями','typing_ms':'Ввод NIE и имени','contact_typing_ms':'Ввод контактов',
             'reload_seconds':'Интервал проверки','navigation_seconds':'Таймаут страницы','bootstrap_seconds':'Начальная загрузка / F5',
@@ -483,12 +484,23 @@ class DesktopWindow(QMainWindow):
         ordered=[]
         for group, keys in timing_groups:
             ordered.append((None,group,0,0))
+            if group=='Проверка сит':ordered.append(('no_slots_mode','Повторная проверка',0,0))
             ordered.extend(field for field in TIMING_FIELDS if field[0] in keys)
         for key,title,lower,upper in ordered:
             if key is None:
                 if timing_column:timing_row+=1;timing_column=0
                 heading=label(title,name='sectionHeading');heading.setContentsMargins(0,8,0,0)
                 timing_layout.addWidget(heading,timing_row,0,1,2);timing_row+=1;continue
+            if key=='no_slots_mode':
+                self.no_slots_mode_combo=QComboBox();self.no_slots_mode_combo.setObjectName('profileNoSlotsMode')
+                self.no_slots_mode_combo.addItem('Обновлять результат','reload');self.no_slots_mode_combo.addItem('Через Salir','salir')
+                self.no_slots_mode_combo.setAccessibleName('Повторная проверка')
+                self.timing_focus_fields.append(self.no_slots_mode_combo)
+                self.no_slots_mode_box=ProfileField('Повторная проверка',self.no_slots_mode_combo)
+                timing_layout.addWidget(self.no_slots_mode_box,timing_row,timing_column)
+                timing_column=1-timing_column
+                if timing_column==0:timing_row+=1
+                continue
             if key=='action_delay_seconds':
                 widgets=[self.fields['delay_min'],self.fields['delay_max']]
                 # Move action inputs from the details grid into this tab.
@@ -508,9 +520,10 @@ class DesktopWindow(QMainWindow):
             row_box.help_text=title
             row_box.help.setToolTip(self.t(title))
             self.timing_field_boxes[key]=row_box
-            self.timing_widgets[key]=widgets;timing_layout.addWidget(row_box,timing_row,timing_column)
+            self.timing_widgets[key]=widgets;self.timing_focus_fields.extend(widgets);timing_layout.addWidget(row_box,timing_row,timing_column)
             timing_column=1-timing_column
             if timing_column==0:timing_row+=1
+        for previous,current in zip(self.timing_focus_fields,self.timing_focus_fields[1:]):QWidget.setTabOrder(previous,current)
         timing_layout.setColumnStretch(0,1);timing_layout.setColumnStretch(1,1)
         timing_layout.setRowStretch(timing_row+1,1)
         timing_scroll=QScrollArea(); timing_scroll.setWidgetResizable(True); timing_scroll.setFrameShape(QScrollArea.Shape.NoFrame); timing_scroll.setWidget(timings_page)
@@ -691,6 +704,7 @@ class DesktopWindow(QMainWindow):
         self.editing_id=profile_id; self.editor_revision=self.store.revision()
         raw=self.store.raw_profile(profile_id) if profile_id else {}
         self.notifications_panel.load(raw.get('notifications',{}))
+        self.no_slots_mode_combo.setCurrentIndex(max(0,self.no_slots_mode_combo.findData(raw.get('request',{}).get('no_slots_mode','reload'))))
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))
@@ -745,7 +759,7 @@ class DesktopWindow(QMainWindow):
         selected_auth=f['access_mode'].currentData()
         access_mode='clave' if selected_auth.startswith('clave_') else 'certificate'
         clave_method=selected_auth.removeprefix('clave_') if access_mode=='clave' else 'movil'
-        data=dict(label=f['label'].text().strip(),timings=timings,request=dict(access_mode=access_mode,clave_method=clave_method,
+        data=dict(label=f['label'].text().strip(),timings=timings,request=dict(access_mode=access_mode,clave_method=clave_method,no_slots_mode=self.no_slots_mode_combo.currentData(),
             province=f['province'].currentText(),office='',procedure=f['procedure'].currentData(),subprocedure=None),
             applicant=dict(fill_mode=f['fill_mode'].currentData(),document_type=f['document_type'].currentData() if f['procedure'].currentData()==REGRESO_PROCEDURE else 'NIE',document_number=f['document_number'].text(),
                 full_name=f['full_name'].text(),nationality=f['nationality'].currentText(),
@@ -1116,6 +1130,11 @@ class DesktopWindow(QMainWindow):
         field_icons={'label':'user','province':'pin','procedure':'clipboard','access_mode':'key','document_type':'id','document_number':'id',
                      'full_name':'user','nationality':'globe','phone':'phone','email':'mail'}
         for key,name in field_icons.items():self.profile_field_boxes[key].icon.setPixmap(self.control_icon(name).pixmap(QSize(18,18)))
+        self.no_slots_mode_box.caption.setText(self.t('Повторная проверка'))
+        self.no_slots_mode_box.icon.setPixmap(self.control_icon('restart').pixmap(QSize(18,18)))
+        self.no_slots_mode_combo.setAccessibleName(self.t('Повторная проверка'))
+        for index,title in enumerate(('Обновлять результат','Через Salir')):self.no_slots_mode_combo.setItemText(index,self.t(title))
+        self.no_slots_mode_box.setToolTip(self.t('При обычном «нет сит»: обновлять результат или после паузы нажимать Salir и следовать сайту. На форме заявителя данные не вводятся, пока есть сообщение «нет сит».'))
         for key,box in self.timing_field_boxes.items():
             box.help.setToolTip(self.t(box.help_text))
             box.icon.setPixmap(self.control_icon('bell' if key=='alert_seconds' else 'globe' if key=='reload_seconds' else 'info').pixmap(QSize(17,17)))

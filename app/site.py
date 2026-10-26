@@ -1208,22 +1208,39 @@ class IcpPlusChecker:
         root = Path(os.environ.get("DEBUG_DIR", self.settings.diagnostics_directory))
         if not root.is_absolute():
             root = PROJECT_ROOT / root
-        sessions = root / "sessions"
-        sessions.mkdir(parents=True, exist_ok=True, mode=0o700)
+        from .diagnostic_resources import prepare_session
         session_name = re.sub(r"[^A-Za-z0-9_.-]", "_", f"{task_id}-{run_id}")
-        directory = sessions / session_name
-        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-        cutoff = time.time() - self.settings.diagnostics_retention_days * 86400
-        for old in sessions.iterdir():
-            if old != directory and not old.is_symlink() and old.is_dir() and old.stat().st_mtime < cutoff:
-                shutil.rmtree(old)
+        cleanup_times = getattr(self, "_diagnostic_cleanup_times", None)
+        if cleanup_times is None:
+            cleanup_times = self._diagnostic_cleanup_times = {}
+        now = time.monotonic()
+        cleanup = now - cleanup_times.get(str(root), float("-inf")) >= 3600
+        directory = prepare_session(root, session_name, self.settings.diagnostics_retention_days, cleanup=cleanup)
+        if cleanup:
+            cleanup_times[str(root)] = now
         return directory
 
     async def _save_response(self, response, task_id, run_id):
         """Keep raw navigation HTML even when a fast redirect replaces its DOM."""
-        if getattr(getattr(self, "_assist_control", None), "diagnostics_enabled", None) is False or not self.settings.diagnostics_enabled or not response.request.is_navigation_request():
+        if getattr(getattr(self, "_assist_control", None), "diagnostics_enabled", None) is False or not self.settings.diagnostics_enabled:
             return
         try:
+            from .diagnostic_resources import MAX_SCRIPT_BYTES, save_script, script_url
+            if not response.request.is_navigation_request():
+                if getattr(response.request, "resource_type", "") != "script" or not script_url(response.url):
+                    return
+                content_type = response.headers.get("content-type", "")
+                if "javascript" not in content_type.lower() and "ecmascript" not in content_type.lower():
+                    return
+                length = response.headers.get("content-length")
+                if length and int(length) > MAX_SCRIPT_BYTES:
+                    return
+                body = await asyncio.wait_for(response.body(), timeout=5)
+                if getattr(getattr(self, "_assist_control", None), "diagnostics_enabled", None) is False or not self.settings.diagnostics_enabled:
+                    return
+                directory = self._debug_directory(task_id, run_id)
+                save_script(directory, response.url, body, response.status, content_type)
+                return
             directory = self._debug_directory(task_id, run_id)
             stamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%f%z")
             base = directory / stamp
@@ -1342,6 +1359,12 @@ class IcpPlusChecker:
                         path.chmod(0o600)
                         output.write(content)
                     artifact_paths.append(path)
+            from .diagnostic_resources import snapshot_references
+            script_documents = [(initial_url, html)] if _is_icp_page(initial_url) else []
+            for record in frames:
+                if "html" in record:
+                    script_documents.append((record["url"], (directory / record["html"]).read_text(encoding="utf-8")))
+            resources = snapshot_references(directory, script_documents)
             base.with_suffix(".json").write_text(
                 json.dumps(
                     {
@@ -1352,6 +1375,7 @@ class IcpPlusChecker:
                         "error_field": error_field,
                         "support_id": support_id,
                         "frames": frames,
+                        "resources": resources,
                         **({"controls": controls} if include_controls else {}),
                     },
                     ensure_ascii=False,

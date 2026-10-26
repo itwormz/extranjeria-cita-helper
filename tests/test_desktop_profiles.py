@@ -151,3 +151,13 @@ def test_last_work_profile_survives_preferences_and_store_reopen(tmp_path,catalo
     raw=store._read();raw['tasks']=[task for task in raw['tasks'] if task['id']!=second]
     store._write(raw,store.revision())
     assert store.last_profile()==second  # UI resolves missing IDs against the current list.
+
+
+def test_profile_no_slots_mode_defaults_and_validation(tmp_path,catalog_path,task_mapping):
+    store=ProfileStore(tmp_path/'tasks.yml',catalog_path)
+    raw=fields(task_mapping);first=store.save_profile(None,raw,revision=store.revision())
+    assert store.load()[0].no_slots_mode=='reload'
+    raw['request']['no_slots_mode']='salir';store.save_profile(first,raw,revision=store.revision())
+    assert ProfileStore(store.path,catalog_path).load()[0].no_slots_mode=='salir'
+    raw['request']['no_slots_mode']='unsupported'
+    with pytest.raises(ProfileValidationError):store.save_profile(first,raw,revision=store.revision())

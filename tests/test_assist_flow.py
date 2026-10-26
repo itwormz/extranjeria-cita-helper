@@ -550,3 +550,12 @@ def test_manual_auth_pages_are_not_effort_but_automatic_return_is(tmp_path):
     assert store.get('p')['pages_processed']==2
     assert store.get('p')['actions_performed']==0
     session.close('stopped')
+
+
+def test_applicant_submission_is_distinct_from_availability_without_reading_values():
+    control=AssistControl();frame=object()
+    runner=assist_flow.AssistRunner(SimpleNamespace(main_frame=frame,url='about:blank'),SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(),SimpleNamespace())
+    request=SimpleNamespace(method='POST',url='https://example.test/icpplus/acValidarEntrada',frame=frame,is_navigation_request=lambda:True)
+    runner._requested(request)
+    assert [row['event'] for row in control.snapshot()['timeline']].count('applicant_submitted')==1
+    assert control.snapshot()['checks']==0

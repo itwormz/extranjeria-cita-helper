@@ -21,6 +21,7 @@ class StatisticsSession:
                 'province': task.province, 'procedure': task.procedure,
                 'authentication': task.access_mode,
                 'clave_method': getattr(task, 'clave_method', ''),
+                'no_slots_mode':getattr(task,'no_slots_mode','reload'),
                 'app_version': VERSION, 'os': platform.system(),
                 'architecture': platform.machine(),
             })

@@ -990,7 +990,8 @@ def test_profile_tab_visits_inputs_in_visual_order_after_relayout(window,all_tab
 
 def test_profile_timing_tab_visits_all_values_before_save(window,all_tab_controls):
     window.create_profile();window.profile_tabs.setCurrentIndex(1);window.profile_editor.activateWindow();QApplication.processEvents()
-    order=[field for fields in window.timing_widgets.values() for field in fields]
+    order=window.timing_focus_fields
+    assert window.no_slots_mode_combo in order
     order[0].setFocus();QApplication.processEvents()
     for expected in order:
         current=QApplication.focusWidget()
@@ -1029,3 +1030,19 @@ def test_remember_work_profile_and_statistics_follow_work_on_entry(window,task_m
     window.store._write(raw,window.store.revision())
     window.refresh_profiles()
     assert window.profile_combo.currentData()==first and window.store.last_profile()==first
+
+
+def test_no_slots_mode_editor_roundtrips_in_timing_tab(window,task_mapping):
+    from tests.test_desktop_profiles import fields
+    profile=window.store.save_profile(None,fields(task_mapping),revision=window.store.revision())
+    window.refresh_profiles(selected=profile);window.open_editor(profile)
+    assert window.no_slots_mode_combo.currentData()=='reload'
+    assert window.no_slots_mode_combo.parentWidget() is window.no_slots_mode_box
+    window.no_slots_mode_combo.setCurrentIndex(window.no_slots_mode_combo.findData('salir'))
+    window.save_profile()
+    assert window.store.load()[0].no_slots_mode=='salir'
+    window.open_editor(profile)
+    assert window.no_slots_mode_combo.currentData()=='salir'
+    window.set_language('es')
+    assert window.no_slots_mode_combo.currentText()=='Mediante Salir'
+    assert window.no_slots_mode_combo.currentData()=='salir'

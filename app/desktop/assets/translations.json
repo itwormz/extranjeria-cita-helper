@@ -926,7 +926,16 @@
     "Страниц обработано": "Pages processed",
     "Учёт с {time}. Ранние действия и страницы не восстанавливаются.": "Tracked since {time}. Earlier actions and pages are not reconstructed.",
     "Ранее этот показатель не сохранялся.": "This metric was not recorded previously.",
-    "Автоматизация": "Automation"
+    "Автоматизация": "Automation",
+    "Повторная проверка": "Repeat check",
+    "Обновлять результат": "Reload result",
+    "Через Salir": "Via Salir",
+    "При обычном «нет сит»: обновлять результат или после паузы нажимать Salir и следовать сайту. На форме заявителя данные не вводятся, пока есть сообщение «нет сит».": "For ordinary no-appointment results, reload or pause then use Salir and follow the website. Applicant data is not entered while the form reports no appointments.",
+    "Нажать Salir и продолжить по сайту": "Click Salir and follow the website",
+    "Не найдена единственная кнопка Salir. Проверить страницу": "A unique Salir button was not found. Check the page",
+    "Нажать Salir: продолжить по предложенному сайтом пути": "Click Salir and follow the website flow",
+    "Salir отправлен — распознать ответ сайта": "Salir sent — recognize the website response",
+    "Отправлена форма заявителя — значения не сохраняются": "Applicant form sent — values are not recorded"
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1855,6 +1864,15 @@
     "Страниц обработано": "Páginas procesadas",
     "Учёт с {time}. Ранние действия и страницы не восстанавливаются.": "Registro desde {time}. No se reconstruyen acciones ni páginas anteriores.",
     "Ранее этот показатель не сохранялся.": "Este dato no se registraba anteriormente.",
-    "Автоматизация": "Automatización"
+    "Автоматизация": "Automatización",
+    "Повторная проверка": "Repetir comprobación",
+    "Обновлять результат": "Recargar resultado",
+    "Через Salir": "Mediante Salir",
+    "При обычном «нет сит»: обновлять результат или после паузы нажимать Salir и следовать сайту. На форме заявителя данные не вводятся, пока есть сообщение «нет сит».": "Cuando no hay citas, recargar el resultado o esperar, pulsar Salir y seguir la web. No se introducen datos mientras el formulario indique que no hay citas.",
+    "Нажать Salir и продолжить по сайту": "Pulsar Salir y seguir la web",
+    "Не найдена единственная кнопка Salir. Проверить страницу": "No se encontró un único botón Salir. Revisar la página",
+    "Нажать Salir: продолжить по предложенному сайтом пути": "Pulsar Salir y seguir el recorrido de la web",
+    "Salir отправлен — распознать ответ сайта": "Salir enviado — reconocer la respuesta de la web",
+    "Отправлена форма заявителя — значения не сохраняются": "Formulario del solicitante enviado — no se registran los valores"
   }
 }

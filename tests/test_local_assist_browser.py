@@ -1008,3 +1008,40 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
                 await asyncio.gather(operation,ready,return_exceptions=True)
                 await browser.close()
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize('outcome',['menu','province','applicant_warning','missing','ambiguous'])
+def test_profile_salir_mode_follows_actual_button_without_replaying_search(outcome):
+    async def scenario():
+        from playwright.async_api import async_playwright
+        async with async_playwright() as pw:
+            browser=await launch_browser(pw)
+            try:
+                ctx=await browser.new_context();page=await ctx.new_page();calls=[]
+                async def respond(route):
+                    endpoint=route.request.url.rsplit('/',1)[-1];calls.append((route.request.method,endpoint))
+                    if endpoint=='acCitar':
+                        body='<p>En este momento no hay citas disponibles</p><form action="salirInicio" method="post">'
+                        if outcome!='missing':body+='<input type="button" value="Salir" onclick="goAc_opc_direct()">'
+                        if outcome=='ambiguous':body+='<button type="button">Salir</button>'
+                        body+='</form><script>function goAc_opc_direct(){document.forms[0].action="acOpcDirect";document.forms[0].submit();}</script>'
+                    elif outcome=='menu':body='<form action="acCitar" method="post"><button id="btnEnviar">Solicitar cita</button></form>'
+                    elif outcome=='province':body='<select id="form"><option>Test</option></select>'
+                    else:body=FORM+'<p>No hay citas disponibles</p>'
+                    await route.fulfill(body=body,content_type='text/html; charset=utf-8')
+                await page.route('**/*',respond)
+                r=runner_for(page,ctx);r.task=SimpleNamespace(id='test',no_slots_mode='salir')
+                r.countdown=AsyncMock(return_value=True);r.hold=AsyncMock()
+                await page.goto(BASE+'acCitar');await r.step()
+                assert r.countdown.await_count==1
+                if outcome in {'missing','ambiguous'}:
+                    assert calls==[('GET','acCitar')];assert r.hold.await_count==1;return
+                assert calls==[('GET','acCitar'),('POST','acOpcDirect')]
+                current=await r.observe()
+                assert current.kind=={'menu':'request_menu','province':'province','applicant_warning':'applicant_no_slots'}[outcome]
+                assert r.control.snapshot()['checks']==0
+                if outcome=='menu':
+                    await r.step()
+                    assert calls[-1]==('POST','acCitar') and r.control.snapshot()['checks']==1
+            finally:await browser.close()
+    asyncio.run(scenario())

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2.dev4 — Local development
+
+- Add profile-controlled repeat checking: reload the result (default) or pause and follow the website’s real Salir button. Recognize the request menu returned at acOpcDirect; missing or ambiguous Salir controls require review instead of silently reloading. Applicant no-slot warnings still prevent identity entry in both modes.
+- Record applicant-form submissions separately from availability requests without recording submitted values, and retain the selected mode in typed session context for comparison. The Salir route is not claimed to reduce document submissions until observed on the live site.
+- Passively archive browser-loaded first-party ICP JavaScript during diagnostics: gzip objects deduplicated by content hash, sanitized per-session load manifests, exact-reference links from HTML snapshots, bounded background capture and reference-aware retention cleanup. External authentication scripts are excluded, and capturing resources does not request them again or touch manual browser control.
+
 ## 0.2.2.dev3 — Local development
 
 - Group automated actions and processed pages under “Automation” below availability and error statistics, matching the approved compact layout with distinct pointer/document icons.
