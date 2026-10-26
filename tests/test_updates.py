@@ -139,3 +139,11 @@ def test_annotated_tag_resolution_is_bounded():
         return io.BytesIO(json.dumps({'object':{'type':'tag','sha':'b'*40}}).encode())
     with pytest.raises(ValueError):release_commit('0.2.0',fetch)
     assert len(calls)==4
+
+
+def test_dev_current_version_compares_with_stable_without_accepting_dev_releases():
+    from app.desktop.updates import select_release
+    assert select_release(release('0.2.1'),'0.2.2.dev1','windows','x64') is None
+    assert select_release(release('0.2.2'),'0.2.2.dev1','windows','x64').version=='0.2.2'
+    with pytest.raises(ValueError):
+        select_release(release('0.2.2.dev2'),'0.2.2.dev1','windows','x64')

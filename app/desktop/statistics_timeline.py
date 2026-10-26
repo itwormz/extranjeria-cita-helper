@@ -11,9 +11,9 @@ from bisect import bisect_left, bisect_right
 
 
 _SEARCH_STAGES = {'province', 'procedure', 'auth', 'auth_wait', 'applicant',
-    'request_menu', 'request_no_slots', 'request_no_slots_restart',
+    'request_menu', 'applicant_no_slots', 'request_no_slots', 'request_no_slots_restart',
     'post_contact_no_slots'}
-_NO_SLOTS = {'request_no_slots', 'request_no_slots_restart', 'post_contact_no_slots'}
+_NO_SLOTS = {'applicant_no_slots', 'request_no_slots', 'request_no_slots_restart', 'post_contact_no_slots'}
 _MANUAL = {'manual', 'paused', 'pause', 'booking_handoff'}
 _GAPS = {'unobserved', 'sleep', 'suspended'}
 _TERMINAL = {'finished', 'stopped'}
@@ -244,6 +244,19 @@ def _run(rows, session, cap=None):
     for row in pages + phases + resets:
         boundaries.add(_start(row)); boundaries.add(_end(row))
     boundaries = sorted(point for point in boundaries if start <= point <= end)
+    # Navigation is not evidence that a Cod. Oper. condition has cleared.
+    # Keep raw pages intact; only a normal result or availability ends it.
+    condition_points = []
+    for fact in sorted(rows, key=_order):
+        stage = fact.get('stage', '')
+        if fact.get('kind') == 'page' and not fact.get('event'):
+            if _state(fact) == 'cod':
+                condition_points.append((_start(fact), True))
+            elif stage in (_NO_SLOTS - {'applicant_no_slots'}) | {'office', 'contact', 'booking'}:
+                condition_points.append((_start(fact), False))
+        elif fact.get('event') and fact.get('kind') in {'office', 'booking', 'appointment'}:
+            condition_points.append((_start(fact), False))
+    condition_starts = [point[0] for point in condition_points]
     page_starts = [_start(row) for row in pages]
     recognized_pages = [row for row in pages if row.get('stage') != 'loading']
     recognized_starts = [_start(row) for row in recognized_pages]
@@ -293,6 +306,10 @@ def _run(rows, session, cap=None):
             state = 'gap'; sources = reset_sources[reset_at]
         if state is None:
             continue
+        condition_position = bisect_right(condition_starts, left)-1
+        if (state == 'search' and page and page.get('stage') in _SEARCH_STAGES
+                and condition_position >= 0 and condition_points[condition_position][1]):
+            state = 'cod'
         actual = sources[0]
         supported = _start(actual) <= left and _end(actual) >= right
         historical_transient = navigation_transient and transients[id(page)]['historical']

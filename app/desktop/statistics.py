@@ -17,7 +17,7 @@ COUNTER_KIND = {'check': 'checks', 'office': 'offices_seen', 'booking': 'booking
                 'pass': 'flow_passes', 'expired': 'expired_sessions',
                 'server_error': 'server_errors', 'rate_limited': 'rate_limited', 'blocked': 'blocked'}
 MADRID = ZoneInfo('Europe/Madrid')
-STAGES = {'province','procedure','auth','auth_wait','applicant','request_menu',
+STAGES = {'province','procedure','auth','auth_wait','applicant','applicant_no_slots','request_menu',
     'request_no_slots','request_no_slots_restart','post_contact_no_slots','office',
     'contact','booking','captcha','expired','server_error','blocked','rate_limited','loading','unknown'}
 MODES = {'working','waiting','recovery','manual','paused','finished','booking_handoff','unobserved','unknown'}

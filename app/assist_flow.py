@@ -23,6 +23,7 @@ LABELS = {
     "auth": ("Вход con Cl@ve", "Войти с электронным сертификатом"),
     "auth_wait": ("Авторизация", "Дождаться возврата с сертификатом"),
     "applicant": ("Форма заявителя", "Заполнить данные и перейти дальше"),
+    "applicant_no_slots": ("Сит нет на форме заявителя", "Подождать и обновить форму без ввода данных"),
     "request_menu": ("Меню запроса", "Нажать Solicitar cita"),
     "request_no_slots": ("Сит нет после запроса", "Подождать и обновить результат"),
     "request_no_slots_restart": ("Сит нет — новый проход", "Aceptar → начать заново"),
@@ -60,7 +61,7 @@ def loading_placeholder(text):
 
 def no_slots_kind(*, applicant, after_contacts):
     if applicant:
-        return "applicant"
+        return "applicant_no_slots"
     return "post_contact_no_slots" if after_contacts else "request_no_slots"
 
 
@@ -300,8 +301,8 @@ class AssistRunner:
                 elif await self.visible("#btnAccesoClave"):
                     kind, evidence = "auth", "Доступна кнопка con Cl@ve"
                 elif applicant:
-                    kind = "applicant"
-                    evidence = ("Видимая форма — предупреждение «нет сит» не блокирует ввод" if no_slots
+                    kind = "applicant_no_slots" if no_slots else "applicant"
+                    evidence = ("На форме заявителя нет сит — ожидать без ввода данных" if no_slots
                                 else "Видимая форма заявителя")
                 elif no_slots:
                     kind = no_slots_kind(applicant=False, after_contacts=(self.pending_action or self.last_action) == "contact")
@@ -337,7 +338,7 @@ class AssistRunner:
                     type=>document.querySelectorAll('input[type="'+type+'"]').length)})""")
             import json
             variant = hashlib.sha256(json.dumps(shape,sort_keys=True).encode()).hexdigest()
-        operation_code = kind in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and bool(re.search(r'cod\.?\s*oper',text,re.I))
+        operation_code = kind in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and bool(re.search(r'cod\.?\s*oper',text,re.I))
         result = Observed(kind, document, signature, source, evidence, recovery_action_first, certificate_validation_error, variant, operation_code)
         self.last_observed = result
         if kind in {'booking', 'expired', 'server_error', 'rate_limited', 'blocked'}:
@@ -376,7 +377,7 @@ class AssistRunner:
         self.control.observe_visit(document=observed.document, stage=observed.kind,
             page=urlunsplit((parts.scheme, parts.netloc, path, "", "")), title=title,
             recognition=observed.kind if observed.kind in {"unknown", "loading"} else "known", variant=observed.variant,
-            evidence=('no_appointments','operation_code') if observed.kind in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and observed.operation_code else ())
+            evidence=('no_appointments','operation_code') if observed.kind in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and observed.operation_code else ())
         if observed.kind not in {"loading", "auth_wait"}:
             self.previous_stage = observed.kind
         if observed.kind == "province":
@@ -723,7 +724,7 @@ class AssistRunner:
                   run_id=self.run_id, stage=observed.kind)
         await self.save(observed, "TRACE_SCREEN")
         self.manual_signature = None
-        if observed.kind in {"applicant", "office", "contact", "booking", "request_no_slots", "request_no_slots_restart", "post_contact_no_slots"}:
+        if observed.kind in {"applicant", "applicant_no_slots", "office", "contact", "booking", "request_no_slots", "request_no_slots_restart", "post_contact_no_slots"}:
             self.control.blocked_streak = 0
             self.expired_attempts = self.server_attempts = self.server_button_attempts = 0
         if observed.kind in {"expired", "server_error", "blocked", "rate_limited"}:
@@ -843,23 +844,25 @@ class AssistRunner:
                 return
             if await self.click(observed, 'form[action="salirInicio"] #btnSubmit', action="no_slots_restart"):
                 self.attempted.add(attempt)
-        elif kind == "request_no_slots":
-            attempt = (observed.document, "request_reload")
+        elif kind in {"applicant_no_slots", "request_no_slots"}:
+            applicant_wait = kind == "applicant_no_slots"
+            attempt = (observed.document, "applicant_reload" if applicant_wait else "request_reload")
             if attempt in self.attempted:
                 await self.hold(observed, "Повтор уже отправлялся. Ожидаем новый ответ — повторная отправка остановлена")
                 return
             self.empty_streak += 1
             delay = self.policy.next_delay(recent_activity=False, empty_streak=self.empty_streak)
-            if not await self.countdown(observed, delay, "Обновить результат запроса в текущей сессии"):
+            next_action = "Обновить форму без ввода данных" if applicant_wait else "Обновить результат запроса в текущей сессии"
+            if not await self.countdown(observed, delay, next_action):
                 return
             await self.save(observed, "STEP_BEFORE_ACTION")
             if not await self.guard(observed):
                 return
             self.attempted.add(attempt)
-            self.pending_action = "request"
+            self.pending_action = "applicant_reload" if applicant_wait else "request"
             self.pending_counted = False
-            self.last_action = "request"
-            self.record("action", observed, "Обновить результат: повтор POST acCitar")
+            self.last_action = self.pending_action
+            self.record("action", observed, "Обновить форму без ввода данных" if applicant_wait else "Обновить результат: повтор POST acCitar")
             await self.page.reload(wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
             self.pending_action = None
             self.record("action_completed", observed, "Обновление завершено — распознать ответ")

@@ -159,6 +159,7 @@ class DesktopWindow(QMainWindow):
         self._work()
         self._settings()
         self._statistics()
+        self.tabs.currentChanged.connect(self.main_tab_changed)
         theme_bar = QWidget(); theme_layout = QHBoxLayout(theme_bar)
         theme_layout.setContentsMargins(12, 10, 20, 10)
         theme_layout.setSpacing(8)
@@ -555,6 +556,7 @@ class DesktopWindow(QMainWindow):
     def refresh_profiles(self, selected=None):
         previous=self.profile_combo.currentData() if self.controller.active else (selected or self.profile_combo.currentData())
         try:
+            previous=previous or self.store.last_profile()
             self.profiles=self.store.load()
         except ProfileValidationError as exc:
             self.profiles=[]; self.show_error(str(exc),'profiles')
@@ -574,6 +576,12 @@ class DesktopWindow(QMainWindow):
         self.update_profile_summary()
         self.update_start()
 
+    def main_tab_changed(self,index):
+        if index==1:
+            panel=self.statistics_panel
+            selected=panel.profile_combo.findData(self.profile_combo.currentData())
+            if selected>=0:panel.profile_combo.setCurrentIndex(selected)
+
     def mark_success_from_work(self):
         panel=self.statistics_panel
         index=panel.profile_combo.findData(self.profile_combo.currentData())
@@ -588,6 +596,12 @@ class DesktopWindow(QMainWindow):
             return None
 
     def profile_changed(self):
+        profile_id=self.profile_combo.currentData()
+        if profile_id and any(task.id==profile_id for task in self.profiles):
+            try:self.store.save_last_profile(profile_id)
+            except ProfileValidationError:
+                self.show_error('Не удалось сохранить настройки. Изменения не применены.','last_profile')
+            else:self.clear_error('last_profile')
         if not self.controller.active and hasattr(self, 'metrics'):
             total = self.profile_check_total()
             self.metrics.setText(f"Проверки: 0 за запуск · Всего: {total if total is not None else '—'}")

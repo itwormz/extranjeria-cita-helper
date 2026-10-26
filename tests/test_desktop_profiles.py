@@ -139,3 +139,15 @@ def test_automatic_updates_default_on_and_can_be_disabled(tmp_path,catalog_path)
     assert store.preferences()['automatic_updates'] is True
     store.save_preferences(dark=False,diagnostics=False,sound=True,language='en',automatic_updates=False)
     assert ProfileStore(store.path,catalog_path).preferences()['automatic_updates'] is False
+
+
+def test_last_work_profile_survives_preferences_and_store_reopen(tmp_path,catalog_path,task_mapping):
+    store=ProfileStore(tmp_path/'tasks.yml',catalog_path)
+    store.save_profile(None,fields(task_mapping),revision=store.revision())
+    second=store.save_profile(None,fields(task_mapping),revision=store.revision())
+    store.save_last_profile(second)
+    store.save_preferences(dark=True,diagnostics=False,sound=True)
+    assert ProfileStore(store.path,catalog_path).last_profile()==second
+    raw=store._read();raw['tasks']=[task for task in raw['tasks'] if task['id']!=second]
+    store._write(raw,store.revision())
+    assert store.last_profile()==second  # UI resolves missing IDs against the current list.

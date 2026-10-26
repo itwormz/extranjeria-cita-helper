@@ -1004,3 +1004,28 @@ def test_nie_tab_goes_to_name_after_service_relayout(window,all_tab_controls):
     window.profile_editor.activateWindow();f['document_number'].setFocus();QApplication.processEvents()
     QTest.keyClick(QApplication.focusWidget(),Qt.Key.Key_Tab);QApplication.processEvents()
     assert QApplication.focusWidget() is f['full_name']
+
+
+def test_remember_work_profile_and_statistics_follow_work_on_entry(window,task_mapping):
+    from tests.test_desktop_profiles import fields
+    first=window.store.save_profile(None,fields(task_mapping),revision=window.store.revision())
+    second=window.store.save_profile(None,fields(task_mapping),revision=window.store.revision())
+    window.refresh_profiles(selected=second)
+    assert window.store.last_profile()==second
+    # Simulate initial empty selector on the next launch.
+    window.profile_combo.blockSignals(True);window.profile_combo.clear();window.profile_combo.blockSignals(False)
+    window.refresh_profiles()
+    assert window.profile_combo.currentData()==second
+    window.statistics_panel.profile_combo.setCurrentIndex(window.statistics_panel.profile_combo.findData(first))
+    window.tabs.setCurrentIndex(1)
+    assert window.statistics_panel.profile_combo.currentData()==second
+    # Exploring another profile never changes the working profile.
+    window.statistics_panel.profile_combo.setCurrentIndex(window.statistics_panel.profile_combo.findData(first))
+    assert window.profile_combo.currentData()==second and window.store.last_profile()==second
+    window.tabs.setCurrentIndex(0);window.tabs.setCurrentIndex(1)
+    assert window.statistics_panel.profile_combo.currentData()==second
+    window.tabs.setCurrentIndex(0)
+    raw=window.store._read();raw['tasks']=[task for task in raw['tasks'] if task['id']!=second]
+    window.store._write(raw,window.store.revision())
+    window.refresh_profiles()
+    assert window.profile_combo.currentData()==first and window.store.last_profile()==first

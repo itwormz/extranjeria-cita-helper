@@ -9,7 +9,7 @@ from app import assist_flow
 
 
 def test_no_slots_states_need_stage_context():
-    assert assist_flow.no_slots_kind(applicant=True, after_contacts=False) == "applicant"
+    assert assist_flow.no_slots_kind(applicant=True, after_contacts=False) == "applicant_no_slots"
     assert assist_flow.no_slots_kind(applicant=False, after_contacts=True) == "post_contact_no_slots"
     assert assist_flow.no_slots_kind(applicant=False, after_contacts=False) == "request_no_slots"
 

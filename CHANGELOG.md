@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2.dev1 — Local development
+
+- Keep Cod. Oper. timeline periods through navigation until a normal availability result is observed; retain errors and observation gaps separately.
+- Wait and reload applicant forms reporting no appointments without entering or copying identity data. Resume filling when that message disappears, using existing pauses and no assumed daily input limit.
+- Select timeline segments only on user input; preserve cleared selection through zoom and refresh, with Escape to clear it.
+- Remember the last working profile and open its statistics on entry, while allowing independent exploration of other profiles.
+- Use numbered development versions locally, including native bundle metadata and stable-update comparison. Development versions cannot be published through stable release tags.
+
 ## 0.2.1 — Search history and security fixes
 
 - Added persistent per-profile SQLite statistics, independent of page diagnostics: Today/All time counters, cumulative active search, office appearances and dates, appointment-selection screens, site errors and repeated passes.

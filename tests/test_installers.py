@@ -96,3 +96,12 @@ def test_portable_archive_rejects_existing_user_data(tmp_path):
     (bundle/'data/tasks.yml').write_text('private profile')
     with pytest.raises(ValueError,match='user data'):
         build_portable_zip(bundle,tmp_path/'portable.zip',tmp_path/'LICENSE')
+
+
+def test_dev_msi_keeps_numeric_product_version(tmp_path):
+    from scripts.installers import write_wix_source
+    bundle=tmp_path/'bundle';bundle.mkdir()
+    (bundle/'Cita Extranjeria Helper.exe').write_bytes(b'app')
+    source=write_wix_source(bundle,tmp_path/'dev.wxs','0.2.2.dev3')
+    ns={'w':'http://wixtoolset.org/schemas/v4/wxs'}
+    assert ET.parse(source).find('w:Package',ns).get('Version')=='0.2.2'

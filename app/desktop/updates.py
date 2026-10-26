@@ -53,7 +53,10 @@ def select_release(data,current,target,arch,*,portable=False):
     version=tag[1:];version_tuple(version)
     if data.get('draft') or data.get('prerelease'):
         raise ValueError('Not a stable release')
-    if version_tuple(version)<=version_tuple(current):return None
+    from app.version import native_version
+    current_parts=native_version(current)
+    current_key=current_parts[:3]+((0,current_parts[3]) if '.dev' in current else (1,0))
+    if version_tuple(version)+(1,0)<=current_key:return None
     extension={'windows':'msi','macos':'dmg','linux':'AppImage'}.get(target)
     if not extension or (target,arch) not in {('windows','x64'),('linux','x64'),('macos','arm64'),('macos','x64')}:
         raise ValueError('Unsupported update target')

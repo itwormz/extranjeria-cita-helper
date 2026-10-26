@@ -31,12 +31,14 @@ def write_wix_source(bundle, output, version, license_file=None):
         raise ValueError('Application executable is missing')
     if any(p.is_symlink() for p in bundle.rglob('*')):
         raise ValueError('MSI payload must not contain symlinks')
+    from app.version import native_version
+    installer_version='.'.join(map(str,native_version(version)[:3]))
     ET.register_namespace('',NAMESPACE)
     def element(parent,tag,**attributes):
         return ET.SubElement(parent,'{'+NAMESPACE+'}'+tag,attributes)
     def id_(name): return 'P'+hashlib.sha256(name.encode()).hexdigest()[:24]
     wix=ET.Element('{'+NAMESPACE+'}Wix')
-    package=element(wix,'Package',Name=APP_NAME,Manufacturer='itwormz',Version=version,
+    package=element(wix,'Package',Name=APP_NAME,Manufacturer='itwormz',Version=installer_version,
                     UpgradeCode=UPGRADE_CODE,Scope='perUser',InstallerVersion='500')
     element(package,'MajorUpgrade',DowngradeErrorMessage='A newer version is already installed.',Schedule='afterInstallInitialize')
     element(package,'MediaTemplate',EmbedCab='yes',CompressionLevel='high')

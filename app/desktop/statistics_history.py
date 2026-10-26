@@ -30,7 +30,7 @@ def segment_kind(row):
     if mode in ("unobserved","sleep","suspended"):return "gap"
     evidence=row.get('evidence',[])
     codes=evidence.get('codes',[]) if isinstance(evidence,dict) else evidence
-    if stage=='cod_oper' or (stage in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and 'operation_code' in codes):return 'cod'
+    if stage=='cod_oper' or (stage in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and 'operation_code' in codes):return 'cod'
     if stage in {'expired','blocked'} or kind in {'expired','blocked'}:return 'anomaly'
     if kind=='flow_restart' and isinstance(evidence,dict) and evidence.get('previous_stage') not in {None,'province','request_no_slots_restart','post_contact_no_slots'}:return 'anomaly'
     if any(s in stage or s in kind or s in mode for s in ("error","429","blocked","recovery","timeout","unknown","rate_limit")):return "recovery"
@@ -292,6 +292,7 @@ class Timeline(QWidget):
         if emit and set(unique)==self.selected_keys:return
         self.selected_rows=list(unique.values());self.selected_keys=set(unique)
         self.selected_key=self.selection_key(self.selected_rows[0]) if self.selected_rows else None
+        if not self.selected_rows:self._anchor_key=None
         self.update()
         if emit:self.selected.emit(self.selected_rows)
     def rows_at(self,position):
@@ -422,7 +423,9 @@ class Timeline(QWidget):
                 self.view_start=0.;self.view_end=1.;self.update_controls();self.update();event.accept();return True
         return super().event(event)
     def keyPressEvent(self,event):
-        if event.key()==Qt.Key.Key_0:self.view_start=0.;self.view_end=1.;self.update_controls();self.update();event.accept()
+        if event.key()==Qt.Key.Key_Escape:
+            self.set_selection([],emit=True);event.accept()
+        elif event.key()==Qt.Key.Key_0:self.view_start=0.;self.view_end=1.;self.update_controls();self.update();event.accept()
         elif event.key() in (Qt.Key.Key_Right,Qt.Key.Key_Left,Qt.Key.Key_Return,Qt.Key.Key_Space) and self.hit:
             if event.key()==Qt.Key.Key_Right:self.selection=(self.selection+1)%len(self.hit)
             if event.key()==Qt.Key.Key_Left:self.selection=(self.selection-1)%len(self.hit)
@@ -602,10 +605,6 @@ class StatisticsHistory(QWidget):
         # newly observed interval overlaps the selected empty range.
         for row in self.selected_rows:
             if segment_kind(row)=='gap' and lower.astimezone(timezone.utc)<local_time(row.get('end') or row['last_seen']).astimezone(timezone.utc) and local_time(row['start']).astimezone(timezone.utc)<upper.astimezone(timezone.utc) and not any(not other.get('event') and segment_kind(other)!='gap' and local_time(other['start']).astimezone(timezone.utc)<local_time(row.get('end') or row['last_seen']).astimezone(timezone.utc) and local_time(other.get('end') or other['last_seen']).astimezone(timezone.utc)>local_time(row['start']).astimezone(timezone.utc) for other in self.rows):selected.append(row)
-        meaningful=[row for row in self.rows if not row['event'] or segment_kind(row) in ('available','fatal')]
-        if not selected and meaningful:
-            # Prefer the latest informative state over a routine check event.
-            selected=[max(meaningful,key=lambda row:(segment_kind(row) not in ('search','gap'),row['start']))]
         self.show_details(selected)
         t=self.host.t
         self.empty.setText('' if self.rows else t('Нет наблюдений в выбранном диапазоне') if self.bounds else t('Старые итоги сохранены. Подробная история отсутствует.') if self.baseline else t('Пока нет истории поиска'))

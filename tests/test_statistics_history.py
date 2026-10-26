@@ -144,7 +144,7 @@ def test_timeline_coalesces_backgrounds_without_hiding_cod():
     assert bands[1]['left']==11/24 and bands[1]['right']==13/24
 
 
-def test_history_default_selection_survives_refresh_and_controls_share_header(qt_app):
+def test_history_selection_is_explicit_and_clearing_survives_refresh(qt_app):
     from app.desktop.statistics_history import StatisticsHistory
     from types import SimpleNamespace
     row=dict(id='cod',kind='page',stage='cod_oper',mode='',start='2026-10-23T10:00:00+00:00',end=None,last_seen='2026-10-23T11:00:00+00:00',confirmed_end=False,event=False,evidence=[])
@@ -154,11 +154,25 @@ def test_history_default_selection_survives_refresh_and_controls_share_header(qt
         def history(self,*a,**k):return [dict(row)]
     panel=StatisticsHistory(SimpleNamespace(t=lambda t:t,preferences={'dark':True,'language':'ru'}),Store())
     panel.resize(1000,350);panel.refresh('a','all');panel.show();qt_app.processEvents()
-    assert panel.detail.text()
+    assert not panel.detail.text() and not panel.timeline.selected_rows
     assert panel.period_button.mapTo(panel,panel.period_button.rect().center()).y()==panel.history_button.mapTo(panel,panel.history_button.rect().center()).y()
     assert panel.timeline.height()<=190
-    panel.show_details([row]);before=panel.detail.text();panel.refresh('a','all')
+    day,segments=panel.timeline.days[0]
+    selected=panel.timeline.display_rows(day,segments[0])
+    panel.show_details(selected);before=panel.detail.text();panel.refresh('a','all')
     assert panel.detail.text()==before
+    from PySide6.QtCore import Qt, QPoint
+    from PySide6.QtTest import QTest
+    panel.timeline.zoom(.5)
+    qt_app.processEvents()
+    QTest.mouseClick(panel.timeline,Qt.MouseButton.LeftButton,pos=QPoint(100,5))
+    assert not panel.selected_rows and not panel.detail.text()
+    row['last_seen']='2026-10-23T12:00:00+00:00'
+    panel.refresh('a','all');qt_app.processEvents()
+    assert not panel.selected_rows and not panel.timeline.selected_rows
+    assert panel.detail_card.isHidden()
+    panel.show_details([row]);QTest.keyClick(panel.timeline,Qt.Key.Key_Escape)
+    assert not panel.selected_rows
     panel.deleteLater()
 
 

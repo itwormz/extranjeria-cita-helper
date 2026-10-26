@@ -23,8 +23,9 @@ STATUSES = {
 ERROR_STAGES = {'expired', 'server_error', 'blocked', 'rate_limited'}
 NO_SLOTS = {'request_no_slots', 'request_no_slots_restart', 'post_contact_no_slots'}
 EXPECTED = {
-    'province': {'procedure'}, 'procedure': {'auth', 'auth_wait', 'applicant'},
-    'auth': {'auth_wait', 'applicant'}, 'auth_wait': {'applicant', 'request_menu'},
+    'province': {'procedure'}, 'procedure': {'auth', 'auth_wait', 'applicant', 'applicant_no_slots'},
+    'auth': {'auth_wait', 'applicant', 'applicant_no_slots'}, 'auth_wait': {'applicant', 'applicant_no_slots', 'request_menu'},
+    'applicant_no_slots': {'applicant', 'applicant_no_slots'},
     'applicant': {'request_menu', 'office', 'contact', 'booking'} | NO_SLOTS,
     'request_menu': {'office', 'contact', 'booking'} | NO_SLOTS,
     'office': {'contact', 'booking'} | NO_SLOTS,
@@ -40,6 +41,7 @@ ACTION_MESSAGES = {
     'applicant': 'Заполняем данные заявителя', 'request_menu': 'Запрашиваем ситу',
     'contact': 'Заполняем контактные данные', 'office': 'Выбираем офис',
     'request_no_slots': 'Повторяем проверку сит',
+    'applicant_no_slots': 'Обновляем форму без ввода данных',
     'request_no_slots_restart': 'Возвращаемся к началу через Aceptar',
     'post_contact_no_slots': 'Завершаем проход после отсутствия сит',
 }

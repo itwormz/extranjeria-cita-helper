@@ -917,7 +917,11 @@
     "Сбросов браузера": "Browser resets",
     "Неизвестных ошибок": "Unknown errors",
     "Остановок с ошибкой": "Error stops",
-    "Ещё офисов: {count}": "More offices: {count}"
+    "Ещё офисов: {count}": "More offices: {count}",
+    "Сит нет на форме заявителя": "No appointments on the applicant form",
+    "Подождать и обновить форму без ввода данных": "Wait and reload the form without entering data",
+    "Обновить форму без ввода данных": "Reload the form without entering data",
+    "Обновляем форму без ввода данных": "Reloading the form without entering data"
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1837,6 +1841,10 @@
     "Сбросов браузера": "Reinicios del navegador",
     "Неизвестных ошибок": "Errores desconocidos",
     "Остановок с ошибкой": "Paradas por error",
-    "Ещё офисов: {count}": "Más oficinas: {count}"
+    "Ещё офисов: {count}": "Más oficinas: {count}",
+    "Сит нет на форме заявителя": "Sin citas en el formulario de solicitante",
+    "Подождать и обновить форму без ввода данных": "Esperar y recargar el formulario sin introducir datos",
+    "Обновить форму без ввода данных": "Recargar el formulario sin introducir datos",
+    "Обновляем форму без ввода данных": "Recargando el formulario sin introducir datos"
   }
 }

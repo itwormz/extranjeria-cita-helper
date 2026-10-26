@@ -122,7 +122,8 @@ def test_http_429_overrides_block_page_and_probes_once_per_cooldown():
     asyncio.run(scenario())
 
 
-def test_warning_still_fills_applicant_then_polls_only_search_result():
+@pytest.mark.parametrize('fill_mode',['manual','copy'])
+def test_applicant_warning_reloads_without_identity_until_warning_disappears(fill_mode):
     async def scenario():
         from playwright.async_api import async_playwright
         from urllib.parse import parse_qs
@@ -137,7 +138,11 @@ def test_warning_still_fills_applicant_then_polls_only_search_result():
                         <input id="txtIdCitado" name="document"><input id="txtDesCitado" name="name">
                         <select id="txtPaisNac" name="nationality"><option value="ES">España</option></select>
                         <button id="btnEnviar">Aceptar</button></form>
-                        <p>En este momento no hay citas disponibles</p>"""
+                        """
+                    if fill_mode=='copy':
+                        body+="""<button type="button" id="btnCopiar" onclick="document.getElementById('txtIdCitado').value='X0000000T';document.getElementById('txtDesCitado').value='Test Applicant'">Copiar</button>"""
+                    if sum(path==p for _,p in calls)<3:
+                        body+='<p>En este momento no hay citas disponibles</p>'
                 elif path=='acValidarEntrada':
                     applicant_data.append(parse_qs(route.request.post_data))
                     body='<form method="post" action="acCitar"><button id="btnEnviar">Solicitar cita</button></form>'
@@ -146,17 +151,26 @@ def test_warning_still_fills_applicant_then_polls_only_search_result():
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
             await page.route('**/*',respond)
             r=runner_for(page,ctx)
-            r.task=SimpleNamespace(id="test",document_number="X0000000T",full_name="Test Applicant",nationality="España")
+            r.task=SimpleNamespace(id="test",document_number="X0000000T",full_name="Test Applicant",nationality="España",applicant_fill_mode=fill_mode)
+            r.policy.next_delay=lambda **kwargs:47
+            r.countdown=AsyncMock(return_value=True)
             await page.goto(BASE+'acEntrada')
             observed=await r.observe()
-            assert observed.kind=='applicant' and 'предупреждение' in observed.evidence
+            assert observed.kind=='applicant_no_slots'
+            for _ in range(2):
+                assert await page.locator('#txtIdCitado').input_value()==''
+                await r.step()
+                assert not applicant_data
+                assert r.control.snapshot()['checks']==0
+            assert [call.args[1] for call in r.countdown.await_args_list]==[47,47]
+            assert (await r.observe()).kind=='applicant'
             await r.step()
             assert applicant_data==[{'document':['X0000000T'],'name':['Test Applicant'],'nationality':['ES']}]
             assert (await r.observe()).kind=='request_menu'
             await r.step()
             assert (await r.observe()).kind=='request_no_slots'
             await r.step()
-            assert calls==[('GET','acEntrada'),('POST','acValidarEntrada'),('POST','acCitar'),('POST','acCitar')]
+            assert calls==[('GET','acEntrada')]*3+[('POST','acValidarEntrada'),('POST','acCitar'),('POST','acCitar')]
             assert r.control.snapshot()['checks']==2
             await browser.close()
     asyncio.run(scenario())
