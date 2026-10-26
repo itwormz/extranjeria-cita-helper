@@ -75,7 +75,7 @@ jobs:
         run: uv run python scripts/check_privacy.py --tree .
       - name: Test
         timeout-minutes: 15
-        run: uv run pytest -v --tb=short -o faulthandler_timeout=120
+        run: uv run pytest -v -s -o addopts= --tb=short -o faulthandler_timeout=120
       - name: Fetch public browser
         env:
           GITHUB_TOKEN: ${{ github.token }}

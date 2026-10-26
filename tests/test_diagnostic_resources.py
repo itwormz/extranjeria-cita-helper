@@ -35,7 +35,7 @@ def test_content_deduplicates_across_sessions_urls_and_versions(tmp_path):
     (URL, b"<html>Request Rejected</html>", "text/javascript"),
     (URL, b"a()", "text/html"),
     (URL, b"x" * (MAX_SCRIPT_BYTES + 1), "text/javascript"),
-])
+], ids=["external-host", "html-body", "html-mime", "oversize"])
 def test_rejects_external_html_and_oversize(tmp_path, url, body, mime):
     directory = prepare_session(tmp_path, "test", 30)
     assert not save_script(directory, url, body, 200, mime)
