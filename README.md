@@ -110,7 +110,7 @@ Actions performed and pages processed measure automated work: one completed acti
 
 In profile **Timings and retries**, **Repeat check** selects **Via Salir** (the default) or result reloads. Salir mode waits and clicks the website’s actual Salir button, then follows recognized pages; an absent or ambiguous button requires review. Both modes avoid entering applicant data while its form reports no appointments. A confirmed GET form can be reloaded. After the authentication POST to acEntrada, a separate GET refreshes the form without replaying authentication; other POST or unknown origins require review. No reduction in document submissions is assumed.
 
-The last working profile is restored on startup; opening Statistics initially follows that profile. Cod. Oper. periods continue through intermediate navigation until a normal availability result returns. Timeline selection changes only through explicit selection and stays cleared after refresh or zoom.
+The last working profile is restored on startup; opening Statistics initially follows that profile. Cod. Oper. periods continue through intermediate navigation until a normal availability result returns. Zoom and routine refreshes preserve the current timeline selection; changing the statistics profile or Today/All time scope clears it. Once cleared, selection does not return automatically.
 
 Statistics are stored in SQLite independently of page diagnostics and survive application restarts. Existing totals migrate automatically with an unchanged original and a backup; undated old totals do not become invented daily history. No statistics are uploaded automatically. A no-appointments page with Cod. Oper. is an observed state, not proof of a document-specific ban.
 

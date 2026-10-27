@@ -22,7 +22,8 @@ from app.desktop.profiles import ProfileStore
 def owner(qt_app,tmp_path,catalog_path):
     window=DesktopWindow(ProfileStore(tmp_path/'tasks.yml',catalog_path),Controller())
     yield window
-    window.close();window.deleteLater()
+    window.close()
+    window.deleteLater()
     from PySide6.QtCore import QCoreApplication,QEvent
     QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
     qt_app.processEvents()
