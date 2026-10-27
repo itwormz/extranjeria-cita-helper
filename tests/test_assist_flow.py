@@ -748,6 +748,8 @@ def test_booking_detail_handoff_contract_is_independent_of_browser_speed(tmp_pat
     session=StatisticsSession(statistics,task,control)
     control.set_diagnostics(False);control.set_timeline_path(tmp_path/'timeline.jsonl')
     observed=assist_flow.Observed('booking','doc','sig',page)
+    # Recognition records the original counter event before manual handoff.
+    control.observe_statistics('booking',observed.document)
     async def scenario():
         await runner.booking_attention(observed)
         await runner.booking_attention(observed)
