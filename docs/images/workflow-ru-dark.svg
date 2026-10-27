@@ -2,8 +2,12 @@
   <title>Логика работы Cita Extranjeria Helper</title>
   <desc>Старт сверху слева. Основной проход идёт вниз. Нет сит — ожидание и повтор; один офис выбирается автоматически, несколько вручную. При появлении ситы управление передаётся пользователю. Исключения перечислены справа.</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#919ba8" /></marker>
-    <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#a19bf8" /></marker>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10Z" fill="#919ba8" />
+    </marker>
+    <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10Z" fill="#a19bf8" />
+    </marker>
     <style>
       text {font-family:Arial, sans-serif;fill:#e6edf3;font-size:18px}
       .heading {font-size:25px;font-weight:700}
@@ -24,61 +28,64 @@
   <text x="60" y="78" class="section" style="fill:#b6b0ff">СТАРТ ↓</text>
   <text x="535" y="78" class="section">ПОВТОРНЫЕ ПРОВЕРКИ</text>
   <text x="860" y="78" class="section">ИСКЛЮЧЕНИЯ</text>
-
   <path class="link" d="M265 160V190" />
-<path class="link" d="M265 250V280" />
-<path class="link" d="M265 340V370" />
-<path class="link" d="M265 430V460" />
-<path class="link" d="M265 520V550" />
-<path class="link" d="M265 610V640" />
-<path class="link" d="M265 700V750" />
-<path class="link" d="M265 835V875" />
-<path class="link" d="M265 935V975" />
+  <path class="link" d="M265 250V280" />
+  <path class="link" d="M265 340V370" />
+  <path class="link" d="M265 430V460" />
+  <path class="link" d="M265 520V550" />
+  <path class="link" d="M265 610V640" />
+  <path class="link" d="M265 700V750" />
+  <path class="link" d="M265 835V875" />
+  <path class="link" d="M265 935V975" />
   <path class="link" d="M470 670H535" />
   <path class="loop" d="M665 640V620H390V640" />
-  <path class="link" d="M665 730V765" /><path class="link" d="M665 825V875" />
+  <path class="link" d="M470 670H500V807H535" />
+  <path class="link" d="M665 850V875" />
   <path class="link" d="M470 905H535" />
   <path class="loop" d="M795 905H815V1090H30V220H60" />
-
   <rect class="manual" x="60" y="100" width="410" height="60" rx="12" />
-  <text x="82" y="136"><tspan class="name">Профиль:</tspan> выбрать</text>
+  <text x="82" y="136">
+    <tspan class="name">Профиль:</tspan> выбрать</text>
   <rect class="node" x="60" y="190" width="410" height="60" rx="12" />
-  <text x="82" y="226"><tspan class="name">Провинция:</tspan> выбрать</text>
+  <text x="82" y="226">
+    <tspan class="name">Провинция:</tspan> выбрать</text>
   <rect class="node" x="60" y="280" width="410" height="60" rx="12" />
-  <text x="82" y="316"><tspan class="name">Услуга:</tspan> выбрать по профилю</text>
+  <text x="82" y="316">
+    <tspan class="name">Услуга:</tspan> выбрать по профилю</text>
   <rect class="manual" x="60" y="370" width="410" height="60" rx="12" />
-  <text x="82" y="406"><tspan class="name">Вход:</tspan> сертификат / Cl@ve</text>
+  <text x="82" y="406">
+    <tspan class="name">Вход:</tspan> сертификат / Cl@ve</text>
   <rect class="node" x="60" y="460" width="410" height="60" rx="12" />
-  <text x="82" y="496"><tspan class="name">Заявитель:</tspan> заполнить данные</text>
+  <text x="82" y="496" class="name">Форма заявителя: проверить</text>
   <rect class="node" x="60" y="550" width="410" height="60" rx="12" />
-  <text x="82" y="586"><tspan class="name">Запрос:</tspan> нажать Solicitar cita</text>
+  <text x="82" y="576" class="name">Данные: ввести / скопировать</text>
   <rect class="node" x="60" y="640" width="410" height="60" rx="12" />
-  <text x="82" y="676"><tspan class="name">Результат:</tspan> распознать страницу</text>
+  <text x="82" y="676">
+    <tspan class="name">Результат:</tspan> распознать страницу</text>
   <text x="279" y="731" class="label">Офисы доступны</text>
-
   <rect class="manual" x="60" y="750" width="410" height="85" rx="12" />
   <text x="82" y="779" class="name">Офисы: выбрать и продолжить</text>
   <text x="82" y="807" class="small">1 — автоматически · 2+ — звонить и ждать</text>
   <rect class="node" x="60" y="875" width="410" height="60" rx="12" />
-  <text x="82" y="911"><tspan class="name">Контакты:</tspan> заполнить</text>
+  <text x="82" y="911">
+    <tspan class="name">Контакты:</tspan> заполнить</text>
   <text x="481" y="883" class="label">Нет сит</text>
   <text x="279" y="961" class="label">Сита доступна</text>
   <rect class="found" x="60" y="975" width="410" height="82" rx="12" />
   <text x="82" y="1006" class="name">Сита: звонить → передать управление</text>
-  <text x="82" y="1034" class="small">Дата, время, подтверждение — вручную</text>
-
-  <rect class="wait" x="535" y="640" width="260" height="90" rx="12" />
+  <text x="82" y="1034" class="small" style="font-size:14px">Дата, время, CAPTCHA, подтверждение — вручную</text>
+  <rect class="wait" x="535" y="640" width="260" height="100" rx="12" />
   <text x="555" y="675" class="name">Нет сит: ждать</text>
-  <text x="555" y="704" class="small">Затем: обновить результат</text>
-  <text x="535" y="610" class="label">Повтор в той же сессии</text>
-  <text x="680" y="756" class="label">Нужен новый проход</text>
-  <rect class="node" x="535" y="765" width="260" height="60" rx="12" />
-  <text x="555" y="801"><tspan class="name">Aceptar:</tspan> завершить проход</text>
+  <text x="555" y="704" class="small">Salir → распознать ответ</text>
+  <text x="535" y="610" class="label">Продолжить с распознанной страницы</text>
+  <text x="535" y="756" class="label">В том числе Cod. Oper.</text>
+  <rect class="wait" x="535" y="765" width="260" height="85" rx="12" />
+  <text x="555" y="796" class="name">Нет сит + Aceptar</text>
   <rect class="wait" x="535" y="875" width="260" height="60" rx="12" />
-  <text x="555" y="911"><tspan class="name">Проход:</tspan> начать заново</text>
+  <text x="555" y="911">
+    <tspan class="name">Проход:</tspan> начать заново</text>
   <text x="551" y="961" class="label">После контактов: Salir / Aceptar</text>
   <text x="330" y="1117" class="label" style="fill:#b6b0ff">Возврат к выбору провинции</text>
-
   <text x="860" y="115" class="small" style="fill:#a3aebd">На любом этапе</text>
   <path d="M860 140H1135" stroke="#30363d" />
   <text x="860" y="180" class="name">Сессия истекла</text>
@@ -94,9 +101,22 @@
   <text x="864" y="583" class="name">Неизвестный экран</text>
   <text x="864" y="610" class="small">или результат не подтверждён</text>
   <text x="864" y="637" class="small">Уведомить → ручное управление</text>
-
-  <rect x="60" y="1153" width="14" height="14" rx="3" class="node" /><text x="83" y="1165" class="label">Автоматически</text>
-  <rect x="250" y="1153" width="14" height="14" rx="3" class="wait" /><text x="273" y="1165" class="label">Ожидание / повтор</text>
-  <rect x="468" y="1153" width="14" height="14" rx="3" class="manual" /><text x="491" y="1165" class="label">Может требоваться участие</text>
-  <rect x="766" y="1153" width="14" height="14" rx="3" class="found" /><text x="789" y="1165" class="label">Найдена сита</text>
+  <rect x="60" y="1153" width="14" height="14" rx="3" class="node" />
+  <text x="83" y="1165" class="label">Автоматически</text>
+  <rect x="250" y="1153" width="14" height="14" rx="3" class="wait" />
+  <text x="273" y="1165" class="label">Ожидание / повтор</text>
+  <rect x="468" y="1153" width="14" height="14" rx="3" class="manual" />
+  <text x="491" y="1165" class="label">Может требоваться участие</text>
+  <rect x="766" y="1153" width="14" height="14" rx="3" class="found" />
+  <text x="789" y="1165" class="label">Найдена сита</text>
+  <path class="link" d="M470 490H535" />
+  <path class="loop" d="M665 460V440H390V460" />
+  <rect class="wait" x="535" y="460" width="260" height="90" rx="12" />
+  <text x="555" y="495" class="name">Нет сит: ждать</text>
+  <text x="555" y="524" class="small">GET формы · без ввода</text>
+  <text x="279" y="541" class="label">Без предупреждения</text>
+  <text x="555" y="726" class="label">Обновление — опция профиля</text>
+  <text x="555" y="827" class="small">3 мин → нажать Aceptar</text>
+  <text x="82" y="599" class="small">Затем: Solicitar cita</text>
+  <text x="535" y="115" class="label">Паузы по умолчанию</text>
 </svg>
