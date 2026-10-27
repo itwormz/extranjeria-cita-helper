@@ -24,3 +24,9 @@ def test_bounded_read_uses_only_offers_and_public_office():
     source=SimpleNamespace(evaluate=AsyncMock(return_value=['Día: 28/10/2026 Hora:12:30']))
     details=asyncio.run(read_booking_details(source,office='CNP TEST, CALLE TEST, 1'))
     assert details=={'office':'CNP TEST, CALLE TEST, 1','offers':[{'date':'2026-10-28','time':'12:30'}]}
+
+
+@pytest.mark.parametrize('labels', [[], ['a partir de las 09:00'], ['Día: 31/02/2026 Hora:12:30']])
+def test_unsupported_or_invalid_offers_do_not_return_office_only_details(labels):
+    source = SimpleNamespace(evaluate=AsyncMock(return_value=labels))
+    assert asyncio.run(read_booking_details(source, office='CNP TEST, CALLE TEST, 1')) == {}

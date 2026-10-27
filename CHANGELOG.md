@@ -2,6 +2,8 @@
 
 ## 0.2.3.dev2 — Search options and booking details
 
+- Match booking-radio names case-insensitively and keep the generic notification when no valid explicit offers are recognized. Strengthen the handoff regression so swallowed callback assertions cannot hide a failure.
+
 - Preserve the selected office/address and explicitly offered appointment dates/times on the original detected-booking event in local statistics, independently of diagnostics. Enrichment keeps the detection timestamp and counters unchanged.
 - Show these details in booking marker hover and selection cards, and in the user journal and session timeline log. Each office stays associated with its own offers; old history without details remains unchanged. CAPTCHA, hidden identifiers, applicant data and confirmation numbers are excluded.
 

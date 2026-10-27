@@ -11,7 +11,8 @@ from tests.test_local_assist_browser import runner_for, BASE
 pytestmark=pytest.mark.skipif(os.getenv('CITA_BROWSER_TESTS')!='1',reason='opt-in browser tests')
 
 
-def test_booking_radio_details_are_passive_and_exclude_filters_hidden_and_disabled_offers(tmp_path):
+@pytest.mark.parametrize('radio_name', ['rdbCita', 'rdbCITA'])
+def test_booking_radio_details_are_passive_and_exclude_filters_hidden_and_disabled_offers(tmp_path, radio_name):
     async def scenario():
         from playwright.async_api import async_playwright, expect
         async with async_playwright() as pw:
@@ -23,6 +24,7 @@ def test_booking_radio_details_are_passive_and_exclude_filters_hidden_and_disabl
                 <select id="txtHora"><option>a partir de las 09:00</option></select>
                 <input id="txtCaptcha" value="PRIVATE-CAPTCHA"><input type="hidden" name="txtIdCita" value="PRIVATE-CONFIRMATION">
                 <div style="height:2000px"></div>'''
+            html = html.replace('name="rdbCita"', f'name="{radio_name}"')
             calls=[]
             async def respond(route):calls.append(route.request.url);await route.fulfill(body=html,content_type='text/html; charset=utf-8')
             await page.route('**/*',respond);await page.goto(BASE+'acCita')

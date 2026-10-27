@@ -628,12 +628,13 @@ def test_booking_details_failure_keeps_handoff_and_does_not_stall_notification(m
     control=AssistControl()
     runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
     observed=assist_flow.Observed('booking','doc','sig',page)
+    seen=[]
     async def fail(*args,**kwargs):
-        assert control.booking_handoff and control.snapshot()['booking_details_pending']
-        assert runner.attention is not None  # bell before passive reading
+        seen.append((control.booking_handoff,control.snapshot()['booking_details_pending'],runner.attention is not None))
         raise RuntimeError('navigation')
     monkeypatch.setattr(booking_details,'read_booking_details',fail)
     with pytest.raises(RuntimeError,match='page changed'):asyncio.run(runner.booking_attention(observed))
+    assert seen==[(True,True,True)]
     state=control.snapshot()
     assert state['booking_handoff'] and not state['booking_details_pending']
     assert state['booking_details']=={} and runner.checker._assist_guard is None

@@ -8,7 +8,7 @@ MAX_OFFERS = 8
 OFFER_LABELS = """() => {
     const visible = el => !!el && el.getClientRects().length > 0 &&
         getComputedStyle(el).visibility === 'visible' && getComputedStyle(el).display !== 'none';
-    return Array.from(document.querySelectorAll('input[type="radio"][name="rdbCita"]'))
+    return Array.from(document.querySelectorAll('input[type="radio"][name="rdbCita" i]'))
         .filter(el => !el.matches(':disabled') && visible(el))
         .slice(0, 32).map(el => Array.from(el.labels || []).filter(visible)
             .map(label => label.innerText).join(' ').slice(0, 240));
@@ -16,6 +16,7 @@ OFFER_LABELS = """() => {
 
 
 def parse_offers(labels):
+    """Validate and deduplicate explicit radio-label dates and times within fixed limits."""
     offers=[]
     if not isinstance(labels,list):return offers
     for label in labels[:32]:
@@ -31,12 +32,17 @@ def parse_offers(labels):
 
 
 async def read_booking_details(source, *, office='', timeout=.75):
-    try:labels=await asyncio.wait_for(source.evaluate(OFFER_LABELS),timeout=timeout)
-    except Exception:return {}
-    details={}
-    if isinstance(office,str) and office.strip():details['office']=' '.join(office.split())[:320]
-    offers=parse_offers(labels)
-    if offers:details['offers']=offers
+    """Read public offers passively; unsupported or failed reads keep the generic alert."""
+    try:
+        labels = await asyncio.wait_for(source.evaluate(OFFER_LABELS), timeout=timeout)
+    except Exception:
+        return {}
+    offers = parse_offers(labels)
+    if not offers:
+        return {}
+    details = {'offers': offers}
+    if isinstance(office, str) and office.strip():
+        details['office'] = ' '.join(office.split())[:320]
     return details
 
 
@@ -61,6 +67,7 @@ def normalize_booking_details(raw):
 
 
 def booking_lines(raw):
+    """Format allowlisted office and offers for notifications and local history."""
     details=normalize_booking_details(raw)
     lines=[details['office']] if details.get('office') else []
     lines.extend(date.fromisoformat(offer['date']).strftime('%d.%m.%Y')+' — '+offer['time'] for offer in details.get('offers',[]))
