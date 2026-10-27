@@ -2,6 +2,8 @@
 
 ## 0.2.3 — Search options and booking details
 
+- Separate real-browser offer extraction from deterministic handoff/history checks. Test successful enrichment and timeout fallback independently instead of requiring a loaded CI browser to beat the production read deadline.
+
 - Keep simulated human input independent of the bounded details reader in the offline booking regression; wait for confirmed input delivery and eventual acknowledgement instead of assuming two manual ticks.
 
 - Keep manual booking active when the bounded human-attention probe times out. Preserve the alert and retry the passive probe on the next tick instead of aborting the search.

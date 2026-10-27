@@ -720,3 +720,53 @@ def test_booking_attention_probe_timeout_preserves_handoff_and_retries(phase):
         assert runner.booking_acknowledged and runner.attention is None
     asyncio.run(scenario())
     assert evaluate.await_count == 2
+
+
+@pytest.mark.parametrize('reader_times_out', [False, True])
+def test_booking_detail_handoff_contract_is_independent_of_browser_speed(tmp_path,monkeypatch,reader_times_out):
+    """Verify enrichment and fallback independently of real browser RPC latency."""
+    from app import booking_details
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.statistics_session import StatisticsSession
+    from app.assist_journal import description
+    url='https://icp.administracionelectronica.gob.es/icpplus/acCita'
+    page=SimpleNamespace(url=url,evaluate=AsyncMock(),wait_for_timeout=AsyncMock(),
+        locator=lambda _:SimpleNamespace(get_attribute=AsyncMock(return_value=None)))
+    control=AssistControl()
+    task=SimpleNamespace(id='test',province='Barcelona',procedure='huellas',access_mode='certificate')
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),task,'run',control,
+        SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
+    runner.save=AsyncMock()
+    runner.selected_office={'value':'20','text':'CNP TEST, CALLE TEST, 1'}
+    runner.current_offices=[runner.selected_office,{'value':'21','text':'OTHER OFFICE'}]
+    details={'office':runner.selected_office['text'],'offers':[
+        {'date':'2026-10-28','time':'12:30'},{'date':'2026-10-29','time':'12:06'}]}
+    reader=AsyncMock(side_effect=TimeoutError()) if reader_times_out else AsyncMock(return_value=details)
+    monkeypatch.setattr(booking_details,'read_booking_details',reader)
+    monkeypatch.setattr(assist_flow,'_document_key',AsyncMock(return_value='doc'))
+    statistics=ProfileStatistics(tmp_path/'statistics.json')
+    session=StatisticsSession(statistics,task,control)
+    control.set_diagnostics(False);control.set_timeline_path(tmp_path/'timeline.jsonl')
+    observed=assist_flow.Observed('booking','doc','sig',page)
+    # Recognition records the original counter event before manual handoff.
+    control.observe_statistics('booking',observed.document)
+    async def scenario():
+        await runner.booking_attention(observed)
+        await runner.booking_attention(observed)
+    asyncio.run(scenario())
+    state=control.snapshot()
+    assert state['booking_handoff'] and not state['booking_details_pending']
+    assert runner.checker._assist_guard is None
+    assert state['booking_details']==({} if reader_times_out else details)
+    reader.assert_awaited_once_with(page,office=runner.selected_office['text'])
+    session.close('stopped')
+    assert statistics.get('test')['booking_screens']==1
+    recorded=next(row for row in ProfileStatistics(statistics.path).history('test') if row['kind']=='booking')
+    if reader_times_out:
+        assert not recorded['evidence'].get('booking_details')
+    else:
+        assert recorded['evidence']['booking_details']==details
+        journal=next(row for row in state['journal'] if row['stage']=='booking')
+        assert '28.10.2026 — 12:30' in description(journal)
+        log=(tmp_path/'timeline.jsonl').read_text()
+        assert details['office'] in log and '28.10.2026 — 12:30' in log
