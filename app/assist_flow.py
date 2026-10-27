@@ -1042,15 +1042,20 @@ class AssistRunner:
             if observed.kind in {"booking", "captcha"} and not self.booking_acknowledged:
                 # Only trusted input counts as human attention. bring_to_front()
                 # and synthetic DOM events must not silence the repeating chime.
-                await asyncio.wait_for(self.page.evaluate("""() => {
-                    if (!document.documentElement.hasAttribute('data-cita-attention-installed')) {
-                        document.documentElement.setAttribute('data-cita-attention-installed','1');
-                        const mark = e => { if (e.isTrusted) document.documentElement.setAttribute('data-cita-human-attention','1'); };
-                        document.addEventListener('pointerdown',mark,true);
-                        document.addEventListener('keydown',mark,true);
-                    }
-                }"""),timeout=.5)
-                seen = await asyncio.wait_for(self.page.locator("html").get_attribute("data-cita-human-attention"),timeout=.5)
+                try:
+                    await asyncio.wait_for(self.page.evaluate("""() => {
+                        if (!document.documentElement.hasAttribute('data-cita-attention-installed')) {
+                            document.documentElement.setAttribute('data-cita-attention-installed','1');
+                            const mark = e => { if (e.isTrusted) document.documentElement.setAttribute('data-cita-human-attention','1'); };
+                            document.addEventListener('pointerdown',mark,true);
+                            document.addEventListener('keydown',mark,true);
+                        }
+                    }"""),timeout=.5)
+                    seen = await asyncio.wait_for(self.page.locator("html").get_attribute("data-cita-human-attention"),timeout=.5)
+                except TimeoutError:
+                    # A passive attention probe must never abort manual booking.
+                    # Leave the chime active and retry on the next manual tick.
+                    seen = None
                 if seen:
                     if observed.kind=='booking':self.booking_acknowledged=True
                     await self.silence()
