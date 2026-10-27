@@ -92,7 +92,8 @@ def test_continue_mode_fills_warning_form_and_submits_once(fill_mode):
     asyncio.run(scenario())
 
 
-def test_human_attention_during_detail_read_is_not_lost(monkeypatch):
+@pytest.mark.parametrize('human_delay', [0, 1.1])
+def test_human_attention_during_detail_read_is_not_lost(monkeypatch,human_delay):
     async def scenario():
         from playwright.async_api import async_playwright, expect
         from app import booking_details
@@ -102,13 +103,34 @@ def test_human_attention_during_detail_read_is_not_lost(monkeypatch):
             await page.goto(BASE+'acCita')
             await expect(page.locator('input[name=fecha]')).to_be_visible(timeout=10_000)
             r=runner_for(page,ctx)
+            human_actions=[]
             async def read(*args,**kwargs):
-                # Simulate actual user attention during the bounded read.
-                await page.locator('#captcha').click()
+                # A real person's click is independent of the passive reader.
+                # Cancelling that reader must not cancel the test's input action.
+                async def human_input():
+                    await asyncio.sleep(human_delay)
+                    await page.locator('#captcha').click(timeout=10_000)
+                action=asyncio.create_task(human_input())
+                human_actions.append(action)
+                await asyncio.shield(action)
                 return {}
             monkeypatch.setattr(booking_details,'read_booking_details',read)
-            await r.step();await r.step()
-            assert r.booking_acknowledged
-            assert r.attention is None
-            await browser.close()
+            try:
+                await r.step()
+                assert len(human_actions)==1
+                await human_actions[0]
+                await expect(page.locator('html')).to_have_attribute('data-cita-human-attention','1',timeout=10_000)
+                # Poll the manual loop rather than assuming a single bounded DOM
+                # probe always completes on a loaded Windows runner.
+                deadline=asyncio.get_running_loop().time()+10
+                while not r.booking_acknowledged and asyncio.get_running_loop().time()<deadline:
+                    await r.step()
+                assert r.booking_acknowledged
+                assert r.attention is None
+                assert r.control.booking_handoff and r.checker._assist_guard is None
+            finally:
+                for action in human_actions:
+                    if not action.done():action.cancel()
+                await asyncio.gather(*human_actions,return_exceptions=True)
+                await browser.close()
     asyncio.run(scenario())
