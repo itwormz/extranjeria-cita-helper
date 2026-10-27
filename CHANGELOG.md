@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.3.dev2 — Search options and booking details
+## 0.2.3 — Search options and booking details
 
 - Match booking-radio names case-insensitively and keep the generic notification when no valid explicit offers are recognized. Strengthen the handoff regression so swallowed callback assertions cannot hide a failure.
 
