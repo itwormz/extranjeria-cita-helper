@@ -2,6 +2,8 @@
 
 ## 0.2.3 — Search options and booking details
 
+- Keep simulated human input independent of the bounded details reader in the offline booking regression; wait for confirmed input delivery and eventual acknowledgement instead of assuming two manual ticks.
+
 - Keep manual booking active when the bounded human-attention probe times out. Preserve the alert and retry the passive probe on the next tick instead of aborting the search.
 
 - Match booking-radio names case-insensitively and keep the generic notification when no valid explicit offers are recognized. Strengthen the handoff regression so swallowed callback assertions cannot hide a failure.
