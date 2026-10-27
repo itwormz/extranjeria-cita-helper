@@ -28,6 +28,7 @@ Read `README.md`, `CHANGELOG.md` and the relevant modules before making changes.
 | --- | --- |
 | CLI / desktop startup | `app/main.py`, `app/desktop/__init__.py` |
 | Page recognition, actions and recovery | `app/assist_flow.py`, `app/site.py`, `app/page_inspection.py` |
+| Public booking offers / notifications | `app/booking_details.py`, `app/notifications.py`, `app/desktop/notification_delivery.py` |
 | Browser lifecycle and visibility | `app/assist_runtime.py`, `app/browser_visibility.py`, `app/desktop_session.py` |
 | Worker / controller communication | `app/desktop/worker.py`, `process.py`, `protocol.py`, `app/assist_control.py` |
 | UI, themes and translations | `app/desktop/window.py`, `theme.py`, `i18n.py`, `assets/translations.json` |
@@ -71,6 +72,8 @@ or installer validation. Preserve an active browser session when rebuilding.
 
 ## UI and documentation
 
+- Profile search choices are independent: `request.applicant_no_slots_mode` defaults to `wait` (or `continue`), while `request.no_slots_mode` defaults to `salir` (or `reload`). Preserve both on edits; timings and POST safety are separate.
+- Booking details enrich the existing exact profile/session/document event without recounting or moving its detection time. Only recognized public office/address and explicit offered slots belong in statistics/logs; never CAPTCHA, hidden IDs or confirmation numbers. Keep these records independent of diagnostics.
 - Keep colours in `theme.py`. Keep user logs focused on pages, actions and outcomes;
   raw capture/debug events belong in diagnostics. Do not translate site data.
 - Update English and Spanish mappings when changing a translatable UI string.

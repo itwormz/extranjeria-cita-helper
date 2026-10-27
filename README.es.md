@@ -36,7 +36,7 @@ En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un web
 
 **Webhook:** introducir una URL HTTPS y seleccionar POST (JSON) o GET (parámetros de URL). **Parámetros avanzados** abre las cabeceras, los parámetros de URL y la plantilla JSON personalizada. Los valores son secretos por defecto; el candado cambia este modo de visualización y el ojo muestra temporalmente el valor. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Enviar una prueba antes de guardar.
 
-Las credenciales se guardan en macOS Keychain, Windows Credential Manager o Linux Secret Service (requiere un proveedor de secretos desbloqueado). Las credenciales se leen al abrir la pestaña Notificaciones; editar otros campos del perfil no accede al almacén. No se guardan en texto plano; al trasladar un perfil a otro equipo deben introducirse de nuevo. Los mensajes incluyen el nombre del perfil y la provincia, sin identificadores del solicitante, datos de la cita ni capturas. La reserva remota no está incluida; las acciones manuales siguen realizándose en Camoufox.
+Las credenciales se guardan en macOS Keychain, Windows Credential Manager o Linux Secret Service (requiere un proveedor de secretos desbloqueado). Las credenciales se leen al abrir la pestaña Notificaciones; editar otros campos del perfil no accede al almacén. No se guardan en texto plano; al trasladar un perfil a otro equipo deben introducirse de nuevo. Los mensajes incluyen el nombre del perfil y la provincia. Las alertas de cita en Telegram también incluyen la oficina/dirección actual y las fechas y horas ofrecidas explícitamente cuando se reconocen; se excluyen los filtros de búsqueda y los formatos desconocidos mantienen el aviso general. Los webhooks no cambian. No se envían identificadores del solicitante, contactos, CAPTCHA, números de confirmación ni capturas. La reserva remota no está incluida; las acciones manuales siguen realizándose en Camoufox.
 
 ## Integridad de las actualizaciones
 
@@ -49,7 +49,7 @@ Las raíces de confianza se incluyen en la aplicación; no se confía en una cac
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/workflow-es-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/images/workflow-es-light.svg">
-  <img src="docs/images/workflow-es-light.svg" alt="Esquema de funcionamiento" width="1180">
+  <img src="docs/images/workflow-es-light.svg" alt="Esquema de funcionamiento" width="820">
 </picture>
 
 ## 🎯 Finalidad y uso responsable
@@ -108,12 +108,14 @@ La pestaña Estadísticas ofrece **Hoy / Todo el tiempo** para cada perfil: comp
 
 Las acciones realizadas y las páginas procesadas reflejan el trabajo automático: cada activación, selección, campo rellenado o recarga completada cuenta como una acción; cada documento reconocido se cuenta una vez. Se excluyen las acciones manuales y los reconocimientos repetidos. Estos contadores empiezan con la actualización y no reconstruyen el trabajo anterior.
 
-En el perfil, en **Tiempos y reintentos**, **Repetir comprobación** usa **Mediante Salir** por defecto; también permite recargar el resultado. El modo Salir espera, pulsa el botón real de la web y sigue las páginas reconocidas; si falta el botón o es ambiguo, solicita revisión. Ambos modos evitan introducir datos mientras el formulario indique que no hay citas. Un formulario obtenido por GET confirmado se puede recargar. Tras el POST de autenticación a acEntrada, un GET independiente actualiza el formulario sin reenviar la autenticación; otros POST o un método desconocido requieren revisión. No se presupone una reducción de los envíos del documento.
+En el perfil, en **Tiempos y reintentos**, hay dos ajustes independientes. **En el formulario del solicitante** usa **Esperar si no hay citas** por defecto: no introduce datos mientras siga el aviso. **Rellenar y continuar** permite introducir o copiar los datos pese al aviso. **Tras el resultado sin citas** usa **Mediante Salir** por defecto; también permite recargar el resultado. Salir espera y utiliza el control real del sitio, siguiendo las páginas reconocidas; si falta o es ambiguo, solicita revisión. Para la búsqueda habitual se recomienda esperar y usar Salir. El envío repetido de datos puede aumentar el riesgo de bloqueo. Los intervalos, las pausas de recuperación y la protección frente al reenvío de POST ambiguos no cambian. En modo de espera, un formulario obtenido por GET confirmado se puede recargar; tras el POST de autenticación a acEntrada se utiliza un GET independiente sin reenviar la autenticación. Otros POST o un método desconocido requieren revisión.
 
 Al iniciar se restaura el último perfil de trabajo; Estadísticas muestra inicialmente ese perfil. Los periodos Cod. Oper. continúan durante la navegación intermedia hasta un resultado normal de disponibilidad. El zoom y las actualizaciones habituales conservan la selección; cambiar el perfil estadístico o el ámbito Hoy/Todo el tiempo la borra. Una vez borrada, no se restaura automáticamente.
 
 Las estadísticas se guardan en SQLite independientemente del diagnóstico y se conservan entre reinicios. Los totales anteriores migran automáticamente manteniendo el original y una copia de seguridad; los contadores sin fecha no se convierten en un historial diario inventado. No se envían estadísticas automáticamente. Una página sin citas con Cod. Oper. se registra como estado observado, no como prueba de bloqueo por documento.
 Al pasar por la línea temporal se resalta el tramo o evento; un clic muestra su duración y contadores. Arrastrar selecciona tramos completos; **Seleccionar varios** o ⌘/Ctrl-clic combina la selección. Se excluyen los intervalos no seleccionados y los eventos no se cuentan dos veces. Arrastrar el espacio vacío o usar Alt permite desplazar la vista; se mantienen los gestos del panel táctil.
+
+Los eventos de cita reconocidos conservan localmente la oficina/dirección seleccionada y las fechas y horas ofrecidas explícitamente, incluso con el diagnóstico desactivado. Se muestran al pasar el cursor o seleccionar el marcador y en los registros de la sesión. No se duplica el contador ni se completan por suposición los eventos antiguos.
 
 El historial muestra inicialmente todos los días con observaciones; **Periodo** permite seleccionar fechas. Las fechas y duraciones se conservan por separado: el plazo anterior hasta la primera disponibilidad no es tiempo de búsqueda activa. **≥** indica un mínimo confirmado cuando el historial está incompleto.
 

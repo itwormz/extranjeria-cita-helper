@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.3.dev2 — Search options and booking details
+
+- Preserve the selected office/address and explicitly offered appointment dates/times on the original detected-booking event in local statistics, independently of diagnostics. Enrichment keeps the detection timestamp and counters unchanged.
+- Show these details in booking marker hover and selection cards, and in the user journal and session timeline log. Each office stays associated with its own offers; old history without details remains unchanged. CAPTCHA, hidden identifiers, applicant data and confirmation numbers are excluded.
+
+- Refresh the timings screenshot from the current profile editor while keeping the gallery’s shared dimensions.
+- Redraw the English, Russian and Spanish light/dark workflow diagrams with a straight main path, blue option-labelled return arrows, a shared Salir/Aceptar restart and manual booking ownership. Both search choices are retained as typed session context.
+- Keep applicant-warning fill/submission and confirmed transitions accurate in the user journal when continue mode is enabled.
+- Configure two independent profile choices: wait on the applicant form while it reports no appointments, or fill/copy applicant data and continue; separately follow Salir or reload an ordinary result. Existing profiles keep their saved result mode and default to waiting on the applicant form. Intervals, recovery cooldowns and ambiguous-POST safeguards remain in force.
+- Telegram appointment alerts can include the current office/address and explicit visible appointment date/time offers from the known ICP radio layout. Time filters, applicant data, CAPTCHA, hidden identifiers and confirmation numbers are excluded. Unsupported layouts and failed reads fall back to the general notification; webhook payloads remain unchanged.
+- Hand control and sound alerts to the user before the bounded passive read, without scrolling, focusing or changing booking fields. Recognize the official rdbCita radio control regardless of letter case.
+
 ## 0.2.2 — Search modes and automation statistics
 
 ### Search and profiles

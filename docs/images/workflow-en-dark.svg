@@ -1,122 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1190" viewBox="0 0 1180 1190">
-  <title>Cita Extranjeria Helper — workflow</title>
-  <desc>Start at top left. Main flow downwards, retries in the middle, recovery at right.</desc>
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 10 5 0 10Z" fill="#919ba8" />
-    </marker>
-    <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 10 5 0 10Z" fill="#a19bf8" />
-    </marker>
-    <style>
-      text {font-family:Arial, sans-serif;fill:#e6edf3;font-size:18px}
-      .heading {font-size:25px;font-weight:700}
-      .section {font-size:14px;font-weight:700;letter-spacing:1.4px;fill:#919ba8}
-      .label {font-size:14px;fill:#a3aebd}
-      .name {font-weight:700}
-      .node {fill:#161b22;stroke:#30363d;stroke-width:1.4}
-      .manual {fill:#282214;stroke:#80652e;stroke-width:1.4}
-      .wait {fill:#211f3c;stroke:#6862ad;stroke-width:1.4}
-      .found {fill:#132b21;stroke:#397c58;stroke-width:1.5}
-      .link {fill:none;stroke:#919ba8;stroke-width:1.8;marker-end:url(#arrow);stroke-linejoin:round}
-      .loop {fill:none;stroke:#a19bf8;stroke-width:1.8;marker-end:url(#loop-arrow);stroke-linejoin:round}
-      .small {font-size:16px}
-    </style>
-  </defs>
-  <rect width="1180" height="1190" fill="#0d1117" />
-  <text x="60" y="42" class="heading">Cita Extranjeria Helper</text>
-  <text x="60" y="78" class="section" style="fill:#b6b0ff">START ↓</text>
-  <text x="535" y="78" class="section">REPEAT CHECKS</text>
-  <text x="860" y="78" class="section">EXCEPTIONS</text>
-  <path class="link" d="M265 160V190" />
-  <path class="link" d="M265 250V280" />
-  <path class="link" d="M265 340V370" />
-  <path class="link" d="M265 430V460" />
-  <path class="link" d="M265 520V550" />
-  <path class="link" d="M265 610V640" />
-  <path class="link" d="M265 700V750" />
-  <path class="link" d="M265 835V875" />
-  <path class="link" d="M265 935V975" />
-  <path class="link" d="M470 670H535" />
-  <path class="loop" d="M665 640V620H390V640" />
-  <path class="link" d="M470 670H500V807H535" />
-  <path class="link" d="M665 850V875" />
-  <path class="link" d="M470 905H535" />
-  <path class="loop" d="M795 905H815V1090H30V220H60" />
-  <rect class="manual" x="60" y="100" width="410" height="60" rx="12" />
-  <text x="82" y="136">
-    <tspan class="name">Profile:</tspan> select</text>
-  <rect class="node" x="60" y="190" width="410" height="60" rx="12" />
-  <text x="82" y="226">
-    <tspan class="name">Province:</tspan> select</text>
-  <rect class="node" x="60" y="280" width="410" height="60" rx="12" />
-  <text x="82" y="316">
-    <tspan class="name">Procedure:</tspan> select profile procedure</text>
-  <rect class="manual" x="60" y="370" width="410" height="60" rx="12" />
-  <text x="82" y="406">
-    <tspan class="name">Sign-in:</tspan> certificate / Cl@ve</text>
-  <rect class="node" x="60" y="460" width="410" height="60" rx="12" />
-  <text x="82" y="496" class="name">Applicant form: check warning</text>
-  <rect class="node" x="60" y="550" width="410" height="60" rx="12" />
-  <text x="82" y="576" class="name">Data: enter / copy</text>
-  <rect class="node" x="60" y="640" width="410" height="60" rx="12" />
-  <text x="82" y="676">
-    <tspan class="name">Result:</tspan> recognize page</text>
-  <text x="279" y="731" class="label">Offices available</text>
-  <rect class="manual" x="60" y="750" width="410" height="85" rx="12" />
-  <text x="82" y="779" class="name">Offices: select and continue</text>
-  <text x="82" y="807" class="small">1 — auto · 2+ — alert and wait</text>
-  <rect class="node" x="60" y="875" width="410" height="60" rx="12" />
-  <text x="82" y="911">
-    <tspan class="name">Contacts:</tspan> fill details</text>
-  <text x="481" y="883" class="label">No slots</text>
-  <text x="279" y="961" class="label">Slot available</text>
-  <rect class="found" x="60" y="975" width="410" height="82" rx="12" />
-  <text x="82" y="1006" class="name" style="font-size:17px">Appointment: alert → hand over control</text>
-  <text x="82" y="1034" class="small" style="font-size:14px">Date, time, CAPTCHA, confirmation — manual</text>
-  <rect class="wait" x="535" y="640" width="260" height="100" rx="12" />
-  <text x="555" y="675" class="name">No slots: wait</text>
-  <text x="555" y="704" class="small">Salir → recognize the page</text>
-  <text x="535" y="610" class="label">Continue from the recognized stage</text>
-  <text x="535" y="756" class="label">Including Cod. Oper.</text>
-  <rect class="wait" x="535" y="765" width="260" height="85" rx="12" />
-  <text x="555" y="796" class="name">No slots + Aceptar</text>
-  <rect class="wait" x="535" y="875" width="260" height="60" rx="12" />
-  <text x="555" y="911">
-    <tspan class="name">Pass:</tspan> start again</text>
-  <text x="551" y="961" class="label">After contacts: Salir / Aceptar</text>
-  <text x="330" y="1117" class="label" style="fill:#b6b0ff">Return to province selection</text>
-  <text x="860" y="115" class="small" style="fill:#a3aebd">At any step</text>
-  <path d="M860 140H1135" stroke="#30363d" />
-  <text x="860" y="180" class="name">Session expired</text>
-  <text x="860" y="209" class="small">Use recovery control</text>
-  <text x="860" y="273" class="name">Server error</text>
-  <text x="860" y="302" class="small">Wait → retry safely</text>
-  <text x="860" y="366" class="name">HTTP 429</text>
-  <text x="860" y="395" class="small">Cooldown → check</text>
-  <text x="860" y="459" class="name">Blocked</text>
-  <text x="860" y="488" class="small">Cooldown → reset session</text>
-  <path d="M860 529H1135" stroke="#30363d" />
-  <rect class="manual" x="846" y="552" width="304" height="110" rx="12" />
-  <text x="864" y="583" class="name">Unknown page</text>
-  <text x="864" y="610" class="small">or result not confirmed</text>
-  <text x="864" y="637" class="small">Notify → manual control</text>
-  <rect x="60" y="1153" width="14" height="14" rx="3" class="node" />
-  <text x="83" y="1165" class="label">Automatic</text>
-  <rect x="250" y="1153" width="14" height="14" rx="3" class="wait" />
-  <text x="273" y="1165" class="label">Wait / retry</text>
-  <rect x="468" y="1153" width="14" height="14" rx="3" class="manual" />
-  <text x="491" y="1165" class="label">May need your input</text>
-  <rect x="766" y="1153" width="14" height="14" rx="3" class="found" />
-  <text x="789" y="1165" class="label">Appointment found</text>
-  <path class="link" d="M470 490H535" />
-  <path class="loop" d="M665 460V440H390V460" />
-  <rect class="wait" x="535" y="460" width="260" height="90" rx="12" />
-  <text x="555" y="495" class="name">No slots: wait</text>
-  <text x="555" y="524" class="small">GET form · no data entry</text>
-  <text x="279" y="541" class="label">No warning</text>
-  <text x="555" y="726" class="label">Reload — profile option</text>
-  <text x="555" y="827" class="small">3 min → click Aceptar</text>
-  <text x="82" y="599" class="small">Then: Solicitar cita</text>
-  <text x="535" y="115" class="label">Default waiting periods</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="1010" viewBox="0 0 820 1010" role="img" aria-labelledby="title desc">
+<title id="title">Application workflow</title><desc id="desc">Straight path to manual booking. Two independent options: wait or fill on the applicant form; Salir or result reload. Arrows show returns.</desc><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10" fill="#a3acba" /></marker><style>text{font-family:Arial,sans-serif;fill:#e6edf3;font-size:17px}.small{font-size:14px;fill:#a3acba}.option{font-size:15px;fill:#7eb5e8}.edge{fill:none;stroke:#a3acba;stroke-width:1.7;marker-end:url(#arrow);stroke-linejoin:round}.loop{stroke:#7eb5e8}.box{fill:#161b22;stroke:#3d444d;stroke-width:1.4}</style></defs>
+<rect width="820" height="1010" fill="#0d1117" />
+<text x="45" y="35" class="" text-anchor="start">Cita Extranjeria Helper</text>
+<text x="45" y="62" class="small" text-anchor="start">Read top to bottom. Return conditions are shown on the arrows.</text>
+<path class="edge" d="M198 140V170" />
+<path class="edge" d="M198 234V290" />
+<path class="edge" d="M198 354V425" />
+<path class="edge" d="M198 489V565" />
+<path class="edge" d="M198 629V730" />
+<path class="edge" d="M198 794V860" />
+<path class="edge loop" d="M340 322H660V265H198V290" />
+<path class="edge loop" d="M340 597H660V535H198V565" />
+<path class="edge loop" d="M340 629H780V153H198V170" />
+<rect x="55" y="90" width="285" height="50" rx="9" class="box" />
+<text x="198" y="121" class="" text-anchor="middle">Start · select profile</text>
+<rect x="55" y="170" width="285" height="64" rx="9" class="box" />
+<text x="198" y="196" class="" text-anchor="middle">Province → service → sign in</text>
+<text x="198" y="219" class="small" text-anchor="middle">Use the selected profile</text>
+<rect x="55" y="290" width="285" height="64" rx="9" class="box" />
+<text x="198" y="316" class="" text-anchor="middle">Applicant form</text>
+<text x="198" y="339" class="small" text-anchor="middle">Identity: enter / copy</text>
+<rect x="55" y="425" width="285" height="64" rx="9" class="box" />
+<text x="198" y="451" class="" text-anchor="middle">Request menu</text>
+<text x="198" y="474" class="small" text-anchor="middle">Solicitar cita</text>
+<rect x="55" y="565" width="285" height="64" rx="9" class="box" />
+<text x="198" y="591" class="" text-anchor="middle">Search result</text>
+<text x="198" y="614" class="small" text-anchor="middle">No appointments or offices available</text>
+<rect x="55" y="730" width="285" height="64" rx="9" class="box" />
+<text x="198" y="756" class="" text-anchor="middle">Select office → contact details</text>
+<text x="198" y="779" class="small" text-anchor="middle">1 office — auto · several — manual</text>
+<rect x="55" y="860" width="285" height="64" rx="9" class="box" style="fill:#132b21;stroke:#41845e" />
+<text x="198" y="886" class="" text-anchor="middle">Appointment → manual control</text>
+<text x="198" y="909" class="small" text-anchor="middle">Date, time, CAPTCHA, confirmation</text>
+<text x="360" y="312" class="option" text-anchor="start">No slots · option “Wait”</text>
+<text x="213" y="389" class="option" text-anchor="start">No warning / option “Fill and continue”</text>
+<text x="360" y="587" class="option" text-anchor="start">No slots · option “Reload result”</text>
+<text x="360" y="143" class="option" text-anchor="start">No slots · option “Via Salir” / Aceptar button</text>
+<path d="M621 317L631 322L621 327Z" fill="#7eb5e8" />
+<path d="M621 592L631 597L621 602Z" fill="#7eb5e8" />
+<path d="M342 148L332 153L342 158Z" fill="#7eb5e8" />
+<text x="213" y="686" class="small" text-anchor="start">Offices available</text>
+<path d="M45 958H775" stroke="#30363d" />
+<text x="45" y="984" class="small" text-anchor="start">Errors and recovery are handled separately; no automatic actions after an appointment appears.</text>
 </svg>

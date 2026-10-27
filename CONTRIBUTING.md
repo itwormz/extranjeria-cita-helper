@@ -58,7 +58,7 @@ uv run python scripts/check_privacy.py --tree .
 Browser regressions run offline with intercepted requests and synthetic pages:
 
 ```sh
-CITA_BROWSER_TESTS=1 CITA_TEST_ENGINE=camoufox uv run pytest tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py
+CITA_BROWSER_TESTS=1 CITA_TEST_ENGINE=camoufox uv run pytest tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py tests/test_resource_capture_browser.py tests/test_booking_details_browser.py
 ```
 
 Before a release push, run `uv run python scripts/preflight.py`; add `--bundle`
