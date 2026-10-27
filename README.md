@@ -36,7 +36,7 @@ In **Settings → Edit profile → Notifications**, enable Telegram and/or a web
 
 **Webhook:** enter an HTTPS URL and select POST (JSON) or GET (URL parameters). **Advanced parameters** opens custom headers, URL parameters and a custom JSON template. Values are secret by default; the lock changes that display mode and the eye temporarily reveals a value. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Send a test before saving.
 
-Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province, but no applicant identifiers, appointment details or page captures. Remote booking is not included; manual actions remain in Camoufox.
+Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). Opening the profile Notifications tab reads these credentials; editing other profile fields does not. There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province, but no applicant identifiers, appointment details or page captures. Remote booking is not included; manual actions remain in Camoufox.
 
 ## Update integrity
 
@@ -106,6 +106,12 @@ The Statistics tab keeps **Today / All time** counters separately for each profi
 
 Hover over the timeline to highlight a segment or event; click for its duration and counters. Drag across complete segments to select a range; **Select multiple** or ⌘/Ctrl-click combines selections. Unselected gaps are excluded and events are not counted twice. Drag empty space or Alt-drag to pan; trackpad gestures remain available.
 
+Actions performed and pages processed measure automated work: one completed activation, selection, field fill or reload counts as one action; a recognized document is counted once. Manual actions and repeated recognition are excluded. These counters start with the updated app and do not reconstruct earlier work.
+
+In profile **Timings and retries**, **Repeat check** selects **Via Salir** (the default) or result reloads. Salir mode waits and clicks the website’s actual Salir button, then follows recognized pages; an absent or ambiguous button requires review. Both modes avoid entering applicant data while its form reports no appointments. A confirmed GET form can be reloaded. After the authentication POST to acEntrada, a separate GET refreshes the form without replaying authentication; other POST or unknown origins require review. No reduction in document submissions is assumed.
+
+The last working profile is restored on startup; opening Statistics initially follows that profile. Cod. Oper. periods continue through intermediate navigation until a normal availability result returns. Zoom and routine refreshes preserve the current timeline selection; changing the statistics profile or Today/All time scope clears it. Once cleared, selection does not return automatically.
+
 Statistics are stored in SQLite independently of page diagnostics and survive application restarts. Existing totals migrate automatically with an unchanged original and a backup; undated old totals do not become invented daily history. No statistics are uploaded automatically. A no-appointments page with Cod. Oper. is an observed state, not proof of a document-specific ban.
 
 History initially shows all observed days; **Period** selects a date range. Known dates and durations remain separate: the old elapsed time to first availability is not active search time. **≥** marks a confirmed minimum when history is incomplete.
@@ -126,7 +132,7 @@ After completing a booking on the website, mark **Appointment obtained**. Appoin
 | Diagnostics | Optional page HTML and screenshots; off by default. Manual booking keeps HTML capture without screenshots |
 | Language and theme | English, Russian or Spanish; light or dark appearance |
 
-By default, a regular no-appointments result is refreshed every **30–60 seconds**. A no-appointments page with **Aceptar** starts a new pass after a **3-minute** pause. Actions are spaced **0.3–0.8 seconds** apart, and alerts repeat every **3 seconds**. Edit timings inside the profile; changes apply on the next start. The initial language follows the system language, falling back to English when unsupported.
+By default, after a regular no-appointments result the assistant waits **30–60 seconds**, clicks **Salir** and follows the website; result reloads remain available in the profile. A no-appointments page with **Aceptar** starts a new pass after a **3-minute** pause. Actions are spaced **0.3–0.8 seconds** apart, and alerts repeat every **3 seconds**. Edit timings inside the profile; changes apply on the next start. The initial language follows the system language, falling back to English when unsupported.
 
 Monitor shows the recognized page, next action, countdown, check count, page visit timeline and available-office log. Each visit shows its current status, action and confirmed outcome; sending a button alone does not confirm a transition. **About** lets you check for a new version, download a verified package and start installation. Automatic GitHub Releases checks on startup and once a day can be disabled in Settings. Installation ends the current session and preserves profiles and settings.
 
@@ -141,7 +147,7 @@ Selected log rows can be copied with **⌘C / Ctrl+C**, the clipboard button or 
 
 ## 🗂️ Diagnostics and local data
 
-Profiles, preferences and browser sessions are stored locally. With diagnostics enabled, HTML captures continue through manual booking and confirmation; native JavaScript confirmation dialogs are not saved as separate HTML pages. Settings lets you enable/disable page captures and open the diagnostics folder. Each recorded session has its own directory; the action timeline is recorded independently of page captures.
+Profiles, preferences and browser sessions are stored locally. With diagnostics enabled, HTML captures continue through manual booking and confirmation; native JavaScript confirmation dialogs are not saved as separate HTML pages. Already-loaded first-party ICP JavaScript is saved once per content version and linked to HTML captures, without additional requests; external authentication scripts are excluded. Settings lets you enable/disable page captures and open the diagnostics folder. Each recorded session has its own directory; the action timeline is recorded independently of page captures.
 
 Diagnostics may contain personal information. Remove sensitive details before sharing logs or screenshots. See [privacy notes](docs/PRIVACY.md).
 
@@ -191,7 +197,7 @@ Dependency versions are pinned in [`uv.lock`](uv.lock). Packages are built with 
 | PySide6 / Qt | 6.12.0 | Native desktop interface |
 | Camoufox Python package | 0.5.7 | Browser launch and configuration |
 | Playwright | 1.62.0 | Browser control and page inspection |
-| cryptography | 46.0.7 | TLS certificate verification |
+| cryptography | 50.0.2 | TLS certificate verification |
 | PyYAML | 6.0.3 | Local profile configuration |
 | PyInstaller | 6.22.3 | Standalone application packaging |
 

@@ -122,7 +122,8 @@ def test_http_429_overrides_block_page_and_probes_once_per_cooldown():
     asyncio.run(scenario())
 
 
-def test_warning_still_fills_applicant_then_polls_only_search_result():
+@pytest.mark.parametrize('fill_mode',['manual','copy'])
+def test_applicant_warning_reloads_without_identity_until_warning_disappears(fill_mode):
     async def scenario():
         from playwright.async_api import async_playwright
         from urllib.parse import parse_qs
@@ -137,7 +138,11 @@ def test_warning_still_fills_applicant_then_polls_only_search_result():
                         <input id="txtIdCitado" name="document"><input id="txtDesCitado" name="name">
                         <select id="txtPaisNac" name="nationality"><option value="ES">España</option></select>
                         <button id="btnEnviar">Aceptar</button></form>
-                        <p>En este momento no hay citas disponibles</p>"""
+                        """
+                    if fill_mode=='copy':
+                        body+="""<button type="button" id="btnCopiar" onclick="document.getElementById('txtIdCitado').value='X0000000T';document.getElementById('txtDesCitado').value='Test Applicant'">Copiar</button>"""
+                    if sum(path==p for _,p in calls)<3:
+                        body+='<p>En este momento no hay citas disponibles</p>'
                 elif path=='acValidarEntrada':
                     applicant_data.append(parse_qs(route.request.post_data))
                     body='<form method="post" action="acCitar"><button id="btnEnviar">Solicitar cita</button></form>'
@@ -146,17 +151,30 @@ def test_warning_still_fills_applicant_then_polls_only_search_result():
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
             await page.route('**/*',respond)
             r=runner_for(page,ctx)
-            r.task=SimpleNamespace(id="test",document_number="X0000000T",full_name="Test Applicant",nationality="España")
+            r.task=SimpleNamespace(id="test",document_number="X0000000T",full_name="Test Applicant",nationality="España",applicant_fill_mode=fill_mode,no_slots_mode='reload')
+            effort=[]
+            r.control.set_statistics_sink(lambda kind,doc,**kwargs:effort.append(kind),lambda seconds:None)
+            r.policy.next_delay=lambda **kwargs:47
+            r.countdown=AsyncMock(return_value=True)
             await page.goto(BASE+'acEntrada')
             observed=await r.observe()
-            assert observed.kind=='applicant' and 'предупреждение' in observed.evidence
+            assert observed.kind=='applicant_no_slots'
+            for _ in range(2):
+                assert await page.locator('#txtIdCitado').input_value()==''
+                await r.step()
+                assert not applicant_data
+                assert r.control.snapshot()['checks']==0
+            assert effort.count('automation_action')==2
+            assert [call.args[1] for call in r.countdown.await_args_list]==[47,47]
+            assert (await r.observe()).kind=='applicant'
             await r.step()
             assert applicant_data==[{'document':['X0000000T'],'name':['Test Applicant'],'nationality':['ES']}]
+            assert effort.count('automation_action')==(6 if fill_mode=='manual' else 5)
             assert (await r.observe()).kind=='request_menu'
             await r.step()
             assert (await r.observe()).kind=='request_no_slots'
             await r.step()
-            assert calls==[('GET','acEntrada'),('POST','acValidarEntrada'),('POST','acCitar'),('POST','acCitar')]
+            assert calls==[('GET','acEntrada')]*3+[('POST','acValidarEntrada'),('POST','acCitar'),('POST','acCitar')]
             assert r.control.snapshot()['checks']==2
             await browser.close()
     asyncio.run(scenario())
@@ -449,6 +467,7 @@ def test_no_slots_reload_post_recognizes_next_screen(next_kind, render_delay_ms)
                 await route.fulfill(body=body, content_type='text/html; charset=utf-8')
             await page.route('**/*', respond)
             r = runner_for(page, ctx)
+            r.task.no_slots_mode = 'reload'
             await page.goto(menu)
             if render_delay_ms:
                 await page.evaluate("""delay => {
@@ -505,7 +524,7 @@ def test_no_slots_reload_returns_province_at_same_url_and_logs_restart():
                     searches+=1
                     body='<p>En este momento no hay citas disponibles</p>' if searches==1 else '<select id="form"><option>Barcelona</option></select>'
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
-            await page.route('**/*',respond);r=runner_for(page,ctx)
+            await page.route('**/*',respond);r=runner_for(page,ctx);r.task.no_slots_mode='reload'
             await page.goto(BASE+'acValidarEntrada')
             # A renderer may still be loading on the first engine tick.
             # Stop driving once the request was sent, then await its document.
@@ -757,9 +776,10 @@ def test_http_500_after_no_slots_exit_loads_entry_without_replaying_post():
 
 
 @pytest.mark.parametrize('readonly,delay', [(False,0),(True,200)])
-def test_copy_from_auth_continues_and_uses_fresh_identity(readonly,delay):
+@pytest.mark.parametrize('render_delay_ms', [0, 600])
+def test_copy_from_auth_continues_and_uses_fresh_identity(readonly,delay,render_delay_ms):
     async def scenario():
-        from playwright.async_api import async_playwright
+        from playwright.async_api import async_playwright, expect
         from urllib.parse import parse_qs
         async with async_playwright() as pw:
             browser=await launch_browser(pw);ctx=await browser.new_context();page=await ctx.new_page()
@@ -782,7 +802,14 @@ def test_copy_from_auth_continues_and_uses_fresh_identity(readonly,delay):
             await page.route('**/*',respond);r=runner_for(page,ctx)
             r.task=SimpleNamespace(id='test',applicant_fill_mode='copy',document_number='DO NOT USE',full_name='DO NOT USE',nationality='España')
             for _ in range(2):
-                await page.goto(BASE+'acEntrada');await r.step()
+                await page.goto(BASE+'acEntrada')
+                if render_delay_ms:
+                    await page.evaluate("delay => {document.body.style.visibility='hidden'; setTimeout(()=>document.body.style.visibility='',delay)}",render_delay_ms)
+                # Navigation load does not imply the fixture is rendered.
+                # One runner tick may correctly yield while the body is hidden.
+                await expect(page.locator('#txtIdCitado')).to_be_visible(timeout=10_000)
+                await expect(page.locator('#btnCopiar')).to_be_visible(timeout=10_000)
+                await r.step()
                 assert (await r.observe()).kind=='request_menu'
                 assert r.manual_signature is None
             assert posts==[{'document':['X0000000T'],'name':['AUTH ONE'],'nationality':['ES']},
@@ -989,4 +1016,65 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
                 operation.cancel();ready.cancel()
                 await asyncio.gather(operation,ready,return_exceptions=True)
                 await browser.close()
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize('outcome',['menu','province','applicant_warning','missing','ambiguous'])
+def test_profile_salir_mode_follows_actual_button_without_replaying_search(outcome):
+    async def scenario():
+        from playwright.async_api import async_playwright
+        async with async_playwright() as pw:
+            browser=await launch_browser(pw)
+            try:
+                ctx=await browser.new_context();page=await ctx.new_page();calls=[]
+                async def respond(route):
+                    endpoint=route.request.url.rsplit('/',1)[-1];calls.append((route.request.method,endpoint))
+                    if endpoint=='acCitar':
+                        body='<p>En este momento no hay citas disponibles</p><form action="salirInicio" method="post">'
+                        if outcome!='missing':body+='<input type="button" value="Salir" onclick="goAc_opc_direct()">'
+                        if outcome=='ambiguous':body+='<button type="button">Salir</button>'
+                        body+='</form><script>function goAc_opc_direct(){document.forms[0].action="acOpcDirect";document.forms[0].submit();}</script>'
+                    elif outcome=='menu':body='<form action="acCitar" method="post"><button id="btnEnviar">Solicitar cita</button></form>'
+                    elif outcome=='province':body='<select id="form"><option>Test</option></select>'
+                    else:body=FORM+'<p>No hay citas disponibles</p>'
+                    await route.fulfill(body=body,content_type='text/html; charset=utf-8')
+                await page.route('**/*',respond)
+                r=runner_for(page,ctx);r.task=SimpleNamespace(id='test',no_slots_mode='salir')
+                r.countdown=AsyncMock(return_value=True);r.hold=AsyncMock()
+                await page.goto(BASE+'acCitar');await r.step()
+                assert r.countdown.await_count==1
+                if outcome in {'missing','ambiguous'}:
+                    assert calls==[('GET','acCitar')];assert r.hold.await_count==1;return
+                assert calls==[('GET','acCitar'),('POST','acOpcDirect')]
+                current=await r.observe()
+                assert current.kind=={'menu':'request_menu','province':'province','applicant_warning':'applicant_no_slots'}[outcome]
+                assert r.control.snapshot()['checks']==0
+                if outcome=='menu':
+                    await r.step()
+                    assert calls[-1]==('POST','acCitar') and r.control.snapshot()['checks']==1
+            finally:await browser.close()
+    asyncio.run(scenario())
+
+
+def test_applicant_warning_after_post_never_resubmits_identity():
+    async def scenario():
+        from playwright.async_api import async_playwright,expect
+        async with async_playwright() as pw:
+            browser=await launch_browser(pw)
+            try:
+                ctx=await browser.new_context();page=await ctx.new_page();calls=[]
+                async def respond(route):
+                    path=route.request.url.rsplit('/',1)[-1];calls.append((route.request.method,path))
+                    body='<form action="acEntrada" method="post"><button>Open form</button></form>' if path=='citar' else FORM+'<p>No hay citas disponibles</p>'
+                    await route.fulfill(body=body,content_type='text/html; charset=utf-8')
+                await page.route('**/*',respond);runner=runner_for(page,ctx)
+                runner.countdown=AsyncMock(return_value=True);runner.hold=AsyncMock()
+                await page.goto(BASE+'citar');await page.get_by_role('button',name='Open form').click()
+                await expect(page.locator('#txtIdCitado')).to_be_visible(timeout=10_000)
+                assert runner.last_method=='POST'
+                await runner.step()
+                assert calls==[('GET','citar'),('POST','acEntrada'),('GET','acEntrada')]
+                assert await page.locator('#txtIdCitado').input_value()==''
+                runner.hold.assert_not_awaited();runner.countdown.assert_awaited_once()
+            finally:await browser.close()
     asyncio.run(scenario())

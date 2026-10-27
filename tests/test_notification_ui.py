@@ -22,7 +22,13 @@ from app.desktop.profiles import ProfileStore
 def owner(qt_app,tmp_path,catalog_path):
     window=DesktopWindow(ProfileStore(tmp_path/'tasks.yml',catalog_path),Controller())
     yield window
-    window.close();window.deleteLater();qt_app.processEvents()
+    window.close()
+    window.deleteLater()
+    from PySide6.QtCore import QCoreApplication,QEvent
+    QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
+    qt_app.processEvents()
+    from shiboken6 import isValid
+    assert not isValid(window), "Notification fixture must destroy its window before the next test"
 
 
 def test_notifications_channels_hide_and_fields_reuse_guidelines(owner,qt_app):
@@ -78,6 +84,7 @@ def test_saving_profile_keeps_tokens_out_of_yaml_and_cancel_does_not_write(owner
     backend=Backend();panel=owner.notifications_panel;panel.vault=NotificationVault(backend)
     owner.create_profile()
     for key,value in {'label':'Demo','full_name':'NOMBRE APELLIDO','document_number':'X0000000T','phone':'600000000','email':'demo@example.com'}.items():owner.fields[key].setText(value)
+    owner.profile_tabs.setCurrentIndex(2)
     panel.token.setText('123456:SECRET_token');panel.telegram_toggle.setChecked(True);panel.recipients=[{'id':'42','label':'Demo'}]
     owner.fields['nationality'].setCurrentText('UCRANIA')
     owner.save_profile()
@@ -213,3 +220,42 @@ def test_found_chat_button_contents_fit_its_actual_height(owner,qt_app):
     assert choice.height()>=70
     assert choice.details.geometry().bottom()<choice.height()
     dialog.reject()
+
+
+def test_profile_editor_defers_keychain_and_preserves_notification_refs(owner,task_mapping):
+    from tests.test_desktop_profiles import fields
+    from unittest.mock import Mock
+    data=fields(task_mapping)
+    data['notifications']={'telegram':{'enabled':True,'secret_ref':'keep-tg','events':['booking'],'recipients':[{'id':'123','label':'Demo'}]},'webhook':{'enabled':False,'secret_ref':'keep-hook'}}
+    profile=owner.store.save_profile(None,data,revision=owner.store.revision())
+    panel=owner.notifications_panel
+    panel.vault=Mock();panel.vault.get.return_value={'token':'demo-token'}
+    owner.refresh_profiles(selected=profile);owner.open_editor(profile)
+    assert panel.vault.get.call_count==0
+    owner.fields['label'].setText('Changed without notifications')
+    owner.save_profile()
+    assert panel.vault.get.call_count==0 and panel.vault.put.call_count==0 and panel.vault.delete.call_count==0
+    saved=owner.store.raw_profile(profile)['notifications']
+    assert saved['telegram']['secret_ref']=='keep-tg' and saved['webhook']['secret_ref']=='keep-hook'
+    owner.open_editor(profile);owner.profile_tabs.setCurrentIndex(2)
+    assert panel.vault.get.call_count==2
+    owner.profile_tabs.setCurrentIndex(0);owner.profile_tabs.setCurrentIndex(2)
+    assert panel.vault.get.call_count==2
+
+
+def test_profile_editor_reloads_secrets_when_notifications_tab_is_already_open(owner,task_mapping):
+    from tests.test_desktop_profiles import fields
+    from unittest.mock import Mock
+    panel=owner.notifications_panel
+    panel.vault=Mock()
+    panel.vault.get.side_effect=lambda ref: {'token':ref} if ref else {}
+    profiles=[]
+    for ref in ('first-token','second-token'):
+        data=fields(task_mapping)
+        data['notifications']={'telegram':{'enabled':False,'secret_ref':ref}}
+        profiles.append(owner.store.save_profile(None,data,revision=owner.store.revision()))
+    owner.open_editor(profiles[0]);owner.profile_tabs.setCurrentIndex(2)
+    assert panel.token.text()=='first-token'
+    owner.open_editor(profiles[1])
+    assert panel.token.text()=='second-token'
+    assert panel.vault.get.call_count==4

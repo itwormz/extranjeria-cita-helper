@@ -1,4 +1,6 @@
 """Per-profile observations and locally confirmed appointment achievements."""
+import logging
+from ..logging_utils import log_event
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,11 +16,13 @@ from .statistics_history import StatisticsHistory, MADRID, stamp
 from .achievements import AchievementStore
 from .achievement_exports import public_post, write_calendar, render_card, share_url, public_duration
 
+log=logging.getLogger(__name__)
+
 METRICS=(('checks','Проверок','search'),('active_seconds','Активный поиск','clock'),
     ('unique_offices','Разных офисов','pin'),('booking_screens','Экранов ситы','calendar'),
     ('offices_seen','Появлений офисов','office'),('server_errors','Ошибок сервера','server'),
     ('rate_limited','HTTP 429','clock'),('blocked','Ограничения доступа','shield'),
-    ('flow_passes','Повторные проходы','restart'),('first_available_seconds','До первой доступности','clock'))
+    ('flow_passes','Повторные проходы','restart'),('actions_performed','Действий выполнено','pointer'),('pages_processed','Страниц обработано','file_text'),('first_available_seconds','До первой доступности','clock'))
 
 
 def duration(seconds,t):
@@ -43,7 +47,7 @@ class FoodSticker(QWidget):
 
 class StatisticsPanel(QWidget):
     def __init__(self,host):
-        super().__init__();self.setObjectName("statisticsPanel");self.host=host;self.profiles=[];self.current_achievement=None;self._signature=None
+        super().__init__();self.setObjectName("statisticsPanel");self.host=host;self.profiles=[];self.current_achievement=None;self._signature=None;self._statistics_read_failure=None;self._statistics_read_message=None
         data=host.store.path.parent/'data';self.statistics=ProfileStatistics(data/'profile-statistics.json')
         self.achievements=AchievementStore(data/'achievements.json')
         self._text_bindings=[];self._icon_bindings=[];self._payment_buttons=[]
@@ -127,14 +131,21 @@ class StatisticsPanel(QWidget):
         values={};overview=QHBoxLayout();overview.setSpacing(16)
         for key,title,icon in [('checks','Проверок сит','search'),('active_seconds','Активный поиск','clock'),('days','Дни с поиском','calendar_days')]:
             frame=QFrame();frame.setObjectName('statisticsOverview');cell=QVBoxLayout(frame);cell.setContentsMargins(16,14,16,14);cell.setSpacing(8);number=QLabel('—');number.setObjectName('overviewValue');cell.addWidget(number);cell.addWidget(self.section_heading(title,icon));overview.addWidget(frame,1);values[key]=number
-        layout.addLayout(overview);groups=QHBoxLayout();groups.setSpacing(32)
+        layout.addLayout(overview)
+        effort=QHBoxLayout();effort.setSpacing(32)
+        for key,title,icon in [('actions_performed','Действий выполнено','pointer'),('pages_processed','Страниц обработано','file_text')]:
+            frame=QFrame();frame.setObjectName('statisticRow');row=QHBoxLayout(frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8)
+            row.addWidget(self.icon_label(icon));row.addWidget(self.text(title),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;effort.addWidget(frame,1)
+        groups=QHBoxLayout();groups.setSpacing(32)
         for title,icon,keys in [('Доступность','eye',['offices_seen','unique_offices','booking_screens','successes']),('Ошибки и восстановление','wrench',['server_errors','rate_limited','blocked','flow_passes'])]:
             frame=QWidget();column=QVBoxLayout(frame);column.setContentsMargins(0,0,0,0);column.setSpacing(8);column.addWidget(self.section_heading(title,icon))
             for key in keys:
                 _,caption,glyph=next((m for m in METRICS if m[0]==key),('successes','Полученные ситы','calendar'))
                 row_frame=QFrame();row_frame.setObjectName('statisticRow');row=QHBoxLayout(row_frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8);row.addWidget(self.icon_label(glyph));row.addWidget(self.text({'booking_screens':'Появления выбора даты','successes':'Получено сит','rate_limited':'Ограничений HTTP 429'}.get(key,caption)),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;column.addWidget(row_frame)
             groups.addWidget(frame,1)
-        layout.addLayout(groups);return values
+        layout.addLayout(groups)
+        layout.addWidget(self.section_heading('Автоматизация','settings'))
+        layout.addLayout(effort);return values
 
     def metric_grid(self,layout,include_first):
         grid=QGridLayout();grid.setHorizontalSpacing(24);grid.setVerticalSpacing(8);grid.setColumnStretch(0,1);grid.setColumnStretch(1,1);values={}
@@ -166,6 +177,14 @@ class StatisticsPanel(QWidget):
 
     def tr_text(self,text):return self.host.t(text)
 
+    def report_read_error(self,component,exc):
+        failure=(component,type(exc).__name__)
+        if failure!=self._statistics_read_failure:
+            log_event(log,logging.WARNING,'profile_statistics_read_failed',component=component,error_type=type(exc).__name__)
+        self._statistics_read_failure=failure
+        self._statistics_read_message=self.tr_text('Не удалось прочитать статистику профиля')
+        self.message.setText(self._statistics_read_message)
+
     def refresh(self):
         t=self.tr_text
         for widget,source in self._text_bindings:widget.setText(t(source))
@@ -194,11 +213,17 @@ class StatisticsPanel(QWidget):
         profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id))
         if not profile_id:self.achievement_button.hide();self.first_value.setText(t('Ещё не появлялись'));return
         try:
-            data=self.statistics.get(profile_id,period=self.period);records=self.achievements.list(profile_id)
-            self.history_panel.refresh(profile_id,self.period,baseline=bool(data.get('legacy_baseline')))
-        except (OSError,ValueError) as exc:self.message.setText(t('Не удалось прочитать статистику профиля'));return
+            component='totals';data=self.statistics.get(profile_id,period=self.period)
+            component='achievements';records=self.achievements.list(profile_id)
+            component='history';self.history_panel.refresh(profile_id,self.period,baseline=bool(data.get('legacy_baseline')))
+        except (OSError,ValueError) as exc:self.report_read_error(component,exc);return
+        if self._statistics_read_failure:
+            if self.message.text()==self._statistics_read_message:self.message.clear()
+            self._statistics_read_failure=None;self._statistics_read_message=None
         for key,widget in self.stat_values.items():
             if key=='days':widget.setText('—' if not data.get('days') and any(data.get(k) for k in ('checks','active_seconds','offices_seen','booking_screens')) else str(data.get('days',0)))
+            elif key in {'actions_performed','pages_processed'}:
+                widget.setText(str(data[key]) if data.get('effort_started_at') else '—')
             elif key=='successes':
                 visible_records=records if self.period=='all' else [record for record in records if datetime.fromisoformat(record['recorded_at'].replace('Z','+00:00')).astimezone(MADRID).date()==datetime.now(MADRID).date()]
                 widget.setText(str(len(visible_records)))
@@ -221,10 +246,13 @@ class StatisticsPanel(QWidget):
             widget.setToolTip('\n'.join(hints));caption.setToolTip(widget.toolTip())
         for key,widget in self.stat_values.items():
             widget.setToolTip(t('До обновления этот показатель не сохранялся; показаны новые наблюдения.') if key in data.get('legacy_unknown_fields',[]) else '')
+            if key in {'actions_performed','pages_processed'}:
+                started=data.get('effort_started_at')
+                widget.setToolTip(t('Учёт с {time}. Ранние действия и страницы не восстанавливаются.').format(time=stamp(started)) if started else t('Ранее этот показатель не сохранялся.'))
         self.achievement_button.setVisible(bool(records));self.achievement_button.setEnabled(bool(records))
         if self.current_achievement:
             stats=self.current_achievement['statistics']
-            for key,widget in self.achievement_values.items():widget.setText(duration(stats.get(key),t) if key.endswith('seconds') else str(stats.get(key,0)))
+            for key,widget in self.achievement_values.items():widget.setText(duration(stats.get(key),t) if key.endswith('seconds') else ('—' if stats.get(key) is None else str(stats.get(key,0))))
             self.achievement_duration.setText(public_duration(self.current_achievement, self.host.preferences["language"]))
             a=self.current_achievement['appointment'];self.private_fields['date'].setText(a.get('date','')+' · '+a.get('time',''));self.private_fields['office'].setText('\n'.join(filter(None,[a.get('office',''),a.get('address','')])) or '—');self.private_fields['confirmation'].setText(a.get('confirmation','') or '—')
 
@@ -239,7 +267,7 @@ class StatisticsPanel(QWidget):
 
     def show_achievement(self):
         try:records=self.achievements.list(self.profile_combo.currentData())
-        except (OSError,ValueError):self.message.setText(self.tr_text('Не удалось прочитать статистику профиля'));return
+        except (OSError,ValueError) as exc:self.report_read_error('achievements',exc);return
         if records:self.current_achievement=records[-1];self.stack.setCurrentWidget(self.achievement_page)
         else:self.current_achievement=None;self.stack.setCurrentWidget(self.empty_page)
         self.refresh()

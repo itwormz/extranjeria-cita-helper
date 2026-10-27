@@ -36,7 +36,7 @@ En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un web
 
 **Webhook:** introducir una URL HTTPS y seleccionar POST (JSON) o GET (parámetros de URL). **Parámetros avanzados** abre las cabeceras, los parámetros de URL y la plantilla JSON personalizada. Los valores son secretos por defecto; el candado cambia este modo de visualización y el ojo muestra temporalmente el valor. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Enviar una prueba antes de guardar.
 
-Las credenciales se guardan en macOS Keychain, Windows Credential Manager o Linux Secret Service (requiere un proveedor de secretos desbloqueado). No se guardan en texto plano; al trasladar un perfil a otro equipo deben introducirse de nuevo. Los mensajes incluyen el nombre del perfil y la provincia, sin identificadores del solicitante, datos de la cita ni capturas. La reserva remota no está incluida; las acciones manuales siguen realizándose en Camoufox.
+Las credenciales se guardan en macOS Keychain, Windows Credential Manager o Linux Secret Service (requiere un proveedor de secretos desbloqueado). Las credenciales se leen al abrir la pestaña Notificaciones; editar otros campos del perfil no accede al almacén. No se guardan en texto plano; al trasladar un perfil a otro equipo deben introducirse de nuevo. Los mensajes incluyen el nombre del perfil y la provincia, sin identificadores del solicitante, datos de la cita ni capturas. La reserva remota no está incluida; las acciones manuales siguen realizándose en Camoufox.
 
 ## Integridad de las actualizaciones
 
@@ -106,6 +106,12 @@ Antes de iniciar, **Restablecer sesión** borra la sesión del navegador del per
 
 La pestaña Estadísticas ofrece **Hoy / Todo el tiempo** para cada perfil: comprobaciones, tiempo acumulado de búsqueda activa, oficinas, selección de fecha, errores del servidor, HTTP 429, restricciones de acceso y recorridos repetidos. La línea temporal local distingue páginas observadas, recuperación, control manual y periodos sin observaciones; las oficinas muestran las fechas registradas de aparición. Las horas usan Europe/Madrid. Seleccionar un perfil estadístico no cambia la búsqueda en curso.
 
+Las acciones realizadas y las páginas procesadas reflejan el trabajo automático: cada activación, selección, campo rellenado o recarga completada cuenta como una acción; cada documento reconocido se cuenta una vez. Se excluyen las acciones manuales y los reconocimientos repetidos. Estos contadores empiezan con la actualización y no reconstruyen el trabajo anterior.
+
+En el perfil, en **Tiempos y reintentos**, **Repetir comprobación** usa **Mediante Salir** por defecto; también permite recargar el resultado. El modo Salir espera, pulsa el botón real de la web y sigue las páginas reconocidas; si falta el botón o es ambiguo, solicita revisión. Ambos modos evitan introducir datos mientras el formulario indique que no hay citas. Un formulario obtenido por GET confirmado se puede recargar. Tras el POST de autenticación a acEntrada, un GET independiente actualiza el formulario sin reenviar la autenticación; otros POST o un método desconocido requieren revisión. No se presupone una reducción de los envíos del documento.
+
+Al iniciar se restaura el último perfil de trabajo; Estadísticas muestra inicialmente ese perfil. Los periodos Cod. Oper. continúan durante la navegación intermedia hasta un resultado normal de disponibilidad. El zoom y las actualizaciones habituales conservan la selección; cambiar el perfil estadístico o el ámbito Hoy/Todo el tiempo la borra. Una vez borrada, no se restaura automáticamente.
+
 Las estadísticas se guardan en SQLite independientemente del diagnóstico y se conservan entre reinicios. Los totales anteriores migran automáticamente manteniendo el original y una copia de seguridad; los contadores sin fecha no se convierten en un historial diario inventado. No se envían estadísticas automáticamente. Una página sin citas con Cod. Oper. se registra como estado observado, no como prueba de bloqueo por documento.
 Al pasar por la línea temporal se resalta el tramo o evento; un clic muestra su duración y contadores. Arrastrar selecciona tramos completos; **Seleccionar varios** o ⌘/Ctrl-clic combina la selección. Se excluyen los intervalos no seleccionados y los eventos no se cuentan dos veces. Arrastrar el espacio vacío o usar Alt permite desplazar la vista; se mantienen los gestos del panel táctil.
 
@@ -127,7 +133,7 @@ Después de confirmar la reserva en la web, marque **Cita conseguida**. Los dato
 | Diagnóstico | HTML y capturas opcionales; desactivado por defecto. Durante la reserva manual se guarda HTML sin capturas de pantalla |
 | Idioma y tema | Inglés, ruso o español; apariencia clara u oscura |
 
-Por defecto, el resultado habitual sin citas se actualiza cada **30–60 segundos**. Una página sin citas con **Aceptar** inicia un nuevo recorrido tras una pausa de **3 minutos**. Las acciones se separan **0,3–0,8 segundos** y el sonido se repite cada **3 segundos**. Configure los tiempos dentro del perfil; los cambios se aplican en el siguiente inicio. El idioma inicial sigue el del sistema; si no es compatible, se utiliza inglés.
+Por defecto, tras un resultado habitual sin citas el asistente espera **30–60 segundos**, pulsa **Salir** y sigue la web; el perfil también permite recargar el resultado. Una página sin citas con **Aceptar** inicia un nuevo recorrido tras una pausa de **3 minutos**. Las acciones se separan **0,3–0,8 segundos** y el sonido se repite cada **3 segundos**. Configure los tiempos dentro del perfil; los cambios se aplican en el siguiente inicio. El idioma inicial sigue el del sistema; si no es compatible, se utiliza inglés.
 
 Seguimiento muestra la página reconocida, la siguiente acción, la cuenta atrás, el número de consultas, el historial de páginas visitadas y las oficinas disponibles. Cada visita muestra su estado, acción y resultado confirmado; pulsar un botón no confirma por sí solo una transición. **Acerca de** permite buscar una nueva versión, descargar un paquete verificado e iniciar la instalación. Puede desactivar en Ajustes la búsqueda automática en GitHub Releases al iniciar y una vez al día. La instalación termina la sesión actual y conserva los perfiles y ajustes.
 
@@ -142,7 +148,7 @@ Las filas seleccionadas del registro se copian con **⌘C / Ctrl+C**, el botón 
 
 ## 🗂️ Diagnóstico y datos locales
 
-Los perfiles, preferencias y sesiones del navegador se guardan localmente. Con el diagnóstico activado, el HTML sigue guardándose durante la reserva manual y su confirmación; los diálogos JavaScript de confirmación no se guardan como páginas HTML independientes. En Ajustes puede activar o desactivar las capturas y abrir la carpeta de diagnóstico. Cada sesión registrada tiene su propia carpeta; el historial de acciones se guarda independientemente de las capturas.
+Los perfiles, preferencias y sesiones del navegador se guardan localmente. Con el diagnóstico activado, el HTML sigue guardándose durante la reserva manual y su confirmación; los diálogos JavaScript de confirmación no se guardan como páginas HTML independientes. Los archivos JavaScript de ICP ya cargados se guardan una vez por versión de contenido y se vinculan al HTML, sin peticiones adicionales; se excluyen los scripts de autenticación externa. En Ajustes puede activar o desactivar las capturas y abrir la carpeta de diagnóstico. Cada sesión registrada tiene su propia carpeta; el historial de acciones se guarda independientemente de las capturas.
 
 El diagnóstico puede contener datos personales. Elimine la información sensible antes de compartir registros o capturas. Consulte las [notas de privacidad](docs/PRIVACY.md).
 
@@ -192,7 +198,7 @@ Las versiones de las dependencias están fijadas en [`uv.lock`](uv.lock). Los pa
 | PySide6 / Qt | 6.12.0 | Interfaz de escritorio nativa |
 | Paquete Python de Camoufox | 0.5.7 | Inicio y configuración del navegador |
 | Playwright | 1.62.0 | Control del navegador y análisis de páginas |
-| cryptography | 46.0.7 | Verificación de certificados TLS |
+| cryptography | 50.0.2 | Verificación de certificados TLS |
 | PyYAML | 6.0.3 | Configuración local de perfiles |
 | PyInstaller | 6.22.3 | Empaquetado de la aplicación independiente |
 

@@ -110,8 +110,8 @@ def build(*, experimental_no_fonts=False, include_fonts=False, output_directory=
         shutil.copytree(addon,bundle/'Contents'/'Resources'/'default-addons'/addon.name,symlinks=True,dirs_exist_ok=True)
     info_file = bundle / 'Contents' / 'Info.plist'
     info = plistlib.loads(info_file.read_bytes())
-    from app.version import VERSION
-    info.update(CFBundleShortVersionString=VERSION, CFBundleVersion=VERSION, CFBundleDisplayName=display_name, CFBundleName=display_name, NSHighResolutionCapable=True, LSMinimumSystemVersion='14.4')
+    from app.version import VERSION, native_version, macos_build_version
+    info.update(CFBundleShortVersionString=".".join(map(str,native_version(VERSION)[:3])), CFBundleVersion=macos_build_version(VERSION), CFBundleDisplayName=display_name, CFBundleName=display_name, NSHighResolutionCapable=True, LSMinimumSystemVersion='14.4')
     info_file.write_bytes(plistlib.dumps(info))
     # Give the worker its own background-only bundle identity. Its runtime and
     # public resources are shared with the containing app, never duplicated.

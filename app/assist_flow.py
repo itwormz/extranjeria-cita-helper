@@ -23,6 +23,7 @@ LABELS = {
     "auth": ("Вход con Cl@ve", "Войти с электронным сертификатом"),
     "auth_wait": ("Авторизация", "Дождаться возврата с сертификатом"),
     "applicant": ("Форма заявителя", "Заполнить данные и перейти дальше"),
+    "applicant_no_slots": ("Сит нет на форме заявителя", "Подождать и обновить форму без ввода данных"),
     "request_menu": ("Меню запроса", "Нажать Solicitar cita"),
     "request_no_slots": ("Сит нет после запроса", "Подождать и обновить результат"),
     "request_no_slots_restart": ("Сит нет — новый проход", "Aceptar → начать заново"),
@@ -60,7 +61,7 @@ def loading_placeholder(text):
 
 def no_slots_kind(*, applicant, after_contacts):
     if applicant:
-        return "applicant"
+        return "applicant_no_slots"
     return "post_contact_no_slots" if after_contacts else "request_no_slots"
 
 
@@ -87,6 +88,7 @@ class AssistRunner:
         self.server_attempts = 0
         self.server_button_attempts = 0
         self.manual_signature = None
+        self._manual_auth_active = False
         self.action_phase = ""
         self.attempted = set()
         self.captures = {}
@@ -113,6 +115,7 @@ class AssistRunner:
                 page.on(event, handler)
                 self._listeners.append((event, handler))
         checker._assist_guard = self.action_guard
+        checker._assist_action = control.automation_action
 
     @property
     def timings(self):
@@ -193,6 +196,8 @@ class AssistRunner:
             self.http_statuses.pop(self.page.main_frame, None)
             self.control.publish(screen="Загрузка страницы", evidence="Ожидаем результат перехода",
                                  next_action="Распознать новый документ", mode="working")
+            if request.method == 'POST' and _flow_endpoint(request.url)=='acValidarEntrada':
+                self.record('applicant_submitted',self.last_observed,'Отправлена форма заявителя — значения не сохраняются',page_url=request.url)
             if request.method == "POST" and _flow_endpoint(request.url) == "acCitar":
                 self.control.availability_checked()
                 self.record("check", self.last_observed, f"Проверка сит: отправлен Solicitar cita — в сессии {self.control.snapshot()['checks']}, для профиля {self.control.snapshot()['profile_checks']}", page_url=request.url)
@@ -224,7 +229,7 @@ class AssistRunner:
             await asyncio.sleep(0.5)
             self.control.publish(screen="Проверяем страницу", evidence="Чтение документа ещё не завершено",
                                  next_action="Дождаться распознавания нового состояния",
-                                 mode="manual" if self.manual_signature is not None else "waiting")
+                                 mode="manual" if self.manual_signature is not None or self._manual_auth_active else "waiting")
         notice = asyncio.create_task(slow_read())
         try:
             return await self._observe()
@@ -300,8 +305,8 @@ class AssistRunner:
                 elif await self.visible("#btnAccesoClave"):
                     kind, evidence = "auth", "Доступна кнопка con Cl@ve"
                 elif applicant:
-                    kind = "applicant"
-                    evidence = ("Видимая форма — предупреждение «нет сит» не блокирует ввод" if no_slots
+                    kind = "applicant_no_slots" if no_slots else "applicant"
+                    evidence = ("На форме заявителя нет сит — ожидать без ввода данных" if no_slots
                                 else "Видимая форма заявителя")
                 elif no_slots:
                     kind = no_slots_kind(applicant=False, after_contacts=(self.pending_action or self.last_action) == "contact")
@@ -312,7 +317,7 @@ class AssistRunner:
                         if re.fullmatch(r"aceptar", label, re.I):
                             kind = "request_no_slots_restart"
                             evidence = "Сит нет. Aceptar завершает текущий проход; быстрое обновление не требуется"
-                elif _flow_endpoint(self.page.url) == "acValidarEntrada" and await self.visible("#btnEnviar"):
+                elif _flow_endpoint(self.page.url) in {"acValidarEntrada","acOpcDirect"} and await self.visible("#btnEnviar"):
                     button = self.page.locator("#btnEnviar").first
                     label = (await button.get_attribute("value") or await button.inner_text()).lower()
                     if "solicitar" in label:
@@ -337,7 +342,7 @@ class AssistRunner:
                     type=>document.querySelectorAll('input[type="'+type+'"]').length)})""")
             import json
             variant = hashlib.sha256(json.dumps(shape,sort_keys=True).encode()).hexdigest()
-        operation_code = kind in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and bool(re.search(r'cod\.?\s*oper',text,re.I))
+        operation_code = kind in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and bool(re.search(r'cod\.?\s*oper',text,re.I))
         result = Observed(kind, document, signature, source, evidence, recovery_action_first, certificate_validation_error, variant, operation_code)
         self.last_observed = result
         if kind in {'booking', 'expired', 'server_error', 'rate_limited', 'blocked'}:
@@ -345,6 +350,10 @@ class AssistRunner:
         return result
 
     def publish(self, observed, *, next_action=None, mode="working", remaining=None):
+        if observed.kind=='auth_wait' and mode=='manual':
+            self._manual_auth_active=True
+        elif observed.kind not in {'auth_wait','loading','unknown'}:
+            self._manual_auth_active=False
         title, action = LABELS[observed.kind]
         if observed.certificate_validation_error:title="Ошибка проверки сертификата"
         if observed.kind == 'auth_wait':
@@ -376,7 +385,8 @@ class AssistRunner:
         self.control.observe_visit(document=observed.document, stage=observed.kind,
             page=urlunsplit((parts.scheme, parts.netloc, path, "", "")), title=title,
             recognition=observed.kind if observed.kind in {"unknown", "loading"} else "known", variant=observed.variant,
-            evidence=('no_appointments','operation_code') if observed.kind in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and observed.operation_code else ())
+            automated=mode!='manual' and not self._manual_auth_active,
+            evidence=('no_appointments','operation_code') if observed.kind in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and observed.operation_code else ())
         if observed.kind not in {"loading", "auth_wait"}:
             self.previous_stage = observed.kind
         if observed.kind == "province":
@@ -575,6 +585,7 @@ class AssistRunner:
             self.record('recovery', observed, 'Проба после HTTP 429: один GET — профиль и cookies сохранены')
             self.last_action = self.pending_action = None
             await self.page.goto(target, wait_until='domcontentloaded')
+            self.control.automation_action()
             return
         if observed.kind == 'blocked':
             from .assist_runtime import AssistRestartRequested
@@ -664,26 +675,30 @@ class AssistRunner:
             return
         if self.last_method == "GET":
             await self.page.reload(wait_until="domcontentloaded")
+            self.control.automation_action()
         elif observed.kind != "blocked" and _flow_endpoint(self.page.url) == "acCitar" and (self.pending_action or self.last_action) == "request":
             self.pending_action = "request"
             self.pending_counted = False
             self.record("recovery", observed, "Повторить поиск сит после серверной ошибки")
             await self.page.reload(wait_until="domcontentloaded")
+            self.control.automation_action()
             self.pending_action = None
         elif observed.kind != "blocked" and (self.pending_action or self.last_action) != "contact" and (not _is_icp_page(self.page.url) or _flow_endpoint(self.page.url) in {"acInfo", "acEntrada", "procesarRespuestaClave"}):
             from .config import DEFAULT_START_URL
             self.record("recovery", observed, "Безопасный GET начальной страницы после сбоя авторизации")
             await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+            self.control.automation_action()
             self.pending_action = None
             self.last_action = None
         elif (_is_icp_page(self.page.url)
               and _flow_endpoint(self.page.url) in {"index", "index.html"}
-              and (self.pending_action or self.last_action) == "no_slots_restart"):
-            # Aceptar only ends the no-slots pass. Do not replay that POST;
-            # load the entry document with GET and reuse this browser profile.
+              and (self.pending_action or self.last_action) != "contact"):
+            # The entry endpoint is safe to fetch after a failed return or exit.
+            # Do not replay the previous POST; preserve the existing profile.
             from .config import DEFAULT_START_URL
             self.record("recovery", observed, "Ошибка при завершении прохода — открыть начальную страницу через GET")
             await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+            self.control.automation_action()
             self.last_action = self.pending_action = None
         else:
             await self.hold(observed, "Неопределённый результат отправки. Проверить ответ вручную — повторная отправка отключена")
@@ -723,7 +738,7 @@ class AssistRunner:
                   run_id=self.run_id, stage=observed.kind)
         await self.save(observed, "TRACE_SCREEN")
         self.manual_signature = None
-        if observed.kind in {"applicant", "office", "contact", "booking", "request_no_slots", "request_no_slots_restart", "post_contact_no_slots"}:
+        if observed.kind in {"applicant", "applicant_no_slots", "office", "contact", "booking", "request_no_slots", "request_no_slots_restart", "post_contact_no_slots"}:
             self.control.blocked_streak = 0
             self.expired_attempts = self.server_attempts = self.server_button_attempts = 0
         if observed.kind in {"expired", "server_error", "blocked", "rate_limited"}:
@@ -791,6 +806,7 @@ class AssistRunner:
         elif kind == "auth":
             self.guard_document = self.guard_kind = None
             async def attention(reason, repeat=False):
+                self._manual_auth_active=True
                 waiting = reason == 'certificate_wait'
                 self.control.publish(screen="Авторизация сертификатом",
                                      evidence="Авторизация длится больше 5 секунд" if waiting else "Портал запросил подтверждение",
@@ -843,24 +859,59 @@ class AssistRunner:
                 return
             if await self.click(observed, 'form[action="salirInicio"] #btnSubmit', action="no_slots_restart"):
                 self.attempted.add(attempt)
-        elif kind == "request_no_slots":
-            attempt = (observed.document, "request_reload")
+        elif kind in {"applicant_no_slots", "request_no_slots"}:
+            applicant_wait = kind == "applicant_no_slots"
+            applicant_get = (applicant_wait and self.last_method == 'POST'
+                             and _is_icp_page(self.page.url) and _flow_endpoint(self.page.url) == 'acEntrada'
+                             and (self.pending_action or self.last_action) not in {'applicant','contact','request','office'})
+            if applicant_wait and self.last_method != 'GET' and not applicant_get:
+                await self.hold(observed,'Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку')
+                return
+            attempt = (observed.document, "applicant_reload" if applicant_wait else "request_reload")
             if attempt in self.attempted:
                 await self.hold(observed, "Повтор уже отправлялся. Ожидаем новый ответ — повторная отправка остановлена")
                 return
             self.empty_streak += 1
             delay = self.policy.next_delay(recent_activity=False, empty_streak=self.empty_streak)
-            if not await self.countdown(observed, delay, "Обновить результат запроса в текущей сессии"):
+            via_salir=not applicant_wait and getattr(self.task,'no_slots_mode','salir')=='salir'
+            next_action = ("Обновить форму без ввода данных" if applicant_wait else
+                           "Нажать Salir и продолжить по сайту" if via_salir else
+                           "Обновить результат запроса в текущей сессии")
+            if not await self.countdown(observed, delay, next_action):
                 return
             await self.save(observed, "STEP_BEFORE_ACTION")
             if not await self.guard(observed):
                 return
+            if via_salir:
+                button=await self.continuation(observed.source,r"salir")
+                if button is None:
+                    await self.hold(observed,"Не найдена единственная кнопка Salir. Проверить страницу")
+                    return
+                if not await self.guard(observed):return
+                self.attempted.add(attempt)
+                self.pending_action=self.last_action='no_slots_salir'
+                self.pending_counted=False
+                self.action_phase='no_slots.salir'
+                self.record('action',observed,'Нажать Salir: продолжить по предложенному сайтом пути')
+                await self.checker._activate_control(button,timeout=5_000)
+                self.pending_action=None
+                self.record('action_completed',observed,'Salir отправлен — распознать ответ сайта')
+                return
+            if applicant_wait and self.last_method != 'GET' and not applicant_get:
+                await self.hold(observed,'Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку')
+                return
             self.attempted.add(attempt)
-            self.pending_action = "request"
+            self.pending_action = "applicant_reload" if applicant_wait else "request"
             self.pending_counted = False
-            self.last_action = "request"
-            self.record("action", observed, "Обновить результат: повтор POST acCitar")
-            await self.page.reload(wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
+            self.last_action = self.pending_action
+            self.record("action", observed, "Обновить форму без ввода данных" if applicant_wait else "Обновить результат: повтор POST acCitar")
+            if applicant_get:
+                # The certificate return is a POST. Fetch the known applicant
+                # endpoint with GET instead of replaying its authentication body.
+                await self.page.goto(self.page.url, wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
+            else:
+                await self.page.reload(wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
+            self.control.automation_action()
             self.pending_action = None
             self.record("action_completed", observed, "Обновление завершено — распознать ответ")
         elif kind == "post_contact_no_slots":
@@ -1031,6 +1082,7 @@ class AssistRunner:
         raise AssistRestartRequested('таймаут действия — новый проход', clear_profile=False, delay_seconds=self.timings.recovery_delay(self.timings.restart_seconds))
 
     def detach(self):
+        self.checker._assist_action=None
         from contextlib import suppress
         listeners, self._listeners = self._listeners, []
         if hasattr(self.page, "remove_listener"):

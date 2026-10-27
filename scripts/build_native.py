@@ -19,7 +19,7 @@ def build_native(*, output_directory=None):
     from camoufox.pkgman import camoufox_path
     from camoufox.addons import add_default_addons
     from camoufox.fpgen_model import ensure_fpgen_model, fpgen_data_dir, PIN, STAMP, PINNED_MTIME
-    from app.version import VERSION
+    from app.version import VERSION, native_version
 
     browser = Path(camoufox_path())
     executable = 'camoufox.exe' if sys.platform == 'win32' else 'camoufox-bin'
@@ -52,7 +52,7 @@ def build_native(*, output_directory=None):
             Image.open(icon).save(converted, sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
             icon = converted
             from PyInstaller.utils.win32.versioninfo import VSVersionInfo, FixedFileInfo, StringFileInfo, StringTable, StringStruct, VarFileInfo, VarStruct
-            version_tuple = tuple(map(int, VERSION.split('.'))) + (0,)
+            version_tuple = native_version(VERSION)
             info = VSVersionInfo(ffi=FixedFileInfo(filevers=version_tuple, prodvers=version_tuple),
                 kids=[StringFileInfo([StringTable('040904B0', [StringStruct('FileDescription', NAME),
                     StringStruct('ProductName', NAME), StringStruct('FileVersion', VERSION), StringStruct('ProductVersion', VERSION)])]),

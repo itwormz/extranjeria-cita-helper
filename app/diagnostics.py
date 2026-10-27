@@ -25,17 +25,27 @@ class PageTrace:
         self.attempts = {}
         self.task = None
         self.responses = set()
+        self.script_responses = set()
+        self.navigation_responses = set()
         self.children = []
 
     def changed(self, *_args):
         self.pending.set()
 
     def response(self, response):
-        if not response.request.is_navigation_request():
+        from .diagnostic_resources import MAX_RESPONSE_TASKS, script_url
+        navigation = response.request.is_navigation_request()
+        if not navigation and (getattr(response.request, "resource_type", "") != "script"
+                               or not script_url(response.url)):
+            return
+        group = self.navigation_responses if navigation else self.script_responses
+        if len(group) >= MAX_RESPONSE_TASKS:
             return
         task = asyncio.create_task(self.checker._save_response(response, self.task_id, self.run_id))
         self.responses.add(task)
+        group.add(task)
         task.add_done_callback(self.responses.discard)
+        task.add_done_callback(group.discard)
 
     def popup(self, page):
         trace = PageTrace(page, self.checker, self.task_id, self.run_id, self.document_key)

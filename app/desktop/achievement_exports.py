@@ -8,9 +8,9 @@ from .achievements import snapshot
 CALENDAR_TITLE = 'Extranjería — Cita'
 
 _LABELS = {
-'en': ('Sita obtained', 'days of searching', 'Checks', 'Active search', 'Office appearances', 'Unique offices', 'Booking screens', 'First availability', 'Server errors', 'HTTP 429 responses', 'Blocked responses', 'Passes from the start'),
-'es': ('Cita conseguida', 'días de búsqueda', 'Comprobaciones', 'Búsqueda activa', 'Apariciones de oficinas', 'Oficinas distintas', 'Pantallas de cita', 'Primera disponibilidad', 'Errores del servidor', 'Respuestas HTTP 429', 'Bloqueos', 'Recorridos desde el inicio'),
-'ru': ('Сита получена', 'дней поиска', 'Проверки', 'Активный поиск', 'Появления офисов', 'Разные офисы', 'Экраны записи', 'Первая доступность', 'Ошибки сервера', 'Ответы HTTP 429', 'Блокировки', 'Проходы с начала'),
+'en': ('Sita obtained', 'days of searching', 'Checks', 'Active search', 'Office appearances', 'Unique offices', 'Booking screens', 'First availability', 'Server errors', 'HTTP 429 responses', 'Blocked responses', 'Passes from the start', 'Actions performed', 'Pages processed'),
+'es': ('Cita conseguida', 'días de búsqueda', 'Comprobaciones', 'Búsqueda activa', 'Apariciones de oficinas', 'Oficinas distintas', 'Pantallas de cita', 'Primera disponibilidad', 'Errores del servidor', 'Respuestas HTTP 429', 'Bloqueos', 'Recorridos desde el inicio', 'Acciones realizadas', 'Páginas procesadas'),
+'ru': ('Сита получена', 'дней поиска', 'Проверки', 'Активный поиск', 'Появления офисов', 'Разные офисы', 'Экраны записи', 'Первая доступность', 'Ошибки сервера', 'Ответы HTTP 429', 'Блокировки', 'Проходы с начала', 'Действий выполнено', 'Страниц обработано'),
 }
 
 
@@ -39,8 +39,8 @@ def _public(achievement, language):
         pass
     values = (stats['checks'], _duration(stats['active_seconds'],language), stats['offices_seen'], stats['unique_offices'],
               stats['booking_screens'], _duration(stats['first_available_seconds'],language), stats['server_errors'],
-              stats['rate_limited'], stats['blocked'], stats['flow_passes'])
-    return labels, days, tuple(zip(labels[2:], map(str, values)))
+              stats['rate_limited'], stats['blocked'], stats['flow_passes'],stats['actions_performed'],stats['pages_processed'])
+    return labels, days, tuple(zip(labels[2:], ('—' if value is None else str(value) for value in values)))
 
 
 def public_duration(achievement, language='en'):
@@ -64,7 +64,7 @@ def public_post(achievement, language='en', detailed=False):
     search_duration=public_duration(achievement,language)
     if search_duration!='—':lines.append(search_duration+'.')
     if detailed:
-        icons=('🔎','⏱','🏢','📍','📅','⌛','🔧','🚦','🛡','🔄')
+        icons=('🔎','⏱','🏢','📍','📅','⌛','🔧','🚦','🛡','🔄','🖱','📄')
         lines.extend(f'{icon} {label}: {value}' for icon,(label,value) in zip(icons,rows))
     lines.append(_credit(language))
     return '\n'.join(lines)
@@ -164,9 +164,9 @@ def render_card(achievement, language='en', dark=True):
     draw(QRect(64, 148, 1072, 75), public_duration(achievement, language), 27, text, True)
     for index, (label, value) in enumerate(rows):
         column, row = index % 2, index // 2
-        x, y = 64 + column * 564, 270 + row * 98
+        x, y = 64 + column * 564, 270 + row * 82
         painter.setPen(QColor(colors['line']))
-        painter.drawLine(x, y + 85, x + 508, y + 85)
+        painter.drawLine(x, y + 79, x + 508, y + 79)
         draw(QRect(x, y, 390, 74), label, 19, muted)
         draw(QRect(x + 390, y, 118, 74), value, 22, text, True)
     draw(QRect(64, 808, 1072, 45), _credit(language), 16, muted)

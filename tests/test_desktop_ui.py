@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QObject, Signal, Qt
 from PySide6.QtTest import QTest
 from app.desktop.window import DesktopWindow
-from app.desktop.profiles import ProfileStore
+from app.desktop.profiles import ProfileStore, ProfileConflictError
 
 class Controller(QObject):
     state_changed = Signal(dict)
@@ -990,7 +990,8 @@ def test_profile_tab_visits_inputs_in_visual_order_after_relayout(window,all_tab
 
 def test_profile_timing_tab_visits_all_values_before_save(window,all_tab_controls):
     window.create_profile();window.profile_tabs.setCurrentIndex(1);window.profile_editor.activateWindow();QApplication.processEvents()
-    order=[field for fields in window.timing_widgets.values() for field in fields]
+    order=window.timing_focus_fields
+    assert window.no_slots_mode_combo in order
     order[0].setFocus();QApplication.processEvents()
     for expected in order:
         current=QApplication.focusWidget()
@@ -1004,3 +1005,76 @@ def test_nie_tab_goes_to_name_after_service_relayout(window,all_tab_controls):
     window.profile_editor.activateWindow();f['document_number'].setFocus();QApplication.processEvents()
     QTest.keyClick(QApplication.focusWidget(),Qt.Key.Key_Tab);QApplication.processEvents()
     assert QApplication.focusWidget() is f['full_name']
+
+
+def test_remember_work_profile_and_statistics_follow_work_on_entry(window,task_mapping):
+    from tests.test_desktop_profiles import fields
+    first=window.store.save_profile(None,fields(task_mapping),revision=window.store.revision())
+    second=window.store.save_profile(None,fields(task_mapping),revision=window.store.revision())
+    window.refresh_profiles(selected=second)
+    assert window.store.last_profile()==second
+    # Simulate initial empty selector on the next launch.
+    window.profile_combo.blockSignals(True);window.profile_combo.clear();window.profile_combo.blockSignals(False)
+    window.refresh_profiles()
+    assert window.profile_combo.currentData()==second
+    window.statistics_panel.profile_combo.setCurrentIndex(window.statistics_panel.profile_combo.findData(first))
+    window.tabs.setCurrentIndex(1)
+    assert window.statistics_panel.profile_combo.currentData()==second
+    # Exploring another profile never changes the working profile.
+    window.statistics_panel.profile_combo.setCurrentIndex(window.statistics_panel.profile_combo.findData(first))
+    assert window.profile_combo.currentData()==second and window.store.last_profile()==second
+    window.tabs.setCurrentIndex(0);window.tabs.setCurrentIndex(1)
+    assert window.statistics_panel.profile_combo.currentData()==second
+    window.tabs.setCurrentIndex(0)
+    raw=window.store._read();raw['tasks']=[task for task in raw['tasks'] if task['id']!=second]
+    window.store._write(raw,window.store.revision())
+    window.refresh_profiles()
+    assert window.profile_combo.currentData()==first and window.store.last_profile()==first
+
+
+def test_no_slots_mode_editor_roundtrips_in_timing_tab(window,task_mapping):
+    from tests.test_desktop_profiles import fields
+    profile=window.store.save_profile(None,fields(task_mapping),revision=window.store.revision())
+    window.refresh_profiles(selected=profile);window.open_editor(profile)
+    assert window.no_slots_mode_combo.currentData()=='salir'
+    assert window.no_slots_mode_combo.parentWidget() is window.no_slots_mode_box
+    window.no_slots_mode_combo.setCurrentIndex(window.no_slots_mode_combo.findData('salir'))
+    window.save_profile()
+    assert window.store.load()[0].no_slots_mode=='salir'
+    window.open_editor(profile)
+    assert window.no_slots_mode_combo.currentData()=='salir'
+    window.set_language('es')
+    assert window.no_slots_mode_combo.currentText()=='Mediante Salir'
+    assert window.no_slots_mode_combo.currentData()=='salir'
+
+
+@pytest.mark.parametrize('language',['en','es'])
+def test_applicant_no_slots_evidence_is_localized(window,language):
+    from app.desktop.i18n import translate
+    source='На форме заявителя нет сит — ожидать без ввода данных'
+    window.preferences['language']=language
+    window.on_state({'evidence':source,'mode':'waiting'})
+    assert window.evidence.text()==translate(source,language)
+    assert window.evidence.text()!=source
+
+
+@pytest.mark.parametrize('error',[OSError('read only'),ProfileConflictError('changed')])
+def test_last_profile_storage_error_does_not_abort_window_start(tmp_path,catalog_path,qt_app,task_mapping,monkeypatch,error):
+    from tests.test_desktop_profiles import fields
+    store=ProfileStore(tmp_path/'tasks.yml',catalog_path)
+    store.save_profile(None,fields(task_mapping),revision=store.revision())
+    def fail(*args):raise error
+    monkeypatch.setattr(store,'save_last_profile',fail)
+    w=DesktopWindow(store,Controller())
+    assert w.profile_combo.count()==1 and 'last_profile' in w.errors
+    w.close();w.deleteLater();qt_app.processEvents()
+
+
+def test_evidence_language_changes_without_new_state(window):
+    from app.desktop.i18n import translate
+    source="На форме заявителя нет сит — ожидать без ввода данных"
+    window.set_language("en")
+    window.on_state({"evidence":source,"mode":"waiting"})
+    for language in ("es","ru","en"):
+        window.set_language(language)
+        assert window.evidence.text()==translate(source,language)

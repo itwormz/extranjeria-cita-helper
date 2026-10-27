@@ -155,6 +155,19 @@ class ProfileStore:
         self._write(raw, revision)
         return profile_id
 
+    def last_profile(self):
+        value=(self._read().get('desktop') or {}).get('last_profile_id')
+        return value if isinstance(value,str) else None
+
+    def save_last_profile(self, profile_id):
+        revision=self.revision()
+        raw=self._read()
+        desktop=raw.setdefault('desktop',{})
+        if desktop is None:desktop=raw['desktop']={}
+        if desktop.get('last_profile_id')==profile_id:return
+        desktop['last_profile_id']=profile_id
+        self._write(raw,revision)
+
     def preferences(self):
         raw = self._read()
         desktop = raw.get('desktop', {}) or {}
@@ -172,5 +185,7 @@ class ProfileStore:
             raise ProfileValidationError('Unsupported interface language')
         if automatic_updates is None:
             automatic_updates=(raw.get('desktop') or {}).get('automatic_updates',True)
-        raw['desktop'] = dict(dark=bool(dark), diagnostics=bool(diagnostics), sound=bool(sound),language=language,automatic_updates=bool(automatic_updates))
+        desktop=dict(raw.get('desktop') or {})
+        desktop.update(dark=bool(dark), diagnostics=bool(diagnostics), sound=bool(sound),language=language,automatic_updates=bool(automatic_updates))
+        raw['desktop']=desktop
         self._write(raw, revision)

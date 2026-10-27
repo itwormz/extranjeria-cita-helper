@@ -164,3 +164,7 @@ Review open CodeQL, Dependabot and secret-scanning alerts before tagging. Update
 Windows CI validates the .NET 8 SDK and runtime already installed in the pinned runner family before installing WiX 4.0.6. Missing prerequisites fail explicitly; the workflow does not download another SDK through `aka.ms`. This avoids an unnecessary dependency on SDK download redirects while preserving the native MSI build and verification steps.
 
 When `cryptography` requires a source build (currently macOS Intel), uv sets `OPENSSL_STATIC=1` through the project configuration. This keeps its OpenSSL symbols separate from Python’s bundled OpenSSL. Prebuilt wheels remain preferred; the packaged smoke test must import the attestation verifier successfully before a package can be published.
+
+## Local development builds
+
+Keep local work on a `codex/` development branch and use numbered PEP 440 versions such as `0.2.2.dev1`, `0.2.2.dev2`. Update `app/version.py`, `pyproject.toml`, the project entry in `uv.lock` and `CHANGELOG.md` together. The app displays the full development version; native numeric metadata uses the corresponding platform format. MSI uses the base three-part version, so a dev MSI is not a separate stable upgrade channel; use a portable build for Windows development checks. Stable update comparison accepts a development current version but still rejects development release tags. Do not create release tags for local builds. Local commits do not run the package workflow; pushing a stable `vMAJOR.MINOR.PATCH` tag is the publication trigger.

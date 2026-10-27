@@ -224,3 +224,52 @@ def test_subminute_first_duration_is_shown_in_seconds(tmp_path,qt_app):
     assert '≥ 56 s' in panel.first_value.text()
     assert '0 min' not in panel.first_value.text()
     panel.deleteLater();host.deleteLater()
+
+
+def test_effort_values_show_unknown_then_persist_today_and_all(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Test')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    assert panel.stat_values['actions_performed'].text()=='—'
+    panel.statistics.event('one','automation_action','old',at='2020-01-01T12:00:00+00:00')
+    panel.statistics.event('one','automation_action','today')
+    for _ in range(2):panel.statistics.event('one','processed_page','same-document')
+    panel.period='all';panel.refresh()
+    assert panel.stat_values['actions_performed'].text()=='2'
+    assert panel.stat_values['pages_processed'].text()=='1'
+    panel.period='today';panel.refresh()
+    assert panel.stat_values['actions_performed'].text()=='1'
+    assert panel.stat_values['pages_processed'].text()=='1'
+    panel.deleteLater();host.deleteLater()
+
+
+def test_automation_section_follows_availability_and_errors(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    from PySide6.QtWidgets import QLabel
+    profiles=[SimpleNamespace(id='one',label='One',province='Test')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    panel.resize(1050,1000);panel.show();qt_app.processEvents()
+    heading=next(label for label in panel.findChildren(QLabel) if label.text()=='Automation')
+    y=lambda widget:widget.mapTo(panel,widget.rect().center()).y()
+    assert y(heading)>y(panel.stat_values['blocked'])
+    assert y(panel.stat_values['actions_performed'])>y(heading)
+    assert y(panel.stat_values['pages_processed'])==y(panel.stat_values['actions_performed'])
+    assert 'pointer' in [name for widget,name in panel._icon_bindings]
+    assert 'file_text' in [name for widget,name in panel._icon_bindings]
+    panel.close();panel.deleteLater();host.deleteLater()
+
+
+def test_transient_statistics_read_error_clears_after_successful_refresh(tmp_path,qt_app,monkeypatch,caplog):
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    read=panel.statistics.get
+    def unavailable(*args,**kwargs):raise OSError('temporary read failure')
+    monkeypatch.setattr(panel.statistics,'get',unavailable);panel.refresh()
+    assert panel.message.text()==host.t('Не удалось прочитать статистику профиля')
+    failures=[record for record in caplog.records if getattr(record,'event',None)=='profile_statistics_read_failed']
+    assert len(failures)==1 and failures[0].fields=={'component':'totals','error_type':'OSError'}
+    assert 'temporary read failure' not in caplog.text
+    monkeypatch.setattr(panel.statistics,'get',read);panel.refresh()
+    assert panel.message.text()==''
+    panel.deleteLater();host.deleteLater()

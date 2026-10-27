@@ -52,7 +52,7 @@ def apply_theme(app, *, dark):
         QFrame#historyDetail {{ background:{c['surface']}; border:1px solid {c['line']}; border-radius:7px; }}
         QPushButton#statisticsPeriod {{ border:0; background:transparent; padding:7px 12px; color:{c['muted']}; }}
         QPushButton#statisticsPeriod:checked {{ background:{c['selection']}; color:{c['accent_text']}; border-radius:6px; }}
-        QPushButton#officeCount {{ border:0; border-bottom:1px dotted {c['muted']}; background:transparent; color:{c['text']}; padding:4px; }}
+        QPushButton#officeCount {{ border:0; background:transparent; color:{c['accent_text']}; padding:4px; }}
         QPushButton#officeCount:hover, QPushButton#officeCount:focus {{ color:{c['accent_text']}; }}
         QFrame#officePopup {{ background:{c['surface']}; border:1px solid {c['line_strong']}; border-radius:8px; }}
         QLabel#statisticsWarning {{ color:{c['attention']}; }}

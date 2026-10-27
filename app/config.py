@@ -52,6 +52,7 @@ class TaskConfig:
     errors: tuple[str, ...] = field(default_factory=tuple)
     applicant_fill_mode: str = "manual"
     clave_method: str = "movil"
+    no_slots_mode: str = "salir"
 
     @property
     def valid(self) -> bool:
@@ -225,6 +226,7 @@ def _task(raw: dict[str, Any], settings: Settings, catalog: dict[str, set[str]])
 
     access_mode = str(request.get("access_mode", "without_clave")).lower()
     clave_method = str(request.get("clave_method", "movil")).lower()
+    no_slots_mode = str(request.get("no_slots_mode", "salir")).lower()
     province = str(request.get("province", ""))
     office = str(request.get("office", ""))
     procedure = str(request.get("procedure", ""))
@@ -242,6 +244,8 @@ def _task(raw: dict[str, Any], settings: Settings, catalog: dict[str, set[str]])
         errors.append("id must match [a-z0-9_-]+")
     if not label:
         errors.append("label is required")
+    if no_slots_mode not in {"reload","salir"}:
+        errors.append("request.no_slots_mode must be reload or salir")
     if clave_method not in {"movil", "permanente"}:
         errors.append("request.clave_method must be movil or permanente")
     if access_mode not in {"without_clave", "clave", "certificate"}:
@@ -296,6 +300,7 @@ def _task(raw: dict[str, Any], settings: Settings, catalog: dict[str, set[str]])
         enabled=enabled,
         access_mode=access_mode,
         clave_method=clave_method,
+        no_slots_mode=no_slots_mode,
         applicant_fill_mode=applicant_fill_mode,
         province=province,
         office=office,

@@ -61,8 +61,10 @@ class AssistControl:
         except OSError:
             logging.getLogger(__name__).warning('event=journal_write_failed')
 
-    def observe_visit(self, *, document, stage, page, title, recognition="known", evidence=(), variant=""):
+    def observe_visit(self, *, document, stage, page, title, recognition="known", evidence=(), variant="", automated=True):
         with self._lock:
+            if automated and document and stage not in {'loading','unknown'} and not self._paused and not self.booking_handoff:
+                self.observe_statistics('processed_page',document)
             self._journal.observe(document=document, stage=stage, page=page, title=title)
             self._history_stage = stage
             self._history("page", stage=stage, document=document, recognition=recognition, evidence=evidence, variant=variant)
@@ -209,6 +211,13 @@ class AssistControl:
             self._statistics_observer = observe
             self._statistics_active = add_active
             self._statistics_active_at = add_active_at
+
+    def automation_action(self):
+        """One completed semantic operation, with no selector or field data."""
+        import uuid
+        with self._lock:
+            if not self._paused and not self.booking_handoff and self._state['mode']!='manual':
+                self.observe_statistics('automation_action',uuid.uuid4().hex)
 
     def observe_statistics(self, kind, document, *, offices=()):
         with self._lock:

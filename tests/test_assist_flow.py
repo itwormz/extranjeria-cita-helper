@@ -9,7 +9,7 @@ from app import assist_flow
 
 
 def test_no_slots_states_need_stage_context():
-    assert assist_flow.no_slots_kind(applicant=True, after_contacts=False) == "applicant"
+    assert assist_flow.no_slots_kind(applicant=True, after_contacts=False) == "applicant_no_slots"
     assert assist_flow.no_slots_kind(applicant=False, after_contacts=True) == "post_contact_no_slots"
     assert assist_flow.no_slots_kind(applicant=False, after_contacts=False) == "request_no_slots"
 
@@ -168,7 +168,7 @@ def test_timeline_urls_remove_auth_and_matrix_tokens():
 @pytest.mark.parametrize("lost_reply", [False, True])
 def test_no_slots_waits_then_reloads_once(lost_reply):
     page = SimpleNamespace(url='https://example.test/acCitar', reload=AsyncMock(), go_back=AsyncMock())
-    r = assist_flow.AssistRunner(page, SimpleNamespace(), SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)), SimpleNamespace(id='test'), 'run', AssistControl(), SimpleNamespace(), SimpleNamespace(next_delay=lambda **kw: 30))
+    r = assist_flow.AssistRunner(page, SimpleNamespace(), SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)), SimpleNamespace(id='test',no_slots_mode='reload'), 'run', AssistControl(), SimpleNamespace(), SimpleNamespace(next_delay=lambda **kw: 30))
     if lost_reply:
         page.reload.side_effect = RuntimeError("reply lost after send")
     observed = assist_flow.Observed('request_no_slots', 'doc', 'sig', None)
@@ -243,7 +243,7 @@ def test_expired_click_timeouts_are_spaced_instead_of_exhausting_retries():
     assert [c.args[1] for c in r.countdown.await_args_list]==[0,30,60,120]
 
 
-@pytest.mark.parametrize('endpoint,action,expected', [('acCitar','request','reload'),('procesarRespuestaClave',None,'goto'),('acOfertarCita','contact','hold'),('index.html','no_slots_restart','goto'),('index.html','contact','hold'),('index.html','request','hold')])
+@pytest.mark.parametrize('endpoint,action,expected', [('acCitar','request','reload'),('procesarRespuestaClave',None,'goto'),('acOfertarCita','contact','hold'),('index.html','no_slots_restart','goto'),('index.html','contact','hold'),('index.html','request','goto'),('index',None,'goto')])
 def test_server_recovery_only_repeats_safe_actions(endpoint,action,expected):
     page=SimpleNamespace(url='https://icp.administracionelectronica.gob.es/icpplustieb/'+endpoint,reload=AsyncMock(),goto=AsyncMock())
     r=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',AssistControl(),SimpleNamespace(),SimpleNamespace())
@@ -509,3 +509,96 @@ def test_cookie_banner_is_dismissed_before_automatic_form_action(kind):
     asyncio.run(r.step())
     checker._accept_cookies.assert_awaited_once_with(r.page)
     r.act.assert_not_awaited()
+
+
+def test_effort_counts_unique_automatic_pages_and_ignores_manual_pause(tmp_path):
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.statistics_session import StatisticsSession
+    store=ProfileStatistics(tmp_path/'stats.json');control=AssistControl()
+    task=SimpleNamespace(id='p',province='Test',procedure='Test',access_mode='certificate')
+    session=StatisticsSession(store,task,control)
+    def visit(doc,stage='province'):
+        control.observe_visit(document=doc,stage=stage,page='',title='')
+    visit('a');visit('a');visit('loading','loading');visit('unknown','unknown')
+    control.set_paused(True);visit('paused');control.set_paused(False)
+    visit('b');control.automation_action();control.automation_action()
+    control.booking_handoff=True;visit('manual');control.automation_action()
+    result=store.get('p')
+    assert result['pages_processed']==2 and result['actions_performed']==2
+    session.close('stopped')
+
+
+def test_manual_auth_pages_are_not_effort_but_automatic_return_is(tmp_path):
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.statistics_session import StatisticsSession
+    store=ProfileStatistics(tmp_path/'stats.json');control=AssistControl()
+    task=SimpleNamespace(id='p',province='Test',procedure='Test',access_mode='clave')
+    session=StatisticsSession(store,task,control)
+    runner=assist_flow.AssistRunner(SimpleNamespace(url='https://example.test/'),SimpleNamespace(),SimpleNamespace(),task,'run',control,SimpleNamespace(),SimpleNamespace())
+    runner.publish(assist_flow.Observed('auth_wait','auto','a',None))
+    runner.publish(assist_flow.Observed('auth_wait','auto','a',None),mode='manual')
+    runner.publish(assist_flow.Observed('auth_wait','human-otp','b',None))
+    runner.publish(assist_flow.Observed('auth_wait','human-otp','b',None),mode='manual')
+    control.automation_action()
+    async def slow_observation():
+        await asyncio.sleep(.6)
+        return assist_flow.Observed('auth_wait','human-slow','slow',None)
+    runner._observe=slow_observation
+    runner.publish(asyncio.run(runner.observe()))
+    runner.publish(assist_flow.Observed('auth_wait','human-slow','slow',None))
+    runner.publish(assist_flow.Observed('applicant','return','c',None))
+    assert store.get('p')['pages_processed']==2
+    assert store.get('p')['actions_performed']==0
+    session.close('stopped')
+
+
+def test_applicant_submission_is_distinct_from_availability_without_reading_values():
+    control=AssistControl();frame=object()
+    runner=assist_flow.AssistRunner(SimpleNamespace(main_frame=frame,url='about:blank'),SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(),SimpleNamespace())
+    request=SimpleNamespace(method='POST',url='https://example.test/icpplus/acValidarEntrada',frame=frame,is_navigation_request=lambda:True)
+    runner._requested(request)
+    assert [row['event'] for row in control.snapshot()['timeline']].count('applicant_submitted')==1
+    assert control.snapshot()['checks']==0
+
+
+@pytest.mark.parametrize('method',['POST',None])
+def test_applicant_no_slots_never_replays_non_get_navigation(method):
+    page=SimpleNamespace(url='https://example.test/acValidarEntrada',reload=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)),SimpleNamespace(id='test'),'run',AssistControl(),SimpleNamespace(),SimpleNamespace(next_delay=lambda **kw:30))
+    runner.last_method=method;runner.countdown=AsyncMock(return_value=True);runner.guard=AsyncMock(return_value=True);runner.save=AsyncMock();runner.hold=AsyncMock()
+    asyncio.run(runner.act(assist_flow.Observed('applicant_no_slots','doc','sig',None)))
+    page.reload.assert_not_awaited();runner.countdown.assert_not_awaited();runner.hold.assert_awaited_once()
+
+
+def test_certificate_attention_excludes_human_auth_pages_from_effort():
+    control=AssistControl();events=[];control.set_statistics_sink(lambda kind,doc,**kwargs:events.append((kind,doc)),lambda seconds:None)
+    page=SimpleNamespace(url='https://example.test/')
+    async def enter(page,task,run_id,on_attention):await on_attention('certificate_approval')
+    checker=SimpleNamespace(_enter_with_certificate=enter)
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),checker,SimpleNamespace(id='test',access_mode='certificate'),'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
+    asyncio.run(runner.act(assist_flow.Observed('auth','entry','entry',None)))
+    runner.publish(assist_flow.Observed('auth_wait','human','human',None))
+    runner.publish(assist_flow.Observed('applicant','automatic','automatic',None))
+    assert ('processed_page','human') not in events
+    assert ('processed_page','automatic') in events
+
+
+def test_applicant_warning_does_not_reload_if_post_starts_during_wait():
+    page=SimpleNamespace(url='https://example.test/acEntrada',reload=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)),SimpleNamespace(id='test'),'run',AssistControl(),SimpleNamespace(),SimpleNamespace(next_delay=lambda **kw:30))
+    runner.last_method='GET'
+    async def begin_post(*args):runner.last_method='POST';return True
+    runner.countdown=begin_post;runner.guard=AsyncMock(return_value=True);runner.save=AsyncMock();runner.hold=AsyncMock()
+    asyncio.run(runner.act(assist_flow.Observed('applicant_no_slots','doc','sig',None)))
+    page.reload.assert_not_awaited();runner.hold.assert_awaited_once()
+
+
+def test_post_auth_applicant_warning_refreshes_with_get_after_pause():
+    page=SimpleNamespace(url="https://icp.administracionelectronica.gob.es/icpplustieb/acEntrada",reload=AsyncMock(),goto=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)),SimpleNamespace(id="test"),"run",AssistControl(),SimpleNamespace(),SimpleNamespace(next_delay=lambda **kw:30))
+    runner.last_method="POST";runner.countdown=AsyncMock(return_value=True);runner.guard=AsyncMock(return_value=True);runner.save=AsyncMock();runner.hold=AsyncMock()
+    asyncio.run(runner.act(assist_flow.Observed("applicant_no_slots","doc","sig",None)))
+    runner.countdown.assert_awaited_once()
+    assert runner.countdown.await_args.args[1]==30
+    page.goto.assert_awaited_once_with(page.url,wait_until="domcontentloaded",timeout=5000)
+    page.reload.assert_not_awaited();runner.hold.assert_not_awaited()

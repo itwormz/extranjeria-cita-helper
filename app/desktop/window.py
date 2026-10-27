@@ -159,6 +159,7 @@ class DesktopWindow(QMainWindow):
         self._work()
         self._settings()
         self._statistics()
+        self.tabs.currentChanged.connect(self.main_tab_changed)
         theme_bar = QWidget(); theme_layout = QHBoxLayout(theme_bar)
         theme_layout.setContentsMargins(12, 10, 20, 10)
         theme_layout.setSpacing(8)
@@ -465,6 +466,7 @@ class DesktopWindow(QMainWindow):
         self.timing_widgets={}
         from ..timings import AssistTimings, TIMING_FIELDS, SEQUENCE_KEYS
         self.timing_field_boxes={}
+        self.timing_focus_fields=[]
         short_titles={
             'action_delay_seconds':'Между действиями','typing_ms':'Ввод NIE и имени','contact_typing_ms':'Ввод контактов',
             'reload_seconds':'Интервал проверки','navigation_seconds':'Таймаут страницы','bootstrap_seconds':'Начальная загрузка / F5',
@@ -482,12 +484,23 @@ class DesktopWindow(QMainWindow):
         ordered=[]
         for group, keys in timing_groups:
             ordered.append((None,group,0,0))
+            if group=='Проверка сит':ordered.append(('no_slots_mode','Повторная проверка',0,0))
             ordered.extend(field for field in TIMING_FIELDS if field[0] in keys)
         for key,title,lower,upper in ordered:
             if key is None:
                 if timing_column:timing_row+=1;timing_column=0
                 heading=label(title,name='sectionHeading');heading.setContentsMargins(0,8,0,0)
                 timing_layout.addWidget(heading,timing_row,0,1,2);timing_row+=1;continue
+            if key=='no_slots_mode':
+                self.no_slots_mode_combo=QComboBox();self.no_slots_mode_combo.setObjectName('profileNoSlotsMode')
+                self.no_slots_mode_combo.addItem('Обновлять результат','reload');self.no_slots_mode_combo.addItem('Через Salir','salir')
+                self.no_slots_mode_combo.setAccessibleName('Повторная проверка')
+                self.timing_focus_fields.append(self.no_slots_mode_combo)
+                self.no_slots_mode_box=ProfileField('Повторная проверка',self.no_slots_mode_combo)
+                timing_layout.addWidget(self.no_slots_mode_box,timing_row,timing_column)
+                timing_column=1-timing_column
+                if timing_column==0:timing_row+=1
+                continue
             if key=='action_delay_seconds':
                 widgets=[self.fields['delay_min'],self.fields['delay_max']]
                 # Move action inputs from the details grid into this tab.
@@ -507,9 +520,10 @@ class DesktopWindow(QMainWindow):
             row_box.help_text=title
             row_box.help.setToolTip(self.t(title))
             self.timing_field_boxes[key]=row_box
-            self.timing_widgets[key]=widgets;timing_layout.addWidget(row_box,timing_row,timing_column)
+            self.timing_widgets[key]=widgets;self.timing_focus_fields.extend(widgets);timing_layout.addWidget(row_box,timing_row,timing_column)
             timing_column=1-timing_column
             if timing_column==0:timing_row+=1
+        for previous,current in zip(self.timing_focus_fields,self.timing_focus_fields[1:]):QWidget.setTabOrder(previous,current)
         timing_layout.setColumnStretch(0,1);timing_layout.setColumnStretch(1,1)
         timing_layout.setRowStretch(timing_row+1,1)
         timing_scroll=QScrollArea(); timing_scroll.setWidgetResizable(True); timing_scroll.setFrameShape(QScrollArea.Shape.NoFrame); timing_scroll.setWidget(timings_page)
@@ -519,7 +533,7 @@ class DesktopWindow(QMainWindow):
         profile_tabs.addTab(self.notifications_panel.scroll,'Уведомления'); form.addWidget(profile_tabs,1)
         for previous,current in zip(self.profile_focus_fields,self.profile_focus_fields[1:]):
             QWidget.setTabOrder(previous,current)
-        profile_tabs.currentChanged.connect(self.update_editor_height)
+        profile_tabs.currentChanged.connect(self.profile_tab_changed)
         form.addWidget(label('Пароли и подтверждения — только в Camoufox.',muted=True))
         self.form_error=label(name='formError'); form.addWidget(self.form_error)
         actions=QHBoxLayout(); actions.addStretch(); save=QPushButton('Сохранить профиль');save.setObjectName('saveProfile'); save.setProperty('primary',True)
@@ -555,6 +569,7 @@ class DesktopWindow(QMainWindow):
     def refresh_profiles(self, selected=None):
         previous=self.profile_combo.currentData() if self.controller.active else (selected or self.profile_combo.currentData())
         try:
+            previous=previous or self.store.last_profile()
             self.profiles=self.store.load()
         except ProfileValidationError as exc:
             self.profiles=[]; self.show_error(str(exc),'profiles')
@@ -574,6 +589,12 @@ class DesktopWindow(QMainWindow):
         self.update_profile_summary()
         self.update_start()
 
+    def main_tab_changed(self,index):
+        if index==1:
+            panel=self.statistics_panel
+            selected=panel.profile_combo.findData(self.profile_combo.currentData())
+            if selected>=0:panel.profile_combo.setCurrentIndex(selected)
+
     def mark_success_from_work(self):
         panel=self.statistics_panel
         index=panel.profile_combo.findData(self.profile_combo.currentData())
@@ -588,6 +609,12 @@ class DesktopWindow(QMainWindow):
             return None
 
     def profile_changed(self):
+        profile_id=self.profile_combo.currentData()
+        if profile_id and any(task.id==profile_id for task in self.profiles):
+            try:self.store.save_last_profile(profile_id)
+            except (ProfileValidationError,ProfileConflictError,OSError):
+                self.show_error('Не удалось сохранить настройки. Изменения не применены.','last_profile')
+            else:self.clear_error('last_profile')
         if not self.controller.active and hasattr(self, 'metrics'):
             total = self.profile_check_total()
             self.metrics.setText(f"Проверки: 0 за запуск · Всего: {total if total is not None else '—'}")
@@ -673,10 +700,16 @@ class DesktopWindow(QMainWindow):
               else 'Cl@ve Permanente' if request.get('clave_method','movil')=='permanente' else 'Cl@ve Móvil')
         self.profile_summary.setText(str(request.get('province',''))+' · '+PROCEDURE_NAMES.get(request.get('procedure',TIE_PROCEDURE),'')+' · '+self.t(auth))
 
+    def profile_tab_changed(self,index):
+        if index==self.profile_tabs.indexOf(self.notifications_panel.scroll):
+            self.notifications_panel.ensure_secrets_loaded()
+        self.update_editor_height()
+
     def open_editor(self, profile_id):
         self.editing_id=profile_id; self.editor_revision=self.store.revision()
         raw=self.store.raw_profile(profile_id) if profile_id else {}
-        self.notifications_panel.load(raw.get('notifications',{}))
+        self.notifications_panel.load(raw.get('notifications',{}),defer_secrets=True)
+        self.no_slots_mode_combo.setCurrentIndex(max(0,self.no_slots_mode_combo.findData(raw.get('request',{}).get('no_slots_mode','salir'))))
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))
@@ -714,6 +747,7 @@ class DesktopWindow(QMainWindow):
         self.form_error.clear(); self.editor_title.setText('Редактирование профиля' if profile_id else 'Создание профиля')
         self.tabs.setCurrentIndex(1); self.profile_editor.setWindowTitle(self.t('Редактирование профиля' if profile_id else 'Создание профиля')); self.profile_editor.show()
         self.retranslate()
+        self.profile_tab_changed(self.profile_tabs.currentIndex())
 
     def save_profile(self):
         f=self.fields
@@ -731,7 +765,7 @@ class DesktopWindow(QMainWindow):
         selected_auth=f['access_mode'].currentData()
         access_mode='clave' if selected_auth.startswith('clave_') else 'certificate'
         clave_method=selected_auth.removeprefix('clave_') if access_mode=='clave' else 'movil'
-        data=dict(label=f['label'].text().strip(),timings=timings,request=dict(access_mode=access_mode,clave_method=clave_method,
+        data=dict(label=f['label'].text().strip(),timings=timings,request=dict(access_mode=access_mode,clave_method=clave_method,no_slots_mode=self.no_slots_mode_combo.currentData(),
             province=f['province'].currentText(),office='',procedure=f['procedure'].currentData(),subprocedure=None),
             applicant=dict(fill_mode=f['fill_mode'].currentData(),document_type=f['document_type'].currentData() if f['procedure'].currentData()==REGRESO_PROCEDURE else 'NIE',document_number=f['document_number'].text(),
                 full_name=f['full_name'].text(),nationality=f['nationality'].currentText(),
@@ -1039,6 +1073,8 @@ class DesktopWindow(QMainWindow):
             translated=self.t(source)
             self._translation_sources[key]=(source,translated)
             setter(translated)
+        # The compact monitor keeps evidence outside the visible widget tree.
+        update((self.evidence,'text'),self.evidence.text(),self.evidence.setText)
         self.tabs.setIconSize(QSize(18,18))
         for index,name in enumerate(('activity','statistics','settings')):self.tabs.setTabIcon(index,self.control_icon(name))
         for object_name,icon in [('createProfile','plus'),('editProfile','pencil'),('saveProfile','check'),('cancelProfile','close'),('openDiagnostics','folder')]:
@@ -1102,6 +1138,11 @@ class DesktopWindow(QMainWindow):
         field_icons={'label':'user','province':'pin','procedure':'clipboard','access_mode':'key','document_type':'id','document_number':'id',
                      'full_name':'user','nationality':'globe','phone':'phone','email':'mail'}
         for key,name in field_icons.items():self.profile_field_boxes[key].icon.setPixmap(self.control_icon(name).pixmap(QSize(18,18)))
+        self.no_slots_mode_box.caption.setText(self.t('Повторная проверка'))
+        self.no_slots_mode_box.icon.setPixmap(self.control_icon('restart').pixmap(QSize(18,18)))
+        self.no_slots_mode_combo.setAccessibleName(self.t('Повторная проверка'))
+        for index,title in enumerate(('Обновлять результат','Через Salir')):self.no_slots_mode_combo.setItemText(index,self.t(title))
+        self.no_slots_mode_box.setToolTip(self.t('При обычном «нет сит»: обновлять результат или после паузы нажимать Salir и следовать сайту. На форме заявителя данные не вводятся, пока есть сообщение «нет сит».'))
         for key,box in self.timing_field_boxes.items():
             box.help.setToolTip(self.t(box.help_text))
             box.icon.setPixmap(self.control_icon('bell' if key=='alert_seconds' else 'globe' if key=='reload_seconds' else 'info').pixmap(QSize(17,17)))
@@ -1296,6 +1337,8 @@ class DesktopWindow(QMainWindow):
             'check':'<path d="m4 12 5 5L20 5"/>',
             'clipboard':'<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="2" width="6" height="5" rx="1"/>',
             'external':'<path d="M14 3h7v7M21 3L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>',
+            'pointer':'<path d="M5 3l14 10-7 1-3 7z"/><path d="M12 14l4 7"/>',
+            'file_text':'<path d="M14 2H5v20h14V7z"/><path d="M14 2v5h5M8 12h8M8 16h6"/>',
             'copy':'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
             'download':'<path d="M12 2v13m-5-5 5 5 5-5M3 17v4h18v-4"/>',
             'credit_card':'<rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 9h20M6 15h5"/>',

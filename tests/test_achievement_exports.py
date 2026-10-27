@@ -137,3 +137,11 @@ def test_calendar_preview_uses_same_accurate_appointment_title(qt_app):
     assert 'Extranjería — Cita' in titles
     assert not any('Toma de huellas' in title for title in titles)
     dialog.close()
+
+
+def test_effort_statistics_preserve_unknown_old_snapshots():
+    from app.desktop.achievements import snapshot
+    old=snapshot({'checks':42})
+    assert old['pages_processed'] is None and old['actions_performed'] is None
+    text=public_post({'statistics':{'pages_processed':100,'actions_performed':250}},'en',True)
+    assert '100' in text and '250' in text

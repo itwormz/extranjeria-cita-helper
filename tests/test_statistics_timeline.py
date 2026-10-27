@@ -292,3 +292,24 @@ def test_dense_navigation_block_retains_each_fact_once():
     assert len(result[0]['source_rows'])==len(raw)
     assert len({id(row) for row in result[0]['source_rows']})==len(raw)
     assert result[0]['restoration_provenance'][0]['source_rows']==raw[1:-1]
+
+
+def test_cod_survives_navigation_until_confirmed_normal_result():
+    raw=[page(0,'request_no_slots_restart',1),page(10,'province',11),
+         page(20,'applicant_no_slots',21),page(25,'applicant',26),page(30,'request_menu',31),
+         page(40,'request_no_slots',41)]
+    raw[0]['evidence']=['operation_code','no_appointments']
+    result=clips(build_timeline(raw,session(50)))
+    assert [(r['start'],r['end'],r['timeline_state']) for r in result]==[
+        (at(0),at(40),'cod'),(at(40),at(50),'search')]
+
+
+def test_cod_navigation_retains_errors_and_availability_ends_condition():
+    raw=[page(0,'request_no_slots_restart',1),page(10,'server_error',11),
+         page(20,'province',21),event(30,'office',offices=['Test office']),
+         page(31,'office',32)]
+    raw[0]['evidence']=['operation_code','no_appointments']
+    result=clips(build_timeline(raw,session(40)))
+    assert [(r['start'],r['end'],r['timeline_state']) for r in result]==[
+        (at(0),at(10),'cod'),(at(10),at(20),'recovery'),
+        (at(20),at(30),'cod'),(at(30),at(40),'search')]

@@ -4,6 +4,13 @@ import pytest
 import os
 
 
+@pytest.fixture(autouse=True)
+def stable_publication_fixture(monkeypatch):
+    # Publication behaviour is tested independently of the local dev version.
+    from scripts import create_draft_release as release
+    monkeypatch.setattr(release,'VERSION','0.2.1')
+
+
 def test_tag_must_match_version():
     from scripts.package_release import validate_tag
     validate_tag('v0.1.0', '0.1.0')
@@ -129,4 +136,15 @@ def test_invalid_provenance_never_creates_or_publishes_release(tmp_path,monkeypa
     monkeypatch.setattr(release,'verified_assets',lambda *args:[package])
     calls=[];monkeypatch.setattr(release.subprocess,'run',lambda *args,**kwargs:calls.append(args))
     with pytest.raises(ValueError):release.main(tmp_path,publish=True)
+    assert not calls
+
+
+def test_development_version_never_starts_publication(tmp_path,monkeypatch):
+    from scripts import create_draft_release as release
+    monkeypatch.setattr(release,'VERSION','0.2.2.dev1')
+    monkeypatch.setenv('RELEASE_TAG','v0.2.2.dev1')
+    calls=[]
+    monkeypatch.setattr(release.subprocess,'run',lambda *args,**kwargs:calls.append(args))
+    with pytest.raises(ValueError,match='Release tag'):
+        release.main(tmp_path,publish=True)
     assert not calls

@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from PySide6.QtCore import Qt, QDate, QRectF, Signal, QLocale, QPointF, QEvent, QTimer
-from PySide6.QtGui import QColor, QPainter, QBrush, QTextCharFormat, QIcon, QTransform, QPen, QPolygonF
+from PySide6.QtGui import QCursor, QColor, QPainter, QBrush, QTextCharFormat, QIcon, QTransform, QPen, QPolygonF
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QDateEdit, QStackedWidget, QFrame, QListWidget, QDialog, QCalendarWidget, QToolButton, QGridLayout, QAbstractSpinBox, QToolTip)
 from .theme import theme_colors
@@ -30,7 +30,7 @@ def segment_kind(row):
     if mode in ("unobserved","sleep","suspended"):return "gap"
     evidence=row.get('evidence',[])
     codes=evidence.get('codes',[]) if isinstance(evidence,dict) else evidence
-    if stage=='cod_oper' or (stage in {'request_no_slots','request_no_slots_restart','post_contact_no_slots'} and 'operation_code' in codes):return 'cod'
+    if stage=='cod_oper' or (stage in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and 'operation_code' in codes):return 'cod'
     if stage in {'expired','blocked'} or kind in {'expired','blocked'}:return 'anomaly'
     if kind=='flow_restart' and isinstance(evidence,dict) and evidence.get('previous_stage') not in {None,'province','request_no_slots_restart','post_contact_no_slots'}:return 'anomaly'
     if any(s in stage or s in kind or s in mode for s in ("error","429","blocked","recovery","timeout","unknown","rate_limit")):return "recovery"
@@ -292,6 +292,7 @@ class Timeline(QWidget):
         if emit and set(unique)==self.selected_keys:return
         self.selected_rows=list(unique.values());self.selected_keys=set(unique)
         self.selected_key=self.selection_key(self.selected_rows[0]) if self.selected_rows else None
+        if not self.selected_rows:self._anchor_key=None
         self.update()
         if emit:self.selected.emit(self.selected_rows)
     def rows_at(self,position):
@@ -422,7 +423,9 @@ class Timeline(QWidget):
                 self.view_start=0.;self.view_end=1.;self.update_controls();self.update();event.accept();return True
         return super().event(event)
     def keyPressEvent(self,event):
-        if event.key()==Qt.Key.Key_0:self.view_start=0.;self.view_end=1.;self.update_controls();self.update();event.accept()
+        if event.key()==Qt.Key.Key_Escape:
+            self.set_selection([],emit=True);event.accept()
+        elif event.key()==Qt.Key.Key_0:self.view_start=0.;self.view_end=1.;self.update_controls();self.update();event.accept()
         elif event.key() in (Qt.Key.Key_Right,Qt.Key.Key_Left,Qt.Key.Key_Return,Qt.Key.Key_Space) and self.hit:
             if event.key()==Qt.Key.Key_Right:self.selection=(self.selection+1)%len(self.hit)
             if event.key()==Qt.Key.Key_Left:self.selection=(self.selection-1)%len(self.hit)
@@ -437,16 +440,36 @@ class OfficeCountButton(QPushButton):
         source='Предложен 1 раз' if count==1 else 'Предложен {count} раза' if 2<=count%10<=4 and not 12<=count%100<=14 else 'Предложен {count} раз'
         super().__init__(t(source).format(count=count),parent)
         self.setObjectName('officeCount');self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.popup=None;self.preview_labels=[];self.full_list=None;self.clicked.connect(self.open_popup)
+        self.popup=None;self.preview_labels=[];self.full_list=None;self.popup_interactive=False;self.hover_suppressed=False
+        self.hover_timer=QTimer(self);self.hover_timer.setInterval(120);self.hover_timer.timeout.connect(self.check_hover)
+        self.clicked.connect(lambda checked=False:self.open_popup(interactive=True))
     def enterEvent(self,event):
-        self.open_popup();super().enterEvent(event)
-    def focusInEvent(self,event):
-        super().focusInEvent(event)
-        if event.reason() in (Qt.FocusReason.TabFocusReason,Qt.FocusReason.BacktabFocusReason):self.open_popup()
-    def open_popup(self):
-        if self.popup and self.popup.isVisible():return
+        if not self.hover_suppressed and self.rect().contains(self.mapFromGlobal(QCursor.pos())):self.open_popup(interactive=False)
+        super().enterEvent(event)
+    def eventFilter(self,watched,event):
+        if watched is self.popup:
+            if event.type()==QEvent.Type.KeyPress and event.key()==Qt.Key.Key_Escape:
+                self.popup.hide();return True
+            if event.type()==QEvent.Type.Hide and self.popup_interactive:
+                self.hover_suppressed=True;self.hover_timer.start()
+        return super().eventFilter(watched,event)
+    def check_hover(self):
+        if self.hover_suppressed:
+            if not self.rect().contains(self.mapFromGlobal(QCursor.pos())):
+                self.hover_suppressed=False;self.hover_timer.stop()
+            return
+        if not self.popup or not self.popup.isVisible():self.hover_timer.stop();return
+        point=QCursor.pos()
+        if not self.rect().contains(self.mapFromGlobal(point)) and not self.popup.rect().contains(self.popup.mapFromGlobal(point)):
+            self.popup.hide();self.hover_timer.stop()
+    def open_popup(self,interactive=True):
+        if self.popup and self.popup.isVisible():
+            if self.popup_interactive or not interactive:return
+            self.popup.hide()
         if self.popup:self.popup.deleteLater()
-        self.popup=QFrame(self,Qt.WindowType.Popup);self.popup.setObjectName('officePopup');layout=QVBoxLayout(self.popup)
+        self.hover_timer.stop();self.popup_interactive=interactive;self.hover_suppressed=False
+        self.popup=QFrame(self,Qt.WindowType.Popup if interactive else Qt.WindowType.ToolTip);self.popup.setObjectName('officePopup');self.popup.installEventFilter(self);layout=QVBoxLayout(self.popup)
+        if not interactive:self.popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         layout.addWidget(QLabel(self.t('Появления офиса')+''));self.preview_labels=[]
         for row in self.appearances[:4]:
             label=QLabel(stamp(row['time']));self.preview_labels.append(label);layout.addWidget(label)
@@ -455,7 +478,9 @@ class OfficeCountButton(QPushButton):
         position.setX(max(bounds.left(),min(position.x(),bounds.right()-self.popup.width())))
         position.setY(max(bounds.top(),min(position.y(),bounds.bottom()-self.popup.height())))
         self.popup.move(position);self.popup.show()
+        if not interactive:self.hover_timer.start()
     def show_all(self):
+        self.hover_timer.stop()
         if self.popup:self.popup.hide()
         self.full_dialog=QDialog(self.window());self.full_dialog.setWindowTitle(self.t('Все появления')+'');layout=QVBoxLayout(self.full_dialog)
         self.full_list=QListWidget();self.full_list.addItems([stamp(row['time']) for row in self.appearances]);layout.addWidget(self.full_list)
@@ -569,6 +594,7 @@ class StatisticsHistory(QWidget):
             last=QLabel(stamp(row['last_seen']) if row['last_seen'] else t('Дата неизвестна'));last.setProperty('muted',True);words.addWidget(last);line.addLayout(words,1)
             button=OfficeCountButton(row['appearances'],t) if row['appearances'] else QPushButton(t('Нет истории появлений'))
             if not row['appearances']:button.setEnabled(False)
+            if row['appearances'] and hasattr(self.host,'control_icon'):button.setIcon(self.host.control_icon('clock'))
             line.addWidget(button);self.offices_layout.addWidget(frame)
         if not self.office_rows:
             label=QLabel(t('Старые итоги сохранены. Подробная история отсутствует.') if baseline else t('Офисы пока не появлялись'));label.setWordWrap(True);self.offices_layout.addWidget(label)
@@ -602,10 +628,6 @@ class StatisticsHistory(QWidget):
         # newly observed interval overlaps the selected empty range.
         for row in self.selected_rows:
             if segment_kind(row)=='gap' and lower.astimezone(timezone.utc)<local_time(row.get('end') or row['last_seen']).astimezone(timezone.utc) and local_time(row['start']).astimezone(timezone.utc)<upper.astimezone(timezone.utc) and not any(not other.get('event') and segment_kind(other)!='gap' and local_time(other['start']).astimezone(timezone.utc)<local_time(row.get('end') or row['last_seen']).astimezone(timezone.utc) and local_time(other.get('end') or other['last_seen']).astimezone(timezone.utc)>local_time(row['start']).astimezone(timezone.utc) for other in self.rows):selected.append(row)
-        meaningful=[row for row in self.rows if not row['event'] or segment_kind(row) in ('available','fatal')]
-        if not selected and meaningful:
-            # Prefer the latest informative state over a routine check event.
-            selected=[max(meaningful,key=lambda row:(segment_kind(row) not in ('search','gap'),row['start']))]
         self.show_details(selected)
         t=self.host.t
         self.empty.setText('' if self.rows else t('Нет наблюдений в выбранном диапазоне') if self.bounds else t('Старые итоги сохранены. Подробная история отсутствует.') if self.baseline else t('Пока нет истории поиска'))
@@ -631,7 +653,7 @@ class StatisticsHistory(QWidget):
             metrics.append(('С наблюдениями',observed_duration(summary['observed_seconds'],t)))
             if summary['gap_seconds']:metrics.append(('Без наблюдений',observed_duration(summary['gap_seconds'],t)))
             notes.append(t('Промежутки между выбранными участками не включены. События учитываются один раз.'))
-        counter_names={'checks':'Проверок сит','flow_passes':'Проходов с начала','offices_seen':'Появлений офисов','booking_screens':'Появлений выбора даты','server_errors':'Ошибок сервера','rate_limited':'Ограничений HTTP 429','expired_sessions':'Истекших сессий','blocked':'Ограничений доступа','browser_resets':'Сбросов браузера','unknown_errors':'Неизвестных ошибок','fatal_errors':'Остановок с ошибкой'}
+        counter_names={'actions_performed':'Действий выполнено','pages_processed':'Страниц обработано','checks':'Проверок сит','flow_passes':'Проходов с начала','offices_seen':'Появлений офисов','booking_screens':'Появлений выбора даты','server_errors':'Ошибок сервера','rate_limited':'Ограничений HTTP 429','expired_sessions':'Истекших сессий','blocked':'Ограничений доступа','browser_resets':'Сбросов браузера','unknown_errors':'Неизвестных ошибок','fatal_errors':'Остановок с ошибкой'}
         metrics.extend((name,str(summary['counts'][key])) for key,name in counter_names.items() if summary['counts'][key])
         if summary['offices']:metrics.append(('Разных офисов',str(len(summary['offices']))))
         if kind=='gap' and not many:notes.append(t('Нет записей о состоянии сайта. Проверки и активное время неизвестны.'))

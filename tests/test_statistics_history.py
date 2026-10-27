@@ -144,7 +144,7 @@ def test_timeline_coalesces_backgrounds_without_hiding_cod():
     assert bands[1]['left']==11/24 and bands[1]['right']==13/24
 
 
-def test_history_default_selection_survives_refresh_and_controls_share_header(qt_app):
+def test_history_selection_is_explicit_and_clearing_survives_refresh(qt_app):
     from app.desktop.statistics_history import StatisticsHistory
     from types import SimpleNamespace
     row=dict(id='cod',kind='page',stage='cod_oper',mode='',start='2026-10-23T10:00:00+00:00',end=None,last_seen='2026-10-23T11:00:00+00:00',confirmed_end=False,event=False,evidence=[])
@@ -154,11 +154,25 @@ def test_history_default_selection_survives_refresh_and_controls_share_header(qt
         def history(self,*a,**k):return [dict(row)]
     panel=StatisticsHistory(SimpleNamespace(t=lambda t:t,preferences={'dark':True,'language':'ru'}),Store())
     panel.resize(1000,350);panel.refresh('a','all');panel.show();qt_app.processEvents()
-    assert panel.detail.text()
+    assert not panel.detail.text() and not panel.timeline.selected_rows
     assert panel.period_button.mapTo(panel,panel.period_button.rect().center()).y()==panel.history_button.mapTo(panel,panel.history_button.rect().center()).y()
     assert panel.timeline.height()<=190
-    panel.show_details([row]);before=panel.detail.text();panel.refresh('a','all')
+    day,segments=panel.timeline.days[0]
+    selected=panel.timeline.display_rows(day,segments[0])
+    panel.show_details(selected);before=panel.detail.text();panel.refresh('a','all')
     assert panel.detail.text()==before
+    from PySide6.QtCore import Qt, QPoint
+    from PySide6.QtTest import QTest
+    panel.timeline.zoom(.5)
+    qt_app.processEvents()
+    QTest.mouseClick(panel.timeline,Qt.MouseButton.LeftButton,pos=QPoint(100,5))
+    assert not panel.selected_rows and not panel.detail.text()
+    row['last_seen']='2026-10-23T12:00:00+00:00'
+    panel.refresh('a','all');qt_app.processEvents()
+    assert not panel.selected_rows and not panel.timeline.selected_rows
+    assert panel.detail_card.isHidden()
+    panel.show_details([row]);QTest.keyClick(panel.timeline,Qt.Key.Key_Escape)
+    assert not panel.selected_rows
     panel.deleteLater()
 
 
@@ -390,3 +404,36 @@ def test_compact_legend_opens_complete_explanation(qt_app):
     text=' '.join(label.text() for label in panel.legend_popup.findChildren(QLabel))
     assert 'Ручное управление' in text and 'Новая сессия' in text and 'HTTP 429' in text
     panel.legend_popup.close();panel.deleteLater()
+
+
+def test_office_hover_preview_closes_after_leaving_button_and_preview(qt_app,monkeypatch):
+    from app.desktop.statistics_history import OfficeCountButton
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QCursor
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QApplication
+    button=OfficeCountButton([dict(time='2026-10-26T10:00:00+00:00')],lambda text:text)
+    button.show();qt_app.processEvents()
+    button.open_popup(interactive=False)
+    assert button.popup.isVisible()
+    assert QApplication.activePopupWidget() is not button.popup
+    inside=button.popup.mapToGlobal(button.popup.rect().center())
+    monkeypatch.setattr(QCursor,'pos',lambda:inside)
+    QTest.qWait(220);assert button.popup.isVisible()
+    monkeypatch.setattr(QCursor,'pos',lambda:QPoint(-1000,-1000))
+    QTest.qWait(300);assert not button.popup.isVisible()
+    button.close();button.deleteLater()
+
+
+def test_office_preview_keyboard_activation_and_escape(qt_app):
+    from app.desktop.statistics_history import OfficeCountButton
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    button=OfficeCountButton([dict(time='2026-10-26T10:00:00+00:00')],lambda text:text)
+    button.show();button.setFocus();qt_app.processEvents()
+    assert not button.popup_interactive
+    QTest.keyClick(button,Qt.Key.Key_Space);qt_app.processEvents()
+    assert button.popup_interactive and button.popup.isVisible()
+    QTest.keyClick(button.popup,Qt.Key.Key_Escape);qt_app.processEvents()
+    assert not button.popup.isVisible()
+    button.close();button.deleteLater()
