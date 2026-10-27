@@ -602,3 +602,98 @@ def test_post_auth_applicant_warning_refreshes_with_get_after_pause():
     assert runner.countdown.await_args.args[1]==30
     page.goto.assert_awaited_once_with(page.url,wait_until="domcontentloaded",timeout=5000)
     page.reload.assert_not_awaited();runner.hold.assert_not_awaited()
+
+
+@pytest.mark.parametrize('fill_mode',['manual','copy'])
+def test_applicant_warning_continue_submits_once_without_waiting(fill_mode):
+    page=SimpleNamespace(url='https://icp.administracionelectronica.gob.es/icpplus/acEntrada')
+    checker=SimpleNamespace(_fill_applicant_manual=AsyncMock(),_fill_applicant_with_clave=AsyncMock())
+    task=SimpleNamespace(id='test',applicant_fill_mode=fill_mode,applicant_no_slots_mode='continue')
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),checker,task,'run',AssistControl(),SimpleNamespace(),SimpleNamespace())
+    observed=assist_flow.Observed('applicant_no_slots','doc','sig',None)
+    runner.observe=AsyncMock(return_value=observed);runner.click=AsyncMock(return_value=True)
+    runner.countdown=AsyncMock();runner.hold=AsyncMock()
+    async def scenario():
+        await runner.act(observed);await runner.act(observed)
+    asyncio.run(scenario())
+    chosen=checker._fill_applicant_with_clave if fill_mode=='copy' else checker._fill_applicant_manual
+    chosen.assert_awaited_once()
+    runner.click.assert_awaited_once_with(observed,'#btnEnviar',action='applicant')
+    runner.countdown.assert_not_awaited();runner.hold.assert_awaited_once()
+
+
+def test_booking_details_failure_keeps_handoff_and_does_not_stall_notification(monkeypatch):
+    from app import booking_details
+    page=SimpleNamespace(url='https://icp.administracionelectronica.gob.es/icpplus/acCita',evaluate=AsyncMock(side_effect=RuntimeError('page changed')))
+    control=AssistControl()
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
+    observed=assist_flow.Observed('booking','doc','sig',page)
+    seen=[]
+    async def fail(*args,**kwargs):
+        seen.append((control.booking_handoff,control.snapshot()['booking_details_pending'],runner.attention is not None))
+        raise RuntimeError('navigation')
+    monkeypatch.setattr(booking_details,'read_booking_details',fail)
+    with pytest.raises(RuntimeError,match='page changed'):asyncio.run(runner.booking_attention(observed))
+    assert seen==[(True,True,True)]
+    state=control.snapshot()
+    assert state['booking_handoff'] and not state['booking_details_pending']
+    assert state['booking_details']=={} and runner.checker._assist_guard is None
+
+
+def test_continue_warning_form_retries_only_a_confirmed_unsent_click():
+    from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+    control_button=SimpleNamespace()
+    source=SimpleNamespace(locator=lambda selector:SimpleNamespace(first=control_button))
+    observed=assist_flow.Observed('applicant_no_slots','doc','sig',source)
+    error=PlaywrightTimeoutError('waiting for locator("#btnEnviar")')
+    checker=SimpleNamespace(_fill_applicant_manual=AsyncMock(),_activate_control=AsyncMock(side_effect=[error,None]))
+    page=SimpleNamespace(url='https://icp.administracionelectronica.gob.es/icpplus/acEntrada',wait_for_load_state=AsyncMock(),wait_for_timeout=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),checker,SimpleNamespace(id='test',applicant_no_slots_mode='continue'),'run',AssistControl(),SimpleNamespace(),SimpleNamespace())
+    runner.observe=AsyncMock(return_value=observed);runner.guard=AsyncMock(return_value=True)
+    runner.save=AsyncMock();runner.countdown=AsyncMock(return_value=True);runner.hold=AsyncMock()
+    async def scenario():
+        with pytest.raises(PlaywrightTimeoutError):await runner.act(observed)
+        await runner.recover_timeout(observed,observed,error)
+        await runner.act(observed)
+    asyncio.run(scenario())
+    assert checker._activate_control.await_count==2
+    runner.hold.assert_not_awaited()
+
+
+@pytest.mark.parametrize('selected,document_changed',[(False,False),(True,False),(True,True)])
+def test_booking_details_uses_only_unambiguous_current_office_and_current_document(monkeypatch,selected,document_changed):
+    url='https://icp.administracionelectronica.gob.es/icpplus/acCita'
+    source=SimpleNamespace(url=url,evaluate=AsyncMock(return_value=['Día: 28/10/2026 Hora:12:30']))
+    page=SimpleNamespace(url=url,evaluate=AsyncMock(),wait_for_timeout=AsyncMock(),
+        locator=lambda selector:SimpleNamespace(get_attribute=AsyncMock(return_value=None)))
+    control=AssistControl();control.set_sound(False)
+    # Old availability must never be used as a source for the notification.
+    control.record_availability('offices_seen',page=url,offices=[{'value':'old','text':'STALE OFFICE'}])
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(stop=AsyncMock()),SimpleNamespace())
+    runner.current_offices=[{'value':'1','text':'CURRENT A'},{'value':'2','text':'CURRENT B'}]
+    if selected:runner.selected_office=runner.current_offices[1]
+    runner.save=AsyncMock()
+    monkeypatch.setattr(assist_flow,'_document_key',AsyncMock(return_value='changed' if document_changed else 'doc'))
+    asyncio.run(runner.booking_attention(assist_flow.Observed('booking','doc','sig',source)))
+    details=control.snapshot()['booking_details']
+    if document_changed:assert details=={}
+    else:
+        assert details['offers']==[{'date':'2026-10-28','time':'12:30'}]
+        assert details.get('office')==('CURRENT B' if selected else None)
+    assert 'STALE' not in str(details)
+
+
+def test_stalled_attention_probe_does_not_stall_telegram_readiness():
+    import time
+    async def stalled(*args):await asyncio.sleep(2)
+    url='https://icp.administracionelectronica.gob.es/icpplus/acCita'
+    source=SimpleNamespace(url=url,evaluate=AsyncMock(side_effect=RuntimeError('unavailable')))
+    page=SimpleNamespace(url=url,evaluate=stalled,
+        locator=lambda selector:SimpleNamespace(get_attribute=AsyncMock(return_value=None)))
+    control=AssistControl()
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
+    started=time.monotonic()
+    try:asyncio.run(runner.booking_attention(assist_flow.Observed('booking','doc','sig',source)))
+    except (TimeoutError,AttributeError):pass
+    assert time.monotonic()-started<2
+    assert not control.snapshot()['booking_details_pending']

@@ -279,3 +279,36 @@ def test_loading_history_has_loading_recognition():
     runner=assist_flow.AssistRunner(SimpleNamespace(url='https://example.com/'),SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(),SimpleNamespace())
     runner.publish(assist_flow.Observed('loading','loading','loading',None))
     assert next(fields for kind,fields in history if kind=='page')['recognition']=='loading'
+
+
+def test_booking_details_link_to_counter_and_journal_without_diagnostics(tmp_path):
+    from types import SimpleNamespace
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.statistics_session import StatisticsSession
+    from app.assist_journal import description
+    stats=ProfileStatistics(tmp_path/'s.json');control=AssistControl();control.set_diagnostics(False)
+    task=SimpleNamespace(id='p',province='Barcelona',procedure='huellas',access_mode='certificate')
+    session=StatisticsSession(stats,task,control)
+    control.observe_statistics('booking','doc')
+    control.observe_visit(document='doc',stage='booking',page='https://example.test',title='booking',automated=False)
+    details={'office':'CNP TEST','offers':[{'date':'2026-10-28','time':'12:30'}],'confirmation':'PRIVATE'}
+    control.set_booking_details(details,document='doc');control.set_booking_details(details,document='doc')
+    session.close('stopped')
+    row=next(r for r in ProfileStatistics(stats.path).history('p') if r['kind']=='booking')
+    assert row['evidence']['booking_details']=={'office':'CNP TEST','offers':[{'date':'2026-10-28','time':'12:30'}]}
+    assert stats.get('p')['booking_screens']==1
+    assert '28.10.2026 — 12:30' in description(control.snapshot()['journal'][0])
+    assert 'PRIVATE' not in str(row)
+
+
+def test_session_context_retains_both_independent_search_choices(tmp_path):
+    import json
+    from types import SimpleNamespace
+    from app.desktop.statistics import ProfileStatistics
+    from app.desktop.statistics_session import StatisticsSession
+    stats=ProfileStatistics(tmp_path/'s.json');control=AssistControl()
+    task=SimpleNamespace(id='p',province='Barcelona',procedure='huellas',access_mode='certificate',no_slots_mode='reload',applicant_no_slots_mode='continue')
+    session=StatisticsSession(stats,task,control)
+    with stats._db(write=False) as db:context=json.loads(db.execute('SELECT context FROM sessions').fetchone()[0])
+    assert context['no_slots_mode']=='reload' and context['applicant_no_slots_mode']=='continue'
+    session.close('stopped')

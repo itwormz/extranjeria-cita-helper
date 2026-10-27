@@ -36,7 +36,7 @@ In **Settings → Edit profile → Notifications**, enable Telegram and/or a web
 
 **Webhook:** enter an HTTPS URL and select POST (JSON) or GET (URL parameters). **Advanced parameters** opens custom headers, URL parameters and a custom JSON template. Values are secret by default; the lock changes that display mode and the eye temporarily reveals a value. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Send a test before saving.
 
-Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). Opening the profile Notifications tab reads these credentials; editing other profile fields does not. There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province, but no applicant identifiers, appointment details or page captures. Remote booking is not included; manual actions remain in Camoufox.
+Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). Opening the profile Notifications tab reads these credentials; editing other profile fields does not. There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province. Telegram appointment alerts also include the current office/address and explicitly offered dates/times when recognized; search filters are excluded, and unsupported layouts retain the general alert. Webhook payloads remain unchanged. Applicant identifiers, contacts, CAPTCHA, confirmation numbers and page captures are not sent. Remote booking is not included; manual actions remain in Camoufox.
 
 ## Update integrity
 
@@ -49,7 +49,7 @@ Trust roots ship with the application; verification does not trust a shared loca
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/workflow-en-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/images/workflow-en-light.svg">
-  <img src="docs/images/workflow-en-light.svg" alt="Application workflow" width="1180">
+  <img src="docs/images/workflow-en-light.svg" alt="Application workflow" width="820">
 </picture>
 
 ## 🎯 Purpose and responsible use
@@ -108,11 +108,13 @@ Hover over the timeline to highlight a segment or event; click for its duration 
 
 Actions performed and pages processed measure automated work: one completed activation, selection, field fill or reload counts as one action; a recognized document is counted once. Manual actions and repeated recognition are excluded. These counters start with the updated app and do not reconstruct earlier work.
 
-In profile **Timings and retries**, **Repeat check** selects **Via Salir** (the default) or result reloads. Salir mode waits and clicks the website’s actual Salir button, then follows recognized pages; an absent or ambiguous button requires review. Both modes avoid entering applicant data while its form reports no appointments. A confirmed GET form can be reloaded. After the authentication POST to acEntrada, a separate GET refreshes the form without replaying authentication; other POST or unknown origins require review. No reduction in document submissions is assumed.
+In profile **Timings and retries**, choose two independent settings. **On the applicant form** defaults to **Wait when unavailable**: no identity data is entered while the warning remains. **Fill and continue** allows entering/copying data despite that warning. **After a no-appointments result** defaults to **Via Salir**; result reloads are optional. Salir mode waits and uses the actual website control, then follows recognized pages; an absent or ambiguous button requires review. Waiting with Salir is recommended for normal searches. Repeated data submissions may increase the risk of access restrictions. These choices do not change intervals, recovery pauses or ambiguous-POST safeguards. In waiting mode, confirmed GET forms can be reloaded; after the acEntrada authentication POST, a separate GET refreshes the form without replaying authentication. Other POST or unknown origins require review.
 
 The last working profile is restored on startup; opening Statistics initially follows that profile. Cod. Oper. periods continue through intermediate navigation until a normal availability result returns. Zoom and routine refreshes preserve the current timeline selection; changing the statistics profile or Today/All time scope clears it. Once cleared, selection does not return automatically.
 
 Statistics are stored in SQLite independently of page diagnostics and survive application restarts. Existing totals migrate automatically with an unchanged original and a backup; undated old totals do not become invented daily history. No statistics are uploaded automatically. A no-appointments page with Cod. Oper. is an observed state, not proof of a document-specific ban.
+
+Recognized booking events retain the selected office/address and explicit offered dates/times locally, even with diagnostics off. Hover or select the booking marker to inspect them; the journal and session timeline also include them. Enrichment does not add another booking count, and old events without details are not guessed.
 
 History initially shows all observed days; **Period** selects a date range. Known dates and durations remain separate: the old elapsed time to first availability is not active search time. **≥** marks a confirmed minimum when history is incomplete.
 

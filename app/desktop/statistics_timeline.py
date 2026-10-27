@@ -78,6 +78,7 @@ def _order(row):
 
 
 def _availability(rows):
+    from ..booking_details import normalize_booking_details
     markers = []
     active = None
     for row in sorted(rows, key=_order):
@@ -97,7 +98,7 @@ def _availability(rows):
                 id=_identity(session, 'availability', when), timeline_state='available',
                 start=_stamp(when), end=_stamp(when), last_seen=_stamp(when),
                 availability_kind='office', office_seen_at=None, booking_seen_at=None,
-                offices=[], source_rows=[], restored=False, restored_ranges=[])
+                offices=[], bookings=[], source_rows=[], restored=False, restored_ranges=[])
             markers.append(active)
         active['source_rows'].append(row)
         if kind == 'office':
@@ -105,6 +106,9 @@ def _availability(rows):
         else:
             active['availability_kind'] = 'booking'
             active['booking_seen_at'] = active['booking_seen_at'] or row.get('start') or row.get('time')
+            evidence=row.get('evidence')
+            details=normalize_booking_details(evidence.get('booking_details')) if isinstance(evidence,dict) else {}
+            if details:active['bookings'].append(dict(details,observed_at=row.get('start') or row.get('time')))
         for office in row.get('offices', []):
             if office not in active['offices']:
                 active['offices'].append(office)

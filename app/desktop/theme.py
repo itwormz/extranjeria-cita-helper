@@ -40,6 +40,10 @@ def apply_theme(app, *, dark):
     notification_check=(assets/'notification-check.svg').as_posix()
     notification_partial=(assets/'notification-partial.svg').as_posix()
     app.setStyleSheet(f'''
+        QFrame#searchBehaviorNote {{ background:{c["surface"]}; border:0; border-radius:8px; }}
+        QFrame#searchBehaviorNote[risk="true"] {{ background:{c["attention_soft"]}; }}
+        QLabel#searchBehaviorTitle {{ font-weight:600; }}
+        QLabel#searchBehaviorTitle[risk="true"] {{ color:{c["attention"]}; }}
         QPushButton#statisticsSuccess {{ min-height:20px; max-height:20px; padding:8px 16px; }}
         QPushButton#historyTab {{ border:0; border-bottom:2px solid transparent; border-radius:0; background:transparent; padding:7px 10px; color:{c['muted']}; }}
         QPushButton#historyTab:checked {{ border-bottom:2px solid {c['accent']}; background:transparent; color:{c['text']}; }}

@@ -74,7 +74,12 @@ def description(row, translate=lambda text: text, title=lambda stage: stage):
                   selected_office=row.get('selected_office', ''),
                   button=row.get('button',''),
                   deadline=(row.get('deadline') or '')[11:19])
-    return translate(row.get('message', '')).format_map(values)
+    text=translate(row.get('message', '')).format_map(values)
+    if row.get('stage')=='booking':
+        from .booking_details import booking_lines
+        lines=booking_lines(row.get('booking_details'))
+        if lines:text+=' · '+' · '.join(lines)
+    return text
 
 
 class PageJournal:
@@ -112,14 +117,14 @@ class PageJournal:
         self.persist(deepcopy(row))
         return row
 
-    def observe(self, *, document, stage, page, title):
+    def observe(self, *, document, stage, page, title, applicant_continue=False):
         if stage == 'loading':
             return
         old = self.active
         if old and not old['ended_at'] and old['stage'] == stage and (
                 old['document'] == document or stage == 'auth_wait'):
             # QR refresh and SSO redirects remain one authentication interaction.
-            self.update(document=document, page=page)
+            self.update(document=document, page=page, applicant_continue=bool(applicant_continue))
             return
         if old and not old['ended_at']:
             self.complete(stage)
@@ -129,15 +134,16 @@ class PageJournal:
         message = ('Обрабатываем сообщение об ошибке' if stage in ERROR_STAGES else
                    'Неизвестная страница — требуется ручная проверка' if stage == 'unknown' else
                    'Открыт выбор даты и времени — управление передано пользователю' if stage == 'booking' else
-                   ACTION_MESSAGES.get(stage, 'Распознана страница — определяем следующий шаг'))
+                   ACTION_MESSAGES.get('applicant' if stage=='applicant_no_slots' and applicant_continue else stage, 'Распознана страница — определяем следующий шаг'))
         self.active = self.add(document=document, stage=stage, page=page, title=title,
-                               status=status, message=message)
+                               status=status, message=message, applicant_continue=bool(applicant_continue))
         if stage != 'province':
             self.restart_pending = False
 
     def complete(self, destination):
         old = self.active
         stage = old['stage']
+        action_stage='applicant' if stage=='applicant_no_slots' and old.get('applicant_continue') else stage
         if old['status'] == 'failed':
             self.update(ended_at=stamp())
             return
@@ -157,10 +163,10 @@ class PageJournal:
                            'Переход после сообщения сайта → {destination}')
         elif stage in NO_SLOTS and destination == stage and old['checked']:
             status, message = 'checked', 'После обновления сит по-прежнему нет'
-        elif destination in EXPECTED.get(stage, set()):
+        elif destination in EXPECTED.get(stage, set()) | EXPECTED.get(action_stage, set()):
             status = 'offices_found' if stage == 'office' and old['offices'] else 'passed'
             message = ('Авторизация завершена → {destination}' if stage == 'auth' and destination != 'auth_wait' else
-                       PASSED_MESSAGES.get(stage, 'Переход подтверждён → {destination}'))
+                       PASSED_MESSAGES.get(action_stage, 'Переход подтверждён → {destination}'))
         elif stage == 'booking':
             status, message = 'date_available', old['message']
         else:
@@ -199,6 +205,10 @@ class PageJournal:
             if len(options) == 1:
                 changes.update(status='offices_found', message='Доступен офис: {offices}')
             self.update(**changes)
+
+    def booking(self, document, details):
+        if self.active and self.active['stage']=='booking' and self.active['document']==document:
+            self.update(booking_details=deepcopy(details))
 
     def event(self, event, *, detail='', document=None, stage='', page='', user_requested=False):
         row = self.active
@@ -257,8 +267,9 @@ class PageJournal:
         if not row or row['ended_at'] or (document is not None and document != row['document']) or (stage and stage != row['stage']):
             return
         if event in {'action', 'action_completed', 'check', 'office_submitted'}:
-            message = (SENT_MESSAGES.get(row['stage'], 'Действие отправлено — ожидается ответ')
-                       if event != 'action' else ACTION_MESSAGES.get(row['stage'], 'Выполняем действие на странице'))
+            action_stage='applicant' if row['stage']=='applicant_no_slots' and row.get('applicant_continue') else row['stage']
+            message = (SENT_MESSAGES.get(action_stage, 'Действие отправлено — ожидается ответ')
+                       if event != 'action' else ACTION_MESSAGES.get(action_stage, 'Выполняем действие на странице'))
             if event == 'check':
                 message = 'Запрос проверки сит отправлен — ожидается ответ'
             self.update(status='processing', message=message, submitted=event != 'action' or row['submitted'],

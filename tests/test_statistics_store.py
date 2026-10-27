@@ -572,3 +572,27 @@ def test_replayed_event_does_not_create_another_activity_day(tmp_path):
     stats.event('a', 'check', 'next-document', session_id='s', at='2026-01-02T12:01:00Z')
     assert stats.total('a') == 2
     assert stats.get('a')['days'] == 2
+
+
+def test_booking_details_enrich_original_event_without_recount_or_retiming(tmp_path):
+    stats=ProfileStatistics(tmp_path/'s.json')
+    first='2026-10-27T10:00:00Z'
+    stats.event('p','booking','doc',at=first,session_id='s')
+    details={'office':'CNP TEST, CALLE TEST, 1','offers':[{'date':'2026-10-28','time':'12:30','token':'SECRET'}],
+             'captcha':'SECRET','confirmation':'SECRET','document_number':'SECRET'}
+    for _ in range(2):stats.save_booking_details('p','s','doc',details)
+    reopened=ProfileStatistics(stats.path);rows=[row for row in reopened.history('p') if row['kind']=='booking']
+    assert len(rows)==1 and reopened.get('p')['booking_screens']==1
+    assert rows[0]['start']=='2026-10-27T10:00:00+00:00'
+    assert rows[0]['evidence']['booking_details']=={'office':'CNP TEST, CALLE TEST, 1','offers':[{'date':'2026-10-28','time':'12:30'}]}
+    assert 'SECRET' not in str(rows)
+    assert reopened.get('p','today',at='2026-10-28T15:00:00Z')['booking_screens']==0
+
+
+def test_booking_details_never_create_missing_or_wrong_session_event(tmp_path):
+    stats=ProfileStatistics(tmp_path/'s.json');stats.event('p','booking','doc',session_id='real')
+    details={'office':'CNP TEST','offers':[{'date':'2026-10-28','time':'12:30'}]}
+    assert not stats.save_booking_details('p','other','doc',details)
+    assert not stats.save_booking_details('p','real','other-document',details)
+    assert stats.get('p')['booking_screens']==1
+    assert 'booking_details' not in stats.history('p')[0]['evidence']

@@ -94,7 +94,7 @@ jobs:
           CITA_BROWSER_TESTS: '1'
           CITA_TEST_ENGINE: camoufox
           PYTHONUNBUFFERED: '1'
-        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py tests/test_resource_capture_browser.py -k 'not locked_desktop'
+        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py tests/test_resource_capture_browser.py tests/test_booking_details_browser.py -k 'not locked_desktop'
       - name: Build native application
         run: uv run python scripts/build_desktop_app.py
       - name: Verify macOS signature

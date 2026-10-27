@@ -56,7 +56,7 @@ Run Linux AppImage with execute permission (`chmod +x file.AppImage`). On system
 
 ## GitHub Actions
 
-`.github/workflows/build.yml` runs on pull requests, manually through **Actions → Build desktop packages → Run workflow**, and on `v*` tags. It tests source/privacy, builds all four native targets, verifies the browser and worker offline, then uploads packages with SHA256 sidecars as Actions artifacts (14 days).
+`.github/workflows/build.yml` runs manually through **Actions → Build desktop packages → Run workflow**, and on `v*` tags. It tests source/privacy, builds all four native targets, verifies the browser and worker offline, then uploads packages with SHA256 sidecars as Actions artifacts (14 days).
 
 Set the same numeric version in `app/version.py`, `pyproject.toml`, and the project entry in `uv.lock`; update `CHANGELOG.md`. Versions use MAJOR.MINOR.PATCH: fixes increment PATCH, features MINOR, incompatible changes MAJOR. All CPU architectures share one version. README headers use a dynamic latest-published-release badge and do not need a source-version edit. A tag such as `v0.1.0` must match the source version exactly.
 
@@ -71,7 +71,7 @@ git tag v0.2.1
 git push origin v0.2.1
 ```
 
-A normal push to `main` does not start this workflow or publish a release. Manual workflow runs and pull requests build/test packages without publishing them.
+A normal push to `main` does not start this workflow or publish a release. Manual workflow runs build/test packages without publishing them. Pull requests run the separate lightweight Tests and CodeQL workflows.
 
 ## Signatures and browser resources
 
@@ -96,7 +96,9 @@ uv run python scripts/preflight.py --bundle
 
 This checks workflow syntax with actionlint, version consistency, source privacy,
 the standard test suite and the same offline browser regressions as CI, including
-Toma de huellas / TIE and Autorización de regreso (`tests/test_regreso_browser.py`).
+Toma de huellas / TIE and Autorización de regreso (`tests/test_regreso_browser.py`),
+plus passive Telegram booking details and applicant warning modes
+(`tests/test_booking_details_browser.py`).
 macOS also runs the locked-session simulations. All browser requests use synthetic pages;
 the gate does not commit, push, tag or publish. A failure stops the sequence.
 The optional native bundle check does not install the application. Native Windows,
@@ -121,7 +123,7 @@ Tag builds use pinned `actions/attest` after final packaging, then attach its pu
 Sigstore bundle as `<package>.sigstore.json` for each package. Before any release
 upload, `scripts/create_draft_release.py` calls the same verifier as the updater
 and requires the workflow source commit to equal `GITHUB_SHA`. Missing or invalid
-bundles abort publication. Manual/PR builds do not mint release attestations.
+bundles abort publication. Manual builds do not mint release attestations.
 
 The application uses the Sigstore Python verifier against the production trusted
 root embedded in its locked dependency. It does not read user TUF caches, request
@@ -167,4 +169,4 @@ When `cryptography` requires a source build (currently macOS Intel), uv sets `OP
 
 ## Local development builds
 
-Keep local work on a `codex/` development branch and use numbered PEP 440 versions such as `0.2.2.dev1`, `0.2.2.dev2`. Update `app/version.py`, `pyproject.toml`, the project entry in `uv.lock` and `CHANGELOG.md` together. The app displays the full development version; native numeric metadata uses the corresponding platform format. MSI uses the base three-part version, so a dev MSI is not a separate stable upgrade channel; use a portable build for Windows development checks. Stable update comparison accepts a development current version but still rejects development release tags. Do not create release tags for local builds. Local commits do not run the package workflow; pushing a stable `vMAJOR.MINOR.PATCH` tag is the publication trigger.
+Keep local work on a `codex/` development branch and use numbered PEP 440 versions such as `0.2.2.dev1`, `0.2.2.dev2`. Update `app/version.py`, `pyproject.toml`, the project entry in `uv.lock` and `CHANGELOG.md` together. The app displays the full development version; native numeric metadata uses the corresponding platform format. MSI uses the base three-part version, so a dev MSI is not a separate stable upgrade channel; use a portable build for Windows development checks. Stable update comparison accepts a development current version but still rejects development release tags. Do not create release tags for local builds. The package workflow also requires a stable source version for MSI/DMG/AppImage/portable packaging; a dev branch can run source and offline browser checks, but must not be submitted to that workflow as a stable release. Local commits do not run the package workflow; pushing a stable `vMAJOR.MINOR.PATCH` tag is the publication trigger.

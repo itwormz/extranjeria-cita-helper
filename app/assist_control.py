@@ -61,11 +61,11 @@ class AssistControl:
         except OSError:
             logging.getLogger(__name__).warning('event=journal_write_failed')
 
-    def observe_visit(self, *, document, stage, page, title, recognition="known", evidence=(), variant="", automated=True):
+    def observe_visit(self, *, document, stage, page, title, recognition="known", evidence=(), variant="", automated=True, applicant_continue=False):
         with self._lock:
             if automated and document and stage not in {'loading','unknown'} and not self._paused and not self.booking_handoff:
                 self.observe_statistics('processed_page',document)
-            self._journal.observe(document=document, stage=stage, page=page, title=title)
+            self._journal.observe(document=document, stage=stage, page=page, title=title, applicant_continue=applicant_continue)
             self._history_stage = stage
             self._history("page", stage=stage, document=document, recognition=recognition, evidence=evidence, variant=variant)
 
@@ -77,6 +77,16 @@ class AssistControl:
         with self._lock:
             self._state["run_id"] = run_id
             self.booking_handoff = False
+            self._state.update(booking_details={}, booking_details_pending=False)
+
+    def set_booking_details(self, details, *, pending=False, document=None):
+        from .booking_details import normalize_booking_details
+        details=normalize_booking_details(details)
+        with self._lock:
+            self._state.update(booking_details=details, booking_details_pending=pending)
+            if not pending and document and details:
+                self._journal.booking(document,details)
+                self._history('booking_details',document=document,booking_details=details)
 
     def request_stop(self):
         self.flush_statistics()
@@ -108,7 +118,7 @@ class AssistControl:
                        event=event, page=page, stage=stage, detail=detail)
             self._journal.event(event, detail=detail, document=document, stage=stage, page=page,
                                 user_requested=self.stop_requested or self.close_browser_requested)
-            if event not in {'screen', 'capture', 'response', 'check', 'offices_seen', 'booking_seen', 'statistics_error'}:
+            if event not in {'screen', 'capture', 'response', 'check', 'offices_seen', 'booking_seen', 'booking_details', 'statistics_error'}:
                 fields = dict(stage=stage if stage else self._history_stage, document=document or '')
                 if event == 'flow_restart':
                     fields.update(previous_stage=self._history_stage, initiator='user' if self._history_manual_restart else 'automatic')

@@ -104,6 +104,7 @@ class AssistRunner:
         self.office_selection_key = None
         self.selected_office = None
         self.booking_document = None
+        self.booking_details_document = None
         self.handoff_observed = None
         self.booking_acknowledged = False
         self.guard_document = None
@@ -306,7 +307,7 @@ class AssistRunner:
                     kind, evidence = "auth", "Доступна кнопка con Cl@ve"
                 elif applicant:
                     kind = "applicant_no_slots" if no_slots else "applicant"
-                    evidence = ("На форме заявителя нет сит — ожидать без ввода данных" if no_slots
+                    evidence = (("На форме заявителя нет сит — ввод данных разрешён настройкой" if getattr(self.task,"applicant_no_slots_mode","wait")=="continue" else "На форме заявителя нет сит — ожидать без ввода данных") if no_slots
                                 else "Видимая форма заявителя")
                 elif no_slots:
                     kind = no_slots_kind(applicant=False, after_contacts=(self.pending_action or self.last_action) == "contact")
@@ -355,6 +356,8 @@ class AssistRunner:
         elif observed.kind not in {'auth_wait','loading','unknown'}:
             self._manual_auth_active=False
         title, action = LABELS[observed.kind]
+        if observed.kind == "applicant_no_slots" and getattr(self.task,"applicant_no_slots_mode","wait")=="continue":
+            action="Заполнить данные и перейти дальше"
         if observed.certificate_validation_error:title="Ошибка проверки сертификата"
         if observed.kind == 'auth_wait':
             title = ('Cl@ve Permanente' if getattr(self.task,'clave_method','movil') == 'permanente' else 'Cl@ve Móvil') if getattr(self.task,'access_mode','certificate') == 'clave' else 'Авторизация сертификатом'
@@ -386,6 +389,7 @@ class AssistRunner:
             page=urlunsplit((parts.scheme, parts.netloc, path, "", "")), title=title,
             recognition=observed.kind if observed.kind in {"unknown", "loading"} else "known", variant=observed.variant,
             automated=mode!='manual' and not self._manual_auth_active,
+            applicant_continue=observed.kind=='applicant_no_slots' and getattr(self.task,'applicant_no_slots_mode','wait')=='continue',
             evidence=('no_appointments','operation_code') if observed.kind in {'applicant_no_slots','request_no_slots','request_no_slots_restart','post_contact_no_slots'} and observed.operation_code else ())
         if observed.kind not in {"loading", "auth_wait"}:
             self.previous_stage = observed.kind
@@ -729,11 +733,11 @@ class AssistRunner:
             self.publish(observed, next_action="Ожидаем ручного перехода на сайте", mode="manual")
             await self.page.wait_for_timeout(500)
             return
-        self.publish(observed, mode="manual" if observed.kind in {"booking", "captcha"} else "working")
         if observed.kind in {"booking", "captcha"}:
             # Notify before diagnostics, which may be slow or fail.
             await self.booking_attention(observed)
             return
+        self.publish(observed,mode="working")
         log_event(log, logging.INFO, "assist_screen_recognized", task_id=self.task.id,
                   run_id=self.run_id, stage=observed.kind)
         await self.save(observed, "TRACE_SCREEN")
@@ -829,8 +833,8 @@ class AssistRunner:
                 self.record("action", observed, "Войти с электронным сертификатом")
                 await self.checker._enter_with_certificate(self.page, self.task, self.run_id, on_attention=attention)
             await self.silence()
-        elif kind == "applicant":
-            if (observed.document, kind) in self.attempted:
+        elif kind == "applicant" or (kind == "applicant_no_slots" and getattr(self.task, "applicant_no_slots_mode", "wait") == "continue"):
+            if (observed.document, "applicant") in self.attempted:
                 await self.hold(observed, "Форма уже отправлялась. Проверить ответ и данные")
                 return
             if getattr(self.task, 'applicant_fill_mode', 'manual') == 'copy':
@@ -840,9 +844,9 @@ class AssistRunner:
                 self.record("action", observed, "Ввести документ и имя из профиля" if getattr(self.task,'procedure',None)==REGRESO_PROCEDURE else "Ввести NIE и имя из профиля")
                 await self.checker._fill_applicant_manual(self.page, self.task, self.run_id)
             current = await self.observe()
-            if current.kind != "applicant" or current.document != observed.document:
+            if current.kind not in {"applicant", kind} or current.document != observed.document:
                 return
-            self.attempted.add((observed.document, kind))
+            self.attempted.add((observed.document, "applicant"))
             await self.click(current, "#btnEnviar", action="applicant")
         elif kind == "request_menu":
             if (observed.document, kind) in self.attempted:
@@ -1022,6 +1026,8 @@ class AssistRunner:
         await self.page.wait_for_timeout(250)
 
     async def booking_attention(self, observed):
+        if observed.kind=="booking" and self.booking_details_document!=observed.document:
+            self.control.set_booking_details({},pending=True)
         if observed.kind=='booking' and not self.control.booking_handoff:
             self.control.booking_handoff=True
             self.handoff_observed=observed
@@ -1030,24 +1036,47 @@ class AssistRunner:
             self.pending_action=None
             self.record('handoff',observed,'Сита доступна — автоматические действия остановлены до явного перезапуска')
         self.publish(observed, mode="manual")
-        if observed.kind in {"booking", "captcha"} and not self.booking_acknowledged:
-            # Only trusted input counts as human attention. bring_to_front()
-            # and synthetic DOM events must not silence the repeating chime.
-            await self.page.evaluate("""() => {
-                if (!document.documentElement.hasAttribute('data-cita-attention-installed')) {
-                    document.documentElement.setAttribute('data-cita-attention-installed','1');
-                    const mark = e => { if (e.isTrusted) document.documentElement.setAttribute('data-cita-human-attention','1'); };
-                    document.addEventListener('pointerdown',mark,true);
-                    document.addEventListener('keydown',mark,true);
-                }
-            }""")
-            seen = await self.page.locator("html").get_attribute("data-cita-human-attention")
-            if seen:
-                if observed.kind=='booking':self.booking_acknowledged=True
-                await self.silence()
-            else:
-                reason = "Пройти капчу" if observed.kind == "captcha" else "Есть сита. Требуется участие в окне сайта"
-                await self.signal(observed, reason, repeat=True)
+        try:
+            if observed.kind=='booking' and self.booking_details_document!=observed.document:
+                await self.signal(observed,"Есть сита. Требуется участие в окне сайта",repeat=True)
+            if observed.kind in {"booking", "captcha"} and not self.booking_acknowledged:
+                # Only trusted input counts as human attention. bring_to_front()
+                # and synthetic DOM events must not silence the repeating chime.
+                await asyncio.wait_for(self.page.evaluate("""() => {
+                    if (!document.documentElement.hasAttribute('data-cita-attention-installed')) {
+                        document.documentElement.setAttribute('data-cita-attention-installed','1');
+                        const mark = e => { if (e.isTrusted) document.documentElement.setAttribute('data-cita-human-attention','1'); };
+                        document.addEventListener('pointerdown',mark,true);
+                        document.addEventListener('keydown',mark,true);
+                    }
+                }"""),timeout=.5)
+                seen = await asyncio.wait_for(self.page.locator("html").get_attribute("data-cita-human-attention"),timeout=.5)
+                if seen:
+                    if observed.kind=='booking':self.booking_acknowledged=True
+                    await self.silence()
+                else:
+                    reason = "Пройти капчу" if observed.kind == "captcha" else "Есть сита. Требуется участие в окне сайта"
+                    await self.signal(observed, reason, repeat=True)
+        finally:
+            if observed.kind=='booking' and self.booking_details_document!=observed.document:
+                self.booking_details_document=observed.document
+                details={}
+                try:
+                    from .booking_details import read_booking_details
+                    # Current flow only: never use a previous profile's office history.
+                    office=self.selected_office or (self.current_offices[0] if len(self.current_offices)==1 else None)
+                    if _is_icp_page(self.page.url) and _is_icp_page(getattr(observed.source,"url","")):
+                        async def read_current():
+                            result=await read_booking_details(observed.source,office=office['text'] if office else '')
+                            return result if await _document_key(self.page)==observed.document else {}
+                        details=await asyncio.wait_for(read_current(),timeout=1)
+                except Exception:
+                    pass  # Navigation/unsupported layouts retain the generic alert.
+                finally:
+                    self.control.set_booking_details(details,document=observed.document)
+                    if details:
+                        from .booking_details import booking_lines
+                        self.record("booking_details",observed," · ".join(booking_lines(details)))
         await self.save(observed, "BOOKING_SELECTION_SCREEN" if observed.kind == "booking" else "CAPTCHA_SCREEN")
         await self.page.wait_for_timeout(500)
 
@@ -1068,7 +1097,8 @@ class AssistRunner:
             self.timeout_retries[key] = attempt + 1
             delay = self.timings.recovery_delay(self.timings.timeout_retry_seconds, attempt)
             if await self.countdown(current, delay, 'Повторить неотправленное действие'):
-                self.attempted.discard((current.document, current.kind))
+                attempt_kind="applicant" if current.kind=="applicant_no_slots" and self.action_phase=="applicant.click" else current.kind
+                self.attempted.discard((current.document, attempt_kind))
                 self.pending_action = None
                 self.record('interaction_retry', current, f'Клик не отправлен — повтор {attempt + 1}/{len(self.timings.timeout_retry_seconds)}')
             return
