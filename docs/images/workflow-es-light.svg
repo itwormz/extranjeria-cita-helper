@@ -2,8 +2,12 @@
   <title>Cita Extranjeria Helper — funcionamiento</title>
   <desc>Inicio arriba a la izquierda. Proceso hacia abajo, reintentos en el centro y recuperación a la derecha.</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#788391" /></marker>
-    <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#7370cf" /></marker>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10Z" fill="#788391" />
+    </marker>
+    <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10Z" fill="#7370cf" />
+    </marker>
     <style>
       text {font-family:Arial, sans-serif;fill:#28323d;font-size:18px}
       .heading {font-size:25px;font-weight:700}
@@ -24,61 +28,64 @@
   <text x="60" y="78" class="section" style="fill:#5956ba">INICIO ↓</text>
   <text x="535" y="78" class="section">COMPROBACIONES</text>
   <text x="860" y="78" class="section">EXCEPCIONES</text>
-
   <path class="link" d="M265 160V190" />
-<path class="link" d="M265 250V280" />
-<path class="link" d="M265 340V370" />
-<path class="link" d="M265 430V460" />
-<path class="link" d="M265 520V550" />
-<path class="link" d="M265 610V640" />
-<path class="link" d="M265 700V750" />
-<path class="link" d="M265 835V875" />
-<path class="link" d="M265 935V975" />
+  <path class="link" d="M265 250V280" />
+  <path class="link" d="M265 340V370" />
+  <path class="link" d="M265 430V460" />
+  <path class="link" d="M265 520V550" />
+  <path class="link" d="M265 610V640" />
+  <path class="link" d="M265 700V750" />
+  <path class="link" d="M265 835V875" />
+  <path class="link" d="M265 935V975" />
   <path class="link" d="M470 670H535" />
   <path class="loop" d="M665 640V620H390V640" />
-  <path class="link" d="M665 730V765" /><path class="link" d="M665 825V875" />
+  <path class="link" d="M470 670H500V807H535" />
+  <path class="link" d="M665 850V875" />
   <path class="link" d="M470 905H535" />
   <path class="loop" d="M795 905H815V1090H30V220H60" />
-
   <rect class="manual" x="60" y="100" width="410" height="60" rx="12" />
-  <text x="82" y="136"><tspan class="name">Perfil:</tspan> seleccionar</text>
+  <text x="82" y="136">
+    <tspan class="name">Perfil:</tspan> seleccionar</text>
   <rect class="node" x="60" y="190" width="410" height="60" rx="12" />
-  <text x="82" y="226"><tspan class="name">Provincia:</tspan> seleccionar</text>
+  <text x="82" y="226">
+    <tspan class="name">Provincia:</tspan> seleccionar</text>
   <rect class="node" x="60" y="280" width="410" height="60" rx="12" />
-  <text x="82" y="316"><tspan class="name">Trámite:</tspan> seleccionar según el perfil</text>
+  <text x="82" y="316">
+    <tspan class="name">Trámite:</tspan> seleccionar según el perfil</text>
   <rect class="manual" x="60" y="370" width="410" height="60" rx="12" />
-  <text x="82" y="406"><tspan class="name">Acceso:</tspan> certificado / Cl@ve</text>
+  <text x="82" y="406">
+    <tspan class="name">Acceso:</tspan> certificado / Cl@ve</text>
   <rect class="node" x="60" y="460" width="410" height="60" rx="12" />
-  <text x="82" y="496"><tspan class="name">Solicitante:</tspan> rellenar datos</text>
+  <text x="82" y="496" class="name">Formulario: comprobar aviso</text>
   <rect class="node" x="60" y="550" width="410" height="60" rx="12" />
-  <text x="82" y="586"><tspan class="name">Solicitud:</tspan> pulsar Solicitar cita</text>
+  <text x="82" y="576" class="name">Datos: introducir / copiar</text>
   <rect class="node" x="60" y="640" width="410" height="60" rx="12" />
-  <text x="82" y="676"><tspan class="name">Resultado:</tspan> identificar página</text>
+  <text x="82" y="676">
+    <tspan class="name">Resultado:</tspan> identificar página</text>
   <text x="279" y="731" class="label">Oficinas disponibles</text>
-
   <rect class="manual" x="60" y="750" width="410" height="85" rx="12" />
   <text x="82" y="779" class="name">Oficinas: seleccionar y continuar</text>
   <text x="82" y="807" class="small">1 — automático · 2+ — avisar y esperar</text>
   <rect class="node" x="60" y="875" width="410" height="60" rx="12" />
-  <text x="82" y="911"><tspan class="name">Contacto:</tspan> rellenar datos</text>
+  <text x="82" y="911">
+    <tspan class="name">Contacto:</tspan> rellenar datos</text>
   <text x="481" y="883" class="label">Sin citas</text>
   <text x="279" y="961" class="label">Cita disponible</text>
   <rect class="found" x="60" y="975" width="410" height="82" rx="12" />
   <text x="82" y="1006" class="name">Cita: avisar → ceder el control</text>
-  <text x="82" y="1034" class="small">Fecha, hora, confirmación — manual</text>
-
-  <rect class="wait" x="535" y="640" width="260" height="90" rx="12" />
+  <text x="82" y="1034" class="small" style="font-size:14px">Fecha, hora, CAPTCHA y confirmación — manual</text>
+  <rect class="wait" x="535" y="640" width="260" height="100" rx="12" />
   <text x="555" y="675" class="name">Sin citas: esperar</text>
-  <text x="555" y="704" class="small">Después: actualizar</text>
-  <text x="535" y="610" class="label">Repetir en la misma sesión</text>
-  <text x="680" y="756" class="label">Hace falta un nuevo intento</text>
-  <rect class="node" x="535" y="765" width="260" height="60" rx="12" />
-  <text x="555" y="801"><tspan class="name">Aceptar:</tspan> terminar intento</text>
+  <text x="555" y="704" class="small">Salir → reconocer la página</text>
+  <text x="535" y="610" class="label">Continuar desde la etapa reconocida</text>
+  <text x="535" y="756" class="label">Incluido Cod. Oper.</text>
+  <rect class="wait" x="535" y="765" width="260" height="85" rx="12" />
+  <text x="555" y="796" class="name">Sin citas + Aceptar</text>
   <rect class="wait" x="535" y="875" width="260" height="60" rx="12" />
-  <text x="555" y="911"><tspan class="name">Proceso:</tspan> empezar de nuevo</text>
+  <text x="555" y="911">
+    <tspan class="name">Proceso:</tspan> empezar de nuevo</text>
   <text x="551" y="961" class="label">Tras contacto: Salir / Aceptar</text>
   <text x="330" y="1117" class="label" style="fill:#5956ba">Volver a seleccionar provincia</text>
-
   <text x="860" y="115" class="small" style="fill:#677383">En cualquier paso</text>
   <path d="M860 140H1135" stroke="#e1e5eb" />
   <text x="860" y="180" class="name">Sesión caducada</text>
@@ -94,9 +101,22 @@
   <text x="864" y="583" class="name">Página desconocida</text>
   <text x="864" y="610" class="small">o resultado sin confirmar</text>
   <text x="864" y="637" class="small">Avisar → control manual</text>
-
-  <rect x="60" y="1153" width="14" height="14" rx="3" class="node" /><text x="83" y="1165" class="label">Automático</text>
-  <rect x="250" y="1153" width="14" height="14" rx="3" class="wait" /><text x="273" y="1165" class="label">Espera / reintento</text>
-  <rect x="468" y="1153" width="14" height="14" rx="3" class="manual" /><text x="491" y="1165" class="label">Puede requerir intervención</text>
-  <rect x="766" y="1153" width="14" height="14" rx="3" class="found" /><text x="789" y="1165" class="label">Cita encontrada</text>
+  <rect x="60" y="1153" width="14" height="14" rx="3" class="node" />
+  <text x="83" y="1165" class="label">Automático</text>
+  <rect x="250" y="1153" width="14" height="14" rx="3" class="wait" />
+  <text x="273" y="1165" class="label">Espera / reintento</text>
+  <rect x="468" y="1153" width="14" height="14" rx="3" class="manual" />
+  <text x="491" y="1165" class="label">Puede requerir intervención</text>
+  <rect x="766" y="1153" width="14" height="14" rx="3" class="found" />
+  <text x="789" y="1165" class="label">Cita encontrada</text>
+  <path class="link" d="M470 490H535" />
+  <path class="loop" d="M665 460V440H390V460" />
+  <rect class="wait" x="535" y="460" width="260" height="90" rx="12" />
+  <text x="555" y="495" class="name">Sin citas: esperar</text>
+  <text x="555" y="524" class="small">GET formulario · sin datos</text>
+  <text x="279" y="541" class="label">Sin aviso</text>
+  <text x="555" y="726" class="label">Recarga — opción del perfil</text>
+  <text x="555" y="827" class="small">3 min → pulsar Aceptar</text>
+  <text x="82" y="599" class="small">Después: Solicitar cita</text>
+  <text x="535" y="115" class="label">Pausas predeterminadas</text>
 </svg>
