@@ -136,6 +136,29 @@ def observed_duration(seconds,t):
     return f'{seconds} {t("с")}'
 
 
+
+def booking_detail_lines(rows,translate):
+    """Keep each office paired with its own offered times, including grouped markers."""
+    from ..booking_details import normalize_booking_details,booking_lines
+    snapshots=[]
+    for row in rows:
+        entries=row.get('bookings',[])
+        if row.get('kind')=='booking' and isinstance(row.get('evidence'),dict):
+            details=normalize_booking_details(row['evidence'].get('booking_details'))
+            entries=[dict(details,observed_at=row['start'])] if details else []
+        for entry in entries:
+            details=normalize_booking_details(entry)
+            if details:
+                snapshot=dict(details,observed_at=entry.get('observed_at'))
+                if snapshot not in snapshots:snapshots.append(snapshot)
+    if not snapshots:return []
+    lines=[translate('Предложенные ситы')]
+    for snapshot in snapshots:
+        if len(snapshots)>1 and snapshot.get('observed_at'):
+            lines.append(translate('Обнаружено')+': '+stamp(snapshot['observed_at']))
+        lines.extend(booking_lines(snapshot))
+    return lines
+
 class Timeline(QWidget):
     selected=Signal(list)
     def __init__(self,host):
@@ -336,7 +359,9 @@ class Timeline(QWidget):
                     text+='\n'+begin.astimezone(MADRID).strftime(fmt)+'–'+end.astimezone(MADRID).strftime(fmt)+' · '+observed_duration((end-begin).total_seconds(),self.host.t)
             if kind=='restart' and isinstance(row.get('evidence'),dict):
                 previous=row['evidence'].get('previous_stage');text+='\n'+self.host.t(LABELS.get(previous,('Новая сессия',))[0])
-            if row['kind']=='office' or row.get('kind')=='availability':text+='\n'+'\n'.join(dict.fromkeys(o for source in matched for o in source.get('offices',[])))
+            booking=booking_detail_lines(matched,self.host.t)
+            if booking:text+='\n'+'\n'.join(booking)
+            elif row['kind']=='office' or row.get('kind')=='availability':text+='\n'+'\n'.join(dict.fromkeys(o for source in matched for o in source.get('offices',[])))
             text+='\n'+self.clip_summary(row) if self.clip_summary(row) else ''
         return text
     def clip_summary(self,row):
@@ -680,7 +705,9 @@ class StatisticsHistory(QWidget):
                 html+='</tr>'
             html+='</table>'
         offices=list(dict.fromkeys(summary['offices']+[office for source in rows for office in source.get('offices',[])]))
-        if offices and all(source.get('event') for source in rows):
+        booking=booking_detail_lines(rows,t)
+        if booking:html+='<br>'+'<br>'.join(escape(line) for line in booking)
+        if offices and not booking and all(source.get('event') for source in rows):
             html+='<br>'+'<br>'.join(escape(office) for office in offices[:3])
             if len(offices)>3:html+='<br>'+escape(t('Ещё офисов: {count}').format(count=len(offices)-3))
         self.detail.setToolTip('\n'.join(offices) if len(offices)>3 else '')

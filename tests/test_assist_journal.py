@@ -223,3 +223,38 @@ def test_new_pass_marker_precedes_initial_page_in_panel_and_persistence(tmp_path
     newest={}
     for row in saved: newest[row['id']]=row
     assert [row['event'] for row in newest.values()]==['visit','flow_restart','visit']
+
+
+def test_booking_details_survive_journal_updates_and_persist_without_debug(tmp_path):
+    import json
+    from app.assist_journal import description
+    c=AssistControl();c.set_diagnostics(False);c.set_timeline_path(tmp_path/'timeline.jsonl')
+    visit(c,'booking');c.set_booking_details({'office':'CNP TEST, CALLE TEST, 1','offers':[{'date':'2026-10-28','time':'12:30'}]},document='doc')
+    for _ in range(3):c.publish(screen='',evidence='',next_action='',mode='manual')
+    booking=next(row for row in rows(c) if row['stage']=='booking')
+    assert len(rows(c))==1
+    text=description(booking)
+    assert 'CNP TEST, CALLE TEST, 1' in text and '28.10.2026 — 12:30' in text
+    c.request_stop();c.record('finish',detail='done')
+    assert '28.10.2026 — 12:30' in description(rows(c)[0])
+    saved=[json.loads(line) for line in (tmp_path/'journal.jsonl').read_text().splitlines()]
+    assert any(row.get('booking_details',{}).get('offers') for row in saved)
+
+
+def test_applicant_warning_continue_journals_fill_submit_and_confirmed_transition():
+    from app.assist_journal import description
+    c=AssistControl();visit(c,'applicant_no_slots',applicant_continue=True)
+    c.record('action',stage='applicant_no_slots',document='doc',detail='Ввести NIE и имя из профиля')
+    assert description(rows(c)[0])=='Заполняем данные заявителя'
+    c.record('action_completed',stage='applicant_no_slots',document='doc',detail='applicant')
+    assert description(rows(c)[0])=='Данные заявителя отправлены — ожидается ответ'
+    visit(c,'request_menu','next')
+    assert rows(c)[0]['status']=='passed'
+    assert rows(c)[0]['message']=='Данные заявителя отправлены → {destination}'
+
+
+def test_applicant_warning_wait_journal_stays_a_form_refresh():
+    from app.assist_journal import description
+    c=AssistControl();visit(c,'applicant_no_slots')
+    c.record('action',stage='applicant_no_slots',document='doc',detail='Обновить форму без ввода данных')
+    assert description(rows(c)[0])=='Обновляем форму без ввода данных'

@@ -937,7 +937,23 @@
     "Salir отправлен — распознать ответ сайта": "Salir sent — recognize the website response",
     "Отправлена форма заявителя — значения не сохраняются": "Applicant form sent — values are not recorded",
     "На форме заявителя нет сит — ожидать без ввода данных": "No appointments on the applicant form — wait without entering data",
-    "Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку": "The form followed a data submission. Automatic refresh is stopped to prevent resubmission"
+    "Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку": "The form followed a data submission. Automatic refresh is stopped to prevent resubmission",
+    "На форме заявителя": "On the applicant form",
+    "После ответа «нет сит»": "After a no-appointments result",
+    "Ждать при «нет сит»": "Wait when unavailable",
+    "Вводить и продолжать": "Fill and continue",
+    "Не вводить данные, пока форма сообщает об отсутствии сит.": "Do not enter data while the form says no appointments are available.",
+    "Вводить или копировать данные даже при предупреждении «нет сит».": "Enter or copy data even with a no-appointments warning.",
+    "После паузы нажать Salir и продолжить по странице сайта.": "After the pause, use Salir and follow the website.",
+    "После паузы повторять запрос доступности в текущей сессии.": "After the pause, repeat the availability request in the current session.",
+    "Рекомендуется для обычного поиска": "Recommended for normal searches",
+    "Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.": "While the website reports no appointments, data is not submitted again. The next check follows the website’s Salir button.",
+    "Возможны блокировки": "Possible access restrictions",
+    "Повторная отправка данных может повысить риск блокировки": "Repeated data submissions may increase the risk of access restrictions",
+    "Выбор поведения не меняет интервалы и паузы восстановления.": "These choices do not change check intervals or recovery pauses.",
+    "На форме заявителя нет сит — ввод данных разрешён настройкой": "No appointments on the applicant form — data entry is enabled in settings",
+    "Предложенные ситы": "Offered appointments",
+    "Обнаружено": "Detected"
   },
   "es": {
     "Работа": "Seguimiento",
@@ -1877,6 +1893,22 @@
     "Salir отправлен — распознать ответ сайта": "Salir enviado — reconocer la respuesta de la web",
     "Отправлена форма заявителя — значения не сохраняются": "Formulario del solicitante enviado — no se registran los valores",
     "На форме заявителя нет сит — ожидать без ввода данных": "No hay citas en el formulario — esperar sin introducir datos",
-    "Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку": "El formulario se recibió tras enviar datos. Se detiene la recarga automática para evitar un reenvío"
+    "Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку": "El formulario se recibió tras enviar datos. Se detiene la recarga automática para evitar un reenvío",
+    "На форме заявителя": "En el formulario del solicitante",
+    "После ответа «нет сит»": "Tras el resultado sin citas",
+    "Ждать при «нет сит»": "Esperar si no hay citas",
+    "Вводить и продолжать": "Rellenar y continuar",
+    "Не вводить данные, пока форма сообщает об отсутствии сит.": "No introducir datos mientras el formulario indique que no hay citas.",
+    "Вводить или копировать данные даже при предупреждении «нет сит».": "Introducir o copiar datos incluso con el aviso de que no hay citas.",
+    "После паузы нажать Salir и продолжить по странице сайта.": "Tras la pausa, pulsar Salir y seguir los pasos del sitio.",
+    "После паузы повторять запрос доступности в текущей сессии.": "Tras la pausa, repetir la consulta de disponibilidad en la sesión actual.",
+    "Рекомендуется для обычного поиска": "Recomendado para la búsqueda habitual",
+    "Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.": "Mientras el sitio indique que no hay citas, no se vuelven a enviar los datos. La siguiente consulta utiliza el botón Salir del sitio.",
+    "Возможны блокировки": "Posibles bloqueos",
+    "Повторная отправка данных может повысить риск блокировки": "El envío repetido de datos puede aumentar el riesgo de bloqueo",
+    "Выбор поведения не меняет интервалы и паузы восстановления.": "Estas opciones no cambian los intervalos ni las pausas de recuperación.",
+    "На форме заявителя нет сит — ввод данных разрешён настройкой": "Sin citas en el formulario del solicitante — la configuración permite introducir datos",
+    "Предложенные ситы": "Citas ofrecidas",
+    "Обнаружено": "Detectado"
   }
 }

@@ -437,3 +437,27 @@ def test_office_preview_keyboard_activation_and_escape(qt_app):
     QTest.keyClick(button.popup,Qt.Key.Key_Escape);qt_app.processEvents()
     assert not button.popup.isVisible()
     button.close();button.deleteLater()
+
+
+def test_booking_marker_hover_and_selection_show_actual_office_and_offers(qt_app):
+    from types import SimpleNamespace
+    from app.desktop.statistics_history import StatisticsHistory
+    from app.desktop.i18n import translate
+    host=SimpleNamespace(preferences={'dark':True,'language':'es'},t=lambda text:translate(text,'es'))
+    panel=StatisticsHistory(host,None)
+    when='2026-10-27T10:00:00Z'
+    marker=dict(id='booking',kind='availability',availability_kind='booking',timeline_state='available',
+        start=when,end=when,last_seen=when,session_id='s',event=True,offices=['CNP OTHER','CNP TEST'],
+        office_seen_at=when,booking_seen_at=when,source_rows=[],
+        bookings=[{'observed_at':when,'office':'CNP TEST, CALLE <TEST>, 1','offers':[{'date':'2026-10-28','time':'12:30'},{'date':'2026-10-29','time':'12:06'}]}])
+    panel.resize(1000,500);panel.show()
+    panel.timeline.set_rows([marker],date(2026,10,27),1)
+    panel.timeline.show();qt_app.processEvents()
+    point=next(rect.center() for rect,rows in panel.timeline.hit if rows[0]['kind']=='availability')
+    text=panel.timeline.hover_text(point)
+    assert 'CNP TEST, CALLE <TEST>, 1' in text and '28.10.2026 — 12:30' in text and '29.10.2026 — 12:06' in text
+    assert 'CNP OTHER' not in text
+    panel.show_details([marker]);html=panel.detail.text()
+    assert 'CALLE &lt;TEST&gt;' in html and '28.10.2026 — 12:30' in html
+    assert 'Citas ofrecidas' in html
+    panel.deleteLater()

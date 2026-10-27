@@ -75,6 +75,31 @@ def make_event(kind,profile,province,language):
                 action_required=kind!='test',message=f'{t(title)}\n\n{t("Профиль")}: {profile}\n{t("Провинция")}: {province}\n\n{t(action)}\n\nCita Extranjeria Helper')
 
 
+def telegram_message(event,language,details=None):
+    """Enrich Telegram only; webhook schema/message remains unchanged."""
+    if event.get('event')!='booking' or not isinstance(details,dict):return event['message']
+    from .desktop.i18n import translate
+    from .booking_details import MAX_OFFERS
+    from datetime import date
+    rows=[]
+    office=details.get('office')
+    if isinstance(office,str) and office.strip():rows.append('📍 '+' '.join(office.split())[:320])
+    offers=details.get('offers',[])
+    if isinstance(offers,list):
+        for offer in offers[:MAX_OFFERS]:
+            if not isinstance(offer,dict):continue
+            try:day=date.fromisoformat(offer.get('date',''))
+            except (ValueError,TypeError):continue
+            hour=offer.get('time','')
+            if not isinstance(hour,str) or not re.fullmatch(r'(?:[01]\d|2[0-3]):[0-5]\d',hour):continue
+            rows.append('• '+day.strftime('%d.%m.%Y')+' — '+hour)
+    if not rows:return event['message']
+    t=lambda text:translate(text,language)
+    return (f'🗓 {t("Открыт выбор ситы")}\n\n{t("Профиль")}: {event["profile"]}\n'
+            f'{t("Провинция")}: {event["province"]}\n\n'+ '\n'.join(rows)+
+            f'\n\n{t("Выбрать дату и время, заполнить CAPTCHA и подтвердить запись в Camoufox.")}\n\nCita Extranjeria Helper')
+
+
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):return None
 

@@ -70,3 +70,15 @@ def test_telegram_existing_webhook_prevents_pairing(monkeypatch):
     client=n.Telegram('123456:ABCdef')
     monkeypatch.setattr(client,'call',lambda method,data=None:{'url':'https://existing.test'} if method=='getWebhookInfo' else {'username':'demo_bot'})
     with pytest.raises(n.NotificationError):client.begin_pairing()
+
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_telegram_booking_text_contains_public_offers_only(language):
+    details={'office':'CNP TEST, CALLE TEST, 1','offers':[{'date':'2026-10-28','time':'12:30'}],
+             'document_number':'PRIVATE-NIE','confirmation':'PRIVATE-CODE'}
+    event=n.make_event('booking','Demo','Barcelona',language)
+    text=n.telegram_message(event,language,details)
+    assert 'CNP TEST, CALLE TEST, 1' in text and '28.10.2026 — 12:30' in text
+    assert 'PRIVATE-' not in text
+    assert 'CNP TEST' not in event['message'] and 'offers' not in event
+    assert n.telegram_message(event,language,{})==event['message']

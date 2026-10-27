@@ -22,6 +22,7 @@ class StatisticsSession:
                 'authentication': task.access_mode,
                 'clave_method': getattr(task, 'clave_method', ''),
                 'no_slots_mode':getattr(task,'no_slots_mode','salir'),
+                'applicant_no_slots_mode':getattr(task,'applicant_no_slots_mode','wait'),
                 'app_version': VERSION, 'os': platform.system(),
                 'architecture': platform.machine(),
             })
@@ -59,6 +60,8 @@ class StatisticsSession:
 
     def record(self, kind, **fields):
         store, profile, session = self.statistics, self.profile_id, self.session_id
+        if kind == 'booking_details':
+            return store.save_booking_details(profile,session,fields.get('document',''),fields.get('booking_details'))
         if kind == 'page':
             if fields.get('stage') not in {'server_error','rate_limited','blocked','expired','loading','unknown'}:
                 self._error_kind = None

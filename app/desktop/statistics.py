@@ -56,6 +56,7 @@ def _context(context):
         'authentication':{'certificate','clave'}, 'auth':{'certificate','clave'},
         'clave_method':{'movil','permanente'},
         'no_slots_mode':{'reload','salir'},
+        'applicant_no_slots_mode':{'wait','continue'},
         'platform':{'Darwin','Windows','Linux'}, 'os':{'Darwin','Windows','Linux'},
         'architecture':{'arm64','aarch64','x86_64','AMD64','i386','x86'},
         'procedure':{TIE_PROCEDURE,REGRESO_PROCEDURE,'huellas','regreso'},
@@ -418,6 +419,22 @@ class ProfileStatistics:
                 if inserted and kind not in {'finish','start','pause','resume','handoff','manual_required','fatal_error'}:
                     db.execute('INSERT OR IGNORE INTO activity_days VALUES (?,?)',(profile_id,_time(timestamp).astimezone(MADRID).date().isoformat()))
         return None
+
+    def save_booking_details(self, profile_id, session_id, document, details):
+        """Enrich a detected booking in place; never create or recount an event."""
+        from ..booking_details import normalize_booking_details
+        details=normalize_booking_details(details)
+        if not document or not details:return False
+        identity=_digest(f'{profile_id}:{session_id}:{document}:booking')
+        with self._db() as db:
+            row=db.execute("SELECT id,evidence FROM events WHERE profile=? AND identity=? AND kind='booking'",(profile_id,identity)).fetchone()
+            if row is None:return False
+            evidence=json.loads(row['evidence'])
+            if not isinstance(evidence,dict):evidence={}
+            if evidence.get('booking_details')!=details:
+                evidence['booking_details']=details
+                db.execute('UPDATE events SET evidence=? WHERE id=?',(json.dumps(evidence),row['id']))
+        return True
 
     def add_active(self, profile_id, seconds, *, at=None, session_id='', summary=True):
         if type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds < 0:

@@ -1078,3 +1078,35 @@ def test_evidence_language_changes_without_new_state(window):
     for language in ("es","ru","en"):
         window.set_language(language)
         assert window.evidence.text()==translate(source,language)
+
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_independent_search_modes_editor_preserves_values_and_note(window,task_mapping,language):
+    from tests.test_desktop_profiles import fields
+    from app.desktop.i18n import translate
+    raw=fields(task_mapping);raw['request'].update(applicant_no_slots_mode='continue',no_slots_mode='salir')
+    profile=window.store.save_profile(None,raw,revision=window.store.revision())
+    window.refresh_profiles(selected=profile);window.open_editor(profile);window.set_language(language)
+    assert window.applicant_no_slots_combo.currentData()=='continue'
+    assert window.no_slots_mode_combo.currentData()=='salir'
+    assert window.search_behavior_text.text()==translate('Повторная отправка данных может повысить риск блокировки',language)
+    window.applicant_no_slots_combo.setCurrentIndex(window.applicant_no_slots_combo.findData('wait'))
+    assert window.search_behavior_title.text()==translate('Рекомендуется для обычного поиска',language)
+    window.no_slots_mode_combo.setCurrentIndex(window.no_slots_mode_combo.findData('reload'))
+    assert window.search_behavior_title.text()==translate('Возможны блокировки',language)
+    window.save_profile()
+    task=window.store.load()[0]
+    assert task.applicant_no_slots_mode=='wait' and task.no_slots_mode=='reload'
+
+
+@pytest.mark.parametrize('dark',[True,False])
+def test_search_note_colors_follow_mode_switches_and_theme(window,dark):
+    from PySide6.QtGui import QPalette
+    from app.desktop.theme import apply_theme,theme_colors
+    window.create_profile();window.preferences['dark']=dark
+    apply_theme(QApplication.instance(),dark=dark);window.retranslate()
+    window.no_slots_mode_combo.setCurrentIndex(window.no_slots_mode_combo.findData('salir'))
+    for value,tone in [('continue','attention'),('wait','text'),('continue','attention')]:
+        window.applicant_no_slots_combo.setCurrentIndex(window.applicant_no_slots_combo.findData(value))
+        QApplication.processEvents()
+        assert window.search_behavior_title.palette().color(QPalette.ColorRole.WindowText).name()==theme_colors(dark)[tone].lower()

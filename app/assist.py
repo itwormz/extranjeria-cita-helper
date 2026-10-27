@@ -4,7 +4,7 @@ import random
 from dataclasses import dataclass
 from .logging_utils import log_event
 log = logging.getLogger(__name__)
-BOOKING_SELECTORS = ("input[name*='fecha']", "select[name*='fecha']", "input[name*='hora']", "select[name*='hora']", ".ui-datepicker", "input[type='radio'][name*='cita']")
+BOOKING_SELECTORS = ("input[name*='fecha']", "select[name*='fecha']", "input[name*='hora']", "select[name*='hora']", ".ui-datepicker", "input[type='radio'][name*='cita' i]")
 CAPTCHA_SELECTORS = ("#captcha", "input[name*='captcha' i]", "img[src*='captcha' i]")
 
 @dataclass

@@ -54,7 +54,7 @@ def main():
     if platform.system() == 'Darwin':
         run(base + ['tests/test_local_assist_browser.py', '-k', 'locked_desktop'], env)
     run(base + ['tests/test_local_assist_browser.py', 'tests/test_contact_fields_browser.py',
-                'tests/test_procedure_groups_browser.py', 'tests/test_regreso_browser.py', 'tests/test_resource_capture_browser.py', '-k', 'not locked_desktop'], env)
+                'tests/test_procedure_groups_browser.py', 'tests/test_regreso_browser.py', 'tests/test_resource_capture_browser.py', 'tests/test_booking_details_browser.py', '-k', 'not locked_desktop'], env)
     if args.bundle:
         run([sys.executable, 'scripts/build_desktop_app.py'])
         suffix = '.app' if platform.system() == 'Darwin' else ''

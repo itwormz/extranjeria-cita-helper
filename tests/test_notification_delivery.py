@@ -70,3 +70,49 @@ def test_unreachable_telegram_chat_does_not_prevent_other_recipients(qt_app,monk
     delivery.observe('one',{'booking_handoff':True,'mode':'manual'},'en')
     assert delivered==['2']
     delivery.stop()
+
+
+def test_telegram_waits_for_details_once_but_webhook_stays_generic(qt_app,monkeypatch):
+    from app.desktop import notification_delivery as module
+    class Store:
+        def raw_profile(self,profile):
+            return {'label':'Demo','notifications':{
+                'telegram':{'enabled':True,'events':['booking'],'secret_ref':'tg','recipients':[{'id':'1'}]},
+                'webhook':{'enabled':True,'events':['booking'],'secret_ref':'web'}}}
+    telegram=[];webhook=[]
+    class Client:
+        def __init__(self,token):pass
+        def send(self,chat,message,current):telegram.append(message)
+    monkeypatch.setattr(module,'Telegram',Client)
+    def send(request,**kwargs):webhook.append(json.loads(request.data));return 200,b'',1
+    monkeypatch.setattr(module,'send_request',send)
+    delivery=module.NotificationDelivery(Store())
+    delivery.vault.get=lambda ref:{'token':'test'} if ref=='tg' else {'url':'https://example.test'}
+    delivery.jobs.submit=lambda work,done:done(True,work())
+    state={'booking_handoff':True,'mode':'manual','run_id':'one','booking_details_pending':True}
+    delivery.observe('one',state,'en')
+    assert len(webhook)==1 and not telegram
+    ready=dict(state,booking_details_pending=False,booking_details={'office':'CNP TEST','offers':[{'date':'2026-10-28','time':'12:30'}]})
+    delivery.observe('one',ready,'en');delivery.observe('one',ready,'en')
+    assert len(telegram)==1 and 'CNP TEST' in telegram[0] and '12:30' in telegram[0]
+    assert 'CNP TEST' not in str(webhook) and len(webhook)==1
+    delivery.stop()
+
+
+def test_telegram_empty_details_falls_back_once_after_read(qt_app,monkeypatch):
+    from app.desktop import notification_delivery as module
+    class Store:
+        def raw_profile(self,profile):return {'label':'Demo','notifications':{'telegram':{'enabled':True,'events':['booking'],'secret_ref':'tg','recipients':[{'id':'1'}]}}}
+    sent=[]
+    class Client:
+        def __init__(self,token):pass
+        def send(self,chat,message,current):sent.append(message)
+    monkeypatch.setattr(module,'Telegram',Client)
+    delivery=module.NotificationDelivery(Store());delivery.vault.get=lambda ref:{'token':'test'}
+    delivery.jobs.submit=lambda work,done:done(True,work())
+    state={'booking_handoff':True,'mode':'manual','run_id':'one','booking_details_pending':True}
+    delivery.observe('one',state,'ru');assert not sent
+    state.update(booking_details_pending=False,booking_details={})
+    delivery.observe('one',state,'ru');delivery.observe('one',state,'ru')
+    assert len(sent)==1 and 'Открыт выбор ситы' in sent[0] and 'CAPTCHA' in sent[0]
+    delivery.stop()

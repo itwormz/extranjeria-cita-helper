@@ -492,14 +492,8 @@ class DesktopWindow(QMainWindow):
                 heading=label(title,name='sectionHeading');heading.setContentsMargins(0,8,0,0)
                 timing_layout.addWidget(heading,timing_row,0,1,2);timing_row+=1;continue
             if key=='no_slots_mode':
-                self.no_slots_mode_combo=QComboBox();self.no_slots_mode_combo.setObjectName('profileNoSlotsMode')
-                self.no_slots_mode_combo.addItem('Обновлять результат','reload');self.no_slots_mode_combo.addItem('Через Salir','salir')
-                self.no_slots_mode_combo.setAccessibleName('Повторная проверка')
-                self.timing_focus_fields.append(self.no_slots_mode_combo)
-                self.no_slots_mode_box=ProfileField('Повторная проверка',self.no_slots_mode_combo)
-                timing_layout.addWidget(self.no_slots_mode_box,timing_row,timing_column)
-                timing_column=1-timing_column
-                if timing_column==0:timing_row+=1
+                self.build_search_behavior(timing_layout,timing_row)
+                timing_row+=4
                 continue
             if key=='action_delay_seconds':
                 widgets=[self.fields['delay_min'],self.fields['delay_max']]
@@ -700,6 +694,53 @@ class DesktopWindow(QMainWindow):
               else 'Cl@ve Permanente' if request.get('clave_method','movil')=='permanente' else 'Cl@ve Móvil')
         self.profile_summary.setText(str(request.get('province',''))+' · '+PROCEDURE_NAMES.get(request.get('procedure',TIE_PROCEDURE),'')+' · '+self.t(auth))
 
+    def build_search_behavior(self, layout, row):
+        self.applicant_no_slots_combo=QComboBox()
+        self.applicant_no_slots_combo.setObjectName('profileApplicantNoSlotsMode')
+        self.applicant_no_slots_combo.addItem('Ждать при «нет сит»','wait')
+        self.applicant_no_slots_combo.addItem('Вводить и продолжать','continue')
+        self.no_slots_mode_combo=QComboBox()
+        self.no_slots_mode_combo.setObjectName('profileNoSlotsMode')
+        self.no_slots_mode_combo.addItem('Обновлять результат','reload')
+        self.no_slots_mode_combo.addItem('Через Salir','salir')
+        self.applicant_no_slots_box=ProfileField('На форме заявителя',self.applicant_no_slots_combo)
+        self.no_slots_mode_box=ProfileField('После ответа «нет сит»',self.no_slots_mode_combo)
+        self.search_mode_descriptions=[]
+        for col,(combo,box) in enumerate(((self.applicant_no_slots_combo,self.applicant_no_slots_box),(self.no_slots_mode_combo,self.no_slots_mode_box))):
+            combo.setMinimumWidth(0)
+            self.timing_focus_fields.append(combo)
+            layout.addWidget(box,row,col)
+            description=label('',muted=True);description.setWordWrap(True)
+            description.setMinimumWidth(0);description.setAlignment(Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+            description.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Minimum)
+            self.search_mode_descriptions.append(description);layout.addWidget(description,row+1,col)
+            combo.currentIndexChanged.connect(self.update_search_behavior)
+        self.search_behavior_note=QFrame();self.search_behavior_note.setObjectName('searchBehaviorNote')
+        note=QHBoxLayout(self.search_behavior_note);note.setContentsMargins(12,11,12,11);note.setSpacing(10)
+        self.search_behavior_icon=QLabel();self.search_behavior_icon.setAlignment(Qt.AlignmentFlag.AlignTop);note.addWidget(self.search_behavior_icon)
+        content=QVBoxLayout();content.setSpacing(4)
+        self.search_behavior_title=label('');self.search_behavior_title.setObjectName('searchBehaviorTitle')
+        self.search_behavior_text=label('',muted=True);self.search_behavior_text.setWordWrap(True)
+        content.addWidget(self.search_behavior_title);content.addWidget(self.search_behavior_text);note.addLayout(content,1)
+        layout.addWidget(self.search_behavior_note,row+2,0,1,2)
+        self.search_behavior_hint=label('Выбор поведения не меняет интервалы и паузы восстановления.',muted=True)
+        self.search_behavior_hint.setWordWrap(True);layout.addWidget(self.search_behavior_hint,row+3,0,1,2)
+
+    def update_search_behavior(self,*_):
+        enter=self.applicant_no_slots_combo.currentData()=='continue'
+        reload=self.no_slots_mode_combo.currentData()=='reload'
+        descriptions=(
+            'Вводить или копировать данные даже при предупреждении «нет сит».' if enter else 'Не вводить данные, пока форма сообщает об отсутствии сит.',
+            'После паузы повторять запрос доступности в текущей сессии.' if reload else 'После паузы нажать Salir и продолжить по странице сайта.')
+        for widget,text in zip(self.search_mode_descriptions,descriptions):widget.setText(self.t(text))
+        risk=enter or reload
+        for widget in (self.search_behavior_note,self.search_behavior_title):
+            widget.setProperty('risk',risk)
+            widget.style().unpolish(widget);widget.style().polish(widget)
+        self.search_behavior_title.setText(self.t('Возможны блокировки' if risk else 'Рекомендуется для обычного поиска'))
+        self.search_behavior_text.setText(self.t('Повторная отправка данных может повысить риск блокировки' if risk else 'Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.'))
+        self.search_behavior_icon.setPixmap(self.control_icon('shield' if risk else 'check').pixmap(QSize(18,18)))
+
     def profile_tab_changed(self,index):
         if index==self.profile_tabs.indexOf(self.notifications_panel.scroll):
             self.notifications_panel.ensure_secrets_loaded()
@@ -710,6 +751,8 @@ class DesktopWindow(QMainWindow):
         raw=self.store.raw_profile(profile_id) if profile_id else {}
         self.notifications_panel.load(raw.get('notifications',{}),defer_secrets=True)
         self.no_slots_mode_combo.setCurrentIndex(max(0,self.no_slots_mode_combo.findData(raw.get('request',{}).get('no_slots_mode','salir'))))
+        self.applicant_no_slots_combo.setCurrentIndex(max(0,self.applicant_no_slots_combo.findData(raw.get('request',{}).get('applicant_no_slots_mode','wait'))))
+        self.update_search_behavior()
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))
@@ -765,7 +808,7 @@ class DesktopWindow(QMainWindow):
         selected_auth=f['access_mode'].currentData()
         access_mode='clave' if selected_auth.startswith('clave_') else 'certificate'
         clave_method=selected_auth.removeprefix('clave_') if access_mode=='clave' else 'movil'
-        data=dict(label=f['label'].text().strip(),timings=timings,request=dict(access_mode=access_mode,clave_method=clave_method,no_slots_mode=self.no_slots_mode_combo.currentData(),
+        data=dict(label=f['label'].text().strip(),timings=timings,request=dict(access_mode=access_mode,clave_method=clave_method,no_slots_mode=self.no_slots_mode_combo.currentData(),applicant_no_slots_mode=self.applicant_no_slots_combo.currentData(),
             province=f['province'].currentText(),office='',procedure=f['procedure'].currentData(),subprocedure=None),
             applicant=dict(fill_mode=f['fill_mode'].currentData(),document_type=f['document_type'].currentData() if f['procedure'].currentData()==REGRESO_PROCEDURE else 'NIE',document_number=f['document_number'].text(),
                 full_name=f['full_name'].text(),nationality=f['nationality'].currentText(),
@@ -1138,11 +1181,13 @@ class DesktopWindow(QMainWindow):
         field_icons={'label':'user','province':'pin','procedure':'clipboard','access_mode':'key','document_type':'id','document_number':'id',
                      'full_name':'user','nationality':'globe','phone':'phone','email':'mail'}
         for key,name in field_icons.items():self.profile_field_boxes[key].icon.setPixmap(self.control_icon(name).pixmap(QSize(18,18)))
-        self.no_slots_mode_box.caption.setText(self.t('Повторная проверка'))
-        self.no_slots_mode_box.icon.setPixmap(self.control_icon('restart').pixmap(QSize(18,18)))
-        self.no_slots_mode_combo.setAccessibleName(self.t('Повторная проверка'))
-        for index,title in enumerate(('Обновлять результат','Через Salir')):self.no_slots_mode_combo.setItemText(index,self.t(title))
-        self.no_slots_mode_box.setToolTip(self.t('При обычном «нет сит»: обновлять результат или после паузы нажимать Salir и следовать сайту. На форме заявителя данные не вводятся, пока есть сообщение «нет сит».'))
+        for combo,box,caption,icon,choices in (
+            (self.applicant_no_slots_combo,self.applicant_no_slots_box,'На форме заявителя','user',('Ждать при «нет сит»','Вводить и продолжать')),
+            (self.no_slots_mode_combo,self.no_slots_mode_box,'После ответа «нет сит»','restart',('Обновлять результат','Через Salir'))):
+            box.caption.setText(self.t(caption));box.icon.setPixmap(self.control_icon(icon).pixmap(QSize(18,18)))
+            combo.setAccessibleName(self.t(caption))
+            for index,title in enumerate(choices):combo.setItemText(index,self.t(title))
+        self.update_search_behavior()
         for key,box in self.timing_field_boxes.items():
             box.help.setToolTip(self.t(box.help_text))
             box.icon.setPixmap(self.control_icon('bell' if key=='alert_seconds' else 'globe' if key=='reload_seconds' else 'info').pixmap(QSize(17,17)))

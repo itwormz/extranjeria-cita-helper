@@ -313,3 +313,16 @@ def test_cod_navigation_retains_errors_and_availability_ends_condition():
     assert [(r['start'],r['end'],r['timeline_state']) for r in result]==[
         (at(0),at(10),'cod'),(at(10),at(20),'recovery'),
         (at(20),at(30),'cod'),(at(30),at(40),'search')]
+
+
+def test_availability_marker_keeps_booking_office_slot_association_and_refreshes_cache():
+    raw=[event(10,'office',offices=['CNP A','CNP B']),event(20,'booking')];cache={}
+    before=build_timeline(raw,session(30),cache=cache)
+    assert next(row for row in before if row['kind']=='availability').get('bookings',[])==[]
+    details={'office':'CNP B, CALLE B','offers':[{'date':'2026-10-28','time':'12:30'}]}
+    raw[-1]['evidence']={'booking_details':details}
+    after=build_timeline(raw,session(30),cache=cache)
+    marker=next(row for row in after if row['kind']=='availability')
+    assert marker['bookings']==[dict(details,observed_at=at(20))]
+    assert marker['availability_kind']=='booking' and len(marker['source_rows'])==2
+    assert len([row for row in after if row['kind']=='availability'])==1
