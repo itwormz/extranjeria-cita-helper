@@ -697,3 +697,26 @@ def test_stalled_attention_probe_does_not_stall_telegram_readiness():
     except (TimeoutError,AttributeError):pass
     assert time.monotonic()-started<2
     assert not control.snapshot()['booking_details_pending']
+
+
+@pytest.mark.parametrize('phase', ['install', 'read'])
+def test_booking_attention_probe_timeout_preserves_handoff_and_retries(phase):
+    attribute = AsyncMock(side_effect=[TimeoutError(), '1']) if phase == 'read' else AsyncMock(return_value='1')
+    evaluate = AsyncMock(side_effect=[TimeoutError(), None]) if phase == 'install' else AsyncMock()
+    page = SimpleNamespace(url='https://example.com/booking', evaluate=evaluate,
+        locator=lambda _: SimpleNamespace(get_attribute=attribute), wait_for_timeout=AsyncMock())
+    control = AssistControl()
+    runner = assist_flow.AssistRunner(page, SimpleNamespace(), SimpleNamespace(), SimpleNamespace(id='test'),
+        'run', control, SimpleNamespace(start=AsyncMock(), stop=AsyncMock()), SimpleNamespace())
+    runner.save = AsyncMock()
+    observed = assist_flow.Observed('booking', 'doc', 'sig', None)
+    async def scenario():
+        await runner.booking_attention(observed)
+        assert control.booking_handoff and not runner.booking_acknowledged
+        assert runner.attention is not None
+        assert not control.snapshot()['booking_details_pending']
+        assert runner.checker._assist_guard is None
+        await runner.booking_attention(observed)
+        assert runner.booking_acknowledged and runner.attention is None
+    asyncio.run(scenario())
+    assert evaluate.await_count == 2

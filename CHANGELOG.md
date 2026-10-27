@@ -2,6 +2,8 @@
 
 ## 0.2.3 — Search options and booking details
 
+- Keep manual booking active when the bounded human-attention probe times out. Preserve the alert and retry the passive probe on the next tick instead of aborting the search.
+
 - Match booking-radio names case-insensitively and keep the generic notification when no valid explicit offers are recognized. Strengthen the handoff regression so swallowed callback assertions cannot hide a failure.
 
 - Preserve the selected office/address and explicitly offered appointment dates/times on the original detected-booking event in local statistics, independently of diagnostics. Enrichment keeps the detection timestamp and counters unchanged.
