@@ -1068,3 +1068,13 @@ def test_last_profile_storage_error_does_not_abort_window_start(tmp_path,catalog
     w=DesktopWindow(store,Controller())
     assert w.profile_combo.count()==1 and 'last_profile' in w.errors
     w.close();w.deleteLater();qt_app.processEvents()
+
+
+def test_evidence_language_changes_without_new_state(window):
+    from app.desktop.i18n import translate
+    source="На форме заявителя нет сит — ожидать без ввода данных"
+    window.set_language("en")
+    window.on_state({"evidence":source,"mode":"waiting"})
+    for language in ("es","ru","en"):
+        window.set_language(language)
+        assert window.evidence.text()==translate(source,language)

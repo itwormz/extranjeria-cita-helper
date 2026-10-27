@@ -22,7 +22,12 @@ from app.desktop.profiles import ProfileStore
 def owner(qt_app,tmp_path,catalog_path):
     window=DesktopWindow(ProfileStore(tmp_path/'tasks.yml',catalog_path),Controller())
     yield window
-    window.close();window.deleteLater();qt_app.processEvents()
+    window.close();window.deleteLater()
+    from PySide6.QtCore import QCoreApplication,QEvent
+    QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
+    qt_app.processEvents()
+    from shiboken6 import isValid
+    assert not isValid(window), "Notification fixture must destroy its window before the next test"
 
 
 def test_notifications_channels_hide_and_fields_reuse_guidelines(owner,qt_app):

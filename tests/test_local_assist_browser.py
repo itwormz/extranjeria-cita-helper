@@ -1073,8 +1073,8 @@ def test_applicant_warning_after_post_never_resubmits_identity():
                 await expect(page.locator('#txtIdCitado')).to_be_visible(timeout=10_000)
                 assert runner.last_method=='POST'
                 await runner.step()
-                assert calls==[('GET','citar'),('POST','acEntrada')]
+                assert calls==[('GET','citar'),('POST','acEntrada'),('GET','acEntrada')]
                 assert await page.locator('#txtIdCitado').input_value()==''
-                runner.hold.assert_awaited_once();runner.countdown.assert_not_awaited()
+                runner.hold.assert_not_awaited();runner.countdown.assert_awaited_once()
             finally:await browser.close()
     asyncio.run(scenario())

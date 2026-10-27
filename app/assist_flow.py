@@ -692,9 +692,9 @@ class AssistRunner:
             self.last_action = None
         elif (_is_icp_page(self.page.url)
               and _flow_endpoint(self.page.url) in {"index", "index.html"}
-              and (self.pending_action or self.last_action) == "no_slots_restart"):
-            # Aceptar only ends the no-slots pass. Do not replay that POST;
-            # load the entry document with GET and reuse this browser profile.
+              and (self.pending_action or self.last_action) != "contact"):
+            # The entry endpoint is safe to fetch after a failed return or exit.
+            # Do not replay the previous POST; preserve the existing profile.
             from .config import DEFAULT_START_URL
             self.record("recovery", observed, "Ошибка при завершении прохода — открыть начальную страницу через GET")
             await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
@@ -861,7 +861,10 @@ class AssistRunner:
                 self.attempted.add(attempt)
         elif kind in {"applicant_no_slots", "request_no_slots"}:
             applicant_wait = kind == "applicant_no_slots"
-            if applicant_wait and self.last_method != 'GET':
+            applicant_get = (applicant_wait and self.last_method == 'POST'
+                             and _is_icp_page(self.page.url) and _flow_endpoint(self.page.url) == 'acEntrada'
+                             and (self.pending_action or self.last_action) not in {'applicant','contact','request','office'})
+            if applicant_wait and self.last_method != 'GET' and not applicant_get:
                 await self.hold(observed,'Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку')
                 return
             attempt = (observed.document, "applicant_reload" if applicant_wait else "request_reload")
@@ -894,7 +897,7 @@ class AssistRunner:
                 self.pending_action=None
                 self.record('action_completed',observed,'Salir отправлен — распознать ответ сайта')
                 return
-            if applicant_wait and self.last_method != 'GET':
+            if applicant_wait and self.last_method != 'GET' and not applicant_get:
                 await self.hold(observed,'Форма получена после отправки данных. Автообновление остановлено, чтобы не повторить отправку')
                 return
             self.attempted.add(attempt)
@@ -902,7 +905,12 @@ class AssistRunner:
             self.pending_counted = False
             self.last_action = self.pending_action
             self.record("action", observed, "Обновить форму без ввода данных" if applicant_wait else "Обновить результат: повтор POST acCitar")
-            await self.page.reload(wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
+            if applicant_get:
+                # The certificate return is a POST. Fetch the known applicant
+                # endpoint with GET instead of replaying its authentication body.
+                await self.page.goto(self.page.url, wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
+            else:
+                await self.page.reload(wait_until="domcontentloaded", timeout=self.checker.settings.navigation_timeout_seconds * 1000)
             self.control.automation_action()
             self.pending_action = None
             self.record("action_completed", observed, "Обновление завершено — распознать ответ")

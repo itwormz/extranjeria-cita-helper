@@ -847,7 +847,7 @@ class DesktopWindow(QMainWindow):
         previous_mode=self.state.get('mode')
         self.state=state
         self.heading.setText('Сит нет' if state.get('screen')=='Сит нет — требуется новый проход' else state.get('screen','Ищем ситу'))
-        self.evidence.setText(self.t(state.get('evidence','')))
+        self.evidence.setText(state.get('evidence',''))
         self.next_label.setText(state.get('next_action',''))
         mode={'working':'Бот работает','waiting':'Ожидание','paused':'Приостановлен','manual':'Требуется участие','recovery':'Восстановление','finished':'Остановлен'}.get(state.get('mode'),'Запуск')
         if state.get('booking_handoff'):mode='Управление передано'
@@ -1073,6 +1073,8 @@ class DesktopWindow(QMainWindow):
             translated=self.t(source)
             self._translation_sources[key]=(source,translated)
             setter(translated)
+        # The compact monitor keeps evidence outside the visible widget tree.
+        update((self.evidence,'text'),self.evidence.text(),self.evidence.setText)
         self.tabs.setIconSize(QSize(18,18))
         for index,name in enumerate(('activity','statistics','settings')):self.tabs.setTabIcon(index,self.control_icon(name))
         for object_name,icon in [('createProfile','plus'),('editProfile','pencil'),('saveProfile','check'),('cancelProfile','close'),('openDiagnostics','folder')]:

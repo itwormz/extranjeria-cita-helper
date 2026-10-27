@@ -243,7 +243,7 @@ def test_expired_click_timeouts_are_spaced_instead_of_exhausting_retries():
     assert [c.args[1] for c in r.countdown.await_args_list]==[0,30,60,120]
 
 
-@pytest.mark.parametrize('endpoint,action,expected', [('acCitar','request','reload'),('procesarRespuestaClave',None,'goto'),('acOfertarCita','contact','hold'),('index.html','no_slots_restart','goto'),('index.html','contact','hold'),('index.html','request','hold')])
+@pytest.mark.parametrize('endpoint,action,expected', [('acCitar','request','reload'),('procesarRespuestaClave',None,'goto'),('acOfertarCita','contact','hold'),('index.html','no_slots_restart','goto'),('index.html','contact','hold'),('index.html','request','goto'),('index',None,'goto')])
 def test_server_recovery_only_repeats_safe_actions(endpoint,action,expected):
     page=SimpleNamespace(url='https://icp.administracionelectronica.gob.es/icpplustieb/'+endpoint,reload=AsyncMock(),goto=AsyncMock())
     r=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',AssistControl(),SimpleNamespace(),SimpleNamespace())
@@ -591,3 +591,14 @@ def test_applicant_warning_does_not_reload_if_post_starts_during_wait():
     runner.countdown=begin_post;runner.guard=AsyncMock(return_value=True);runner.save=AsyncMock();runner.hold=AsyncMock()
     asyncio.run(runner.act(assist_flow.Observed('applicant_no_slots','doc','sig',None)))
     page.reload.assert_not_awaited();runner.hold.assert_awaited_once()
+
+
+def test_post_auth_applicant_warning_refreshes_with_get_after_pause():
+    page=SimpleNamespace(url="https://icp.administracionelectronica.gob.es/icpplustieb/acEntrada",reload=AsyncMock(),goto=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(settings=SimpleNamespace(navigation_timeout_seconds=5)),SimpleNamespace(id="test"),"run",AssistControl(),SimpleNamespace(),SimpleNamespace(next_delay=lambda **kw:30))
+    runner.last_method="POST";runner.countdown=AsyncMock(return_value=True);runner.guard=AsyncMock(return_value=True);runner.save=AsyncMock();runner.hold=AsyncMock()
+    asyncio.run(runner.act(assist_flow.Observed("applicant_no_slots","doc","sig",None)))
+    runner.countdown.assert_awaited_once()
+    assert runner.countdown.await_args.args[1]==30
+    page.goto.assert_awaited_once_with(page.url,wait_until="domcontentloaded",timeout=5000)
+    page.reload.assert_not_awaited();runner.hold.assert_not_awaited()
