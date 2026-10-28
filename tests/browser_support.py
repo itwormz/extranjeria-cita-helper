@@ -11,6 +11,20 @@ async def launch_browser(playwright):
     return await playwright.chromium.launch(executable_path=os.getenv('CITA_TEST_BROWSER_PATH'))
 
 
+async def start_failure_trace(context):
+    """Start optional synthetic diagnostics without preventing form assertions."""
+    import asyncio
+    import sys
+    try:
+        await asyncio.wait_for(context.tracing.start(
+            screenshots=False, snapshots=True, sources=False,
+        ), timeout=10)
+    except Exception as exc:
+        print(f'Browser trace start unavailable: {type(exc).__name__}', file=sys.stderr)
+        return False
+    return True
+
+
 async def save_failure_trace(context):
     """Keep a bounded synthetic-page trace without masking the original failure."""
     import asyncio

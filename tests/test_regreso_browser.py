@@ -5,7 +5,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 from urllib.parse import parse_qs
 import pytest
-from tests.browser_support import launch_browser, save_failure_trace
+from tests.browser_support import launch_browser, save_failure_trace, start_failure_trace
 from tests.test_local_assist_browser import runner_for, BASE
 from app.site import SiteCheckError
 
@@ -19,10 +19,10 @@ def test_regreso_applicant_submits_selected_document_without_nationality(kind,nu
         from playwright.async_api import async_playwright, expect
         async with async_playwright() as pw:
             browser=await launch_browser(pw)
-            ctx=None
+            traced=False
             try:
                 ctx=await browser.new_context();page=await ctx.new_page();submitted=[]
-                await ctx.tracing.start(screenshots=False,snapshots=True,sources=False)
+                traced=await start_failure_trace(ctx)
                 body='''<button id="btnCopiar" onclick="document.getElementById('rdbTipoDocDni').checked=true;for(const [id,v] of [['txtIdCitado','00000000T'],['txtDesCitado','AUTH EXAMPLE']]){const e=document.getElementById(id);e.value=v;e.readOnly=true}">Copiar a datos solicitante</button>
                 <form action="acValidarEntrada" method="post">
                 <input type="radio" id="rdbTipoDocNie" name="rdbTipoDoc" value="N.I.E." checked onclick="document.getElementById('txtIdCitado').maxLength=9">
@@ -52,7 +52,7 @@ def test_regreso_applicant_submits_selected_document_without_nationality(kind,nu
                 assert effort.count('automation_action')==(2 if mode=='copy' else 3+(kind!='NIE'))
                 assert (await r.observe()).kind=='request_menu'
             except Exception:
-                if ctx is not None:await save_failure_trace(ctx)
+                if traced:await save_failure_trace(ctx)
                 raise
             finally:await browser.close()
     asyncio.run(scenario())
