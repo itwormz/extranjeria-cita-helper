@@ -684,18 +684,18 @@ def test_booking_details_uses_only_unambiguous_current_office_and_current_docume
 
 
 def test_stalled_attention_probe_does_not_stall_telegram_readiness():
-    import time
     async def stalled(*args):await asyncio.sleep(2)
     url='https://icp.administracionelectronica.gob.es/icpplus/acCita'
     source=SimpleNamespace(url=url,evaluate=AsyncMock(side_effect=RuntimeError('unavailable')))
-    page=SimpleNamespace(url=url,evaluate=stalled,
+    page=SimpleNamespace(url=url,evaluate=stalled,wait_for_timeout=AsyncMock(),
         locator=lambda selector:SimpleNamespace(get_attribute=AsyncMock(return_value=None)))
     control=AssistControl()
     runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
-    started=time.monotonic()
-    try:asyncio.run(runner.booking_attention(assist_flow.Observed('booking','doc','sig',source)))
-    except (TimeoutError,AttributeError):pass
-    assert time.monotonic()-started<2
+    runner.save=AsyncMock()
+    async def scenario():
+        await asyncio.wait_for(runner.booking_attention(assist_flow.Observed('booking','doc','sig',source)),timeout=1.5)
+    asyncio.run(scenario())
+    assert control.booking_handoff and runner.attention is not None
     assert not control.snapshot()['booking_details_pending']
 
 

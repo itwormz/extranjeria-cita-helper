@@ -1,6 +1,5 @@
 """Offline regression for province-specific service groups; no live requests."""
 import asyncio
-from dataclasses import replace
 from html import escape
 import os
 
@@ -16,7 +15,7 @@ pytestmark = pytest.mark.skipif(os.getenv('CITA_BROWSER_TESTS') != '1', reason='
 @pytest.mark.parametrize('group,hidden_first', [(0, False), (1, False), (3, True)])
 def test_procedure_selects_exact_service_in_visible_group(group, hidden_first):
     async def scenario():
-        from playwright.async_api import async_playwright
+        from playwright.async_api import async_playwright, expect
         async with async_playwright() as pw:
             browser = await launch_browser(pw)
             context = await browser.new_context()
@@ -34,9 +33,10 @@ def test_procedure_selects_exact_service_in_visible_group(group, hidden_first):
                     '<input id="btnAceptar" type="button" value="Aceptar" onclick="document.body.dataset.accepted=Number(document.body.dataset.accepted || 0)+1">')
             await page.route('**/*', lambda route: route.fulfill(body=html, content_type='text/html; charset=utf-8'))
             await page.goto(BASE + 'citar')
+            await expect(page.locator('#sede')).to_be_visible(timeout=10_000)
+            await expect(page.locator('#btnAceptar')).to_be_visible(timeout=10_000)
             runner = runner_for(page, context)
             runner.task.procedure = TIE_PROCEDURE
-            runner.checker.settings = replace(runner.checker.settings, navigation_timeout_seconds=1)
             observed = await runner.observe()
             assert observed.kind == 'procedure'
             await runner.act(observed)
@@ -52,7 +52,7 @@ def test_procedure_selects_exact_service_in_visible_group(group, hidden_first):
 
 def test_missing_service_never_accepts_or_selects_an_office():
     async def scenario():
-        from playwright.async_api import async_playwright
+        from playwright.async_api import async_playwright, expect
         async with async_playwright() as pw:
             browser = await launch_browser(pw)
             context = await browser.new_context()
@@ -63,9 +63,10 @@ def test_missing_service_never_accepts_or_selects_an_office():
                     '<input id="btnAceptar" type="button" onclick="document.body.dataset.accepted=Number(document.body.dataset.accepted || 0)+1">')
             await page.route('**/*', lambda route: route.fulfill(body=html, content_type='text/html; charset=utf-8'))
             await page.goto(BASE + 'citar')
+            await expect(page.locator('#sede')).to_be_visible(timeout=10_000)
+            await expect(page.locator('#btnAceptar')).to_be_visible(timeout=10_000)
             runner = runner_for(page, context)
             runner.task.procedure = TIE_PROCEDURE
-            runner.checker.settings = replace(runner.checker.settings, navigation_timeout_seconds=1)
             with pytest.raises(SiteCheckError) as error:
                 await runner.act(await runner.observe())
             assert error.value.code == 'CATALOG_VALUE_NOT_FOUND'

@@ -88,13 +88,22 @@ jobs:
           CITA_BROWSER_TESTS: '1'
           CITA_TEST_ENGINE: camoufox
           PYTHONUNBUFFERED: '1'
-        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 tests/test_local_assist_browser.py -k locked_desktop
+        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 --junitxml=.local/builds/test-artifacts/locked-input.xml tests/test_local_assist_browser.py -k locked_desktop
       - name: Offline browser flow regressions
         env:
           CITA_BROWSER_TESTS: '1'
           CITA_TEST_ENGINE: camoufox
           PYTHONUNBUFFERED: '1'
-        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py tests/test_resource_capture_browser.py tests/test_booking_details_browser.py -k 'not locked_desktop'
+        run: uv run pytest -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 --junitxml=.local/builds/test-artifacts/browser-flow.xml tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py tests/test_resource_capture_browser.py tests/test_booking_details_browser.py -k 'not locked_desktop'
+      - name: Upload browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: browser-failure-${{ matrix.platform }}-${{ matrix.arch }}
+          path: .local/builds/test-artifacts/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Build native application
         run: uv run python scripts/build_desktop_app.py
       - name: Verify macOS signature
