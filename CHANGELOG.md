@@ -2,6 +2,8 @@
 
 ## 0.2.3 — Search options and booking details
 
+- Keep real-browser navigation tests on supported navigation budgets, await visible source/destination controls, and exercise a delayed Regreso POST response without resubmission. Collect all regular browser-suite failures without retries, and retain browser JUnit reports and failed Regreso traces as separate short-lived CI diagnostics.
+
 - Separate real-browser offer extraction from deterministic handoff/history checks. Test successful enrichment and timeout fallback independently instead of requiring a loaded CI browser to beat the production read deadline.
 
 - Keep simulated human input independent of the bounded details reader in the offline booking regression; wait for confirmed input delivery and eventual acknowledgement instead of assuming two manual ticks.

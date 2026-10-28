@@ -50,7 +50,7 @@ def main():
     run([sys.executable, 'scripts/check_privacy.py', '--tree', '.'])
     run([sys.executable, '-m', 'pytest'])
     env = dict(os.environ, CITA_BROWSER_TESTS='1', CITA_TEST_ENGINE='camoufox', PYTHONUNBUFFERED='1')
-    base = [sys.executable, '-m', 'pytest', '-x', '-v', '-o', 'addopts=', '--tb=short', '--durations=10', '-o', 'faulthandler_timeout=120']
+    base = [sys.executable, '-m', 'pytest', '-v', '-o', 'addopts=', '--tb=short', '--durations=10', '-o', 'faulthandler_timeout=120']
     if platform.system() == 'Darwin':
         run(base + ['tests/test_local_assist_browser.py', '-k', 'locked_desktop'], env)
     run(base + ['tests/test_local_assist_browser.py', 'tests/test_contact_fields_browser.py',
