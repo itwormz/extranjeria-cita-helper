@@ -683,7 +683,7 @@ def test_booking_details_uses_only_unambiguous_current_office_and_current_docume
     assert 'STALE' not in str(details)
 
 
-def test_stalled_attention_probe_does_not_stall_telegram_readiness():
+def test_stalled_attention_probe_does_not_stall_telegram_readiness(monkeypatch):
     async def stalled(*args):await asyncio.sleep(2)
     url='https://icp.administracionelectronica.gob.es/icpplus/acCita'
     source=SimpleNamespace(url=url,evaluate=AsyncMock(side_effect=RuntimeError('unavailable')))
@@ -692,6 +692,8 @@ def test_stalled_attention_probe_does_not_stall_telegram_readiness():
     control=AssistControl()
     runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
     runner.save=AsyncMock()
+    # Isolate the attention deadline from the separate document-identity read.
+    monkeypatch.setattr(assist_flow,'_document_key',AsyncMock(return_value='doc'))
     async def scenario():
         await asyncio.wait_for(runner.booking_attention(assist_flow.Observed('booking','doc','sig',source)),timeout=1.5)
     asyncio.run(scenario())
@@ -770,3 +772,23 @@ def test_booking_detail_handoff_contract_is_independent_of_browser_speed(tmp_pat
         assert '28.10.2026 — 12:30' in description(journal)
         log=(tmp_path/'timeline.jsonl').read_text()
         assert details['office'] in log and '28.10.2026 — 12:30' in log
+
+
+def test_stalled_booking_document_check_releases_generic_alert(monkeypatch):
+    """A slow identity check has its own bounded fallback, separate from attention."""
+    async def stalled(*args):await asyncio.Event().wait()
+    url='https://icp.administracionelectronica.gob.es/icpplus/acCita'
+    source=SimpleNamespace(url=url,evaluate=AsyncMock(return_value=['Día: 28/10/2026 Hora:12:30']))
+    page=SimpleNamespace(url=url,evaluate=AsyncMock(),wait_for_timeout=AsyncMock(),
+        locator=lambda _:SimpleNamespace(get_attribute=AsyncMock(return_value=None)))
+    control=AssistControl()
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(id='test'),
+        'run',control,SimpleNamespace(start=AsyncMock(),stop=AsyncMock()),SimpleNamespace())
+    runner.save=AsyncMock()
+    monkeypatch.setattr(assist_flow,'_document_key',stalled)
+    async def scenario():
+        await asyncio.wait_for(runner.booking_attention(assist_flow.Observed('booking','doc','sig',source)),timeout=2)
+    asyncio.run(scenario())
+    state=control.snapshot()
+    assert state['booking_handoff'] and not state['booking_details_pending']
+    assert state['booking_details']=={} and runner.attention is not None
