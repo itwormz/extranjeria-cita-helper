@@ -1,5 +1,6 @@
 """Offline regression for province-specific service groups; no live requests."""
 import asyncio
+from dataclasses import replace
 from html import escape
 import os
 
@@ -67,6 +68,7 @@ def test_missing_service_never_accepts_or_selects_an_office():
             await expect(page.locator('#btnAceptar')).to_be_visible(timeout=10_000)
             runner = runner_for(page, context)
             runner.task.procedure = TIE_PROCEDURE
+            runner.checker.settings = replace(runner.checker.settings,navigation_timeout_seconds=5)
             with pytest.raises(SiteCheckError) as error:
                 await runner.act(await runner.observe())
             assert error.value.code == 'CATALOG_VALUE_NOT_FOUND'

@@ -1,6 +1,7 @@
 """Offline forms based on public controls in the private regreso capture."""
 import asyncio
 import os
+from dataclasses import replace
 from types import SimpleNamespace
 from urllib.parse import parse_qs
 import pytest
@@ -71,6 +72,7 @@ def test_regreso_selects_only_exact_regreso_service(label):
                 await checker._select_procedure(page,REGRESO)
                 assert await page.locator('select').input_value()=='right'
                 await page.locator('option[value=right]').evaluate('(e)=>e.remove()')
+                checker.settings=replace(checker.settings,navigation_timeout_seconds=5)
                 with pytest.raises(SiteCheckError,match='CATALOG_VALUE_NOT_FOUND'):
                     await checker._select_procedure(page,REGRESO)
                 assert await page.locator('select').input_value()!='wrong'
