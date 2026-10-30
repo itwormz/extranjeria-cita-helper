@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Rename Linux AppImages to `Cita_Extranjeria_Helper-<version>-x86_64.AppImage`, align desktop metadata, and embed AppImageUpdate information. Publish checksummed and attested `.zsync` files alongside the AppImage. **Breaking:** Linux users on 0.2.3 or earlier must download the first renamed release manually; no legacy filename is published. The system glibc 2.35 baseline is unchanged.
+
 ## 0.2.3 — Search options and booking details
 
 - Keep real-browser navigation tests on supported navigation budgets, await visible source/destination controls, and exercise a delayed Regreso POST response without resubmission. Collect all regular browser-suite failures without retries, and retain browser JUnit reports and failed Regreso traces as separate short-lived CI diagnostics.

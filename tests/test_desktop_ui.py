@@ -324,7 +324,8 @@ def test_about_update_check_handles_release_and_failures(window,monkeypatch,erro
     from app.desktop import updates
     target,arch=updates.release_target()
     extension={'macos':'dmg','windows':'msi','linux':'AppImage'}[target]
-    name=f'extranjeria-cita-helper-9.9.9-{target}-{arch}.{extension}'
+    name=('Cita_Extranjeria_Helper-9.9.9-x86_64.AppImage' if target=='linux'
+          else f'extranjeria-cita-helper-9.9.9-{target}-{arch}.{extension}')
     base=updates.REPOSITORY+'/releases/download/v9.9.9/'
     payload={'tag_name':'v9.9.9','immutable':True,'assets':[{'name':name,'browser_download_url':base+name,'size':7},
                                          {'name':'SHA256SUMS','browser_download_url':base+'SHA256SUMS'},

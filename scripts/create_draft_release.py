@@ -14,7 +14,9 @@ from scripts.attest_release import verified_attestations
 
 def verified_assets(directory, version):
     expected = [f'extranjeria-cita-helper-{version}-{target}.{extension}' for target, extension in
-                [('macos-arm64','dmg'), ('macos-x64','dmg'), ('linux-x64','AppImage'), ('windows-x64','msi')]]
+                [('macos-arm64','dmg'), ('macos-x64','dmg'), ('windows-x64','msi')]]
+    expected += [f'Cita_Extranjeria_Helper-{version}-x86_64.AppImage',
+                 f'Cita_Extranjeria_Helper-{version}-x86_64.AppImage.zsync']
     portable=f'extranjeria-cita-helper-{version}-windows-x64-portable.zip'
     if (directory/portable).is_file():expected.append(portable)
     sums = []

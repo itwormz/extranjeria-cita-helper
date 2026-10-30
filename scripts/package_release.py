@@ -16,7 +16,8 @@ def archive_bundle(bundle, output, platform, arch, version, *, portable=False):
     if platform not in {'macos', 'linux', 'windows'} or arch not in {'arm64', 'x64'}:
         raise ValueError('Unsupported release target')
     output.mkdir(parents=True, exist_ok=True)
-    basename = f'extranjeria-cita-helper-{version}-{platform}-{arch}'
+    basename = (f'Cita_Extranjeria_Helper-{version}-x86_64' if platform == 'linux'
+                else f'extranjeria-cita-helper-{version}-{platform}-{arch}')
     if portable and platform != 'windows':
         raise ValueError('Portable ZIP is only supported on Windows')
     archive = output / (basename + ('-portable.zip' if portable else {'linux':'.AppImage','macos':'.dmg','windows':'.msi'}[platform]))
@@ -33,9 +34,13 @@ def archive_bundle(bundle, output, platform, arch, version, *, portable=False):
     else:
         from scripts.installers import build_msi
         build_msi(bundle,archive,license_file,version,arch)
-    with archive.open('rb') as stream:
-        digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-    archive.with_name(archive.name + '.sha256').write_text(f'{digest}  {archive.name}\n', encoding='utf-8')
+    assets = [archive]
+    if platform == 'linux':
+        assets.append(archive.with_name(archive.name + '.zsync'))
+    for asset in assets:
+        with asset.open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        asset.with_name(asset.name + '.sha256').write_text(f'{digest}  {asset.name}\n', encoding='utf-8')
     return archive
 
 

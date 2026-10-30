@@ -63,6 +63,8 @@ def test_appimage_contains_launcher_complete_bundle_and_license(tmp_path,monkeyp
     bundle=tmp_path/'bundle';bundle.mkdir();(bundle/'Cita Extranjeria Helper').write_bytes(b'app')
     license=tmp_path/'LICENSE';license.write_text('notice')
     monkeypatch.setenv('APPIMAGETOOL','appimagetool');monkeypatch.setenv('APPIMAGE_RUNTIME','runtime')
+    inherited=tmp_path/'inherited-owd';inherited.mkdir()
+    monkeypatch.setenv('OWD',str(inherited))
     def run(args,**kwargs):
         staging=Path(args[-2])
         assert (staging/'AppRun').stat().st_mode & 0o111
@@ -72,10 +74,15 @@ def test_appimage_contains_launcher_complete_bundle_and_license(tmp_path,monkeyp
         assert (staging/'.DirIcon').is_symlink()
         assert kwargs['env']['ARCH']=='x86_64'
         assert '--runtime-file' in args
+        assert args[args.index('-u')+1]=='gh-releases-zsync|itwormz|extranjeria-cita-helper|latest|Cita_Extranjeria_Helper-*-x86_64.AppImage.zsync'
+        assert 'Name=Cita Extranjeria Helper' in (staging/'Cita_Extranjeria_Helper.desktop').read_text()
         Path(args[-1]).write_bytes(b'image')
+        # zsyncmake writes basename.zsync in its working directory, not beside its input.
+        (Path(kwargs['env'].get('OWD',kwargs.get('cwd',Path.cwd())))/(Path(args[-1]).name+'.zsync')).write_bytes(b'zsync metadata')
     monkeypatch.setattr('scripts.installers.subprocess.run',run)
     output=build_appimage(bundle,tmp_path/'helper.AppImage',license)
     assert output.stat().st_mode & 0o111
+    assert output.with_name(output.name+'.zsync').is_file()
 
 
 def test_portable_zip_uses_adjacent_data_without_shipping_user_files(tmp_path):
@@ -105,3 +112,17 @@ def test_dev_msi_keeps_numeric_product_version(tmp_path):
     source=write_wix_source(bundle,tmp_path/'dev.wxs','0.2.2.dev3')
     ns={'w':'http://wixtoolset.org/schemas/v4/wxs'}
     assert ET.parse(source).find('w:Package',ns).get('Version')=='0.2.2'
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='AppImage staging requires POSIX permissions and symlinks')
+@pytest.mark.parametrize('stale',[False,True])
+def test_appimage_rejects_missing_zsync(tmp_path,monkeypatch,stale):
+    from scripts.installers import build_appimage
+    bundle=tmp_path/'bundle';bundle.mkdir()
+    license=tmp_path/'LICENSE';license.write_text('notice')
+    monkeypatch.setenv('APPIMAGETOOL','appimagetool')
+    def run(args,**kwargs):Path(args[-1]).write_bytes(b'image')
+    monkeypatch.setattr('scripts.installers.subprocess.run',run)
+    if stale:(tmp_path/'helper.AppImage.zsync').write_bytes(b'old metadata')
+    with pytest.raises(ValueError,match='zsync'):
+        build_appimage(bundle,tmp_path/'helper.AppImage',license)

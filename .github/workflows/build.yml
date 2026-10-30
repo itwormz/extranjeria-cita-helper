@@ -63,7 +63,7 @@ jobs:
         run: |
           uv run python -m playwright install-deps firefox
           sudo apt-get update
-          sudo apt-get install -y libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0 libxcb-keysyms1 libxcb-icccm4 desktop-file-utils
+          sudo apt-get install -y libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0 libxcb-keysyms1 libxcb-icccm4 desktop-file-utils zsync
       - name: Check release metadata
         run: uv run python scripts/preflight.py --metadata-only
       - name: Check tag version
@@ -156,6 +156,7 @@ jobs:
             data/releases/*.dmg
             data/releases/*.msi
             data/releases/*.AppImage
+            data/releases/*.AppImage.zsync
             data/releases/*-portable.zip
       - name: Attach verification bundles
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
