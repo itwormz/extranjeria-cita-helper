@@ -63,6 +63,8 @@ def test_appimage_contains_launcher_complete_bundle_and_license(tmp_path,monkeyp
     bundle=tmp_path/'bundle';bundle.mkdir();(bundle/'Cita Extranjeria Helper').write_bytes(b'app')
     license=tmp_path/'LICENSE';license.write_text('notice')
     monkeypatch.setenv('APPIMAGETOOL','appimagetool');monkeypatch.setenv('APPIMAGE_RUNTIME','runtime')
+    inherited=tmp_path/'inherited-owd';inherited.mkdir()
+    monkeypatch.setenv('OWD',str(inherited))
     def run(args,**kwargs):
         staging=Path(args[-2])
         assert (staging/'AppRun').stat().st_mode & 0o111
@@ -76,7 +78,7 @@ def test_appimage_contains_launcher_complete_bundle_and_license(tmp_path,monkeyp
         assert 'Name=Cita Extranjeria Helper' in (staging/'Cita_Extranjeria_Helper.desktop').read_text()
         Path(args[-1]).write_bytes(b'image')
         # zsyncmake writes basename.zsync in its working directory, not beside its input.
-        (Path(kwargs.get('cwd',Path.cwd()))/(Path(args[-1]).name+'.zsync')).write_bytes(b'zsync metadata')
+        (Path(kwargs['env'].get('OWD',kwargs.get('cwd',Path.cwd())))/(Path(args[-1]).name+'.zsync')).write_bytes(b'zsync metadata')
     monkeypatch.setattr('scripts.installers.subprocess.run',run)
     output=build_appimage(bundle,tmp_path/'helper.AppImage',license)
     assert output.stat().st_mode & 0o111

@@ -115,7 +115,7 @@ def build_appimage(bundle, output, license_file, arch='x64'):
         launcher.write_text('#!/bin/sh\nHERE="$(dirname "$(readlink -f "$0")")"\n'
             'exec "$HERE/app/Cita Extranjeria Helper" "$@"\n',encoding='utf-8')
         launcher.chmod(0o755)
-        environment=dict(os.environ,ARCH='x86_64',APPIMAGE_EXTRACT_AND_RUN='1')
+        environment=dict(os.environ,ARCH='x86_64',APPIMAGE_EXTRACT_AND_RUN='1',OWD=str(output.parent))
         update='gh-releases-zsync|itwormz|extranjeria-cita-helper|latest|Cita_Extranjeria_Helper-*-x86_64.AppImage.zsync'
         args=[str(tool),'-u',update,'--no-appstream','--comp','zstd','--mksquashfs-opt','-processors','--mksquashfs-opt','2']
         if os.environ.get('APPIMAGE_RUNTIME'):
