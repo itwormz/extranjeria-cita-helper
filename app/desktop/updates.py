@@ -60,7 +60,8 @@ def select_release(data,current,target,arch,*,portable=False):
     extension={'windows':'msi','macos':'dmg','linux':'AppImage'}.get(target)
     if not extension or (target,arch) not in {('windows','x64'),('linux','x64'),('macos','arm64'),('macos','x64')}:
         raise ValueError('Unsupported update target')
-    name=f'extranjeria-cita-helper-{version}-{target}-{arch}.{extension}'
+    name=(f'Cita_Extranjeria_Helper-{version}-x86_64.AppImage' if target=='linux'
+          else f'extranjeria-cita-helper-{version}-{target}-{arch}.{extension}')
     if portable:
         if target!='windows':raise ValueError('Portable updates require Windows')
         name=f'extranjeria-cita-helper-{version}-windows-{arch}-portable.zip'

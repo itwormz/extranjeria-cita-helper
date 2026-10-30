@@ -95,8 +95,8 @@ def test_portable_release_never_selects_msi():
 def test_linux_update_selects_appimage():
     from app.desktop.updates import select_release
     data=release();asset=data['assets'][0]
-    asset['name']=asset['name'].replace('windows-x64.msi','linux-x64.AppImage')
-    asset['browser_download_url']=asset['browser_download_url'].replace('windows-x64.msi','linux-x64.AppImage')
+    asset['name']='Cita_Extranjeria_Helper-0.2.0-x86_64.AppImage'
+    asset['browser_download_url']=asset['browser_download_url'].rsplit('/',1)[0]+'/'+asset['name']
     data['assets'][2]['name']=asset['name']+'.sigstore.json'
     data['assets'][2]['browser_download_url']=asset['browser_download_url']+'.sigstore.json'
     assert select_release(data,'0.1.0','linux','x64').name.endswith('.AppImage')

@@ -12,7 +12,7 @@ from app.attestations import verify_attestation, MAX_BUNDLE
 
 
 def packages(directory):
-    return sorted(p for p in directory.iterdir() if p.suffix in {'.dmg', '.msi', '.AppImage', '.zip'})
+    return sorted(p for p in directory.iterdir() if p.suffix in {'.dmg', '.msi', '.AppImage', '.zip', '.zsync'})
 
 
 def attach(directory, bundle):

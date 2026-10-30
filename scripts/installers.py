@@ -99,6 +99,7 @@ def build_appimage(bundle, output, license_file, arch='x64'):
     tool=os.environ.get('APPIMAGETOOL') or shutil.which('appimagetool')
     if not tool:
         raise RuntimeError('Install appimagetool or set APPIMAGETOOL before packaging')
+    if '/' in str(tool):tool=str(Path(tool).resolve())
     output=Path(output).resolve();output.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='appimage-',dir=output.parent) as temporary:
         staging=Path(temporary)/'Cita.AppDir';staging.mkdir()
@@ -107,7 +108,7 @@ def build_appimage(bundle, output, license_file, arch='x64'):
         icon=Path(__file__).resolve().parents[1]/'app/desktop/assets/icon.svg'
         shutil.copyfile(icon,staging/'cita-helper.svg')
         (staging/'.DirIcon').symlink_to('cita-helper.svg')
-        (staging/'cita-helper.desktop').write_text(
+        (staging/'Cita_Extranjeria_Helper.desktop').write_text(
             '[Desktop Entry]\nType=Application\nName=Cita Extranjeria Helper\n'
             'Exec=AppRun\nIcon=cita-helper\nCategories=Utility;\nTerminal=false\n',encoding='utf-8')
         launcher=staging/'AppRun'
@@ -115,10 +116,15 @@ def build_appimage(bundle, output, license_file, arch='x64'):
             'exec "$HERE/app/Cita Extranjeria Helper" "$@"\n',encoding='utf-8')
         launcher.chmod(0o755)
         environment=dict(os.environ,ARCH='x86_64',APPIMAGE_EXTRACT_AND_RUN='1')
-        args=[str(tool),'--no-appstream','--comp','zstd','--mksquashfs-opt','-processors','--mksquashfs-opt','2']
+        update='gh-releases-zsync|itwormz|extranjeria-cita-helper|latest|Cita_Extranjeria_Helper-*-x86_64.AppImage.zsync'
+        args=[str(tool),'-u',update,'--no-appstream','--comp','zstd','--mksquashfs-opt','-processors','--mksquashfs-opt','2']
         if os.environ.get('APPIMAGE_RUNTIME'):
-            args+=['--runtime-file',os.environ['APPIMAGE_RUNTIME']]
-        subprocess.run([*args,str(staging),str(output)],env=environment,check=True)
+            args+=['--runtime-file',str(Path(os.environ['APPIMAGE_RUNTIME']).resolve())]
+        zsync=output.with_name(output.name+'.zsync')
+        zsync.unlink(missing_ok=True)
+        subprocess.run([*args,str(staging),str(output)],cwd=output.parent,env=environment,check=True)
+    if not zsync.is_file() or not zsync.stat().st_size:
+        raise ValueError('AppImage zsync metadata is missing; install zsyncmake before packaging')
     output.chmod(0o755)
     return output
 

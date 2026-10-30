@@ -28,6 +28,8 @@ Only these two appointment procedures are supported. Other services and appointm
 
 Packages: **macOS — DMG · Windows — MSI · Linux — AppImage**. The optional Windows portable ZIP stores data next to the application.
 
+Linux packaging changes use `Cita_Extranjeria_Helper-<version>-x86_64.AppImage` with an AppImageUpdate `.zsync` sidecar. When upgrading from 0.2.3 or earlier to the first release with this name, download the AppImage manually from GitHub Releases; the old updater expects the previous filename. Linux requires glibc 2.35 or newer.
+
 ## 🔔 Profile notifications
 
 In **Settings → Edit profile → Notifications**, enable Telegram and/or a webhook and choose events independently for each channel: authentication, office selection, appointment selection or search stopped with an error. Routine “no appointments” results do not send messages.

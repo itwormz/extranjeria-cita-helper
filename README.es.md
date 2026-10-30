@@ -28,6 +28,8 @@ Solo se admiten estos dos trámites. Otros servicios y opciones de cita no se co
 
 Paquetes: **macOS — DMG · Windows — MSI · Linux — AppImage**. El ZIP portátil opcional para Windows guarda los datos junto a la aplicación.
 
+Los nuevos paquetes Linux usan `Cita_Extranjeria_Helper-<version>-x86_64.AppImage` y un archivo `.zsync` para AppImageUpdate. Para actualizar desde 0.2.3 o anterior a la primera versión con este nombre, descarga el AppImage manualmente desde GitHub Releases: el actualizador antiguo busca el nombre anterior. Linux requiere glibc 2.35 o posterior.
+
 ## 🔔 Notificaciones del perfil
 
 En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un webhook. Elegir los eventos por separado para cada canal: autenticación, selección de oficina, selección de cita o búsqueda detenida por un error. La ausencia habitual de citas no genera mensajes.

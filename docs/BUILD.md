@@ -22,7 +22,7 @@ Linux also needs Firefox/Qt system libraries:
 
 ```sh
 uv run python -m playwright install-deps firefox
-sudo apt-get install libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0 libxcb-keysyms1 libxcb-icccm4 desktop-file-utils
+sudo apt-get install libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0 libxcb-keysyms1 libxcb-icccm4 desktop-file-utils zsync
 ```
 
 Output is `data/dist/Cita Extranjeria Helper.app` on macOS and `data/dist/Cita Extranjeria Helper/` on Windows/Linux. Extract and distribute the whole bundle, including `_internal`; a standalone executable is insufficient. Use `--output-dir PATH` to preserve an existing local build.
@@ -176,3 +176,25 @@ Keep local work on a `codex/` development branch and use numbered PEP 440 versio
 Real-browser fixtures use supported application navigation budgets; they must not shorten a navigation deadline below the configuration minimum to speed up a test. Confirm visible source controls and the expected destination, not only completion of a click. Delayed Regreso responses explicitly check one POST, exact applicant fields and the recognized request menu. Pure timeout tests use controlled dependencies separately.
 
 The regular browser suite reports all failures in a run rather than stopping at the first one; it does not retry failed tests. CI browser steps write JUnit reports; failures upload them as `browser-failure-<platform>-<arch>` artifacts for seven days. The Regreso submission scenario also preserves a Playwright trace of its intercepted synthetic pages on failure. These diagnostics are separate from `package-*` artifacts and never enter release assets. No real appointment data or live website requests are required. Production pauses, action/navigation timeouts and POST safeguards are unchanged.
+
+## AppImage catalog metadata and compatibility
+
+Linux packages use `Cita_Extranjeria_Helper-<version>-x86_64.AppImage`, matching
+`Name=Cita Extranjeria Helper` in the desktop entry. There is no legacy-name alias.
+The first release using this naming requires users of 0.2.3 and earlier to download
+the Linux AppImage manually from GitHub Releases and make it executable. Their old
+updater expects the previous filename and cannot download the renamed package.
+The new updater selects the new filename and retains checksum/provenance verification.
+
+The AppImage embeds `gh-releases-zsync` metadata pointing to this repository's
+latest stable release and `Cita_Extranjeria_Helper-*-x86_64.AppImage.zsync`.
+Install `zsync` (providing `zsyncmake`) before packaging. Packaging requires a
+nonempty `.zsync` sidecar; tag builds attest both files, and publication verifies
+both checksums and attestations before uploading them. AppImageUpdate can use
+these files; its verification mechanism is separate from the application's built-in
+Sigstore-verified updater. See the [AppImage update documentation](https://docs.appimage.org/packaging-guide/optional/updates.html).
+
+The Linux build remains on Ubuntu 22.04 and requires system glibc 2.35 or newer.
+The AppImage includes the application and browser but uses the host C library;
+older Linux distributions are not supported by this build. A suitable glibc
+version alone does not guarantee all desktop/runtime requirements are satisfied.

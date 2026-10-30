@@ -23,10 +23,14 @@ def test_linux_package_uses_appimage_builder(tmp_path,monkeypatch):
     bundle=tmp_path/'bundle';bundle.mkdir();calls=[]
     def build(bundle,output,license_file,arch):
         calls.append(arch);output.write_bytes(b'appimage')
+        output.with_name(output.name+'.zsync').write_bytes(b'zsync metadata')
     monkeypatch.setattr('scripts.installers.build_appimage',build)
     archive=archive_bundle(bundle,tmp_path/'release','linux','x64','0.1.0')
-    assert archive.suffix=='.AppImage' and calls==['x64']
+    assert archive.name=='Cita_Extranjeria_Helper-0.1.0-x86_64.AppImage' and calls==['x64']
     assert archive.with_name(archive.name+'.sha256').exists()
+    sidecar=archive.with_name(archive.name+'.zsync')
+    import hashlib
+    assert sidecar.with_name(sidecar.name+'.sha256').read_text()==hashlib.sha256(b'zsync metadata').hexdigest()+'  '+sidecar.name+'\n'
 
 
 def test_windows_package_uses_msi_builder(tmp_path, monkeypatch):
@@ -47,11 +51,20 @@ def test_draft_requires_every_platform_and_rejects_tampering(tmp_path):
     from scripts.create_draft_release import verified_assets
     names = [('macos-arm64','dmg'),('macos-x64','dmg'),('linux-x64','AppImage'),('windows-x64','msi')]
     for target, extension in names:
-        file = tmp_path/f'extranjeria-cita-helper-0.1.0-{target}.{extension}'
+        file = tmp_path/('Cita_Extranjeria_Helper-0.1.0-x86_64.AppImage' if target=='linux-x64' else f'extranjeria-cita-helper-0.1.0-{target}.{extension}')
         file.write_bytes(b'archive')
         digest = hashlib.sha256(b'archive').hexdigest()
         file.with_name(file.name+'.sha256').write_text(f'{digest}  {file.name}\n', encoding='utf-8')
-    assert len(verified_assets(tmp_path, '0.1.0')) == 5
+    zsync=tmp_path/'Cita_Extranjeria_Helper-0.1.0-x86_64.AppImage.zsync'
+    with pytest.raises(FileNotFoundError):verified_assets(tmp_path,'0.1.0')
+    zsync.write_bytes(b'zsync metadata')
+    digest=hashlib.sha256(zsync.read_bytes()).hexdigest()
+    zsync.with_name(zsync.name+'.sha256').write_text(f'{digest}  {zsync.name}\n')
+    assert zsync in verified_assets(tmp_path,'0.1.0')
+    assert len(verified_assets(tmp_path, '0.1.0')) == 6
+    zsync.write_bytes(b'tampered')
+    with pytest.raises(ValueError,match='Checksum mismatch'):verified_assets(tmp_path,'0.1.0')
+    zsync.write_bytes(b'zsync metadata')
     file.write_bytes(b'tampered')
     with pytest.raises(ValueError, match='Checksum mismatch'):
         verified_assets(tmp_path, '0.1.0')
@@ -148,3 +161,14 @@ def test_development_version_never_starts_publication(tmp_path,monkeypatch):
     with pytest.raises(ValueError,match='Release tag'):
         release.main(tmp_path,publish=True)
     assert not calls
+
+
+def test_zsync_receives_build_attestation_sidecar(tmp_path):
+    from scripts.attest_release import attach
+    image=tmp_path/'Cita_Extranjeria_Helper-0.1.0-x86_64.AppImage'
+    zsync=image.with_name(image.name+'.zsync')
+    image.write_bytes(b'image');zsync.write_bytes(b'metadata')
+    bundle=tmp_path/'build.json';bundle.write_bytes(b'public build bundle')
+    attach(tmp_path,bundle)
+    assert image.with_name(image.name+'.sigstore.json').read_bytes()==b'public build bundle'
+    assert zsync.with_name(zsync.name+'.sigstore.json').read_bytes()==b'public build bundle'
