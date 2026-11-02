@@ -53,8 +53,8 @@ class _Load(QRunnable):
 
 
 def _file_revision(path):
-    if not path.exists():return None
-    stat=path.stat()
+    try:stat=path.stat()
+    except FileNotFoundError:return None
     return (stat.st_mtime_ns,stat.st_size)
 
 
@@ -66,7 +66,7 @@ def load_statistics_view(statistics, achievements, profile_id, period, custom_ra
         component='history';before=history_revision(statistics);loaded=read_history(statistics,profile_id,period,custom_range)
         after=history_revision(statistics)
         signature=(scope,after if before==after else None,_file_revision(achievements.path))
-        return ('ok',data,records,loaded,signature,profile_id,period)
+        return ('ok',data,records,loaded,signature,profile_id,period,custom_range)
     except (OSError,ValueError) as exc:
         return ('err',component,exc)
 
@@ -236,7 +236,10 @@ class StatisticsPanel(QWidget):
         visual=(language,dark)
         if visual==self._history_visual or not self.history_panel.profile_id:return
         self._history_visual=visual
-        self.history_panel.refresh(self.history_panel.profile_id,self.history_panel.period,self.history_panel.baseline)
+        panel=self.history_panel
+        panel.refresh(panel.profile_id,panel.period,panel.baseline,loaded={
+            'bounds':panel.bounds,'office_rows':panel.office_rows,'rows':panel.rows,'raw_rows':panel.raw_rows,
+        },signature=panel._data_signature)
 
     def _stale(self,profile_id):
         scope=(profile_id,self.period,datetime.now(MADRID).date() if self.period=='today' else None)
@@ -284,8 +287,10 @@ class StatisticsPanel(QWidget):
     def _consume(self,result):
         if result[0]=='err':
             self.report_read_error(result[1],result[2]);return
-        _,data,records,loaded,signature,profile_id,period=result
+        _,data,records,loaded,signature,profile_id,period,custom=result
         if profile_id!=self.profile_combo.currentData() or period!=self.period:return
+        if custom!=self.history_panel.custom_range:
+            self._applied_revision=None;return
         self._snapshot=(data,records);self._applied_revision=signature;self._render_key=None
         self.history_panel.refresh(profile_id,period,bool(data.get('legacy_baseline')),loaded=loaded,signature=(signature[0],signature[1]))
         self._history_visual=(self.host.preferences.get('language'),self.host.preferences.get('dark'))

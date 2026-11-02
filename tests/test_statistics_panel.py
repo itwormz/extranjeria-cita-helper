@@ -259,6 +259,43 @@ def test_automation_section_follows_availability_and_errors(tmp_path,qt_app):
     panel.close();panel.deleteLater();host.deleteLater()
 
 
+def test_missing_statistics_sidecar_has_no_revision(tmp_path,monkeypatch):
+    from pathlib import Path
+    from app.desktop.statistics_history import history_revision
+    from app.desktop.statistics_panel import _file_revision
+    database=tmp_path/'profile-statistics.sqlite3'
+    database.write_bytes(b'x')
+    (tmp_path/'profile-statistics.sqlite3-wal').write_bytes(b'yy')
+    achievements=tmp_path/'achievements.json'
+    achievements.write_text('{}',encoding='utf-8')
+    real=Path.stat
+    def vanish(self,*args,**kwargs):
+        if self.name.endswith('-wal') or self.name=='achievements.json':raise FileNotFoundError(self)
+        return real(self,*args,**kwargs)
+    monkeypatch.setattr(Path,'stat',vanish)
+    recorded,wal=history_revision(SimpleNamespace(db_path=database))
+    assert recorded[1]==1 and wal is None
+    assert _file_revision(achievements) is None
+
+
+def test_finished_read_keeps_a_newer_custom_range(tmp_path,qt_app):
+    from datetime import date
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one');panel.refresh()
+    history=panel.history_panel
+    chosen=(date(2026,1,1),date(2026,1,2))
+    history.custom_range=chosen;history.render_timeline()
+    label=history.period_button.text()
+    panel._consume(('ok',panel.statistics.get('one'),[],{'bounds':None,'office_rows':[],'rows':[],'raw_rows':[]},(('one','all',None),None,None),'one','all',None))
+    assert history.custom_range==chosen and history.period_button.text()==label
+    assert panel._applied_revision is None
+    panel.statistics.increment('one')
+    panel._consume(('ok',panel.statistics.get('one'),[],{'bounds':None,'office_rows':[],'rows':[],'raw_rows':[]},(('one','all',None),None,None),'one','all',chosen))
+    assert panel.stat_values['checks'].text()=='1'
+    panel.deleteLater();host.deleteLater()
+
+
 def test_statistics_refresh_reads_outside_the_interface_thread(tmp_path,qt_app,monkeypatch):
     import threading
     from app.desktop.statistics_panel import StatisticsPanel

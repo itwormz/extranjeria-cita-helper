@@ -284,6 +284,24 @@ def test_worker_state_does_not_read_statistics(window, monkeypatch):
     assert window.heading.text()=='Ищем ситу'
 
 
+def test_language_change_retitles_history_without_reading(window, monkeypatch):
+    calls=[]
+    panel=window.statistics_panel
+    history=panel.history_panel
+    history.profile_id='one'
+    history.bounds=None;history.office_rows=[];history.rows=[];history.raw_rows=[]
+    history._data_signature=(('one','all',None),None)
+    panel._history_visual=(window.preferences['language'], window.preferences['dark'])
+    panel._snapshot=({}, [])
+    monkeypatch.setattr('app.desktop.statistics_history.read_history', lambda *args, **kwargs: calls.append('read'))
+    for name in ('history','timeline_history','office_history','timeline_bounds'):
+        monkeypatch.setattr(panel.statistics,name,lambda *args, **kwargs: calls.append(name))
+    window.preferences['language']='en' if window.preferences['language']!='en' else 'es'
+    window.retranslate()
+    assert calls==[]
+    assert history.period_button.text()
+
+
 def test_visible_error_retranslates_without_new_worker_state(window):
     window.show_error('Не удалось сохранить настройки. Изменения не применены.')
     assert window.error_text.text().startswith('Could not') or window.error_text.text().startswith('Failed')

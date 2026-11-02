@@ -517,8 +517,10 @@ def history_revision(store):
     path=getattr(store,'db_path',None)
     if not path:return None
     def item(target):
-        if not target.exists():return None
-        stat=target.stat()
+        # The worker removes the WAL when its last connection closes, so the
+        # file can disappear between a presence check and this read.
+        try:stat=target.stat()
+        except FileNotFoundError:return None
         return (stat.st_mtime_ns,stat.st_size)
     return (item(path),item(path.with_name(path.name+'-wal')))
 
