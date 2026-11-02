@@ -196,6 +196,25 @@ def _regular_chrome_user_agent(browser_version: str, system: str | None = None) 
     )
 
 
+def _background_browser_prefs():
+    """Keep a covered Camoufox window able to take the search's input.
+
+    Windows occlusion tracking suspends a Firefox window once another window
+    covers it, including this helper. The search then waits on input that the
+    browser is no longer processing.
+    """
+    prefs = {
+        "security.enterprise_roots.enabled": True,
+        "security.osclientcerts.autoload": True,
+        "dom.disable_window_flip": True,
+        "browser.tabs.loadDivertedInBackground": True,
+    }
+    if platform.system() == "Windows":
+        prefs["widget.windows.window_occlusion_tracking.enabled"] = False
+        prefs["widget.windows.window_occlusion_tracking_peek.enabled"] = False
+    return prefs
+
+
 def _browser_profile_location(settings: Settings, task_id: str) -> Path:
     root = Path(settings.browser_profile_directory)
     if not root.is_absolute():
@@ -414,12 +433,7 @@ class IcpPlusChecker:
             # Dispatch form events in the real DOM without the sandbox's
             # automatic focus side effects.
             "main_world_eval": True,
-            "firefox_user_prefs": {
-                "security.enterprise_roots.enabled": True,
-                "security.osclientcerts.autoload": True,
-                "dom.disable_window_flip": True,
-                "browser.tabs.loadDivertedInBackground": True,
-            },
+            "firefox_user_prefs": _background_browser_prefs(),
         }
         packaged_browser = bundled_browser()
         if packaged_browser:

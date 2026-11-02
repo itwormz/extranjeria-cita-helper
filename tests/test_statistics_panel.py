@@ -259,6 +259,116 @@ def test_automation_section_follows_availability_and_errors(tmp_path,qt_app):
     panel.close();panel.deleteLater();host.deleteLater()
 
 
+def test_missing_statistics_sidecar_has_no_revision(tmp_path,monkeypatch):
+    from pathlib import Path
+    from app.desktop.statistics_history import history_revision
+    from app.desktop.statistics_panel import _file_revision
+    database=tmp_path/'profile-statistics.sqlite3'
+    database.write_bytes(b'x')
+    (tmp_path/'profile-statistics.sqlite3-wal').write_bytes(b'yy')
+    achievements=tmp_path/'achievements.json'
+    achievements.write_text('{}',encoding='utf-8')
+    real=Path.stat
+    def vanish(self,*args,**kwargs):
+        if self.name.endswith('-wal') or self.name=='achievements.json':raise FileNotFoundError(self)
+        return real(self,*args,**kwargs)
+    monkeypatch.setattr(Path,'stat',vanish)
+    recorded,wal=history_revision(SimpleNamespace(db_path=database))
+    assert recorded[1]==1 and wal is None
+    assert _file_revision(achievements) is None
+
+
+def test_finished_read_keeps_a_newer_custom_range(tmp_path,qt_app):
+    from datetime import date
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one');panel.refresh()
+    history=panel.history_panel
+    chosen=(date(2026,1,1),date(2026,1,2))
+    history.custom_range=chosen;history.render_timeline()
+    label=history.period_button.text()
+    panel._consume(('ok',panel.statistics.get('one'),[],{'bounds':None,'office_rows':[],'rows':[],'raw_rows':[]},(('one','all',None),None,None),'one','all',None))
+    assert history.custom_range==chosen and history.period_button.text()==label
+    assert panel._applied_revision is None
+    panel.statistics.increment('one')
+    panel._consume(('ok',panel.statistics.get('one'),[],{'bounds':None,'office_rows':[],'rows':[],'raw_rows':[]},(('one','all',None),None,None),'one','all',chosen))
+    assert panel.stat_values['checks'].text()=='1'
+    panel.deleteLater();host.deleteLater()
+
+
+def test_read_revision_changed_during_load_stays_unstable(tmp_path):
+    from app.desktop.statistics_panel import _UNSTABLE_REVISION, load_statistics_view
+    database=tmp_path/'profile-statistics.sqlite3';database.write_bytes(b'a')
+    achievements=tmp_path/'achievements.json';achievements.write_text('{}',encoding='utf-8')
+    class Statistics:
+        db_path=database
+        def get(self,*args,**kwargs):
+            database.write_bytes(b'ab');return {'checks':0}
+        def timeline_bounds(self,*args,**kwargs):return None
+        history_bounds=timeline_bounds
+        def office_history(self,*args,**kwargs):return []
+        def timeline_history(self,*args,**kwargs):return []
+        def history(self,*args,**kwargs):return []
+    class Achievements:
+        path=achievements
+        def list(self,*args,**kwargs):
+            achievements.write_text('{"changed":true}',encoding='utf-8');return []
+    result=load_statistics_view(Statistics(),Achievements(),'one','all',None,('one','all',None))
+    assert result[0]=='ok'
+    assert result[4][1] is _UNSTABLE_REVISION and result[4][2] is _UNSTABLE_REVISION
+
+
+def test_profile_change_does_not_keep_the_previous_totals(tmp_path,qt_app,monkeypatch):
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona'),SimpleNamespace(id='two',label='Two',province='Barcelona')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    panel.statistics.increment('one');panel.refresh()
+    assert panel.stat_values['checks'].text()=='1'
+    history=panel.history_panel
+    history.office_rows=[{'label':'Old office','count':1,'last_seen':'2026-01-01T00:00:00Z','appearances':[]}]
+    history.rows=[{'kind':'search','start':'2026-01-01T00:00:00Z','end':'2026-01-01T00:01:00Z','last_seen':'2026-01-01T00:01:00Z'}]
+    def unavailable(*args,**kwargs):raise OSError('temporary read failure')
+    monkeypatch.setattr(panel.statistics,'get',unavailable)
+    panel.profile_combo.setCurrentIndex(panel.profile_combo.findData('two'))
+    assert panel.profile_combo.currentData()=='two'
+    assert panel.stat_values['checks'].text()=='—'
+    assert history.profile_id=='two' and history.office_rows==[] and history.rows==[]
+    panel.deleteLater();host.deleteLater()
+
+
+def test_timeline_projection_does_not_hold_the_store_lock(tmp_path,monkeypatch):
+    import threading
+    from app.desktop.statistics import ProfileStatistics
+    stats=ProfileStatistics(tmp_path/'profile-statistics.json')
+    held=[]
+    def project(rows,sessions=(),*,cache=None):
+        def try_lock():
+            acquired=stats._lock.acquire(blocking=False)
+            held.append((acquired,cache))
+            if acquired:stats._lock.release()
+        thread=threading.Thread(target=try_lock);thread.start();thread.join()
+        return []
+    monkeypatch.setattr('app.desktop.statistics_timeline.build_timeline',project)
+    stats.timeline_history('one')
+    assert held==[(True,None)]
+
+
+def test_statistics_refresh_reads_outside_the_interface_thread(tmp_path,qt_app,monkeypatch):
+    import threading
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    seen=[]
+    original=panel.statistics.get
+    def wrapped(*args,**kwargs):
+        seen.append(threading.get_ident());return original(*args,**kwargs)
+    monkeypatch.setattr(panel.statistics,'get',wrapped)
+    panel.statistics.increment('one');panel.refresh()
+    assert seen and seen[0]!=threading.get_ident()
+    assert panel.stat_values['checks'].text()=='1'
+    panel.deleteLater();host.deleteLater()
+
+
 def test_transient_statistics_read_error_clears_after_successful_refresh(tmp_path,qt_app,monkeypatch,caplog):
     from app.desktop.statistics_panel import StatisticsPanel
     profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]

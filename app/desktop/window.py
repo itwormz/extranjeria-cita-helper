@@ -1123,7 +1123,7 @@ class DesktopWindow(QMainWindow):
         for object_name,icon in [('createProfile','plus'),('editProfile','pencil'),('saveProfile','check'),('cancelProfile','close'),('openDiagnostics','folder')]:
             button=self.findChild(QPushButton,object_name)
             if button:button.setIcon(self.control_icon(icon));button.setIconSize(QSize(17,17))
-        self.statistics_panel.refresh()
+        self.statistics_panel.present()
         for widget in self.findChildren(QLabel)+self.findChildren(QPushButton):
             if widget.property('notificationTestButton'):widget.refresh_text();continue
             if self.statistics_panel.isAncestorOf(widget) or widget.property('notificationData'):continue

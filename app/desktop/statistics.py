@@ -5,6 +5,7 @@ import math
 import os
 import re
 import sqlite3
+import threading
 from functools import lru_cache
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
@@ -100,6 +101,7 @@ class ProfileStatistics:
         self.path = Path(path)
         self.db_path = self.path.with_suffix('.sqlite3')
         self._initialized = False
+        self._lock = threading.RLock()
 
     def _legacy(self, path=None):
         path = Path(path) if path is not None else self.path
@@ -147,6 +149,13 @@ class ProfileStatistics:
 
     @contextmanager
     def _db(self, write=True):
+        # Readers in the interface and the statistics loader share this store.
+        with self._lock:
+            with self._open(write) as db:
+                yield db
+
+    @contextmanager
+    def _open(self, write=True):
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         try:
             db = sqlite3.connect(self.db_path, timeout=10)
@@ -579,6 +588,9 @@ class ProfileStatistics:
         return dict(start=min(filter(None,[bounds.get('start'),runs[0]]),default=None),end=max(filter(None,[bounds.get('end'),runs[1]]),default=None))
 
     def timeline_history(self, profile_id, period='all', at=None, start=None, end=None):
+        return self._timeline_history(profile_id, period, at, start, end)
+
+    def _timeline_history(self, profile_id, period='all', at=None, start=None, end=None):
         from .statistics_timeline import build_timeline
         lower,upper=self._bounds(period,at)
         lower,upper=_stamp(start) if start else lower,_stamp(end) if end else upper
@@ -591,8 +603,7 @@ class ProfileStatistics:
         # spanning that bound. Raw history and lifetime aggregates stay untouched.
         context_start=min([run['start'] for run in sessions]+([lower] if lower else []),default=None)
         rows=self.history(profile_id,period='all',start=context_start,end=upper)
-        if not hasattr(self,'_timeline_projection_cache'):self._timeline_projection_cache={}
-        result=build_timeline(rows,sessions,cache=self._timeline_projection_cache)
+        result=build_timeline(rows,sessions)
         return [row for row in result if (not upper or row['start']<upper) and
             (not lower or (row.get('end') or row['last_seen'])>=lower)]
 

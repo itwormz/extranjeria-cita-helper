@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Keep the Windows control window responsive during a search. Statistics are read off the interface thread, and a status update no longer reloads them. On Windows, Camoufox no longer suspends its window when another window covers it.
+
 ## 0.2.4 — AppImage packaging and updates
 
 - Rename Linux AppImages to `Cita_Extranjeria_Helper-<version>-x86_64.AppImage`, align desktop metadata, and embed AppImageUpdate information. Publish checksummed and attested `.zsync` files alongside the AppImage. **Breaking:** Linux users on 0.2.3 or earlier must download the first renamed release manually; no legacy filename is published. The system glibc 2.35 baseline is unchanged.
