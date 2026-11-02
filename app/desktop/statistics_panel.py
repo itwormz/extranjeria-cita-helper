@@ -4,7 +4,7 @@ from ..logging_utils import log_event
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QDate, QTime, QTimer, QUrl, QSize, Signal
+from PySide6.QtCore import Qt, QDate, QTime, QTimer, QUrl, QSize, Signal, QEventLoop, QRunnable, QThreadPool
 from PySide6.QtGui import QDesktopServices, QPainter, QColor, QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (QWidget, QLabel, QPushButton, QToolButton, QComboBox,
     QVBoxLayout, QHBoxLayout, QGridLayout, QStackedWidget, QFrame, QDialog,
@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QWidget, QLabel, QPushButton, QToolButton, QCombo
 from .theme import theme_colors
 from .page_stack import CurrentPageStack
 from .statistics import ProfileStatistics
-from .statistics_history import StatisticsHistory, MADRID, stamp
+from .statistics_history import StatisticsHistory, MADRID, stamp, history_revision, read_history
 from .achievements import AchievementStore
 from .achievement_exports import public_post, write_calendar, render_card, share_url, public_duration
 
@@ -45,9 +45,38 @@ class FoodSticker(QWidget):
         p.drawText(3,30,59,28,Qt.AlignmentFlag.AlignCenter,'Will code\nfor food');p.end()
 
 
+class _Load(QRunnable):
+    def __init__(self, work):
+        super().__init__();self.work=work
+    def run(self):
+        self.work()
+
+
+def _file_revision(path):
+    if not path.exists():return None
+    stat=path.stat()
+    return (stat.st_mtime_ns,stat.st_size)
+
+
+def load_statistics_view(statistics, achievements, profile_id, period, custom_range, scope):
+    """Read totals, achievements and history without touching widgets."""
+    try:
+        component='totals';data=statistics.get(profile_id,period=period)
+        component='achievements';records=achievements.list(profile_id)
+        component='history';before=history_revision(statistics);loaded=read_history(statistics,profile_id,period,custom_range)
+        after=history_revision(statistics)
+        signature=(scope,after if before==after else None,_file_revision(achievements.path))
+        return ('ok',data,records,loaded,signature,profile_id,period)
+    except (OSError,ValueError) as exc:
+        return ('err',component,exc)
+
+
 class StatisticsPanel(QWidget):
+    loaded=Signal(int, object)
     def __init__(self,host):
         super().__init__();self.setObjectName("statisticsPanel");self.host=host;self.profiles=[];self.current_achievement=None;self._signature=None;self._statistics_read_failure=None;self._statistics_read_message=None
+        self._snapshot=None;self._render_key=None;self._history_visual=None;self._generation=0;self._inflight_token=None;self._waiting=False;self._again=False
+        self._jobs=QThreadPool(self);self._jobs.setMaxThreadCount(1);self.loaded.connect(self._on_loaded)
         data=host.store.path.parent/'data';self.statistics=ProfileStatistics(data/'profile-statistics.json')
         self.achievements=AchievementStore(data/'achievements.json')
         self._text_bindings=[];self._icon_bindings=[];self._payment_buttons=[]
@@ -173,7 +202,7 @@ class StatisticsPanel(QWidget):
         self.period=period;self.refresh()
 
     def poll(self):
-        if self.isVisible():self.refresh()
+        if self.isVisible() and not self._waiting:self._submit(False)
 
     def tr_text(self,text):return self.host.t(text)
 
@@ -186,6 +215,83 @@ class StatisticsPanel(QWidget):
         self.message.setText(self._statistics_read_message)
 
     def refresh(self):
+        self._render_key=None;self._submit(True)
+
+    def present(self):
+        """Translate the statistics view from the last snapshot, without reading storage."""
+        language=self.host.preferences.get('language');dark=self.host.preferences.get('dark')
+        key=self._view_key(language,dark)
+        if key!=self._render_key:
+            self._render_key=key;self._render(self._snapshot)
+        self._retitle_history(language,dark)
+
+    def _view_key(self,language,dark):
+        warning=bool(getattr(self.host,'state',{}).get('statistics_error'))
+        achievement=self.current_achievement or {}
+        appointment=achievement.get('appointment') or {}
+        return (language,dark,warning,self.period,self.profile_combo.currentData(),self.stack.currentWidget()!=self.stats_page,
+                id(self._snapshot),achievement.get('id'),tuple(sorted(appointment.items())))
+
+    def _retitle_history(self,language,dark):
+        visual=(language,dark)
+        if visual==self._history_visual or not self.history_panel.profile_id:return
+        self._history_visual=visual
+        self.history_panel.refresh(self.history_panel.profile_id,self.history_panel.period,self.history_panel.baseline)
+
+    def _stale(self,profile_id):
+        scope=(profile_id,self.period,datetime.now(MADRID).date() if self.period=='today' else None)
+        revision=(scope,history_revision(self.statistics),_file_revision(self.achievements.path))
+        return revision!=getattr(self,'_applied_revision',None)
+
+    def _submit(self,wait):
+        self.present()
+        profile_id=self.profile_combo.currentData()
+        if not profile_id:
+            self._snapshot=None;self._render_key=None;self.present();return
+        if not wait:
+            if self._inflight_token:
+                self._again=True;return
+            if not self._stale(profile_id):return
+        elif self._inflight_token:
+            self._again=False
+        self._generation+=1;token=self._generation;self._inflight_token=token
+        scope,custom=self.history_panel.read_plan(profile_id,self.period)
+        statistics,achievements,period=self.statistics,self.achievements,self.period
+        def work():
+            try:result=load_statistics_view(statistics,achievements,profile_id,period,custom,scope)
+            except Exception as exc:result=('err','totals',exc)
+            self.loaded.emit(token,result)
+        if not wait:
+            self._jobs.start(_Load(work));return
+        # Connect before starting. A fast read can finish before exec(), and the
+        # queued callback must already include the waiter or the loop never returns.
+        self._waiting=True;loop=QEventLoop(self)
+        def stop(got,_result):
+            if got==token or token!=self._generation:loop.quit()
+        self.loaded.connect(stop)
+        try:
+            self._jobs.start(_Load(work));loop.exec()
+        finally:
+            self._waiting=False;self.loaded.disconnect(stop)
+
+    def _on_loaded(self,token,result):
+        current=token==self._generation
+        if current:self._consume(result)
+        if self._inflight_token==token:self._inflight_token=None
+        if current and self._again and not self._waiting:
+            self._again=False;self._submit(False)
+
+    def _consume(self,result):
+        if result[0]=='err':
+            self.report_read_error(result[1],result[2]);return
+        _,data,records,loaded,signature,profile_id,period=result
+        if profile_id!=self.profile_combo.currentData() or period!=self.period:return
+        self._snapshot=(data,records);self._applied_revision=signature;self._render_key=None
+        self.history_panel.refresh(profile_id,period,bool(data.get('legacy_baseline')),loaded=loaded,signature=(signature[0],signature[1]))
+        self._history_visual=(self.host.preferences.get('language'),self.host.preferences.get('dark'))
+        self._render(self._snapshot);self._render_key=self._view_key(*self._history_visual)
+
+    def _render(self,snapshot):
         t=self.tr_text
         for widget,source in self._text_bindings:widget.setText(t(source))
         self._icon_bindings[0]=(self.heading_icon,'award' if self.stack.currentWidget()!=self.stats_page else 'statistics')
@@ -212,11 +318,8 @@ class StatisticsPanel(QWidget):
         warning=bool(getattr(self.host,'state',{}).get('statistics_error'));self.statistics_warning.setVisible(warning)
         profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id))
         if not profile_id:self.achievement_button.hide();self.first_value.setText(t('Ещё не появлялись'));return
-        try:
-            component='totals';data=self.statistics.get(profile_id,period=self.period)
-            component='achievements';records=self.achievements.list(profile_id)
-            component='history';self.history_panel.refresh(profile_id,self.period,baseline=bool(data.get('legacy_baseline')))
-        except (OSError,ValueError) as exc:self.report_read_error(component,exc);return
+        if not snapshot:return
+        data,records=snapshot
         if self._statistics_read_failure:
             if self.message.text()==self._statistics_read_message:self.message.clear()
             self._statistics_read_failure=None;self._statistics_read_message=None

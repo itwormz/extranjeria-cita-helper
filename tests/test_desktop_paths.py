@@ -88,6 +88,44 @@ def test_camoufox_does_not_raise_windows_for_page_scripts(monkeypatch):
     assert 'focusmanager.testmode' not in prefs
 
 
+def test_windows_camoufox_keeps_working_when_covered(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    import camoufox.async_api
+    from app import site
+    from app.config import Settings
+    from app.desktop import certificates
+    launch=AsyncMock(return_value=SimpleNamespace(new_context=AsyncMock(),on=lambda *args: None))
+    monkeypatch.setattr(certificates,'prepare_intermediate_cache',lambda *args: 1)
+    monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch)
+    monkeypatch.setattr('camoufox.pkgman.launch_path',lambda: '/tmp/offline-camoufox')
+    monkeypatch.setattr(site.platform,'system',lambda: 'Windows')
+    asyncio.run(site.IcpPlusChecker(Settings(browser_session='fresh'))._launch_camoufox(None,SimpleNamespace(id='offline',schedule=SimpleNamespace(timezone='Europe/Madrid')),headless=True))
+    prefs=launch.await_args.kwargs['firefox_user_prefs']
+    assert prefs['widget.windows.window_occlusion_tracking.enabled'] is False
+    assert prefs['widget.windows.window_occlusion_tracking_peek.enabled'] is False
+
+
+def test_linux_camoufox_leaves_windows_occlusion_prefs_unset(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    import camoufox.async_api
+    from app import site
+    from app.config import Settings
+    from app.desktop import certificates
+    launch=AsyncMock(return_value=SimpleNamespace(new_context=AsyncMock(),on=lambda *args: None))
+    monkeypatch.setattr(certificates,'prepare_intermediate_cache',lambda *args: 1)
+    monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch)
+    monkeypatch.setattr('camoufox.pkgman.launch_path',lambda: '/tmp/offline-camoufox')
+    monkeypatch.setattr(site.platform,'system',lambda: 'Linux')
+    asyncio.run(site.IcpPlusChecker(Settings(browser_session='fresh'))._launch_camoufox(None,SimpleNamespace(id='offline',schedule=SimpleNamespace(timezone='Europe/Madrid')),headless=True))
+    prefs=launch.await_args.kwargs['firefox_user_prefs']
+    assert 'widget.windows.window_occlusion_tracking.enabled' not in prefs
+    assert prefs['dom.disable_window_flip'] is True
+
+
 def test_windows_portable_marker_selects_adjacent_data(monkeypatch,tmp_path):
     import sys
     monkeypatch.setattr(sys,'frozen',True,raising=False)

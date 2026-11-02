@@ -513,6 +513,35 @@ class OfficeCountButton(QPushButton):
         self.full_dialog.resize(360,360);self.full_dialog.show()
 
 
+def history_revision(store):
+    path=getattr(store,'db_path',None)
+    if not path:return None
+    def item(target):
+        if not target.exists():return None
+        stat=target.stat()
+        return (stat.st_mtime_ns,stat.st_size)
+    return (item(path),item(path.with_name(path.name+'-wal')))
+
+
+def read_history(store, profile_id, period, custom_range, today=None):
+    """Plain history payload. Safe to call off the interface thread."""
+    today=today or datetime.now(MADRID).date()
+    bounds=getattr(store,'timeline_bounds',store.history_bounds)(profile_id,period=period)
+    if not bounds or not bounds.get('end'):bounds=None
+    office_rows=store.office_history(profile_id,period=period)
+    if period=='today':start=end=today
+    elif custom_range:start,end=custom_range
+    elif bounds:start=local_time(bounds.get('start') or bounds['end']).date();end=local_time(bounds['end']).date()
+    else:start=end=today
+    lower=datetime.combine(start,datetime.min.time(),MADRID)
+    upper=datetime.combine(end+timedelta(days=1),datetime.min.time(),MADRID)
+    rows=getattr(store,'timeline_history',store.history)(profile_id,period=period,start=lower,end=upper)
+    raw_start=min([lower]+[local_time(row['start']) for row in rows])
+    raw_end=max([upper]+[local_time(row.get('end') or row['last_seen'])+timedelta(microseconds=1) for row in rows])
+    raw_rows=store.history(profile_id,period='all',start=raw_start,end=raw_end)
+    return dict(bounds=bounds,office_rows=office_rows,rows=rows,raw_rows=raw_rows)
+
+
 class StatisticsHistory(QWidget):
     def __init__(self,host,store):
         super().__init__();self.host=host;self.store=store;self.period='all';self.profile_id=None;self.office_rows=[];self._scope=None;self._office_signature=None;self.rows=[];self.raw_rows=[];self.bounds=None;self.baseline=False;self.selected_rows=[]
@@ -521,7 +550,7 @@ class StatisticsHistory(QWidget):
         for button in (self.history_button,self.offices_button):button.setObjectName('historyTab');button.setCheckable(True);tabs.addWidget(button)
         tabs.addStretch();self.header=tabs;layout.addLayout(tabs);self.stack=CurrentPageStack();layout.addWidget(self.stack)
         history=QWidget();body=QVBoxLayout(history);body.setContentsMargins(0,0,0,0)
-        self.custom_range=None;self._render_signature=None;self._data_signature=None
+        self.custom_range=None;self._render_signature=None;self._data_signature=None;self._rows_ready=False
         self.period_button=QPushButton();self.period_button.setObjectName('historyPeriod');self.header.addWidget(self.period_button)
         self.period_button.clicked.connect(self.open_period)
         self.legend=QLabel();self.legend.setWordWrap(True)
@@ -582,19 +611,27 @@ class StatisticsHistory(QWidget):
         if hasattr(self,'period_apply'):self.period_apply.setEnabled(valid);self.period_error.setVisible(not valid)
     def apply_period(self,value):
         self.custom_range=value;self.period_dialog.accept();self.render_timeline()
-    def refresh(self,profile_id,period,baseline=False):
-        t=self.host.t;self.history_button.setText(t('История поиска'));self.offices_button.setText(t('Офисы'))
+    def read_plan(self, profile_id, period):
         scope=(profile_id,period,datetime.now(MADRID).date() if period=='today' else None)
         if scope!=self._scope:
             self.custom_range=None;self._scope=scope;self._data_signature=None;self.timeline.view_start=0.;self.timeline.view_end=1.;self.selected_rows=[];self.timeline.set_selection([])
+        return scope,self.custom_range
+    def refresh(self,profile_id,period,baseline=False,*,loaded=None,signature=None):
+        t=self.host.t;self.history_button.setText(t('История поиска'));self.offices_button.setText(t('Офисы'))
+        scope,custom=self.read_plan(profile_id,period)
         self.profile_id=profile_id;self.period=period;self.baseline=baseline;self.period_button.setEnabled(period=='all')
-        path=getattr(self.store,'db_path',None)
-        revision=tuple((p.stat().st_mtime_ns,p.stat().st_size) if p.exists() else None for p in (path,path.with_name(path.name+'-wal'))) if path else None
-        signature=(scope,revision)
-        if revision is None or signature!=self._data_signature:
-            self.bounds=getattr(self.store,'timeline_bounds',self.store.history_bounds)(profile_id,period=period)
-            if not self.bounds or not self.bounds.get('end'):self.bounds=None
-            self.office_rows=self.store.office_history(profile_id,period=period);self._data_signature=signature;self._render_signature=None
+        if loaded is None:
+            revision=history_revision(self.store)
+            signature=(scope,revision)
+            if revision is None or signature!=self._data_signature:
+                loaded=read_history(self.store,profile_id,period,custom)
+        if loaded is not None:
+            offices_changed=loaded['office_rows']!=self.office_rows
+            rows_changed=loaded['rows']!=self.rows or loaded['raw_rows']!=self.raw_rows or loaded['bounds']!=self.bounds
+            self.bounds=loaded['bounds'];self.office_rows=loaded['office_rows'];self.rows=loaded['rows'];self.raw_rows=loaded['raw_rows']
+            self._data_signature=signature;self._rows_ready=True
+            if rows_changed:self._render_signature=None
+            if offices_changed:self._office_signature=None
         self.offices_button.setText(t('Офисы')+' · '+str(len(self.office_rows)))
         if hasattr(self.host,'control_icon'):self.period_button.setIcon(self.host.control_icon('calendar_days'))
         c=theme_colors(self.host.preferences['dark'])
@@ -636,12 +673,15 @@ class StatisticsHistory(QWidget):
         label=t('Сегодня') if self.period=='today' else f'{start:%d.%m.%Y}–{end:%d.%m.%Y}' if self.custom_range else t('Все дни')
         self.period_button.setText(t('Период')+' · '+label);self.period_button.setToolTip(f'{start:%d.%m.%Y}–{end:%d.%m.%Y}')
         signature=(self._data_signature,self.custom_range,self.host.preferences['language'],self.host.preferences['dark'])
-        if self._render_signature==signature:return
+        if self._render_signature==signature:
+            self._rows_ready=False;return
         self._render_signature=signature
         lower=datetime.combine(start,datetime.min.time(),MADRID)
         upper=datetime.combine(end+timedelta(days=1),datetime.min.time(),MADRID)
-        self.rows=getattr(self.store,'timeline_history',self.store.history)(self.profile_id,period=self.period,start=lower,end=upper)
-        self.raw_rows=self.store.history(self.profile_id,period='all',start=min([lower]+[local_time(row['start']) for row in self.rows]),end=max([upper]+[local_time(row.get('end') or row['last_seen'])+timedelta(microseconds=1) for row in self.rows]))
+        if not self._rows_ready:
+            self.rows=getattr(self.store,'timeline_history',self.store.history)(self.profile_id,period=self.period,start=lower,end=upper)
+            self.raw_rows=self.store.history(self.profile_id,period='all',start=min([lower]+[local_time(row['start']) for row in self.rows]),end=max([upper]+[local_time(row.get('end') or row['last_seen'])+timedelta(microseconds=1) for row in self.rows]))
+        self._rows_ready=False
         self.timeline.set_rows(self.rows,start,days,observed_only=self.period=='all' and self.custom_range is None);self.timeline.setVisible(bool(self.rows or self.bounds))
         selected_keys={Timeline.selection_key(row) for row in self.selected_rows}
         selected=[]

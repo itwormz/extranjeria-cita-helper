@@ -259,6 +259,22 @@ def test_automation_section_follows_availability_and_errors(tmp_path,qt_app):
     panel.close();panel.deleteLater();host.deleteLater()
 
 
+def test_statistics_refresh_reads_outside_the_interface_thread(tmp_path,qt_app,monkeypatch):
+    import threading
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
+    host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
+    seen=[]
+    original=panel.statistics.get
+    def wrapped(*args,**kwargs):
+        seen.append(threading.get_ident());return original(*args,**kwargs)
+    monkeypatch.setattr(panel.statistics,'get',wrapped)
+    panel.statistics.increment('one');panel.refresh()
+    assert seen and seen[0]!=threading.get_ident()
+    assert panel.stat_values['checks'].text()=='1'
+    panel.deleteLater();host.deleteLater()
+
+
 def test_transient_statistics_read_error_clears_after_successful_refresh(tmp_path,qt_app,monkeypatch,caplog):
     from app.desktop.statistics_panel import StatisticsPanel
     profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
