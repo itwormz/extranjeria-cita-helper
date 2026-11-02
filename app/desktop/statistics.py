@@ -149,8 +149,7 @@ class ProfileStatistics:
 
     @contextmanager
     def _db(self, write=True):
-        # The interface process can read while a click also reads. One lock
-        # keeps schema setup and the timeline cache on a single connection.
+        # Readers in the interface and the statistics loader share this store.
         with self._lock:
             with self._open(write) as db:
                 yield db
@@ -589,8 +588,7 @@ class ProfileStatistics:
         return dict(start=min(filter(None,[bounds.get('start'),runs[0]]),default=None),end=max(filter(None,[bounds.get('end'),runs[1]]),default=None))
 
     def timeline_history(self, profile_id, period='all', at=None, start=None, end=None):
-        with self._lock:
-            return self._timeline_history(profile_id, period, at, start, end)
+        return self._timeline_history(profile_id, period, at, start, end)
 
     def _timeline_history(self, profile_id, period='all', at=None, start=None, end=None):
         from .statistics_timeline import build_timeline
@@ -605,8 +603,7 @@ class ProfileStatistics:
         # spanning that bound. Raw history and lifetime aggregates stay untouched.
         context_start=min([run['start'] for run in sessions]+([lower] if lower else []),default=None)
         rows=self.history(profile_id,period='all',start=context_start,end=upper)
-        if not hasattr(self,'_timeline_projection_cache'):self._timeline_projection_cache={}
-        result=build_timeline(rows,sessions,cache=self._timeline_projection_cache)
+        result=build_timeline(rows,sessions)
         return [row for row in result if (not upper or row['start']<upper) and
             (not lower or (row.get('end') or row['last_seen'])>=lower)]
 

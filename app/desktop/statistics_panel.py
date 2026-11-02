@@ -58,14 +58,17 @@ def _file_revision(path):
     return (stat.st_mtime_ns,stat.st_size)
 
 
+# Distinct from a missing file, whose revision is None.
+_UNSTABLE_REVISION=object()
+
+
 def load_statistics_view(statistics, achievements, profile_id, period, custom_range, scope):
     """Read totals, achievements and history without touching widgets."""
     try:
-        component='totals';data=statistics.get(profile_id,period=period)
-        component='achievements';records=achievements.list(profile_id)
-        component='history';before=history_revision(statistics);loaded=read_history(statistics,profile_id,period,custom_range)
-        after=history_revision(statistics)
-        signature=(scope,after if before==after else None,_file_revision(achievements.path))
+        component='totals';statistics_before=history_revision(statistics);data=statistics.get(profile_id,period=period)
+        component='achievements';achievement_before=_file_revision(achievements.path);records=achievements.list(profile_id);achievement_after=_file_revision(achievements.path)
+        component='history';loaded=read_history(statistics,profile_id,period,custom_range);statistics_after=history_revision(statistics)
+        signature=(scope,statistics_after if statistics_before==statistics_after else _UNSTABLE_REVISION,achievement_after if achievement_before==achievement_after else _UNSTABLE_REVISION)
         return ('ok',data,records,loaded,signature,profile_id,period,custom_range)
     except (OSError,ValueError) as exc:
         return ('err',component,exc)
@@ -195,7 +198,7 @@ class StatisticsPanel(QWidget):
 
     def profile_selected(self,*_):
         was_achievement=self.stack.currentWidget()!=self.stats_page
-        self.current_achievement=None;self.stack.setCurrentWidget(self.stats_page);self.message.clear();self.refresh()
+        self.current_achievement=None;self._snapshot=None;self._render_key=None;self.stack.setCurrentWidget(self.stats_page);self.message.clear();self.refresh()
         if was_achievement:self.show_achievement()
 
     def set_period(self,period):
@@ -323,7 +326,9 @@ class StatisticsPanel(QWidget):
         warning=bool(getattr(self.host,'state',{}).get('statistics_error'));self.statistics_warning.setVisible(warning)
         profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id))
         if not profile_id:self.achievement_button.hide();self.first_value.setText(t('Ещё не появлялись'));return
-        if not snapshot:return
+        if not snapshot:
+            for widget in self.stat_values.values():widget.setText('—')
+            self.first_value.setText('—');self.first_booking_value.setText('—');self.achievement_button.hide();return
         data,records=snapshot
         if self._statistics_read_failure:
             if self.message.text()==self._statistics_read_message:self.message.clear()
