@@ -281,7 +281,7 @@ def test_worker_state_does_not_read_statistics(window, monkeypatch):
     window.on_state(dict(screen='Ищем ситу',evidence='',next_action='Ждать',mode='working',checks=3,journal=[],availability=[]))
     window.on_state(dict(screen='Ищем ситу',evidence='',next_action='Ждать',mode='working',checks=4,journal=[],availability=[]))
     assert calls==[]
-    assert window.heading.text()=='Ищем ситу'
+    assert window.heading.text()==window.t('Ищем ситу')
 
 
 def test_language_change_retitles_history_without_reading(window, monkeypatch):
