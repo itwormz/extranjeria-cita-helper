@@ -1,0 +1,116 @@
+language: en-US
+tone_instructions: >
+  Be concise. Report only substantive bugs, security issues, data loss,
+  regressions or broken behaviour. Do not request docstrings, renames,
+  refactors or pure style changes.
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  review_status: false
+  review_details: false
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  in_progress_fortune: false
+  poem: false
+
+  path_filters:
+    - "!**/*.lock"
+    - "!.local/**"
+    - "!data/**"
+    - "!tests/fixtures/**"
+    - "!target/**"
+    - "!desktop-ui/node_modules/**"
+    - "!desktop-ui/dist/**"
+
+  path_instructions:
+    - path: "app/**"
+      instructions: |
+        Focus on correctness, regressions, POST replay safety, manual-booking
+        handoff and privacy. Do not request docstrings or style changes.
+    - path: "tests/**"
+      instructions: |
+        Focus on deterministic offline tests; flag flaky timing assumptions.
+        Do not request docstrings.
+    - path: ".github/workflows/**"
+      instructions: |
+        Check pinned action SHAs, least-privilege permissions, and that only
+        tag pushes can publish releases.
+    - path: "crates/**"
+      instructions: |
+        Focus on ownership, error handling, unsafe/FFI, panics and #[cfg].
+        Do not request docstrings for private items.
+
+  pre_merge_checks:
+    docstrings:
+      mode: off
+    title:
+      mode: warning
+      requirements: "Use fix:, test:, docs:, release: or chore:; keep under 72 characters."
+    description:
+      mode: off
+    issue_assessment:
+      mode: off
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    autofix:
+      enabled: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 2
+    ignore_title_keywords:
+      - "[WIP]"
+      - "[skip review]"
+      - "release:"
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "github-actions[bot]"
+      - "renovate[bot]"
+
+  tools:
+    ruff:
+      enabled: true
+    actionlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    zizmor:
+      enabled: true
+    clippy:
+      enabled: true
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+    pylint:
+      enabled: false
+    flake8:
+      enabled: false
+    gitleaks:
+      enabled: false
+    trufflehog:
+      enabled: false
+    osvScanner:
+      enabled: false
+    semgrep:
+      enabled: false
+    opengrep:
+      enabled: false
+    checkov:
+      enabled: false
+    trivy:
+      enabled: false
+    hadolint:
+      enabled: false
