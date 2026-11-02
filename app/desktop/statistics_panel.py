@@ -198,7 +198,9 @@ class StatisticsPanel(QWidget):
 
     def profile_selected(self,*_):
         was_achievement=self.stack.currentWidget()!=self.stats_page
-        self.current_achievement=None;self._snapshot=None;self._render_key=None;self.stack.setCurrentWidget(self.stats_page);self.message.clear();self.refresh()
+        self.current_achievement=None;self._snapshot=None;self._render_key=None;self.stack.setCurrentWidget(self.stats_page);self.message.clear()
+        self.history_panel.refresh(self.profile_combo.currentData(),self.period,False,loaded={'bounds':None,'office_rows':[],'rows':[],'raw_rows':[]},signature=None)
+        self.refresh()
         if was_achievement:self.show_achievement()
 
     def set_period(self,period):

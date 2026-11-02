@@ -324,11 +324,15 @@ def test_profile_change_does_not_keep_the_previous_totals(tmp_path,qt_app,monkey
     host=make_host(tmp_path,profiles);panel=StatisticsPanel(host);panel.set_profiles(profiles,'one')
     panel.statistics.increment('one');panel.refresh()
     assert panel.stat_values['checks'].text()=='1'
+    history=panel.history_panel
+    history.office_rows=[{'label':'Old office','count':1,'last_seen':'2026-01-01T00:00:00Z','appearances':[]}]
+    history.rows=[{'kind':'search','start':'2026-01-01T00:00:00Z','end':'2026-01-01T00:01:00Z','last_seen':'2026-01-01T00:01:00Z'}]
     def unavailable(*args,**kwargs):raise OSError('temporary read failure')
     monkeypatch.setattr(panel.statistics,'get',unavailable)
     panel.profile_combo.setCurrentIndex(panel.profile_combo.findData('two'))
     assert panel.profile_combo.currentData()=='two'
     assert panel.stat_values['checks'].text()=='—'
+    assert history.profile_id=='two' and history.office_rows==[] and history.rows==[]
     panel.deleteLater();host.deleteLater()
 
 
