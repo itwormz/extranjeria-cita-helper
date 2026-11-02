@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.5 — Responsive Windows controls
 
-- Keep the Windows control window responsive during a search. Statistics are read off the interface thread, and a status update no longer reloads them. On Windows, Camoufox no longer suspends its window when another window covers it.
+- Keep the Windows control window responsive during a search. Statistics are read off the interface thread, and a status update no longer reloads them. Discard results from an outdated read, keep a range chosen during a read, and clear the previous profile's totals and history when the profile changes. On Windows, Camoufox no longer suspends its window when another window covers it.
+- Update fonttools to 4.68.0, tzdata to 2026.6 and pytest to 9.2.0, and use setup-uv 10.3.3 in CI.
 
 ## 0.2.4 — AppImage packaging and updates
 
