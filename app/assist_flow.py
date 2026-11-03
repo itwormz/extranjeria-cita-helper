@@ -6,6 +6,8 @@ import re
 import time
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 from dataclasses import dataclass
+from datetime import datetime
+from .appointment_schedule import MADRID
 from contextlib import suppress
 
 from .assist import BOOKING_SELECTORS, CAPTCHA_SELECTORS, _document_key
@@ -110,6 +112,16 @@ class AssistRunner:
         self.guard_document = None
         self.guard_kind = None
         self.timeout_retries = {}
+        self.budget = getattr(control, "appointment_budget", None)
+        self.protection = getattr(task, "appointment_protection", None)
+        self.round_saw_banner = False
+        self.banner_visible = False
+        self.awaiting_budget_result = False
+        self.round_saw_office = False
+        self.hot_retry = False
+        self.used_hot_retry = False
+        self.budget_office_recorded = False
+        self.budget_copied_document = None
         self._listeners = []
         if hasattr(page, "on"):
             for event, handler in (("request", self._requested), ("response", self._responded)):
@@ -200,6 +212,14 @@ class AssistRunner:
             if request.method == 'POST' and _flow_endpoint(request.url)=='acValidarEntrada':
                 self.record('applicant_submitted',self.last_observed,'Отправлена форма заявителя — значения не сохраняются',page_url=request.url)
             if request.method == "POST" and _flow_endpoint(request.url) == "acCitar":
+                if self.budget is not None:
+                    self.budget.submitted(datetime.now(MADRID), self.protection)
+                    self.control.save_appointment_budget(self.budget)
+                    self.awaiting_budget_result = True
+                    self.round_saw_office = False
+                    self.used_hot_retry = self.hot_retry
+                    self.hot_retry = False
+                    self.budget_office_recorded = False
                 self.control.availability_checked()
                 self.record("check", self.last_observed, f"Проверка сит: отправлен Solicitar cita — в сессии {self.control.snapshot()['checks']}, для профиля {self.control.snapshot()['profile_checks']}", page_url=request.url)
             if (self.pending_action == "request" and not self.pending_counted
@@ -680,7 +700,7 @@ class AssistRunner:
         if self.last_method == "GET":
             await self.page.reload(wait_until="domcontentloaded")
             self.control.automation_action()
-        elif observed.kind != "blocked" and _flow_endpoint(self.page.url) == "acCitar" and (self.pending_action or self.last_action) == "request":
+        elif self.budget is None and observed.kind != "blocked" and _flow_endpoint(self.page.url) == "acCitar" and (self.pending_action or self.last_action) == "request":
             self.pending_action = "request"
             self.pending_counted = False
             self.record("recovery", observed, "Повторить поиск сит после серверной ошибки")
@@ -727,6 +747,7 @@ class AssistRunner:
             await self.booking_attention(self.handoff_observed)
             return
         observed = await self.observe()
+        self.observe_appointment_budget(observed)
         self.action_phase = ""
         if observed.kind!="loading":self.loading_started=None;self.loading_document=None
         if observed.signature == self.manual_signature:
@@ -795,9 +816,55 @@ class AssistRunner:
         finally:
             self.guard_document = self.guard_kind = None
 
+    def observe_appointment_budget(self, observed):
+        if self.budget is None:
+            return
+        now = datetime.now(MADRID)
+        self.budget.refresh(now, self.protection)
+        if observed.kind == "applicant_no_slots":
+            self.round_saw_banner = True
+            if not self.banner_visible:
+                self.budget.banners += 1
+                self.control.save_appointment_budget(self.budget)
+            self.banner_visible = True
+        elif observed.kind not in {"loading", "unknown"}:
+            self.banner_visible = False
+        if not self.awaiting_budget_result:
+            return
+        if observed.kind == "office" and not self.round_saw_office:
+            self.round_saw_office = True
+
+        if observed.kind not in {"request_no_slots", "request_no_slots_restart", "post_contact_no_slots", "booking"}:
+            return
+        self.awaiting_budget_result = False
+        if self.budget_office_recorded and self.budget.episode_offices:
+            self.budget.episode_offices[-1]['result'] = (
+                'cod_oper' if observed.operation_code else observed.kind
+            )
+        if observed.operation_code:
+            self.budget.cod_oper(datetime.now(MADRID), self.protection)
+        else:
+            if observed.kind != "booking":
+                self.budget.no_slots += 1
+            self.budget.ordinary_result(now)
+            self.hot_retry = self.protection.retry_after_office and self.round_saw_office and not self.used_hot_retry and observed.kind != "booking"
+        self.control.save_appointment_budget(self.budget)
+
+    async def wait_for_budget(self, observed):
+        if self.budget is None:
+            return False
+        now = datetime.now(MADRID)
+        ready = self.budget.next_submission(now, self.protection, hot=self.hot_retry)
+        if ready <= now:
+            return False
+        self.publish(observed, mode="waiting", next_action=f"Следующая попытка с {ready:%H:%M}")
+        await self.page.wait_for_timeout(500)
+        return True
+
     async def act(self, observed):
         kind = observed.kind
         if kind == "province":
+            self.round_saw_banner = False
             self.last_action = None
             self.pending_action = None
             self.record("action", observed, "Выбрать провинцию")
@@ -833,13 +900,46 @@ class AssistRunner:
                 self.record("action", observed, "Войти с электронным сертификатом")
                 await self.checker._enter_with_certificate(self.page, self.task, self.run_id, on_attention=attention)
             await self.silence()
-        elif kind == "applicant" or (kind == "applicant_no_slots" and getattr(self.task, "applicant_no_slots_mode", "wait") == "continue"):
+        elif kind == "applicant" or (
+            kind == "applicant_no_slots"
+            and getattr(self.task, "applicant_no_slots_mode", "wait") == "continue"
+            and not (self.budget is not None and self.protection.confirm_new_round)
+        ):
+            if self.budget is not None and self.protection.confirm_new_round and self.round_saw_banner:
+                from .config import DEFAULT_START_URL
+                self.record("action", observed, "Подтвердить отсутствие плашки новым проходом")
+                await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+                self.control.automation_action()
+                return
+            if (getattr(self.control, 'bind_copied_appointment_budget', None) is None
+                    and await self.wait_for_budget(observed)):
+                return
             if (observed.document, "applicant") in self.attempted:
                 await self.hold(observed, "Форма уже отправлялась. Проверить ответ и данные")
+                return
+            if self.budget_copied_document == observed.document:
+                if await self.wait_for_budget(observed):
+                    return
+                self.attempted.add((observed.document, "applicant"))
+                await self.click(observed, "#btnEnviar", action="applicant")
                 return
             if getattr(self.task, 'applicant_fill_mode', 'manual') == 'copy':
                 self.record("action", observed, "Скопировать документ и имя из авторизации" if getattr(self.task,'procedure',None)==REGRESO_PROCEDURE else "Скопировать NIE и имя из авторизации")
                 await self.checker._fill_applicant_with_clave(self.page, self.task, self.run_id)
+                bind_budget = getattr(self.control, 'bind_copied_appointment_budget', None)
+                if bind_budget is not None:
+                    current = await self.observe()
+                    if current.document != observed.document or current.kind != kind:
+                        return
+                    number = await self.page.locator('#txtIdCitado').input_value(timeout=5000)
+                    document_type = getattr(self.task, 'document_type', '') or 'NIE'
+                    if not number.strip() or not bind_budget(number, document_type):
+                        await self.hold(current, "Не удалось открыть бюджет документа. Проверьте, не используется ли он другим профилем")
+                        return
+                    self.budget = self.control.appointment_budget
+                    self.budget_copied_document = current.document
+                    if await self.wait_for_budget(current):
+                        return
             else:
                 self.record("action", observed, "Ввести документ и имя из профиля" if getattr(self.task,'procedure',None)==REGRESO_PROCEDURE else "Ввести NIE и имя из профиля")
                 await self.checker._fill_applicant_manual(self.page, self.task, self.run_id)
@@ -849,6 +949,8 @@ class AssistRunner:
             self.attempted.add((observed.document, "applicant"))
             await self.click(current, "#btnEnviar", action="applicant")
         elif kind == "request_menu":
+            if await self.wait_for_budget(observed):
+                return
             if (observed.document, kind) in self.attempted:
                 await self.hold(observed, "Запрос уже отправлен. Проверить ответ сайта")
                 return
@@ -877,17 +979,29 @@ class AssistRunner:
                 return
             self.empty_streak += 1
             delay = self.policy.next_delay(recent_activity=False, empty_streak=self.empty_streak)
-            via_salir=not applicant_wait and getattr(self.task,'no_slots_mode','salir')=='salir'
+            via_salir = not applicant_wait and getattr(self.task, 'no_slots_mode', 'salir') == 'salir'
+            fresh_round = not applicant_wait and not via_salir and self.budget is not None
             next_action = ("Обновить форму без ввода данных" if applicant_wait else
                            "Нажать Salir и продолжить по сайту" if via_salir else
+                           "Начать новый круг" if fresh_round else
                            "Обновить результат запроса в текущей сессии")
             if not await self.countdown(observed, delay, next_action):
                 return
             await self.save(observed, "STEP_BEFORE_ACTION")
             if not await self.guard(observed):
                 return
+            if fresh_round:
+                from .config import DEFAULT_START_URL
+                await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+                self.control.automation_action()
+                return
             if via_salir:
                 button=await self.continuation(observed.source,r"salir")
+                if button is None and self.budget is not None:
+                    from .config import DEFAULT_START_URL
+                    await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+                    self.control.automation_action()
+                    return
                 if button is None:
                     await self.hold(observed,"Не найдена единственная кнопка Salir. Проверить страницу")
                     return
@@ -983,6 +1097,13 @@ class AssistRunner:
             self.office_selection_key = None
             if offices:
                 self.log_availability("offices_seen", observed)
+                if (self.budget is not None and self.budget.first_cod_oper is not None
+                        and self.awaiting_budget_result and not self.budget_office_recorded):
+                    self.budget.office_during_restriction(
+                        datetime.now(MADRID), [office['text'] for office in offices],
+                    )
+                    self.budget_office_recorded = True
+                    self.control.save_appointment_budget(self.budget)
         selected_value = snapshot['value']
         self.office_selected(observed, selected_value)
         if len(offices) != 1:

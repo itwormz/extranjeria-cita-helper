@@ -110,7 +110,11 @@ La pestaña Estadísticas ofrece **Hoy / Todo el tiempo** para cada perfil: comp
 
 Las acciones realizadas y las páginas procesadas reflejan el trabajo automático: cada activación, selección, campo rellenado o recarga completada cuenta como una acción; cada documento reconocido se cuenta una vez. Se excluyen las acciones manuales y los reconocimientos repetidos. Estos contadores empiezan con la actualización y no reconstruyen el trabajo anterior.
 
-En el perfil, en **Tiempos y reintentos**, hay dos ajustes independientes. **En el formulario del solicitante** usa **Esperar si no hay citas** por defecto: no introduce datos mientras siga el aviso. **Rellenar y continuar** permite introducir o copiar los datos pese al aviso. **Tras el resultado sin citas** usa **Mediante Salir** por defecto; también permite recargar el resultado. Salir espera y utiliza el control real del sitio, siguiendo las páginas reconocidas; si falta o es ambiguo, solicita revisión. Para la búsqueda habitual se recomienda esperar y usar Salir. El envío repetido de datos puede aumentar el riesgo de bloqueo. Los intervalos, las pausas de recuperación y la protección frente al reenvío de POST ambiguos no cambian. En modo de espera, un formulario obtenido por GET confirmado se puede recargar; tras el POST de autenticación a acEntrada se utiliza un GET independiente sin reenviar la autenticación. Otros POST o un método desconocido requieren revisión.
+En **Tiempos y reintentos → Comprobación de citas**, elige si esperar o rellenar el formulario mientras aparece el aviso «No hay citas». Si activas **Recomprobar tras «No hay citas»**, al desaparecer el aviso se inicia otro recorrido desde la autenticación. Solo se envía tras un recorrido en el que el aviso no apareció. Después de un resultado sin citas puedes elegir **Mediante Salir** o **Iniciar otro recorrido**. La segunda opción abre la página inicial con un GET nuevo.
+
+En **Control de envíos**, el presupuesto inicial es de **5**. El primer intento puede hacerse a cualquier hora tras un recorrido sin aviso y las pausas aplicables. El resto se distribuye entre **09:00 y 18:00**, hora de Madrid, y después hasta medianoche. Las ventanas de **±30 minutos** se recalculan tras un envío o una ventana perdida. Tras alcanzar el presupuesto se aplica la pausa mínima de **15 minutos**. Si se muestra una oficina y luego no hay citas, se puede adelantar un intento.
+
+Una respuesta sin citas con **cod oper** tras **Solicitar cita** aplica una primera pausa de **30 minutos** y **60 minutos** entre comprobaciones posteriores. Con presupuesto adaptativo, la primera respuesta de ese tipo en el intento N fija el presupuesto de mañana en **N−1**. Las opciones se activan también en perfiles existentes que aún no tienen esos ajustes. Estadísticas muestra los recuentos diarios antes y después del envío y el presupuesto restante. El menú **⋯** permite pausar la distribución durante el día o abrir el historial de posibles restricciones, con oficinas e intervalo de recuperación. Las pausas siguen vigentes al desactivar la distribución.
 
 Al iniciar se restaura el último perfil de trabajo; Estadísticas muestra inicialmente ese perfil. Los periodos Cod. Oper. continúan durante la navegación intermedia hasta un resultado normal de disponibilidad. El zoom y las actualizaciones habituales conservan la selección; cambiar el perfil estadístico o el ámbito Hoy/Todo el tiempo la borra. Una vez borrada, no se restaura automáticamente.
 
@@ -137,7 +141,7 @@ Después de confirmar la reserva en la web, marque **Cita conseguida**. Los dato
 | Diagnóstico | HTML y capturas opcionales; desactivado por defecto. Durante la reserva manual se guarda HTML sin capturas de pantalla |
 | Idioma y tema | Inglés, ruso o español; apariencia clara u oscura |
 
-Por defecto, tras un resultado habitual sin citas el asistente espera **30–60 segundos**, pulsa **Salir** y sigue la web; el perfil también permite recargar el resultado. Una página sin citas con **Aceptar** inicia un nuevo recorrido tras una pausa de **3 minutos**. Las acciones se separan **0,3–0,8 segundos** y el sonido se repite cada **3 segundos**. Configure los tiempos dentro del perfil; los cambios se aplican en el siguiente inicio. El idioma inicial sigue el del sistema; si no es compatible, se utiliza inglés.
+Por defecto, tras un resultado habitual sin citas el asistente espera **30–60 segundos**, pulsa **Salir** y sigue la web; el perfil también permite iniciar otro recorrido. Una página sin citas con **Aceptar** inicia un nuevo recorrido tras una pausa de **3 minutos**. Las acciones se separan **0,3–0,8 segundos** y el sonido se repite cada **3 segundos**. Configure los tiempos dentro del perfil; los cambios se aplican en el siguiente inicio. El idioma inicial sigue el del sistema; si no es compatible, se utiliza inglés.
 
 Seguimiento muestra la página reconocida, la siguiente acción, la cuenta atrás, el número de consultas, el historial de páginas visitadas y las oficinas disponibles. Cada visita muestra su estado, acción y resultado confirmado; pulsar un botón no confirma por sí solo una transición. **Acerca de** permite buscar una nueva versión, descargar un paquete verificado e iniciar la instalación. Puede desactivar en Ajustes la búsqueda automática en GitHub Releases al iniciar y una vez al día. La instalación termina la sesión actual y conserva los perfiles y ajustes.
 
@@ -268,6 +272,13 @@ uv run python -m app.main desktop
 La primera vez, abra **Ajustes → Crear perfil**. Introduzca los datos y tiempos desde la interfaz; el uso normal no requiere preparar archivos YAML ni variables de entorno. Para identificarse, tenga acceso a Cl@ve o un certificado electrónico disponible en Camoufox mediante el sistema o importado en el navegador.
 
 En los siguientes inicios, abra un terminal en el directorio del proyecto y ejecute el mismo comando. No hace falta activar `.venv` manualmente.
+
+## 💜 Agradecimientos
+
+Gracias por ayudar a difundir el proyecto:
+
+- <a href="https://t.me/bcn_today"><img src="docs/images/bcn_today.png" width="32" height="32" alt=""> BCN Today</a>
+- <a href="https://t.me/spain_pass"><img src="docs/images/spain_pass.png" width="32" height="32" alt=""> Испанский Паспорт</a>
 
 ## 📄 Licencia
 

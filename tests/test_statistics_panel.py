@@ -383,3 +383,25 @@ def test_transient_statistics_read_error_clears_after_successful_refresh(tmp_pat
     monkeypatch.setattr(panel.statistics,'get',read);panel.refresh()
     assert panel.message.text()==''
     panel.deleteLater();host.deleteLater()
+
+
+def test_restriction_outcomes_are_translated():
+    assert translate('Сит нет · cod oper','en')=='No appointments · cod oper'
+    assert translate('Сит нет · cod oper','es')=='Sin citas · cod oper'
+    assert translate('Показан выбор даты','en')=='Booking options shown'
+    assert translate('Сит нет','es')=='Sin citas'
+
+
+def test_budget_display_retranslates_without_a_new_read(tmp_path,qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles=[SimpleNamespace(id='one',label='One',province='Barcelona')]
+    host=make_host(tmp_path,profiles);host.t=lambda text:translate(text,host.preferences['language'])
+    panel=StatisticsPanel(host)
+    budget={'disabled':False,'ready':'2026-11-03T14:00:00+01:00','target':5,'remaining':5,
+            'restricted':False,'banners':0,'no_slots':0}
+    panel.show_appointment_budget(budget)
+    assert 'Target' in panel.budget_label.text()
+    host.preferences['language']='es';panel.present()
+    assert 'Objetivo' in panel.budget_label.text()
+    assert panel.budget_action.text()=='Pausar la distribución hoy'
+    panel.deleteLater();host.deleteLater()

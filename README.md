@@ -110,7 +110,11 @@ Hover over the timeline to highlight a segment or event; click for its duration 
 
 Actions performed and pages processed measure automated work: one completed activation, selection, field fill or reload counts as one action; a recognized document is counted once. Manual actions and repeated recognition are excluded. These counters start with the updated app and do not reconstruct earlier work.
 
-In profile **Timings and retries**, choose two independent settings. **On the applicant form** defaults to **Wait when unavailable**: no identity data is entered while the warning remains. **Fill and continue** allows entering/copying data despite that warning. **After a no-appointments result** defaults to **Via Salir**; result reloads are optional. Salir mode waits and uses the actual website control, then follows recognized pages; an absent or ambiguous button requires review. Waiting with Salir is recommended for normal searches. Repeated data submissions may increase the risk of access restrictions. These choices do not change intervals, recovery pauses or ambiguous-POST safeguards. In waiting mode, confirmed GET forms can be reloaded; after the acEntrada authentication POST, a separate GET refreshes the form without replaying authentication. Other POST or unknown origins require review.
+In **Timings and retries → Check appointments**, choose whether to wait or fill the applicant form while the no-appointments notice is visible. **Recheck after “No appointments”** takes precedence when enabled. Once the notice disappears, the assistant starts a new pass from sign-in and submits only after a pass where the notice never appeared. After a no-appointments result, choose **Via Salir** or **Start a new pass**. The latter opens the start page with a fresh GET.
+
+Under **Submission pacing**, the default attempt budget is **5**. The first attempt can run at any time on a clean pass after applicable pauses. The remaining budget is distributed across **09:00–18:00 Madrid time**, then until midnight, with **±30-minute** windows recalculated after submissions and missed windows. The budget guides scheduling. Once it is spent, clean passes may still submit after the **15-minute** minimum. Seeing an office followed by no appointments can allow one earlier attempt.
+
+A no-appointments response with **cod oper** after **Solicitar cita** triggers a **30-minute** first pause and **60 minutes** between further probes. With adaptive budgeting, the first such result on attempt N sets tomorrow’s budget to **N−1**. These options are enabled for existing profiles when their settings are absent. The Statistics tab shows daily counts before and after submission and the remaining budget. Use **⋯** to pause scheduling for today or inspect possible restriction history, including offices and the observed recovery interval. Pausing scheduling keeps the submission pauses.
 
 The last working profile is restored on startup; opening Statistics initially follows that profile. Cod. Oper. periods continue through intermediate navigation until a normal availability result returns. Zoom and routine refreshes preserve the current timeline selection; changing the statistics profile or Today/All time scope clears it. Once cleared, selection does not return automatically.
 
@@ -136,7 +140,7 @@ After completing a booking on the website, mark **Appointment obtained**. Appoin
 | Diagnostics | Optional page HTML and screenshots; off by default. Manual booking keeps HTML capture without screenshots |
 | Language and theme | English, Russian or Spanish; light or dark appearance |
 
-By default, after a regular no-appointments result the assistant waits **30–60 seconds**, clicks **Salir** and follows the website; result reloads remain available in the profile. A no-appointments page with **Aceptar** starts a new pass after a **3-minute** pause. Actions are spaced **0.3–0.8 seconds** apart, and alerts repeat every **3 seconds**. Edit timings inside the profile; changes apply on the next start. The initial language follows the system language, falling back to English when unsupported.
+By default, after a regular no-appointments result the assistant waits **30–60 seconds**, clicks **Salir** and follows the website; the profile can also start a fresh pass. A no-appointments page with **Aceptar** starts a new pass after a **3-minute** pause. Actions are spaced **0.3–0.8 seconds** apart, and alerts repeat every **3 seconds**. Edit timings inside the profile; changes apply on the next start. The initial language follows the system language, falling back to English when unsupported.
 
 Monitor shows the recognized page, next action, countdown, check count, page visit timeline and available-office log. Each visit shows its current status, action and confirmed outcome; sending a button alone does not confirm a transition. **About** lets you check for a new version, download a verified package and start installation. Automatic GitHub Releases checks on startup and once a day can be disabled in Settings. Installation ends the current session and preserves profiles and settings.
 
@@ -267,6 +271,13 @@ uv run python -m app.main desktop
 On first launch, open **Settings → Create profile**. Enter all details and timings through the UI; ordinary use does not require preparing a YAML file or environment variables. For authentication, have access to Cl@ve or an electronic certificate available in Camoufox (through OS support or browser import).
 
 For subsequent launches, open a terminal in the project directory and run the same command. You do not need to activate `.venv` manually.
+
+## 💜 Acknowledgements
+
+Thank you for helping spread the word about the project:
+
+- <a href="https://t.me/bcn_today"><img src="docs/images/bcn_today.png" width="32" height="32" alt=""> BCN Today</a>
+- <a href="https://t.me/spain_pass"><img src="docs/images/spain_pass.png" width="32" height="32" alt=""> Испанский Паспорт</a>
 
 ## 📄 License
 

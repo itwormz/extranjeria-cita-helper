@@ -33,6 +33,36 @@ class ScheduleConfig:
 
 
 @dataclass(frozen=True)
+class AppointmentProtection:
+    """Profile policy for pacing appointment submissions."""
+
+    confirm_new_round: bool = True
+    daily_target: int = 5
+    adaptive_target: bool = True
+    retry_after_office: bool = True
+    minimum_pause_minutes: int = 15
+    first_cod_pause_minutes: int = 30
+    next_cod_pause_minutes: int = 60
+
+    @classmethod
+    def parse(cls, raw: object, errors: list[str]) -> AppointmentProtection:
+        if not isinstance(raw, dict):
+            errors.append("request.appointment_protection must be a mapping")
+            return cls()
+        defaults = cls()
+        values = {}
+        for name in cls.__dataclass_fields__:
+            default = getattr(defaults, name)
+            value = raw.get(name, default)
+            if type(value) is not type(default) or (type(value) is int and value < 1):
+                expected = "a boolean" if isinstance(default, bool) else "a positive integer"
+                errors.append(f"request.appointment_protection.{name} must be {expected}")
+                continue
+            values[name] = value
+        return cls(**values)
+
+
+@dataclass(frozen=True)
 class TaskConfig:
     id: str
     label: str
@@ -54,6 +84,7 @@ class TaskConfig:
     clave_method: str = "movil"
     no_slots_mode: str = "salir"
     applicant_no_slots_mode: str = "wait"
+    appointment_protection: AppointmentProtection = field(default_factory=AppointmentProtection)
 
     @property
     def valid(self) -> bool:
@@ -306,6 +337,7 @@ def _task(raw: dict[str, Any], settings: Settings, catalog: dict[str, set[str]])
         clave_method=clave_method,
         no_slots_mode=no_slots_mode,
         applicant_no_slots_mode=applicant_no_slots_mode,
+        appointment_protection=AppointmentProtection.parse(request.get("appointment_protection", {}), errors),
         applicant_fill_mode=applicant_fill_mode,
         province=province,
         office=office,

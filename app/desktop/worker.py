@@ -27,6 +27,12 @@ def apply_command(control, message):
         control.request_restart()
     elif command == 'show_browser':
         control.show_browser_requested = True
+    elif command == 'appointment_distribution':
+        budget = getattr(control, 'appointment_budget', None)
+        if budget is not None and isinstance(message.get('disabled'), bool):
+            budget.distribution_disabled = message['disabled']
+            budget.windows = ()
+            control.save_appointment_budget(budget)
     elif command == 'preferences':
         control.set_diagnostics(message['diagnostics'])
         control.set_sound(message['sound'])
@@ -137,6 +143,8 @@ async def run_worker(task_id):
     except (ValueError, StopIteration):
         emit({'type':'error', 'message':'Не удалось загрузить выбранный профиль.'})
         return 2
+    from ..appointment_budget_store import BudgetStore
+    budget_store = BudgetStore(profiles.path.parent / 'data' / 'appointment-budget', task)
     register_sensitive([task.document_number, task.full_name, task.contact_phone, task.contact_email])
     loop = asyncio.get_running_loop()
     signals = []
@@ -148,7 +156,18 @@ async def run_worker(task_id):
     async def states():
         while True:
             control.statistics_tick()
-            emit({'type':'state', 'state':control.snapshot()})
+            state = control.snapshot()
+            budget = getattr(control, 'appointment_budget', None)
+            if budget is not None:
+                from datetime import datetime
+                from ..appointment_schedule import MADRID
+                now = datetime.now(MADRID)
+                policy = task.appointment_protection
+                previous_day = budget.day
+                state['appointment_budget'] = budget.summary(now, policy)
+                if previous_day is not None and budget.day != previous_day:
+                    control.save_appointment_budget(budget)
+            emit({'type':'state', 'state':state})
             await asyncio.sleep(0.5)
 
     statistics_session = None
@@ -156,10 +175,39 @@ async def run_worker(task_id):
     incoming = asyncio.create_task(consume_commands(sys.stdin.buffer, control, emit))
     outgoing = asyncio.create_task(states())
     try:
-        with StateStore(state_path).task_lock(task_id) as acquired:
-            if not acquired:
+        from contextlib import ExitStack
+        from dataclasses import replace
+
+        state_store = StateStore(state_path)
+        with ExitStack() as locks:
+            if not locks.enter_context(state_store.task_lock(task_id)):
                 emit({'type':'error','message':'Этот профиль уже используется другим процессом.'})
                 return 1
+            bound_key = None
+
+            def bind_budget(store):
+                nonlocal bound_key
+                if store.key == bound_key:
+                    return True
+                if not locks.enter_context(state_store.task_lock('budget-' + store.key)):
+                    return False
+                control.appointment_budget = store.load()
+                control.save_appointment_budget = store.save
+                if task.applicant_fill_mode != "copy" or store is not budget_store:
+                    store.remember_profile(task.id)
+                bound_key = store.key
+                return True
+
+            if not bind_budget(budget_store):
+                emit({'type':'error','message':'Этот документ уже используется другим процессом.'})
+                return 1
+
+            if task.applicant_fill_mode == 'copy':
+                def bind_copied_budget(number, document_type):
+                    copied = replace(task, document_number=number, document_type=document_type)
+                    return bind_budget(BudgetStore(budget_store.root, copied))
+
+                control.bind_copied_appointment_budget = bind_copied_budget
             from .statistics import ProfileStatistics
             statistics = ProfileStatistics(profiles.path.parent / 'data' / 'profile-statistics.json')
             from .statistics_session import StatisticsSession
