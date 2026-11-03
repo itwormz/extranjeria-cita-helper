@@ -162,7 +162,7 @@ def apply_theme(app, *, dark):
         QFrame#notificationDivider {{ background:{c['line']}; border:0; }}
         QWidget#profileField, QWidget#timingField {{ background:{c['surface']}; border:1px solid {c['line_strong']}; border-radius:7px; }}
         QWidget#profileField[focused="true"] {{ border-color:{c['accent']}; }}
-        QWidget#timingField QLineEdit, QWidget#timingField QDoubleSpinBox, QWidget#profileField QLineEdit, QWidget#profileField QComboBox {{ background:transparent; border:0; border-radius:0; padding:0; min-height:0; }}
+        QWidget#timingField QLineEdit, QWidget#timingField QDoubleSpinBox, QWidget#timingField QSpinBox, QWidget#profileField QLineEdit, QWidget#profileField QComboBox {{ background:transparent; border:0; border-radius:0; padding:0; min-height:0; }}
         QWidget#profileField QLineEdit:focus, QWidget#profileField QComboBox:focus {{ border:0; }}
         QLabel#compactTimer {{ font-family:"IBM Plex Mono"; font-size:20px; }}
         QLabel#compactMetrics {{ font-size:11px; }}

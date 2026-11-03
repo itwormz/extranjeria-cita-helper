@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.6 — Appointment pacing and restriction history
+
+- Pace desktop appointment submissions with a daily attempt budget, confirmation after a no-appointments notice and a minimum interval. Existing profiles receive the new defaults. A fresh search pass replaces result POST reloads in the desktop worker.
+- Pause after no-appointments responses with cod oper, adapt the next day’s budget from the first such response, and show daily counts and possible restriction history in Statistics.
+
+- Thank BCN Today and Испанский Паспорт for supporting the project in the English, Russian, and Spanish READMEs.
+
 ## 0.2.5 — Responsive Windows controls
 
 - Keep the Windows control window responsive during a search. Statistics are read off the interface thread, and a status update no longer reloads them. Discard results from an outdated read, keep a range chosen during a read, and clear the previous profile's totals and history when the profile changes. On Windows, Camoufox no longer suspends its window when another window covers it.

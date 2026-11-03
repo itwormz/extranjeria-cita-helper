@@ -1021,7 +1021,13 @@ def test_profile_tab_visits_inputs_in_visual_order_after_relayout(window,all_tab
         current=QApplication.focusWidget()
         assert current is expected or expected.isAncestorOf(current), (expected.accessibleName(),current.accessibleName() if current else None)
         QTest.keyClick(current,Qt.Key.Key_Tab);QApplication.processEvents()
-    assert QApplication.focusWidget() is window.findChild(__import__('PySide6.QtWidgets',fromlist=['QPushButton']).QPushButton,'saveProfile')
+    from PySide6.QtWidgets import QPushButton
+    cancel = window.findChild(QPushButton, 'cancelProfile')
+    save = window.findChild(QPushButton, 'saveProfile')
+    assert QApplication.focusWidget() is cancel
+    QTest.keyClick(cancel, Qt.Key.Key_Tab)
+    QApplication.processEvents()
+    assert QApplication.focusWidget() is save
 
 
 def test_profile_timing_tab_visits_all_values_before_save(window,all_tab_controls):
@@ -1129,7 +1135,7 @@ def test_independent_search_modes_editor_preserves_values_and_note(window,task_m
     window.applicant_no_slots_combo.setCurrentIndex(window.applicant_no_slots_combo.findData('wait'))
     assert window.search_behavior_title.text()==translate('Рекомендуется для обычного поиска',language)
     window.no_slots_mode_combo.setCurrentIndex(window.no_slots_mode_combo.findData('reload'))
-    assert window.search_behavior_title.text()==translate('Возможны блокировки',language)
+    assert window.search_behavior_title.text()==translate('Рекомендуется для обычного поиска',language)
     window.save_profile()
     task=window.store.load()[0]
     assert task.applicant_no_slots_mode=='wait' and task.no_slots_mode=='reload'

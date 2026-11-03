@@ -1,6 +1,23 @@
 """Compact profile inputs with persistent labels once populated."""
 from PySide6.QtCore import Qt, QEvent
-from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QHBoxLayout, QComboBox, QSpinBox
+
+
+class ProfileChoice(QComboBox):
+    def wheelEvent(self, event):
+        # A closed choice must let the enclosing settings page scroll.
+        if self.view().isVisible():
+            super().wheelEvent(event)
+        else:
+            event.ignore()
+
+
+class ProfileNumber(QSpinBox):
+    def wheelEvent(self, event):
+        if self.hasFocus():
+            super().wheelEvent(event)
+        else:
+            event.ignore()
 
 
 class ProfileField(QWidget):

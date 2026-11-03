@@ -11,14 +11,14 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication,
     QListView, QStyledItemDelegate, QStyleOptionViewItem, QStyle,
     QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
-from ..config import TIE_PROCEDURE, REGRESO_PROCEDURE, PROCEDURE_NAMES, _load_catalog, load_dotenv
+from ..config import AppointmentProtection, TIE_PROCEDURE, REGRESO_PROCEDURE, PROCEDURE_NAMES, _load_catalog, load_dotenv
 from ..assist_flow import LABELS
 from .profiles import ProfileStore, ProfileConflictError, ProfileValidationError
 from .process import DesktopController
 from .theme import apply_theme, theme_colors, load_fonts
 from .i18n import LANGUAGES, translate
 from .paths import runtime_root, display_name
-from .profile_widgets import ProfileField, TimingField
+from .profile_widgets import ProfileChoice, ProfileField, ProfileNumber, TimingField
 
 from ..assist_journal import STATUSES, description
 
@@ -478,23 +478,20 @@ class DesktopWindow(QMainWindow):
         timing_row=0;timing_column=0
         defaults=AssistTimings()
         timing_groups=[('Ввод данных', {'action_delay_seconds','typing_ms','contact_typing_ms'}),
-            ('Проверка сит', {'reload_seconds','navigation_seconds','bootstrap_seconds'}),
+            ('Интервалы проверки', {'reload_seconds','navigation_seconds','bootstrap_seconds'}),
             ('Восстановление', {key for key, *_ in TIMING_FIELDS} - {'action_delay_seconds','typing_ms','contact_typing_ms','reload_seconds','navigation_seconds','bootstrap_seconds','alert_seconds'}),
             ('Уведомления', {'alert_seconds'})]
         ordered=[]
+        self.build_appointment_protection(timing_layout)
+        timing_row=12
         for group, keys in timing_groups:
             ordered.append((None,group,0,0))
-            if group=='Проверка сит':ordered.append(('no_slots_mode','Повторная проверка',0,0))
             ordered.extend(field for field in TIMING_FIELDS if field[0] in keys)
         for key,title,lower,upper in ordered:
             if key is None:
                 if timing_column:timing_row+=1;timing_column=0
                 heading=label(title,name='sectionHeading');heading.setContentsMargins(0,8,0,0)
                 timing_layout.addWidget(heading,timing_row,0,1,2);timing_row+=1;continue
-            if key=='no_slots_mode':
-                self.build_search_behavior(timing_layout,timing_row)
-                timing_row+=4
-                continue
             if key=='action_delay_seconds':
                 widgets=[self.fields['delay_min'],self.fields['delay_max']]
                 # Move action inputs from the details grid into this tab.
@@ -531,8 +528,8 @@ class DesktopWindow(QMainWindow):
         form.addWidget(label('Пароли и подтверждения — только в Camoufox.',muted=True))
         self.form_error=label(name='formError'); form.addWidget(self.form_error)
         actions=QHBoxLayout(); actions.addStretch(); save=QPushButton('Сохранить профиль');save.setObjectName('saveProfile'); save.setProperty('primary',True)
-        save.setDefault(True); save.clicked.connect(self.save_profile); actions.addWidget(save)
-        cancel=QPushButton('Отмена');cancel.setObjectName('cancelProfile');cancel.clicked.connect(self.profile_editor.reject); actions.addWidget(cancel)
+        save.setDefault(True); save.clicked.connect(self.save_profile)
+        cancel=QPushButton('Отмена');cancel.setObjectName('cancelProfile');cancel.clicked.connect(self.profile_editor.reject); actions.addWidget(cancel); actions.addWidget(save)
         form.addLayout(actions); self.profile_editor.hide()
         layout.addWidget(label('Диагностика и звук',name='sectionHeading'))
         self.debug_toggle=self.toggle_row(layout,'Запись диагностики','Сохранять страницы, снимки и ошибки. Таймлайн записывается всегда.',key='diagnostics')
@@ -694,14 +691,66 @@ class DesktopWindow(QMainWindow):
               else 'Cl@ve Permanente' if request.get('clave_method','movil')=='permanente' else 'Cl@ve Móvil')
         self.profile_summary.setText(str(request.get('province',''))+' · '+PROCEDURE_NAMES.get(request.get('procedure',TIE_PROCEDURE),'')+' · '+self.t(auth))
 
+    def build_appointment_protection(self, layout):
+        layout.addWidget(label('Проверка сит', name='sectionHeading'), 0, 0, 1, 2)
+        self.build_search_behavior(layout, 1)
+        layout.addWidget(label('Защита от бана', name='sectionHeading'), 5, 0, 1, 2)
+        defaults = AppointmentProtection()
+        fields = (
+            ('confirm_new_round', 'Перепроверить после «Сит нет»',
+             'Когда плашка «Сит нет» исчезает, начните новый круг с авторизации. '
+             'Отправка возможна, если в новом круге предупреждение не появлялось.'),
+            ('daily_target', 'Бюджет попыток',
+             'По этому числу распределяются отправки в течение дня. '
+             'После исчерпания ориентира поиск продолжается с минимальной паузой.'),
+            ('adaptive_target', 'Адаптивный бюджет попыток',
+             'Если первый ответ «Сит нет» с cod oper пришёл на пятой отправке, '
+             'ориентир на завтра будет четыре.'),
+            ('retry_after_office', 'Дополнительная попытка после офиса',
+             'Если сайт показал офис, а затем ответил «Сит нет», разрешить одну попытку '
+             'раньше расписания после чистого круга и действующих пауз.'),
+            ('minimum_pause_minutes', 'Минимум между попытками',
+             'Минимальное время между отправками Solicitar cita, включая внеплановые.'),
+            ('first_cod_pause_minutes', 'Пауза после первого cod oper',
+             'Сколько ждать после первого ответа «Сит нет» с cod oper в текущем эпизоде.'),
+            ('next_cod_pause_minutes', 'Как часто проверять снова',
+             'Сколько ждать между следующими отправками, пока действует возможное ограничение.'),
+        )
+        self.protection_fields = {}
+        self.protection_labels = []
+        for index, (key, title, description) in enumerate(fields):
+            default = getattr(defaults, key)
+            if isinstance(default, bool):
+                widget = ProfileChoice()
+                widget.addItem('Включено', True)
+                widget.addItem('Выключено', False)
+                box = ProfileField(title, widget)
+            else:
+                widget = ProfileNumber()
+                widget.setRange(1, 1440)
+                widget.setValue(default)
+                box = TimingField(title, [widget], 'мин' if key.endswith('_minutes') else '')
+            self.protection_labels.append((box, widget, title, description))
+            box.setToolTip(self.t(description))
+            widget.setToolTip(self.t(description))
+            widget.setAccessibleName(title)
+            widget.setAccessibleDescription(description)
+            layout.addWidget(box, 6 + index // 2, index % 2)
+            self.protection_fields[key] = widget
+            self.timing_focus_fields.append(widget)
+            if isinstance(widget, QComboBox):
+                widget.currentIndexChanged.connect(self.update_search_behavior)
+        layout.addWidget(self.search_behavior_note, 10, 0, 1, 2)
+        layout.addWidget(self.search_behavior_hint, 11, 0, 1, 2)
+
     def build_search_behavior(self, layout, row):
-        self.applicant_no_slots_combo=QComboBox()
+        self.applicant_no_slots_combo=ProfileChoice()
         self.applicant_no_slots_combo.setObjectName('profileApplicantNoSlotsMode')
         self.applicant_no_slots_combo.addItem('Ждать при «нет сит»','wait')
         self.applicant_no_slots_combo.addItem('Вводить и продолжать','continue')
-        self.no_slots_mode_combo=QComboBox()
+        self.no_slots_mode_combo=ProfileChoice()
         self.no_slots_mode_combo.setObjectName('profileNoSlotsMode')
-        self.no_slots_mode_combo.addItem('Обновлять результат','reload')
+        self.no_slots_mode_combo.addItem('Начать новый круг','reload')
         self.no_slots_mode_combo.addItem('Через Salir','salir')
         self.applicant_no_slots_box=ProfileField('На форме заявителя',self.applicant_no_slots_combo)
         self.no_slots_mode_box=ProfileField('После ответа «нет сит»',self.no_slots_mode_combo)
@@ -722,23 +771,36 @@ class DesktopWindow(QMainWindow):
         self.search_behavior_title=label('');self.search_behavior_title.setObjectName('searchBehaviorTitle')
         self.search_behavior_text=label('',muted=True);self.search_behavior_text.setWordWrap(True)
         content.addWidget(self.search_behavior_title);content.addWidget(self.search_behavior_text);note.addLayout(content,1)
-        layout.addWidget(self.search_behavior_note,row+2,0,1,2)
         self.search_behavior_hint=label('Выбор поведения не меняет интервалы и паузы восстановления.',muted=True)
-        self.search_behavior_hint.setWordWrap(True);layout.addWidget(self.search_behavior_hint,row+3,0,1,2)
+        self.search_behavior_hint.setWordWrap(True)
 
     def update_search_behavior(self,*_):
+        for box, widget, title, description in self.protection_labels:
+            box.caption.setText(self.t(title))
+            box.setToolTip(self.t(description))
+            widget.setToolTip(self.t(description))
+            widget.setAccessibleName(self.t(title))
+            widget.setAccessibleDescription(self.t(description))
+            if isinstance(widget, QComboBox):
+                widget.setItemText(0, self.t('Включено'))
+                widget.setItemText(1, self.t('Выключено'))
         enter=self.applicant_no_slots_combo.currentData()=='continue'
         reload=self.no_slots_mode_combo.currentData()=='reload'
         descriptions=(
             'Вводить или копировать данные даже при предупреждении «нет сит».' if enter else 'Не вводить данные, пока форма сообщает об отсутствии сит.',
-            'После паузы повторять запрос доступности в текущей сессии.' if reload else 'После паузы нажать Salir и продолжить по странице сайта.')
+            'После паузы открыть начальную страницу и пройти поиск заново.' if reload else 'После паузы нажать Salir и продолжить по странице сайта.')
         for widget,text in zip(self.search_mode_descriptions,descriptions):widget.setText(self.t(text))
-        risk=enter or reload
+        protection_disabled = any(
+            widget.currentData() is False
+            for widget in self.protection_fields.values()
+            if isinstance(widget, QComboBox)
+        )
+        risk=enter or protection_disabled
         for widget in (self.search_behavior_note,self.search_behavior_title):
             widget.setProperty('risk',risk)
             widget.style().unpolish(widget);widget.style().polish(widget)
         self.search_behavior_title.setText(self.t('Возможны блокировки' if risk else 'Рекомендуется для обычного поиска'))
-        self.search_behavior_text.setText(self.t('Повторная отправка данных может повысить риск блокировки' if risk else 'Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.'))
+        self.search_behavior_text.setText(self.t('Часть настроек защиты отключена. Сайт может временно ограничить отправку запросов.' if protection_disabled else 'Повторная отправка данных может повысить риск блокировки' if risk else 'Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.'))
         self.search_behavior_icon.setPixmap(self.control_icon('shield' if risk else 'check').pixmap(QSize(18,18)))
 
     def profile_tab_changed(self,index):
@@ -753,6 +815,13 @@ class DesktopWindow(QMainWindow):
         self.no_slots_mode_combo.setCurrentIndex(max(0,self.no_slots_mode_combo.findData(raw.get('request',{}).get('no_slots_mode','salir'))))
         self.applicant_no_slots_combo.setCurrentIndex(max(0,self.applicant_no_slots_combo.findData(raw.get('request',{}).get('applicant_no_slots_mode','wait'))))
         self.update_search_behavior()
+        protection = AppointmentProtection.parse(raw.get('request', {}).get('appointment_protection', {}), [])
+        for key, widget in self.protection_fields.items():
+            value = getattr(protection, key)
+            if isinstance(widget, QComboBox):
+                widget.setCurrentIndex(widget.findData(value))
+            else:
+                widget.setValue(value)
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))
@@ -813,6 +882,10 @@ class DesktopWindow(QMainWindow):
             applicant=dict(fill_mode=f['fill_mode'].currentData(),document_type=f['document_type'].currentData() if f['procedure'].currentData()==REGRESO_PROCEDURE else 'NIE',document_number=f['document_number'].text(),
                 full_name=f['full_name'].text(),nationality=f['nationality'].currentText(),
                 contact=dict(phone=f['phone'].text(),email=f['email'].text())))
+        data['request']['appointment_protection'] = {
+            key: widget.currentData() if isinstance(widget, QComboBox) else widget.value()
+            for key, widget in self.protection_fields.items()
+        }
         from ..notifications import NotificationError
         created=[];old=[]
         try:
@@ -889,6 +962,11 @@ class DesktopWindow(QMainWindow):
         self.notification_delivery.observe(profile_id,state,self.preferences['language'])
         previous_mode=self.state.get('mode')
         self.state=state
+        if self.statistics_panel.profile_combo.currentData() == profile_id:
+            if state.get('appointment_budget'):
+                self.statistics_panel.show_appointment_budget(state['appointment_budget'])
+            elif previous_mode != state.get('mode'):
+                self.statistics_panel.refresh_appointment_budget()
         self.heading.setText('Сит нет' if state.get('screen')=='Сит нет — требуется новый проход' else state.get('screen','Ищем ситу'))
         self.evidence.setText(state.get('evidence',''))
         self.next_label.setText(state.get('next_action',''))
@@ -1084,6 +1162,7 @@ class DesktopWindow(QMainWindow):
         self.error_band.setVisible(bool(self.errors))
 
     def on_finished(self, code):
+        self.statistics_panel.refresh_appointment_budget()
         self.profile_combo.setEnabled(True)
         self.start_button.setText('Повторить запуск' if code else 'Запустить')
         for button in (self.restart_button,self.browser_button): button.setEnabled(False)
@@ -1183,7 +1262,7 @@ class DesktopWindow(QMainWindow):
         for key,name in field_icons.items():self.profile_field_boxes[key].icon.setPixmap(self.control_icon(name).pixmap(QSize(18,18)))
         for combo,box,caption,icon,choices in (
             (self.applicant_no_slots_combo,self.applicant_no_slots_box,'На форме заявителя','user',('Ждать при «нет сит»','Вводить и продолжать')),
-            (self.no_slots_mode_combo,self.no_slots_mode_box,'После ответа «нет сит»','restart',('Обновлять результат','Через Salir'))):
+            (self.no_slots_mode_combo,self.no_slots_mode_box,'После ответа «нет сит»','restart',('Начать новый круг','Через Salir'))):
             box.caption.setText(self.t(caption));box.icon.setPixmap(self.control_icon(icon).pixmap(QSize(18,18)))
             combo.setAccessibleName(self.t(caption))
             for index,title in enumerate(choices):combo.setItemText(index,self.t(title))
