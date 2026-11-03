@@ -727,7 +727,7 @@ class DesktopWindow(QMainWindow):
                 box = ProfileField(title, widget)
             else:
                 widget = ProfileNumber()
-                widget.setRange(1, 1440)
+                widget.setRange(1, 2_147_483_647)
                 widget.setValue(default)
                 box = TimingField(title, [widget], 'мин' if key.endswith('_minutes') else '')
             self.protection_labels.append((box, widget, title, description))

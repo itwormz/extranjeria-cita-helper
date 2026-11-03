@@ -151,3 +151,24 @@ def test_desktop_no_slots_restart_uses_get_without_resubmitting():
     runner.page.goto.assert_awaited_once_with(DEFAULT_START_URL, wait_until='domcontentloaded')
     runner.page.reload.assert_not_called()
     assert runner.budget.sent == 0
+
+
+def test_adaptive_target_applies_only_to_the_next_day(tmp_path):
+    from types import SimpleNamespace
+
+    policy = AppointmentProtection()
+    profile = SimpleNamespace(id='synthetic', document_type='NIE', document_number='X0000000T')
+    store = BudgetStore(tmp_path, profile)
+    budget = store.load()
+    budget.submitted(at(3, 19), policy)
+    budget.cod_oper(at(3, 19, 1), policy)
+    store.save(budget)
+    store.remember_profile(profile.id)
+
+    next_day = BudgetStore.load_profile(tmp_path, profile.id)
+    assert next_day.summary(at(4, 0), policy)['target'] == 0
+    assert next_day.next_target is None
+    assert BudgetStore.save_profile(tmp_path, profile.id, next_day)
+
+    later = BudgetStore.load_profile(tmp_path, profile.id)
+    assert later.summary(at(5, 0), policy)['target'] == policy.daily_target

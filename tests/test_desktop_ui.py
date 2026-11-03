@@ -145,6 +145,20 @@ def test_profile_timing_editor_saves_reload_jitter_and_retry_schedule(window):
     assert widgets['expired_seconds'][0].text()=='0, 45, 90'
 
 
+def test_profile_pause_values_above_one_day_are_preserved(window):
+    window.create_profile()
+    f=window.fields
+    f['fill_mode'].setCurrentIndex(f['fill_mode'].findData('copy'))
+    for key,value in dict(label='Demo',phone='600000000',email='demo@example.com').items(): f[key].setText(value)
+    f['nationality'].setCurrentText('UCRANIA')
+    window.protection_fields['first_cod_pause_minutes'].setValue(2880)
+    window.save_profile()
+    profile=window.store.load()[0]
+    assert profile.appointment_protection.first_cod_pause_minutes==2880
+    window.open_editor(profile.id)
+    assert window.protection_fields['first_cod_pause_minutes'].value()==2880
+
+
 def test_about_includes_version_repository_and_localized_description(window):
     from app.version import VERSION
     from PySide6.QtWidgets import QLabel

@@ -36,6 +36,8 @@ class AppointmentBudget:
             if self.next_target is not None:
                 self.target_override = self.next_target
                 self.next_target = None
+            else:
+                self.target_override = None
         elif self.windows and now > self.windows[0][1]:
             self.windows = attempt_windows(now, self.remaining(policy))
 

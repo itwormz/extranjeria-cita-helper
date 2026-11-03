@@ -163,7 +163,10 @@ async def run_worker(task_id):
                 from ..appointment_schedule import MADRID
                 now = datetime.now(MADRID)
                 policy = task.appointment_protection
+                previous_day = budget.day
                 state['appointment_budget'] = budget.summary(now, policy)
+                if previous_day is not None and budget.day != previous_day:
+                    control.save_appointment_budget(budget)
             emit({'type':'state', 'state':state})
             await asyncio.sleep(0.5)
 

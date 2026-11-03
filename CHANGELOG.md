@@ -1,10 +1,9 @@
 # Changelog
 
-## 0.2.6 — Appointment pacing and restriction history
+## 0.3.0 — Appointment pacing and restriction history
 
 - Pace desktop appointment submissions with a daily attempt budget, confirmation after a no-appointments notice and a minimum interval. Existing profiles receive the new defaults. A fresh search pass replaces result POST reloads in the desktop worker.
 - Pause after no-appointments responses with cod oper, adapt the next day’s budget from the first such response, and show daily counts and possible restriction history in Statistics.
-
 - Thank BCN Today and Испанский Паспорт for supporting the project in the English, Russian, and Spanish READMEs.
 
 ## 0.2.5 — Responsive Windows controls

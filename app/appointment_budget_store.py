@@ -34,15 +34,28 @@ class BudgetStore:
     def remember_profile(self, profile_id):
         self._write(self.root / f'profile-{profile_id}.json', {'key': self.key})
 
-    @classmethod
-    def load_profile(cls, root, profile_id):
+    @staticmethod
+    def _profile_key(root, profile_id):
         try:
             key = json.loads((root / f'profile-{profile_id}.json').read_text(encoding='utf-8'))['key']
         except FileNotFoundError:
             return None
         if not isinstance(key, str) or not re.fullmatch(r'[0-9a-f]{64}', key):
             raise ValueError('Invalid appointment budget key')
-        return cls._load(root / (key + '.json'))
+        return key
+
+    @classmethod
+    def load_profile(cls, root, profile_id):
+        key = cls._profile_key(root, profile_id)
+        return None if key is None else cls._load(root / (key + '.json'))
+
+    @classmethod
+    def save_profile(cls, root, profile_id, budget):
+        key = cls._profile_key(root, profile_id)
+        if key is None:
+            return False
+        cls._write_path(root, root / (key + '.json'), asdict(budget))
+        return True
 
     def load(self):
         return self._load(self.path)
@@ -66,7 +79,11 @@ class BudgetStore:
         self._write(self.path, asdict(budget))
 
     def _write(self, path, data):
-        fd, temporary = tempfile.mkstemp(dir=self.root)
+        self._write_path(self.root, path, data)
+
+    @staticmethod
+    def _write_path(root, path, data):
+        fd, temporary = tempfile.mkstemp(dir=root)
         try:
             with os.fdopen(fd, 'w', encoding='utf-8') as stream:
                 json.dump(data, stream, default=lambda value: value.isoformat())

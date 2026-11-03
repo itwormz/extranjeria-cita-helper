@@ -78,7 +78,7 @@ class StatisticsPanel(QWidget):
     loaded=Signal(int, object)
     def __init__(self,host):
         super().__init__();self.setObjectName("statisticsPanel");self.host=host;self.profiles=[];self.current_achievement=None;self._signature=None;self._statistics_read_failure=None;self._statistics_read_message=None
-        self._snapshot=None;self._render_key=None;self._history_visual=None;self._generation=0;self._inflight_token=None;self._waiting=False;self._again=False
+        self._snapshot=None;self._render_key=None;self._history_visual=None;self._generation=0;self._inflight_token=None;self._waiting=False;self._again=False;self._budget_day=None
         self._jobs=QThreadPool(self);self._jobs.setMaxThreadCount(1);self.loaded.connect(self._on_loaded)
         data=host.store.path.parent/'data';self.statistics=ProfileStatistics(data/'profile-statistics.json')
         self.achievements=AchievementStore(data/'achievements.json')
@@ -172,7 +172,7 @@ class StatisticsPanel(QWidget):
                 'offices': budget.get('episode_offices', ()), 'recovered': None,
             })
         results = {
-            'cod_oper': 'Сит нет с cod oper', 'booking': 'Показан выбор даты',
+            'cod_oper': 'Сит нет · cod oper', 'booking': 'Показан выбор даты',
             'request_no_slots': 'Сит нет', 'request_no_slots_restart': 'Сит нет',
             'post_contact_no_slots': 'Сит нет',
         }
@@ -199,10 +199,10 @@ class StatisticsPanel(QWidget):
             parent.ensureWidgetVisible(detail, 0, 12)
 
     def refresh_appointment_budget(self):
-        from datetime import datetime
         from ..appointment_budget_store import BudgetStore
-        from ..appointment_schedule import MADRID
 
+        now = datetime.now(MADRID)
+        self._budget_day = now.date()
         profile_id = self.profile_combo.currentData()
         controller = self.host.controller
         if controller.active and profile_id == getattr(controller, 'profile_id', None):
@@ -217,7 +217,10 @@ class StatisticsPanel(QWidget):
                 root = self.host.store.path.parent / 'data' / 'appointment-budget'
                 stored = BudgetStore.load_profile(root, profile.id)
                 if stored is not None:
-                    budget = stored.summary(datetime.now(MADRID), profile.appointment_protection)
+                    previous_day = stored.day
+                    budget = stored.summary(now, profile.appointment_protection)
+                    if previous_day is not None and stored.day != previous_day:
+                        BudgetStore.save_profile(root, profile.id, stored)
             except (OSError, ValueError, TypeError, KeyError):
                 pass
         self.show_appointment_budget(budget, live=False)
@@ -335,7 +338,10 @@ class StatisticsPanel(QWidget):
         self.period=period;self.refresh()
 
     def poll(self):
-        if self.isVisible() and not self._waiting:self._submit(False)
+        if self.isVisible() and not self._waiting:
+            if self._budget_day != datetime.now(MADRID).date():
+                self.refresh_appointment_budget()
+            self._submit(False)
 
     def tr_text(self,text):return self.host.t(text)
 
@@ -356,6 +362,8 @@ class StatisticsPanel(QWidget):
         key=self._view_key(language,dark)
         if key!=self._render_key:
             self._render_key=key;self._render(self._snapshot)
+            if self.budget_state:
+                self.show_appointment_budget(self.budget_state, live=self.budget_action.isEnabled())
         self._retitle_history(language,dark)
 
     def _view_key(self,language,dark):
