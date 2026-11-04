@@ -1225,3 +1225,18 @@ def test_search_note_colors_follow_mode_switches_and_theme(window,dark):
         window.applicant_no_slots_combo.setCurrentIndex(window.applicant_no_slots_combo.findData(value))
         QApplication.processEvents()
         assert window.search_behavior_title.palette().color(QPalette.ColorRole.WindowText).name()==theme_colors(dark)[tone].lower()
+
+
+def test_malformed_saved_journal_row_does_not_hide_other_entries(window):
+    window.saved_journal = [
+        {'event': 'visit', 'message': 'Earlier search entry'},
+        {'event': 'visit', 'message': 'Original diagnostics', 'time': 'invalid',
+         'ended_at': 'also invalid'},
+        {'event': 'visit', 'message': 'Later search entry'},
+    ]
+
+    window.render_logs()
+
+    assert [window.timeline.item(row, 3).text() for row in range(3)] == [
+        'Later search entry', 'Original diagnostics', 'Earlier search entry',
+    ]

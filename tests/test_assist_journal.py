@@ -258,3 +258,11 @@ def test_applicant_warning_wait_journal_stays_a_form_refresh():
     c=AssistControl();visit(c,'applicant_no_slots')
     c.record('action',stage='applicant_no_slots',document='doc',detail='Обновить форму без ввода данных')
     assert description(rows(c)[0])=='Обновляем форму без ввода данных'
+
+
+def test_description_preserves_literal_diagnostic_braces():
+    from app.assist_journal import description
+
+    for message in ('Cannot generate fingerprint: screen={"availWidth": 1024}',
+                    'Incomplete diagnostic: {', 'Unexpected positional field: {}'):
+        assert description({'message': message}) == message

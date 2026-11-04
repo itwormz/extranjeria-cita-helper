@@ -1141,22 +1141,30 @@ class DesktopWindow(QMainWindow):
         self._last_logs=signature
         self.timeline.setRowCount(len(rows))
         for index,row in enumerate(reversed(rows)):
-            status_text,tone=STATUSES.get(row.get('status'),('Нужна проверка','attention'))
-            control=row.get('event')!='visit'
-            status_text=CONTROL_LABELS.get(row.get('event'),status_text) if control else status_text
-            text=description(row,self.t,lambda stage: LABELS.get(stage,(stage,''))[0])
-            if control and row.get('event') in {'flow_start','flow_restart'}:
-                status_text=self.t(status_text)+' №'+str(row.get('pass_number',1))
-            else:
-                status_text=self.t(status_text)
-            values=[row.get('time','')[11:23],self.t('Управление' if control else row.get('title') or LABELS.get(row.get('stage'),('',''))[0]), status_text,text]
-            for col,value in enumerate(values):
-                item=QTableWidgetItem(value)
-                tooltip=row.get('page','') if col==1 else value
-                if col==0 and row.get('ended_at'):
+            try:
+                status_text,tone=STATUSES.get(row.get('status'),('Нужна проверка','attention'))
+                control=row.get('event')!='visit'
+                status_text=CONTROL_LABELS.get(row.get('event'),status_text) if control else status_text
+                text=description(row,self.t,lambda stage: LABELS.get(stage,(stage,''))[0])
+                if control and row.get('event') in {'flow_start','flow_restart'}:
+                    status_text=self.t(status_text)+' №'+str(row.get('pass_number',1))
+                else:
+                    status_text=self.t(status_text)
+                values=[row.get('time','')[11:23],self.t('Управление' if control else row.get('title') or LABELS.get(row.get('stage'),('',''))[0]), status_text,text]
+                tooltips = [values[0], row.get('page', ''), values[2], values[3]]
+                if not all(isinstance(value, str) for value in (*values, *tooltips)):
+                    raise TypeError('Journal display values must be strings')
+                if row.get('ended_at'):
                     from datetime import datetime
-                    duration=(datetime.fromisoformat(row['ended_at'])-datetime.fromisoformat(row['time'])).total_seconds()
-                    tooltip += '\n'+self.t('Завершено')+': '+row['ended_at'][11:23]+' · '+str(round(duration,1))+' '+self.t('секунд')
+                    duration = (datetime.fromisoformat(row['ended_at']) - datetime.fromisoformat(row['time'])).total_seconds()
+                    tooltips[0] += '\n' + self.t('Завершено') + ': ' + row['ended_at'][11:23] + ' · ' + str(round(duration, 1)) + ' ' + self.t('секунд')
+            except (AttributeError, KeyError, TypeError, ValueError):
+                tone = 'attention'
+                message = row.get('message') if isinstance(row, dict) else None
+                values = ['', '', self.t('Нужна проверка'), message if isinstance(message, str) else '']
+                tooltips = values
+            for col, (value, tooltip) in enumerate(zip(values, tooltips)):
+                item=QTableWidgetItem(value)
                 item.setToolTip(tooltip)
                 colors=theme_colors(self.preferences['dark'])
                 if tone in {'danger','attention'}: item.setBackground(QColor(colors[tone+'_soft']))
