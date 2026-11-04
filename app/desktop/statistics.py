@@ -312,19 +312,24 @@ class ProfileStatistics:
             facts = db.execute(f"SELECT {counters},MIN(time) AS started,MIN(CASE WHEN kind='office' AND offices!='[]' THEN time END) AS office,MIN(CASE WHEN kind='booking' THEN time END) AS booking FROM events WHERE {where}", args).fetchone()
             for counter in COUNTERS:
                 row[counter] += facts[counter] or 0
-            row['cod_oper_count'] = db.execute(
-                """SELECT COUNT(*) FROM (
-                    SELECT MIN(start) AS observed_at
-                    FROM episodes
-                    WHERE profile=? AND kind='page'
-                      AND stage IN ('request_no_slots', 'request_no_slots_restart', 'post_contact_no_slots')
-                      AND EXISTS (SELECT 1 FROM json_each(episodes.evidence)
-                                  WHERE value='operation_code')
-                    GROUP BY session, document, CASE WHEN document='' THEN id END
-                )
-                WHERE (? IS NULL OR observed_at>=?) AND (? IS NULL OR observed_at<?)""",
+            availability = db.execute(
+                """SELECT COALESCE(SUM(banner), 0) AS banners,
+                          COALESCE(SUM(NOT banner AND NOT operation_code), 0) AS no_slots,
+                          COALESCE(SUM(NOT banner AND operation_code), 0) AS cod_oper_count
+                   FROM (
+                       SELECT MIN(start) AS observed_at, stage='applicant_no_slots' AS banner,
+                              MAX(EXISTS (SELECT 1 FROM json_each(episodes.evidence)
+                                          WHERE value='operation_code')) AS operation_code
+                       FROM episodes
+                       WHERE profile=? AND kind='page'
+                         AND stage IN ('applicant_no_slots', 'request_no_slots',
+                                       'request_no_slots_restart', 'post_contact_no_slots')
+                       GROUP BY session, document, banner,
+                                CASE WHEN banner OR document='' THEN id END
+                   )
+                   WHERE (? IS NULL OR observed_at>=?) AND (? IS NULL OR observed_at<?)""",
                 (profile_id, lower, lower, upper, upper),
-            ).fetchone()[0]
+            ).fetchone()
             effort=db.execute("SELECT MIN(time) FROM events WHERE profile=? AND kind IN ('effort_started','automation_action','processed_page')",(profile_id,)).fetchone()[0]
             row['effort_started_at']=effort
             first_office, first_booking = facts['office'], facts['booking']
@@ -391,7 +396,7 @@ class ProfileStatistics:
             row['first_available_seconds'] = max(0, (_time(available)-_time(row['started_at'])).total_seconds())
         return {k: row[k] for k in (*COUNTERS, 'active_seconds', 'started_at', 'first_available_seconds')} | dict(
             first_available_at=available, unique_offices=len(offices), days=days, effort_started_at=row['effort_started_at'],
-            cod_oper_count=row['cod_oper_count'],
+            **dict(availability),
             legacy_first_available_at=provenance.get('legacy_first_available_at'),
             legacy_first_available_elapsed_seconds=provenance.get('legacy_first_available_elapsed_seconds'),
             legacy_unknown_fields=[('unique_offices' if key == '_offices' else key) for key in

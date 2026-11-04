@@ -168,9 +168,16 @@ def test_cod_oper_count_follows_period_and_baseline_has_no_fake_days(tmp_path,qt
     monkeypatch.setattr(statistics, 'datetime', FrozenDateTime)
     panel.statistics.observe_page('one', 'current', 'post_contact_no_slots', 'doc',
                                   evidence=['operation_code'])
+    for session, at in [('old', '2020-01-01T12:00:00+01:00'), ('current', now)]:
+        panel.statistics.observe_page('one', session, 'applicant_no_slots', 'form', at=at)
+        panel.statistics.observe_page('one', session, 'request_no_slots', 'reply', at=at)
     panel.today_button.click()
+    assert panel.stat_values['banners'].text() == '1'
+    assert panel.stat_values['no_slots'].text() == '1'
     assert panel.stat_values['cod_oper_count'].text() == '1'
     panel.all_button.click()
+    assert panel.stat_values['banners'].text() == '2'
+    assert panel.stat_values['no_slots'].text() == '2'
     assert panel.stat_values['cod_oper_count'].text() == '2'
     assert panel.stat_values['days'].text()=='0'
     panel.deleteLater();host.deleteLater()
