@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Search and browser reliability
+## 0.3.1 — Search and browser reliability
 
 - Increase the applicant form refresh interval after HTTP 429 when adaptive timing is enabled.
 - Show the daily attempt budget and the next probe during a possible restriction. Count no-appointment replies with cod. oper from recorded history for the selected statistics period.
