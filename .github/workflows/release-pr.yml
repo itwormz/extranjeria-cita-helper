@@ -1,31 +1,60 @@
-name: Tag merged release PR
+name: Prepare or tag release PR
 
 on:
   push:
     branches: [main]
     paths: ['.github/release-version']
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-pr
+  group: release-pr-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  tag:
+  prepare:
+    if: github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' && startsWith(github.ref_name, 'release/')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Prepare and validate release
+      - name: Prepare release files
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          version=$(cat .github/release-version)
+          test "$version" != "$(git show FETCH_HEAD:.github/release-version)"
+          test "$GITHUB_REF_NAME" = "release/$version"
+          python3 scripts/prepare_release_version.py
+          python3 scripts/preflight.py --metadata-only
+      - name: Push release files to the PR branch
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TAG_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${RELEASE_TOKEN:?Configure the RELEASE_TAG_TOKEN repository secret}"
+          git -c user.name="Release automation" -c user.email="release@users.noreply.github.com" \
+            commit -m "release: prepare $(cat .github/release-version)" -- app/version.py pyproject.toml uv.lock CHANGELOG.md
+          auth=$(printf 'x-access-token:%s' "$RELEASE_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            push origin "HEAD:$GITHUB_REF"
+  tag:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate merged release
         id: version
         shell: bash
         run: |
           set -euo pipefail
           version=$(cat .github/release-version)
-          python3 scripts/prepare_release_version.py
           python3 scripts/preflight.py --metadata-only
           test "$version" = "$(python3 -c 'from app.version import VERSION; print(VERSION)')"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
@@ -37,9 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           : "${RELEASE_TOKEN:?Configure the RELEASE_TAG_TOKEN repository secret}"
-          git -c user.name="Release automation" -c user.email="release@users.noreply.github.com" \
-            commit -m "Release $RELEASE_TAG" -- app/version.py pyproject.toml uv.lock CHANGELOG.md
-          git tag "$RELEASE_TAG"
+          git tag "$RELEASE_TAG" "$GITHUB_SHA"
           auth=$(printf 'x-access-token:%s' "$RELEASE_TOKEN" | base64 -w0)
           echo "::add-mask::$auth"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
