@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — Statistics and profile settings
+## Unreleased
+
+## 0.3.2 — Statistics and profile settings
 
 - The “No appointments” counters now follow the Today or All time filter. The attempt budget still shows what remains today.
 - Scroll through Settings and Timings without accidentally changing a number or a selection, even when the field is focused.
