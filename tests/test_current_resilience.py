@@ -20,10 +20,13 @@ def test_tls_network_timeout_does_not_prevent_strict_browser_launch(monkeypatch,
 
 def test_macos_camoufox_retry_keeps_automatic_display_bounds(monkeypatch, tmp_path):
     from camoufox import async_api, fingerprints
-    from fpgen.exceptions import RestrictiveConstraints
     from app import site
     from app.config import Settings
     from app.desktop import certificates
+
+    # Importing fpgen can download its model on a fresh machine.
+    class RestrictiveConstraints(Exception):
+        __module__ = "fpgen.exceptions"
 
     context = SimpleNamespace(on=lambda *_: None)
     fingerprint = {"screen": {"width": 1440, "height": 900}}
