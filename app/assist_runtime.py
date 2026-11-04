@@ -74,6 +74,7 @@ async def run_assist(task, settings, *, max_cycles=None, control=None, open_pane
     network_journal = IcpNetworkJournal()
     try:
         while not control.stop_requested:
+            settings = control.effective_profile_settings or settings
             try:
                 return await _run_session(task, settings, control, max_cycles=max_cycles, network_journal=network_journal)
             except AssistRestartRequested as restart:
@@ -182,7 +183,7 @@ async def _run_session(task, settings, control, *, max_cycles=None, network_jour
             return await runner.run(max_cycles=max_cycles)
         while not control.stop_requested:
             runner = AssistRunner(page, context, checker, task, run_id, control,
-                                  alerter, reuse_policy_from_settings(settings))
+                                  alerter, reuse_policy_from_settings(checker.settings))
             operation = asyncio.create_task(operate())
             try:
                 return await operation

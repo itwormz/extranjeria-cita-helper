@@ -762,6 +762,7 @@ class AssistRunner:
                 browser_action_delay_seconds=timings.action_delay_seconds,
                 browser_bootstrap_wait_seconds=timings.bootstrap_seconds,
                 navigation_timeout_seconds=timings.navigation_seconds)
+            self.control.effective_profile_settings = settings
             self.policy = reuse_policy_from_settings(settings)
             self.page.set_default_timeout(timings.navigation_seconds * 1000)
             self.alerter.repeat_seconds = timings.alert_seconds

@@ -217,14 +217,34 @@ def test_window_icon_provides_native_raster_sizes(window):
     assert not window.windowIcon().pixmap(32, 32).isNull()
 
 
-def test_selected_profile_owns_persisted_total(window):
+def test_saved_journal_uses_runtime_root_for_relative_debug_dir(window, tmp_path, monkeypatch):
+    runtime = tmp_path / 'runtime'
+    journal = runtime / 'diagnostics' / 'sessions' / 'test-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    journal.write_text('{"id": 1, "event": "flow_start"}\n', encoding='utf-8')
+    monkeypatch.setenv('DEBUG_DIR', 'diagnostics')
+    monkeypatch.setattr('app.desktop.window.runtime_root', lambda: runtime)
+
+    window.load_saved_journal('test')
+
+    assert window.saved_journal == [{'id': 1, 'event': 'flow_start'}]
+
+
+def test_selected_profile_owns_persisted_total(window, monkeypatch):
     from app.desktop.statistics import ProfileStatistics
     window.profile_combo.addItem('First', 'first-profile')
     first = window.profile_combo.currentData()
     stats = ProfileStatistics(window.store.path.parent / 'data' / 'profile-statistics.json')
     from datetime import datetime, timedelta
     from app.appointment_schedule import MADRID
-    stats.increment(first, at=datetime.now(MADRID) - timedelta(days=1))
+    from app.desktop import statistics
+    now = datetime(2026, 10, 30, 12, tzinfo=MADRID)
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz)
+    monkeypatch.setattr(statistics, 'datetime', FrozenDateTime)
+    stats.increment(first, at=now - timedelta(days=1))
     stats.increment(first)
     window.profile_changed()
     assert window.metrics.text() == window.t('Проверки за сегодня: {today} · Всего: {total}').format(today=1, total=2)

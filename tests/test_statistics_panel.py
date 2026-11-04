@@ -152,13 +152,21 @@ def test_period_changes_all_metrics_and_history_and_warning(tmp_path,qt_app):
     panel.deleteLater();host.deleteLater()
 
 
-def test_cod_oper_count_follows_period_and_baseline_has_no_fake_days(tmp_path,qt_app):
+def test_cod_oper_count_follows_period_and_baseline_has_no_fake_days(tmp_path,qt_app,monkeypatch):
     from app.desktop.statistics_panel import StatisticsPanel
     host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona')])
     panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
     panel.statistics.observe_page('one', 'old', 'request_no_slots', 'doc',
                                   at='2020-01-01T12:00:00+01:00', evidence=['operation_code'])
-    panel.statistics.observe_page('one', 'current', 'request_no_slots_restart', 'doc',
+    from app.desktop import statistics
+    from datetime import datetime, timezone
+    now = datetime(2026, 10, 30, 12, tzinfo=timezone.utc)
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz)
+    monkeypatch.setattr(statistics, 'datetime', FrozenDateTime)
+    panel.statistics.observe_page('one', 'current', 'post_contact_no_slots', 'doc',
                                   evidence=['operation_code'])
     panel.today_button.click()
     assert panel.stat_values['cod_oper_count'].text() == '1'

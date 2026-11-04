@@ -1112,7 +1112,7 @@ class DesktopWindow(QMainWindow):
         try:
             root = Path(os.environ.get('DEBUG_DIR', self.store.settings().diagnostics_directory))
             if not root.is_absolute():
-                root = self.store.path.parent / root
+                root = runtime_root() / root
             sessions = sorted((root / 'sessions').glob(f'{profile_id}-*/journal.jsonl'), reverse=True)
             history = []
             for session in sessions:
@@ -1563,6 +1563,10 @@ class DesktopWindow(QMainWindow):
             'lock':'<rect x="4" y="10" width="16" height="12" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 15v3"/>',
             'statistics':'<path d="M4 20V12M12 20V4M20 20V8"/>',
             'search':'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',
+            'hourglass':'<path d="M6 3h12M6 21h12M7 3v3c0 3 2 4 5 6-3 2-5 3-5 6v3M17 3v3c0 3-2 4-5 6 3 2 5 3 5 6v3"/>',
+            'flag':'<path d="M5 22V3c5-4 9 4 14 0v11c-5 4-9-4-14 0"/>',
+            'calendar_first':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18"/><circle cx="12" cy="15.5" r="2"/>',
+            'message':'<path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-6 4V5a1 1 0 0 1 1-1Zm3 6h10"/>',
             'clock':'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
             'calendar':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18m-14 6 3 3 6-6"/>',
             'list':'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',

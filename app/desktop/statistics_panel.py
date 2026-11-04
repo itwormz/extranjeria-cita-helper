@@ -21,7 +21,7 @@ log=logging.getLogger(__name__)
 METRICS=(('checks','Проверок','search'),('active_seconds','Активный поиск','clock'),
     ('unique_offices','Разных офисов','pin'),('booking_screens','Экранов ситы','calendar'),
     ('offices_seen','Появлений офисов','office'),('server_errors','Ошибок сервера','server'),
-    ('rate_limited','HTTP 429','clock'),('blocked','Ограничения доступа','shield'),
+    ('rate_limited','HTTP 429','hourglass'),('blocked','Ограничения доступа','lock'),
     ('flow_passes','Повторные проходы','restart'),('actions_performed','Действий выполнено','pointer'),('pages_processed','Страниц обработано','file_text'),('first_available_seconds','До первой доступности','clock'))
 
 
@@ -125,13 +125,13 @@ class StatisticsPanel(QWidget):
         first_grid=QGridLayout();first_grid.setHorizontalSpacing(12);first_grid.setVerticalSpacing(10)
         self.first_caption=self.text('Первый офис',muted=True);self.first_booking_caption=self.text('Первый выбор даты',muted=True)
         self.first_value=QLabel('—');self.first_booking_value=QLabel('—')
-        for row,(icon,caption,value) in enumerate((('clock',self.first_caption,self.first_value),('calendar',self.first_booking_caption,self.first_booking_value))):
+        for row,(icon,caption,value) in enumerate((('flag',self.first_caption,self.first_value),('calendar_first',self.first_booking_caption,self.first_booking_value))):
             caption.setMaximumWidth(190);value.setWordWrap(True)
             first_grid.addWidget(self.icon_label(icon),row,0,Qt.AlignmentFlag.AlignTop);first_grid.addWidget(caption,row,1);first_grid.addWidget(value,row,2)
         first_grid.setColumnMinimumWidth(1,190);first_grid.setColumnStretch(2,1);self.stats_layout.addLayout(first_grid)
         self.success_note=self.text('После оформления ситы можно сохранить данные записи, добавить её в календарь и поделиться статистикой поиска.',muted=True)
         actions=QHBoxLayout();actions.setSpacing(12);self.success_button=self.button('Сита получена','check',self.confirm_success,primary=True);self.success_button.setObjectName('statisticsSuccess');self.success_button.setFixedHeight(38);self.success_button.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed);actions.addWidget(self.success_button)
-        self.achievement_button=self.button('Достижения профиля','calendar',self.show_achievement);actions.addWidget(self.achievement_button);actions.addStretch();self.stats_layout.addLayout(actions)
+        self.achievement_button=self.button('Достижения профиля','award',self.show_achievement);actions.addWidget(self.achievement_button);actions.addStretch();self.stats_layout.addLayout(actions)
         self.stats_layout.addWidget(self.success_note)
         self.history_panel=StatisticsHistory(host,self.statistics);self.stats_layout.addWidget(self.history_panel)
         self.stats_layout.addStretch();self.stack.addWidget(self.stats_page)
@@ -299,17 +299,20 @@ class StatisticsPanel(QWidget):
         for title,icon,keys in [('Доступность','eye',['offices_seen','unique_offices','booking_screens']),('Ошибки и восстановление','wrench',['server_errors','rate_limited','blocked','flow_passes','cod_oper_count'])]:
             frame=QWidget();column=QVBoxLayout(frame);column.setContentsMargins(0,0,0,0);column.setSpacing(8);column.addWidget(self.section_heading(title,icon))
             for key in keys:
-                _,caption,glyph=next((m for m in METRICS if m[0]==key),('cod_oper_count','Ответы «Сит нет» с cod. oper','shield'))
+                _,caption,glyph=next((m for m in METRICS if m[0]==key),('cod_oper_count','Ответы «Сит нет» с cod. oper','shield-alert'))
                 row_frame=QFrame();row_frame.setObjectName('statisticRow');row=QHBoxLayout(row_frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8);row.addWidget(self.icon_label(glyph));row.addWidget(self.text({'booking_screens':'Появления выбора даты','successes':'Получено сит','rate_limited':'Ограничений HTTP 429'}.get(key,caption)),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;column.addWidget(row_frame)
             budget_metrics = (
-                (('banners', 'Появления плашки на форме'), ('no_slots', 'Ответы «Сит нет» на запрос записи'))
+                (('banners', '«Сит нет» до запроса', 'clipboard'),
+                 ('no_slots', 'Ответы «Сит нет» на запрос записи', 'message'))
                 if title == 'Доступность' else ()
             )
-            for key, caption in budget_metrics:
+            for key, caption, glyph in budget_metrics:
                 metric = QFrame()
                 metric.setObjectName('statisticRow')
                 line = QHBoxLayout(metric)
                 line.setContentsMargins(0, 8, 0, 8)
+                line.setSpacing(8)
+                line.addWidget(self.icon_label(glyph))
                 line.addWidget(self.text(caption), 1)
                 value = QLabel('—')
                 value.setObjectName('statisticValue')

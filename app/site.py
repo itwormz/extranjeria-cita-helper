@@ -421,7 +421,7 @@ class IcpPlusChecker:
     async def _launch_camoufox(self, playwright, task: TaskConfig, *, headless: bool):
         from .desktop.certificates import prepare_intermediate_cache
         from camoufox.async_api import AsyncNewBrowser
-        from camoufox.fingerprints import Screen
+        from camoufox.fingerprints import generate_fingerprint
 
         options: dict = {
             "headless": headless,
@@ -475,9 +475,10 @@ class IcpPlusChecker:
                         or (type(exc).__module__, type(exc).__name__)
                         != ('fpgen.exceptions', 'RestrictiveConstraints')):
                     raise
-                # An explicit empty Screen suppresses automatic display bounds.
+                # Generate separately so launch_options still clamps to the display.
                 log_event(log, logging.WARNING, 'camoufox_screen_constraints_relaxed')
-                context = await AsyncNewBrowser(playwright, **options, screen=Screen())
+                fingerprint = generate_fingerprint(os=options['os'])
+                context = await AsyncNewBrowser(playwright, **options, fingerprint=fingerprint)
         except Exception:
             if temporary_profile:
                 temporary_profile.cleanup()

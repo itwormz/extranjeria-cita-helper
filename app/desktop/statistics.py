@@ -317,7 +317,7 @@ class ProfileStatistics:
                     SELECT MIN(start) AS observed_at
                     FROM episodes
                     WHERE profile=? AND kind='page'
-                      AND stage IN ('request_no_slots', 'request_no_slots_restart')
+                      AND stage IN ('request_no_slots', 'request_no_slots_restart', 'post_contact_no_slots')
                       AND EXISTS (SELECT 1 FROM json_each(episodes.evidence)
                                   WHERE value='operation_code')
                     GROUP BY session, document, CASE WHEN document='' THEN id END
