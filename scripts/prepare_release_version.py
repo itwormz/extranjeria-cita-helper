@@ -1,4 +1,4 @@
-"""Promote the version and release notes declared by a merged release PR."""
+"""Promote the version and release notes declared by a release PR before merge."""
 import re
 from pathlib import Path
 
@@ -28,11 +28,17 @@ def prepare(root=ROOT):
     notes = changelog.read_text()
     if re.search(rf'^## {re.escape(version)}(?: |$)', notes, re.MULTILINE):
         raise ValueError(f'Changelog already contains release {version}')
-    notes, count = re.subn(r'^## Unreleased(?= — .+$|$)', f'## {version}', notes, flags=re.MULTILINE)
-    if count != 1:
+    sections = list(re.finditer(r'^## Unreleased(?: — (.+))?$', notes, re.MULTILINE))
+    if len(sections) != 1:
         raise ValueError('Expected one ## Unreleased section in CHANGELOG.md')
-    if f'## {version}\n' in notes:
-        notes = notes.replace(f'## {version}\n', f'## {version} — Release\n', 1)
+    section = sections[0]
+    next_heading = re.search(r'^## ', notes[section.end():], re.MULTILINE)
+    end = section.end() + next_heading.start() if next_heading else len(notes)
+    body = notes[section.end():end].strip()
+    if not body:
+        raise ValueError('Add release notes under ## Unreleased before preparing the release')
+    title = section.group(1) or 'Release'
+    notes = notes[:section.start()] + f'## Unreleased\n\n## {version} — {title}\n\n{body}\n\n' + notes[end:]
     changes[changelog] = notes
     for path, content in changes.items():
         path.write_text(content)
