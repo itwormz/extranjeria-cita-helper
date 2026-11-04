@@ -35,11 +35,19 @@ def apply_command(control, message):
             budget.windows = ()
             control.save_appointment_budget(budget)
     elif command == 'profile_timings':
+        from ..config import AppointmentProtection
         from ..timings import parse_timings
         try:
-            control.pending_profile_timings = parse_timings(message['timings'])
+            timings = parse_timings(message['timings'])
         except (ValueError, TypeError):
             return False
+        if 'protection' in message:
+            errors = []
+            protection = AppointmentProtection.parse(message['protection'], errors)
+            if errors:
+                return False
+            control.pending_appointment_protection = protection
+        control.pending_profile_timings = timings
     elif command == 'preferences':
         control.set_diagnostics(message['diagnostics'])
         control.set_sound(message['sound'])
@@ -176,7 +184,7 @@ async def run_worker(task_id):
                 from datetime import datetime
                 from ..appointment_schedule import MADRID
                 now = datetime.now(MADRID)
-                policy = task.appointment_protection
+                policy = control.effective_appointment_protection or task.appointment_protection
                 previous_day = budget.day
                 state['appointment_budget'] = budget.summary(now, policy, hot=getattr(control, 'hot_retry', False))
                 if previous_day is not None and budget.day != previous_day:

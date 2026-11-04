@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## Unreleased — Statistics and profile settings
+
+- The “No appointments” counters now follow the Today or All time filter. The attempt budget still shows what remains today.
+- Scroll through Settings and Timings without accidentally changing a number or a selection, even when the field is focused.
+- Changes to ban protection take effect during the current search. To use your own attempt budget, turn off Adaptive budget and save the profile. The bot recalculates its attempt windows, keeps track of attempts already used today, and respects any ongoing pause after a `cod. oper` response.
 
 ## 0.3.1 — Search and browser reliability
 

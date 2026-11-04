@@ -950,9 +950,10 @@ class DesktopWindow(QMainWindow):
         for ref in old:self.notifications_panel.vault.delete(ref)
         if self.notification_delivery.profile_id==profile_id:self.notification_delivery.generation+=1
         self.profile_editor.accept(); self.refresh_profiles(profile_id)
-        if self.controller.active and profile_id == self.profile_combo.currentData():
-            self.controller.send({'command': 'profile_timings', 'timings': timings})
-            message = 'Тайминги применятся со следующего действия. Остальные изменения — при новом запуске.'
+        if self.controller.active and profile_id == self.controller.profile_id:
+            self.controller.send({'command': 'profile_timings', 'timings': timings,
+                                  'protection': data['request']['appointment_protection']})
+            message = 'Тайминги и защита от бана применятся со следующего действия. Остальные изменения — при новом запуске.'
         else:
             message = 'Профиль сохранён'
         self.statusBar().showMessage(self.t(message), 5000)

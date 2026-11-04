@@ -29,6 +29,8 @@ class AssistControl:
         self.blocked_streak = 0
         self.applicant_reload_penalty = 0
         self.pending_profile_timings = None
+        self.pending_appointment_protection = None
+        self.effective_appointment_protection = None
         self.effective_profile_settings = None
         self._check_counter = None
         self._statistics_observer = None
