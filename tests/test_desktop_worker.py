@@ -86,7 +86,9 @@ def test_stop_cancels_hung_action_but_closes_browser_only_after_user(monkeypatch
     class Checker:
         def __init__(self,settings):self.settings=settings
         def _debug_directory(self,*_):return tmp_path
-        async def launch_context(self,*_,**kwargs):return SimpleNamespace()
+        async def launch_context(self,*_,**kwargs):
+            from unittest.mock import AsyncMock
+            return SimpleNamespace(on=lambda *_: None, route=AsyncMock())
         async def page_for_context(self,*_):return page
         async def _open_entry(self,*_):await asyncio.Event().wait()
         async def close_context(self,*_):order.append('browser_closed')

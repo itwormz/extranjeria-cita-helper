@@ -1,5 +1,6 @@
 """One task's browser owner; no Qt and no user-interface event loop."""
 import asyncio
+import sqlite3
 import os
 import signal
 import sys
@@ -33,6 +34,12 @@ def apply_command(control, message):
             budget.distribution_disabled = message['disabled']
             budget.windows = ()
             control.save_appointment_budget(budget)
+    elif command == 'profile_timings':
+        from ..timings import parse_timings
+        try:
+            control.pending_profile_timings = parse_timings(message['timings'])
+        except (ValueError, TypeError):
+            return False
     elif command == 'preferences':
         control.set_diagnostics(message['diagnostics'])
         control.set_sound(message['sound'])
@@ -153,10 +160,17 @@ async def run_worker(task_id):
             loop.add_signal_handler(signum, control.request_stop)
             signals.append(signum)
 
+    statistics = None
+
     async def states():
         while True:
             control.statistics_tick()
             state = control.snapshot()
+            if statistics is not None:
+                try:
+                    state['profile_checks_today'] = statistics.total(task.id, 'today')
+                except (OSError, ValueError, sqlite3.Error):
+                    pass
             budget = getattr(control, 'appointment_budget', None)
             if budget is not None:
                 from datetime import datetime
@@ -164,7 +178,7 @@ async def run_worker(task_id):
                 now = datetime.now(MADRID)
                 policy = task.appointment_protection
                 previous_day = budget.day
-                state['appointment_budget'] = budget.summary(now, policy)
+                state['appointment_budget'] = budget.summary(now, policy, hot=getattr(control, 'hot_retry', False))
                 if previous_day is not None and budget.day != previous_day:
                     control.save_appointment_budget(budget)
             emit({'type':'state', 'state':state})

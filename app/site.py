@@ -421,6 +421,7 @@ class IcpPlusChecker:
     async def _launch_camoufox(self, playwright, task: TaskConfig, *, headless: bool):
         from .desktop.certificates import prepare_intermediate_cache
         from camoufox.async_api import AsyncNewBrowser
+        from camoufox.fingerprints import Screen
 
         options: dict = {
             "headless": headless,
@@ -467,7 +468,16 @@ class IcpPlusChecker:
                 log_event(log,logging.WARNING,'tls_preparation_deferred',error_type=type(exc).__name__)
 
             options.update(persistent_context=True, user_data_dir=str(profile), ignore_https_errors=False)
-            context = await AsyncNewBrowser(playwright, **options)
+            try:
+                context = await AsyncNewBrowser(playwright, **options)
+            except Exception as exc:
+                if (headless or options['os'] != 'macos'
+                        or (type(exc).__module__, type(exc).__name__)
+                        != ('fpgen.exceptions', 'RestrictiveConstraints')):
+                    raise
+                # An explicit empty Screen suppresses automatic display bounds.
+                log_event(log, logging.WARNING, 'camoufox_screen_constraints_relaxed')
+                context = await AsyncNewBrowser(playwright, **options, screen=Screen())
         except Exception:
             if temporary_profile:
                 temporary_profile.cleanup()

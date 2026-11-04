@@ -17,7 +17,7 @@ def test_automatic_flow_restart_reuses_existing_window(monkeypatch, tmp_path, re
     class Checker:
         def __init__(self, settings): self.settings = settings
         def _debug_directory(self,*_): return tmp_path
-        async def launch_context(self,*_,**kw): launches.append(True); return SimpleNamespace()
+        async def launch_context(self,*_,**kw): launches.append(True); return SimpleNamespace(on=lambda *_: None, route=AsyncMock())
         async def page_for_context(self,*_): return page
         async def _open_entry(self,*_): pass
         async def close_context(self,*_): pass

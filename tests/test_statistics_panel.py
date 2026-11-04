@@ -152,13 +152,18 @@ def test_period_changes_all_metrics_and_history_and_warning(tmp_path,qt_app):
     panel.deleteLater();host.deleteLater()
 
 
-def test_today_counts_recorded_appointments_and_baseline_has_no_fake_days(tmp_path,qt_app):
+def test_cod_oper_count_follows_period_and_baseline_has_no_fake_days(tmp_path,qt_app):
     from app.desktop.statistics_panel import StatisticsPanel
     host=make_host(tmp_path,[SimpleNamespace(id='one',label='One',province='Barcelona')])
     panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
-    panel.achievements.record('one',{'checks':100},{'date':'2026-11-01','office':'Test'})
+    panel.statistics.observe_page('one', 'old', 'request_no_slots', 'doc',
+                                  at='2020-01-01T12:00:00+01:00', evidence=['operation_code'])
+    panel.statistics.observe_page('one', 'current', 'request_no_slots_restart', 'doc',
+                                  evidence=['operation_code'])
     panel.today_button.click()
-    assert panel.stat_values['successes'].text()=='1'
+    assert panel.stat_values['cod_oper_count'].text() == '1'
+    panel.all_button.click()
+    assert panel.stat_values['cod_oper_count'].text() == '2'
     assert panel.stat_values['days'].text()=='0'
     panel.deleteLater();host.deleteLater()
 

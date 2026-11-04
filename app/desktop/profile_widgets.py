@@ -1,6 +1,6 @@
 """Compact profile inputs with persistent labels once populated."""
 from PySide6.QtCore import Qt, QEvent
-from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QHBoxLayout, QComboBox, QSpinBox
+from PySide6.QtWidgets import QAbstractButton, QWidget, QLabel, QLineEdit, QHBoxLayout, QSizePolicy, QComboBox, QSpinBox
 
 
 class ProfileChoice(QComboBox):
@@ -21,7 +21,7 @@ class ProfileNumber(QSpinBox):
 
 
 class ProfileField(QWidget):
-    def __init__(self, title, field):
+    def __init__(self, title, field, description=None):
         super().__init__()
         self.setObjectName('profileField')
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground,True)
@@ -30,25 +30,50 @@ class ProfileField(QWidget):
         self.icon=QLabel(self); self.icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.caption=QLabel(title,self); self.caption.setObjectName('profileCaption')
         self.caption.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        if description is not None:
+            self.icon.hide()
+            self.caption.setObjectName("protectionCaption")
+            self.caption.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+            helper = QLabel('ⓘ', self)
+            helper.setObjectName('profileCaption')
+            row = QHBoxLayout(self)
+            row.setContentsMargins(12, 0, 12, 0)
+            row.setSpacing(8)
+            row.addWidget(self.caption, 1)
+            row.addWidget(field, 0, Qt.AlignmentFlag.AlignVCenter)
+            helper.adjustSize()
+            helper.raise_()
+            self.helper = helper
+        self.caption.installEventFilter(self)
         field.installEventFilter(self)
         if isinstance(field,QLineEdit):
             field.setPlaceholderText(title)
             field.textChanged.connect(self.sync_caption)
         else:
-            if field.isEditable():field.lineEdit().installEventFilter(self)
+            if isinstance(field,QComboBox) and field.isEditable():field.lineEdit().installEventFilter(self)
         self.sync_caption()
 
     def sync_caption(self, *_):
         populated=not isinstance(self.field,QLineEdit) or bool(self.field.text())
         self.caption.setVisible(populated)
+        if isinstance(self.field, QAbstractButton):
+            if hasattr(self, 'full_caption'):
+                self.caption.setText(self.caption.fontMetrics().elidedText(
+                    self.full_caption, Qt.TextElideMode.ElideRight, self.caption.width()))
+            return
         self.field.setGeometry(40,20 if populated else 6,max(1,self.width()-49),24 if populated else 36)
         self.caption.setGeometry(40,5,max(1,self.width()-49),15)
         self.icon.setGeometry(12,15,18,18)
 
     def resizeEvent(self,event):
-        super().resizeEvent(event);self.sync_caption()
+        super().resizeEvent(event)
+        if hasattr(self, 'helper'):
+            self.helper.move(self.width() - self.helper.width() - 4, 2)
+        self.sync_caption()
 
     def eventFilter(self,watched,event):
+        if watched is self.caption and event.type() == QEvent.Type.Resize:
+            self.sync_caption()
         if event.type() in (QEvent.Type.FocusIn,QEvent.Type.FocusOut):
             self.setProperty('focused',event.type()==QEvent.Type.FocusIn)
             self.style().unpolish(self);self.style().polish(self)
