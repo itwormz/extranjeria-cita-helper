@@ -1,6 +1,6 @@
 """Compact profile inputs with persistent labels once populated."""
 from PySide6.QtCore import Qt, QEvent
-from PySide6.QtWidgets import QAbstractButton, QWidget, QLabel, QLineEdit, QHBoxLayout, QSizePolicy, QComboBox, QSpinBox
+from PySide6.QtWidgets import QAbstractButton, QWidget, QLabel, QLineEdit, QHBoxLayout, QSizePolicy, QComboBox, QDoubleSpinBox, QSpinBox
 
 
 class ProfileChoice(QComboBox):
@@ -14,10 +14,12 @@ class ProfileChoice(QComboBox):
 
 class ProfileNumber(QSpinBox):
     def wheelEvent(self, event):
-        if self.hasFocus():
-            super().wheelEvent(event)
-        else:
-            event.ignore()
+        event.ignore()
+
+
+class ProfileDecimal(QDoubleSpinBox):
+    def wheelEvent(self, event):
+        event.ignore()
 
 
 class ProfileField(QWidget):

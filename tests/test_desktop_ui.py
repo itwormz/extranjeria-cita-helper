@@ -453,6 +453,39 @@ def test_closed_province_list_passes_wheel_to_profile_scroll(window):
     assert not event.isAccepted()
 
 
+@pytest.mark.parametrize('input_kind', ['settings_profile', 'language', 'budget', 'timing'])
+def test_focused_settings_input_passes_wheel_to_scroll(window, input_kind):
+    from PySide6.QtCore import QPoint, QPointF
+    from PySide6.QtGui import QWheelEvent
+    from PySide6.QtWidgets import QAbstractSpinBox, QSpinBox
+
+    window.tabs.setCurrentIndex(2)
+    if input_kind in {'budget', 'timing'}:
+        window.create_profile()
+        window.profile_tabs.setCurrentIndex(1)
+        field = (window.profile_editor.findChild(QSpinBox)
+                 if input_kind == 'budget' else window.fields['delay_min'])
+    else:
+        field = window.settings_profile_combo if input_kind == 'settings_profile' else window.settings_language
+        if field.count() < 2:
+            field.addItems(['First', 'Second'])
+    field.setFocus()
+    QApplication.processEvents()
+    assert field.hasFocus()
+    if isinstance(field, QAbstractSpinBox):
+        field.setValue(field.minimum() + field.singleStep())
+        value = field.value
+    else:
+        value = field.currentIndex
+    before = value()
+    event = QWheelEvent(QPointF(5, 5), QPointF(field.mapToGlobal(QPoint(5, 5))),
+                        QPoint(), QPoint(0, -120), Qt.MouseButton.NoButton,
+                        Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False)
+    field.wheelEvent(event)
+    assert value() == before
+    assert not event.isAccepted()
+
+
 def test_profile_values_follow_text_and_numeric_alignment(window):
     from PySide6.QtWidgets import QDoubleSpinBox
     window.create_profile()

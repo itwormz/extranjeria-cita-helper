@@ -18,7 +18,7 @@ from .process import DesktopController
 from .theme import apply_theme, theme_colors, load_fonts
 from .i18n import LANGUAGES, translate
 from .paths import runtime_root, display_name
-from .profile_widgets import ProfileChoice, ProfileField, ProfileNumber, TimingField
+from .profile_widgets import ProfileChoice, ProfileDecimal, ProfileField, ProfileNumber, TimingField
 
 from ..assist_journal import STATUSES, description
 
@@ -396,7 +396,7 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(label('Настройки',name='pageHeading'))
         layout.addWidget(label('Профили',name='sectionHeading'))
         toolbar=QHBoxLayout()
-        self.settings_profile_combo=QComboBox();self.settings_profile_combo.setObjectName('settingsProfile')
+        self.settings_profile_combo=ProfileComboBox();self.settings_profile_combo.setObjectName('settingsProfile')
         self.settings_profile_combo.setMinimumWidth(200);self.settings_profile_combo.setMaximumWidth(280)
         self.settings_profile_combo.currentIndexChanged.connect(self.update_profile_summary)
         toolbar.addWidget(self.settings_profile_combo)
@@ -442,7 +442,7 @@ class DesktopWindow(QMainWindow):
                 else:
                     for value,text in PROCEDURE_NAMES.items():widget.addItem(text,value)
             elif key in {'delay_min', 'delay_max'}:
-                widget=QDoubleSpinBox()
+                widget=ProfileDecimal()
                 widget.setRange(0,10); widget.setDecimals(2); widget.setSingleStep(.1)
             else:
                 widget=QLineEdit()
@@ -517,7 +517,7 @@ class DesktopWindow(QMainWindow):
             else:
                 widgets=[]
                 for _ in range(2 if isinstance(getattr(defaults,key),tuple) else 1):
-                    widget=QDoubleSpinBox(); widget.setRange(lower,upper); widget.setDecimals(2); widget.setSingleStep(.1 if upper<=10 else 1); widgets.append(widget)
+                    widget=ProfileDecimal(); widget.setRange(lower,upper); widget.setDecimals(2); widget.setSingleStep(.1 if upper<=10 else 1); widgets.append(widget)
             for index,widget in enumerate(widgets):
                 widget.setAccessibleName(title+(' · min' if index==0 and len(widgets)==2 else ' · max' if index==1 else ''))
                 if isinstance(widget,QDoubleSpinBox):widget.setAlignment(Qt.AlignmentFlag.AlignCenter if len(widgets)==2 else Qt.AlignmentFlag.AlignLeft)
@@ -556,7 +556,7 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(label('Обновления',name='sectionHeading'))
         self.updates_toggle=self.toggle_row(layout,'Автоматически проверять обновления','Проверять GitHub Releases при запуске и раз в сутки. Скачивание и установка — по кнопке.',key='updates')
         layout.addWidget(label('Интерфейс',name='sectionHeading'))
-        self.settings_language=QComboBox()
+        self.settings_language=ProfileComboBox()
         for code,title in LANGUAGES.items(): self.settings_language.addItem(code.upper()+' · '+title,code)
         self.settings_language.currentIndexChanged.connect(lambda:self.set_language(self.settings_language.currentData()))
         layout.addWidget(self.settings_language)
