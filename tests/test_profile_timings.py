@@ -49,3 +49,37 @@ def test_unset_timings_keep_existing_recovery_defaults(tmp_path, catalog_path):
     assert settings.assist_timings.recovery_jitter_seconds == (0, 0)
     assert settings.assist_timings.typing_ms == (70, 140)
     assert settings.assist_timings.adaptive_reload_on_429
+
+
+def test_saved_protection_applies_next_step_without_resetting_budget():
+    from datetime import datetime, timedelta, timezone
+    from unittest.mock import Mock
+
+    from app.appointment_budget import AppointmentBudget
+    from app.config import AppointmentProtection, Settings
+    from app.desktop.worker import apply_command
+
+    r = runner()
+    r.checker.settings = Settings()
+    r.page.set_default_timeout = Mock()
+    now = datetime.now(timezone.utc)
+    r.budget = AppointmentBudget(sent=3, target_override=1,
+                                 windows=((now, now + timedelta(hours=1)),),
+                                 restriction_until=now + timedelta(minutes=30))
+    restriction = r.budget.restriction_until
+    r.protection = AppointmentProtection(daily_target=50)
+    r.observe = AsyncMock(return_value=Observed('applicant', 'doc', 'sig', None))
+    r.observe_appointment_budget = Mock()
+    r.manual_signature = 'sig'
+
+    assert apply_command(r.control, {'command': 'profile_timings', 'timings': {},
+                                     'protection': {'daily_target': 50, 'adaptive_target': False}})
+    assert r.budget.target(r.protection) == 1
+
+    asyncio.run(r.step())
+
+    assert r.budget.target(r.protection) == 50
+    assert r.budget.remaining(r.protection) == 47
+    assert r.budget.windows == ()
+    assert r.budget.restriction_until == restriction
+    assert r.control.effective_appointment_protection == r.protection

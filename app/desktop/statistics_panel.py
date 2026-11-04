@@ -241,8 +241,6 @@ class StatisticsPanel(QWidget):
         self.budget_label.setVisible(bool(budget))
         self.budget_menu.setVisible(bool(budget))
         self.budget_action.setEnabled(live)
-        for row in self.budget_availability_rows:
-            row.setVisible(bool(budget))
         if not budget:
             return
         self.budget_disabled = budget['disabled']
@@ -256,8 +254,6 @@ class StatisticsPanel(QWidget):
             text += f" · Ориентир {budget['target']} · Остаток ≈{budget['remaining']}"
         if budget['restricted']:
             text += f' · <a href="restriction">⚠ Возможное ограничение · Проба с {ready}</a>'
-        for key, value in self.budget_availability.items():
-            value.setText(str(budget.get(key, 0)))
         self.budget_label.setText(self.tr_text(text))
 
     def text(self,source,muted=False):
@@ -285,8 +281,6 @@ class StatisticsPanel(QWidget):
         self._payment_buttons.append(button);return button
 
     def statistics_overview(self,layout):
-        self.budget_availability = {}
-        self.budget_availability_rows = []
         values={};overview=QHBoxLayout();overview.setSpacing(16)
         for key,title,icon in [('checks','Проверок сит','search'),('active_seconds','Активный поиск','clock'),('days','Дни с поиском','calendar_days')]:
             frame=QFrame();frame.setObjectName('statisticsOverview');cell=QVBoxLayout(frame);cell.setContentsMargins(16,14,16,14);cell.setSpacing(8);number=QLabel('—');number.setObjectName('overviewValue');cell.addWidget(number);cell.addWidget(self.section_heading(title,icon));overview.addWidget(frame,1);values[key]=number
@@ -318,9 +312,7 @@ class StatisticsPanel(QWidget):
                 value.setObjectName('statisticValue')
                 line.addWidget(value)
                 column.addWidget(metric)
-                metric.hide()
-                self.budget_availability[key] = value
-                self.budget_availability_rows.append(metric)
+                values[key] = value
             groups.addWidget(frame,1)
         layout.addLayout(groups)
         layout.addWidget(self.section_heading('Автоматизация','settings'))

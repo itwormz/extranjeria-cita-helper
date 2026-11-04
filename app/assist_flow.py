@@ -113,7 +113,8 @@ class AssistRunner:
         self.guard_kind = None
         self.timeout_retries = {}
         self.budget = getattr(control, "appointment_budget", None)
-        self.protection = getattr(task, "appointment_protection", None)
+        self.protection = (getattr(control, "effective_appointment_protection", None)
+                           or getattr(task, "appointment_protection", None))
         self.last_rate_limit_document = None
         self.restart_reason = None
         self.round_saw_banner = False
@@ -766,6 +767,12 @@ class AssistRunner:
             self.policy = reuse_policy_from_settings(settings)
             self.page.set_default_timeout(timings.navigation_seconds * 1000)
             self.alerter.repeat_seconds = timings.alert_seconds
+        protection = getattr(self.control, 'pending_appointment_protection', None)
+        if protection is not None:
+            self.control.pending_appointment_protection = None
+            if self.budget is not None and self.protection != protection:
+                self.budget.windows = ()
+            self.protection = self.control.effective_appointment_protection = protection
         if self.control.booking_handoff and self.handoff_observed is not None:
             # Ownership stays with the user even after navigation or an error.
             # Only explicit session restart can start another automatic pass.
