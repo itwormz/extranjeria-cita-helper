@@ -1,12 +1,22 @@
 # Changelog
 
-## Unreleased — Search and browser reliability
+## Unreleased
 
-- Increase the applicant form refresh interval after HTTP 429 when adaptive timing is enabled.
-- Show the daily attempt budget and the next probe during a possible restriction. Count no-appointment replies with cod. oper from recorded history for the selected statistics period.
-- Keep recent timeline entries across search runs and explain why a new pass starts.
-- Apply saved timing changes during a search and simplify protection settings with switches and tooltips.
-- Retry Camoufox startup on macOS when display size constraints prevent fingerprint generation. Fix accidental profile validation when pressing Enter in a field.
+## 0.3.1 — Search and browser reliability
+
+### Search and statistics
+
+- **See today's attempt budget while the bot is running.** The Work tab shows how many attempts remain and when the next attempt or restriction check can happen.
+- **Slow down after HTTP 429.** With adaptive timing enabled, each HTTP 429 response adds 30 seconds to the wait before refreshing the applicant form.
+- **Understand “No appointments” results.** Statistics distinguish notices shown before submitting a request from replies received after submission. Replies containing `cod. oper` are counted for the selected period.
+- **Review earlier searches.** The timeline keeps recent entries across runs and app restarts. It also explains when a new pass starts to confirm that the “No appointments” notice has cleared.
+
+### Profile and startup fixes
+
+- Saved timing changes take effect during the current search and survive browser restarts.
+- Protection settings use switches with explanations on hover.
+- Pressing Enter in a profile field no longer triggers validation. Validation runs when you save the profile.
+- Camoufox retries startup on macOS if the display size prevents it from generating a browser fingerprint. This addresses the startup error reported in #23.
 
 ## 0.3.0.dev13 — Local testing
 
