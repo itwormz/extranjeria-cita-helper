@@ -18,6 +18,36 @@ def test_tls_network_timeout_does_not_prevent_strict_browser_launch(monkeypatch,
     asyncio.run(checker._launch_camoufox(None,task,headless=True));assert launch.await_args.kwargs['ignore_https_errors'] is False
 
 
+def test_macos_camoufox_retry_keeps_automatic_display_bounds(monkeypatch, tmp_path):
+    from camoufox import async_api, fingerprints
+    from app import site
+    from app.config import Settings
+    from app.desktop import certificates
+
+    # Importing fpgen can download its model on a fresh machine.
+    class RestrictiveConstraints(Exception):
+        __module__ = "fpgen.exceptions"
+
+    context = SimpleNamespace(on=lambda *_: None)
+    fingerprint = {"screen": {"width": 1440, "height": 900}}
+    launch = AsyncMock(side_effect=[RestrictiveConstraints("display too small"), context])
+    monkeypatch.setattr(async_api, 'AsyncNewBrowser', launch)
+    monkeypatch.setattr(fingerprints, 'generate_fingerprint', lambda *, os: fingerprint)
+    monkeypatch.setattr(certificates, 'prepare_intermediate_cache', lambda *_: 0)
+    monkeypatch.setattr(site.platform, 'system', lambda: 'Darwin')
+    monkeypatch.setattr(site, 'bundled_browser', lambda: tmp_path / 'camoufox')
+    monkeypatch.setattr(site, 'bundled_addons', lambda: [])
+    (tmp_path / 'application.ini').write_text('[App]\nVersion=156.0.1\n')
+    checker = site.IcpPlusChecker(Settings(browser_session='fresh'))
+    task = SimpleNamespace(id='test', schedule=SimpleNamespace(timezone='Europe/Madrid'))
+
+    assert asyncio.run(checker._launch_camoufox(None, task, headless=False)) is context
+    first, retry = launch.await_args_list
+    assert 'fingerprint' not in first.kwargs
+    assert retry.kwargs['fingerprint'] is fingerprint
+    assert 'screen' not in retry.kwargs
+
+
 def test_empty_site_placeholder_is_loading_but_real_unknown_text_is_not():
     from app.assist_flow import loading_placeholder
     assert loading_placeholder('')

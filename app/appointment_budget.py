@@ -12,6 +12,7 @@ class AppointmentBudget:
     sent: int = 0
     banners: int = 0
     no_slots: int = 0
+    cod_oper_count: int = 0
     offices_during_restriction: int = 0
     episode_offices: list[dict] = field(default_factory=list)
     episode_history: list[dict] = field(default_factory=list)
@@ -31,6 +32,7 @@ class AppointmentBudget:
             self.sent = 0
             self.banners = 0
             self.no_slots = 0
+            self.cod_oper_count = 0
             self.distribution_disabled = False
             self.windows = ()
             if self.next_target is not None:
@@ -58,7 +60,7 @@ class AppointmentBudget:
             timedelta(minutes=policy.minimum_pause_minutes),
         )
         ready = max(now, earliest) if earliest is not None else now
-        if self.sent == 0 or self.distribution_disabled or hot or not self.remaining(policy):
+        if self.first_cod_oper is not None or self.sent == 0 or self.distribution_disabled or hot or not self.remaining(policy):
             return ready
         if not self.windows:
             self.windows = attempt_windows(now, self.remaining(policy))
@@ -78,6 +80,7 @@ class AppointmentBudget:
 
     def cod_oper(self, now: datetime, policy: AppointmentProtection) -> None:
         self.refresh(now, policy)
+        self.cod_oper_count += 1
         if self.next_target is None and self.sent:
             self.next_target = self.sent - 1
         if self.first_cod_oper is None:
@@ -106,11 +109,17 @@ class AppointmentBudget:
         self.restriction_until = None
 
 
-    def summary(self, now: datetime, policy: AppointmentProtection) -> dict:
-        ready = self.next_submission(now, policy)
+    def summary(self, now: datetime, policy: AppointmentProtection, *, hot=False) -> dict:
+        ready = self.next_submission(now, policy, hot=hot)
+        window = None
+        if self.sent and not self.distribution_disabled and not hot and self.first_cod_oper is None and self.remaining(policy):
+            window = next(((start.isoformat(), end.isoformat()) for start, end in self.windows
+                           if start <= ready <= end), None)
         return dict(
+            attempt_window=window,
             target=self.target(policy), sent=self.sent, remaining=self.remaining(policy),
             disabled=self.distribution_disabled, banners=self.banners, no_slots=self.no_slots,
+            cod_oper_count=self.cod_oper_count,
             ready=ready.isoformat(), restricted=self.first_cod_oper is not None,
             offices=self.offices_during_restriction, next_target=self.next_target,
             episode_history=self.episode_history, episode_offices=self.episode_offices,

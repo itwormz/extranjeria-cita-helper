@@ -114,11 +114,13 @@ class AssistRunner:
         self.timeout_retries = {}
         self.budget = getattr(control, "appointment_budget", None)
         self.protection = getattr(task, "appointment_protection", None)
+        self.last_rate_limit_document = None
+        self.restart_reason = None
         self.round_saw_banner = False
         self.banner_visible = False
         self.awaiting_budget_result = False
         self.round_saw_office = False
-        self.hot_retry = False
+        self.hot_retry = self.control.hot_retry = False
         self.used_hot_retry = False
         self.budget_office_recorded = False
         self.budget_copied_document = None
@@ -218,7 +220,7 @@ class AssistRunner:
                     self.awaiting_budget_result = True
                     self.round_saw_office = False
                     self.used_hot_retry = self.hot_retry
-                    self.hot_retry = False
+                    self.hot_retry = self.control.hot_retry = False
                     self.budget_office_recorded = False
                 self.control.availability_checked()
                 self.record("check", self.last_observed, f"Проверка сит: отправлен Solicitar cita — в сессии {self.control.snapshot()['checks']}, для профиля {self.control.snapshot()['profile_checks']}", page_url=request.url)
@@ -394,7 +396,7 @@ class AssistRunner:
                            "blocked": "Возврат после блокировки доступа",
                            "request_no_slots_restart": "Нет сит: сайт предлагает завершить проход через Aceptar",
                            "post_contact_no_slots": "Перезапуск после отсутствия сит на этапе контактов"}
-                reason = reasons.get(self.previous_stage,
+                reason = self.restart_reason or reasons.get(self.previous_stage,
                     "Сайт вернул начальную форму — отдельное сообщение о причине не распознано")
                 detail = f"Проход №{self.pass_number}: {previous} → Выбор провинции. {reason}"
                 if self.last_action_detail:
@@ -402,6 +404,7 @@ class AssistRunner:
                 response_url, status = self.http_statuses.get(getattr(self.page, "main_frame", None), (None, None))
                 if response_url == self.page.url and status is not None:
                     detail += f". Ответ: HTTP {status}"
+                self.restart_reason = None
                 self.record("flow_restart", observed, detail)
         parts = urlsplit(self.page.url)
         path = "/".join(segment.split(";", 1)[0] for segment in parts.path.split("/"))
@@ -598,6 +601,14 @@ class AssistRunner:
 
     async def recover(self, observed):
         if observed.kind == 'rate_limited':
+            if (self.timings.adaptive_reload_on_429
+                    and _flow_endpoint(self.page.url) == 'acEntrada'
+                    and self.last_method == 'GET'
+                    and self.last_rate_limit_document != observed.document):
+                self.last_rate_limit_document = observed.document
+                self.control.applicant_reload_penalty += 30
+                self.record('recovery', observed,
+                            f'HTTP 429: интервал обновления формы увеличен на {self.control.applicant_reload_penalty} с')
             from .config import DEFAULT_START_URL
             await self.silence()
             await self.save(observed, 'HTTP_RATE_LIMITED')
@@ -741,6 +752,20 @@ class AssistRunner:
 
     async def step(self):
         self.control.touch()
+        timings = getattr(self.control, 'pending_profile_timings', None)
+        if timings is not None:
+            self.control.pending_profile_timings = None
+            from dataclasses import replace
+            from .assist import reuse_policy_from_settings
+            settings = self.checker.settings = replace(
+                self.checker.settings, assist_timings=timings,
+                browser_action_delay_seconds=timings.action_delay_seconds,
+                browser_bootstrap_wait_seconds=timings.bootstrap_seconds,
+                navigation_timeout_seconds=timings.navigation_seconds)
+            self.control.effective_profile_settings = settings
+            self.policy = reuse_policy_from_settings(settings)
+            self.page.set_default_timeout(timings.navigation_seconds * 1000)
+            self.alerter.repeat_seconds = timings.alert_seconds
         if self.control.booking_handoff and self.handoff_observed is not None:
             # Ownership stays with the user even after navigation or an error.
             # Only explicit session restart can start another automatic pass.
@@ -847,7 +872,7 @@ class AssistRunner:
             if observed.kind != "booking":
                 self.budget.no_slots += 1
             self.budget.ordinary_result(now)
-            self.hot_retry = self.protection.retry_after_office and self.round_saw_office and not self.used_hot_retry and observed.kind != "booking"
+            self.hot_retry = self.control.hot_retry = self.protection.retry_after_office and self.round_saw_office and not self.used_hot_retry and observed.kind != "booking"
         self.control.save_appointment_budget(self.budget)
 
     async def wait_for_budget(self, observed):
@@ -907,7 +932,8 @@ class AssistRunner:
         ):
             if self.budget is not None and self.protection.confirm_new_round and self.round_saw_banner:
                 from .config import DEFAULT_START_URL
-                self.record("action", observed, "Подтвердить отсутствие плашки новым проходом")
+                self.restart_reason = "Плашка «Сит нет» исчезла — проверяем чистый проход без отправки данных"
+                self.record("action", observed, self.restart_reason)
                 await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
                 self.control.automation_action()
                 return
@@ -979,6 +1005,8 @@ class AssistRunner:
                 return
             self.empty_streak += 1
             delay = self.policy.next_delay(recent_activity=False, empty_streak=self.empty_streak)
+            if applicant_wait and self.timings.adaptive_reload_on_429:
+                delay += self.control.applicant_reload_penalty
             via_salir = not applicant_wait and getattr(self.task, 'no_slots_mode', 'salir') == 'salir'
             fresh_round = not applicant_wait and not via_salir and self.budget is not None
             next_action = ("Обновить форму без ввода данных" if applicant_wait else
@@ -992,6 +1020,7 @@ class AssistRunner:
                 return
             if fresh_round:
                 from .config import DEFAULT_START_URL
+                self.restart_reason = "Нет сит после отправки — начинаем новый проход"
                 await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
                 self.control.automation_action()
                 return
@@ -999,6 +1028,7 @@ class AssistRunner:
                 button=await self.continuation(observed.source,r"salir")
                 if button is None and self.budget is not None:
                     from .config import DEFAULT_START_URL
+                    self.restart_reason = "Нет сит после отправки; кнопка Salir недоступна"
                     await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
                     self.control.automation_action()
                     return

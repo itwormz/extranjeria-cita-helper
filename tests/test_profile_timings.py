@@ -18,8 +18,9 @@ def test_new_install_defaults_to_english_preserving_explicit_language(tmp_path, 
 
 def test_profile_reload_and_recovery_timings_reach_runner(tmp_path, catalog_path):
     store = ProfileStore(tmp_path/'tasks.yml', catalog_path)
-    store.path.write_text('tasks:\n- id: demo\n  timings:\n    reload_seconds: [40, 50]\n    rate_limit_seconds: 240\n    recovery_jitter_seconds: [1, 3]\n')
+    store.path.write_text('tasks:\n- id: demo\n  timings:\n    reload_seconds: [40, 50]\n    rate_limit_seconds: 240\n    adaptive_reload_on_429: false\n    recovery_jitter_seconds: [1, 3]\n')
     settings = store.settings('demo')
+    assert not settings.assist_timings.adaptive_reload_on_429
     policy = reuse_policy_from_settings(settings)
     assert all(40 <= policy.next_delay(recent_activity=False, empty_streak=1) <= 50 for _ in range(30))
     r = runner(); r.checker.settings = settings; r.page.goto = AsyncMock(); r.last_method = 'GET'
@@ -47,3 +48,4 @@ def test_unset_timings_keep_existing_recovery_defaults(tmp_path, catalog_path):
     assert settings.assist_timings.expired_seconds == (0, 30, 60, 120, 300)
     assert settings.assist_timings.recovery_jitter_seconds == (0, 0)
     assert settings.assist_timings.typing_ms == (70, 140)
+    assert settings.assist_timings.adaptive_reload_on_429

@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, QDate, QTime, QTimer, QUrl, QSize, Signal, QEvent
 from PySide6.QtGui import QDesktopServices, QPainter, QColor, QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (QWidget, QLabel, QPushButton, QToolButton, QComboBox,
     QVBoxLayout, QHBoxLayout, QGridLayout, QStackedWidget, QFrame, QDialog,
-    QDialogButtonBox, QSizePolicy, QDateEdit, QTimeEdit, QAbstractSpinBox, QLineEdit, QFileDialog, QApplication, QMenu, QLayout)
+    QDialogButtonBox, QScrollArea, QSizePolicy, QDateEdit, QTimeEdit, QAbstractSpinBox, QLineEdit, QFileDialog, QApplication, QMenu, QLayout)
 from .theme import theme_colors
 from .page_stack import CurrentPageStack
 from .statistics import ProfileStatistics
@@ -21,7 +21,7 @@ log=logging.getLogger(__name__)
 METRICS=(('checks','Проверок','search'),('active_seconds','Активный поиск','clock'),
     ('unique_offices','Разных офисов','pin'),('booking_screens','Экранов ситы','calendar'),
     ('offices_seen','Появлений офисов','office'),('server_errors','Ошибок сервера','server'),
-    ('rate_limited','HTTP 429','clock'),('blocked','Ограничения доступа','shield'),
+    ('rate_limited','HTTP 429','hourglass'),('blocked','Ограничения доступа','lock'),
     ('flow_passes','Повторные проходы','restart'),('actions_performed','Действий выполнено','pointer'),('pages_processed','Страниц обработано','file_text'),('first_available_seconds','До первой доступности','clock'))
 
 
@@ -125,13 +125,13 @@ class StatisticsPanel(QWidget):
         first_grid=QGridLayout();first_grid.setHorizontalSpacing(12);first_grid.setVerticalSpacing(10)
         self.first_caption=self.text('Первый офис',muted=True);self.first_booking_caption=self.text('Первый выбор даты',muted=True)
         self.first_value=QLabel('—');self.first_booking_value=QLabel('—')
-        for row,(icon,caption,value) in enumerate((('clock',self.first_caption,self.first_value),('calendar',self.first_booking_caption,self.first_booking_value))):
+        for row,(icon,caption,value) in enumerate((('flag',self.first_caption,self.first_value),('calendar_first',self.first_booking_caption,self.first_booking_value))):
             caption.setMaximumWidth(190);value.setWordWrap(True)
             first_grid.addWidget(self.icon_label(icon),row,0,Qt.AlignmentFlag.AlignTop);first_grid.addWidget(caption,row,1);first_grid.addWidget(value,row,2)
         first_grid.setColumnMinimumWidth(1,190);first_grid.setColumnStretch(2,1);self.stats_layout.addLayout(first_grid)
         self.success_note=self.text('После оформления ситы можно сохранить данные записи, добавить её в календарь и поделиться статистикой поиска.',muted=True)
         actions=QHBoxLayout();actions.setSpacing(12);self.success_button=self.button('Сита получена','check',self.confirm_success,primary=True);self.success_button.setObjectName('statisticsSuccess');self.success_button.setFixedHeight(38);self.success_button.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed);actions.addWidget(self.success_button)
-        self.achievement_button=self.button('Достижения профиля','calendar',self.show_achievement);actions.addWidget(self.achievement_button);actions.addStretch();self.stats_layout.addLayout(actions)
+        self.achievement_button=self.button('Достижения профиля','award',self.show_achievement);actions.addWidget(self.achievement_button);actions.addStretch();self.stats_layout.addLayout(actions)
         self.stats_layout.addWidget(self.success_note)
         self.history_panel=StatisticsHistory(host,self.statistics);self.stats_layout.addWidget(self.history_panel)
         self.stats_layout.addStretch();self.stack.addWidget(self.stats_page)
@@ -187,16 +187,26 @@ class StatisticsPanel(QWidget):
                 result = results.get(office['result'], 'Исход неизвестен')
                 lines.append(f"{office['at'][11:16]} · {', '.join(office['names'])} · {result}")
             lines.append('')
-        self.history_panel.select_tab(0)
-        detail = self.history_panel.restriction_detail
-        detail.setText(self.tr_text('\n'.join(lines) if lines else 'Эпизодов пока нет'))
-        detail.show()
-        from PySide6.QtWidgets import QScrollArea
-        parent = self.parentWidget()
-        while parent is not None and not isinstance(parent, QScrollArea):
-            parent = parent.parentWidget()
-        if parent is not None:
-            parent.ensureWidgetVisible(detail, 0, 12)
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.tr_text('История возможных ограничений'))
+        dialog.resize(560, 360)
+        layout = QVBoxLayout(dialog)
+        scroll = QScrollArea(dialog)
+        scroll.setWidgetResizable(True)
+        detail = QLabel(self.tr_text('\n'.join(lines) if lines else 'Эпизодов пока нет'))
+        detail.setTextFormat(Qt.TextFormat.PlainText)
+        detail.setWordWrap(True)
+        detail.setAlignment(Qt.AlignmentFlag.AlignTop)
+        detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        detail.setMargin(12)
+        scroll.setWidget(detail)
+        layout.addWidget(scroll, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.button(QDialogButtonBox.StandardButton.Close).setText(self.tr_text('Закрыть'))
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        dialog.exec()
+        dialog.deleteLater()
 
     def refresh_appointment_budget(self):
         from ..appointment_budget_store import BudgetStore
@@ -239,13 +249,15 @@ class StatisticsPanel(QWidget):
         self.budget_action.setText(self.tr_text('Вернуть распределение' if self.budget_disabled else 'Отключить распределение на сегодня'))
         self.budget_history_action.setText(self.tr_text('История возможных ограничений'))
         ready = budget['ready'][11:16]
-        text = f"<b>Защита от бана</b> · Ориентир {budget['target']} · Остаток ≈{budget['remaining']}"
+        text = '<b>Защита от бана</b>'
         if self.budget_disabled:
             text += ' · Распределение отключено'
+        else:
+            text += f" · Ориентир {budget['target']} · Остаток ≈{budget['remaining']}"
         if budget['restricted']:
             text += f' · <a href="restriction">⚠ Возможное ограничение · Проба с {ready}</a>'
         for key, value in self.budget_availability.items():
-            value.setText(str(budget[key]))
+            value.setText(str(budget.get(key, 0)))
         self.budget_label.setText(self.tr_text(text))
 
     def text(self,source,muted=False):
@@ -284,25 +296,31 @@ class StatisticsPanel(QWidget):
             frame=QFrame();frame.setObjectName('statisticRow');row=QHBoxLayout(frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8)
             row.addWidget(self.icon_label(icon));row.addWidget(self.text(title),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;effort.addWidget(frame,1)
         groups=QHBoxLayout();groups.setSpacing(32)
-        for title,icon,keys in [('Доступность','eye',['offices_seen','unique_offices','booking_screens','successes']),('Ошибки и восстановление','wrench',['server_errors','rate_limited','blocked','flow_passes'])]:
+        for title,icon,keys in [('Доступность','eye',['offices_seen','unique_offices','booking_screens']),('Ошибки и восстановление','wrench',['server_errors','rate_limited','blocked','flow_passes','cod_oper_count'])]:
             frame=QWidget();column=QVBoxLayout(frame);column.setContentsMargins(0,0,0,0);column.setSpacing(8);column.addWidget(self.section_heading(title,icon))
             for key in keys:
-                _,caption,glyph=next((m for m in METRICS if m[0]==key),('successes','Полученные ситы','calendar'))
+                _,caption,glyph=next((m for m in METRICS if m[0]==key),('cod_oper_count','Ответы «Сит нет» с cod. oper','shield-alert'))
                 row_frame=QFrame();row_frame.setObjectName('statisticRow');row=QHBoxLayout(row_frame);row.setContentsMargins(0,8,0,8);row.setSpacing(8);row.addWidget(self.icon_label(glyph));row.addWidget(self.text({'booking_screens':'Появления выбора даты','successes':'Получено сит','rate_limited':'Ограничений HTTP 429'}.get(key,caption)),1);number=QLabel('—');number.setObjectName('statisticValue');row.addWidget(number);values[key]=number;column.addWidget(row_frame)
-            if title == 'Доступность':
-                for key, caption in (('banners', 'Сит нет до отправки'), ('no_slots', 'Сит нет после отправки')):
-                    metric = QFrame()
-                    metric.setObjectName('statisticRow')
-                    line = QHBoxLayout(metric)
-                    line.setContentsMargins(0, 8, 0, 8)
-                    line.addWidget(self.text(caption), 1)
-                    value = QLabel('—')
-                    value.setObjectName('statisticValue')
-                    line.addWidget(value)
-                    column.addWidget(metric)
-                    metric.hide()
-                    self.budget_availability[key] = value
-                    self.budget_availability_rows.append(metric)
+            budget_metrics = (
+                (('banners', '«Сит нет» до запроса', 'clipboard'),
+                 ('no_slots', 'Ответы «Сит нет» на запрос записи', 'message'))
+                if title == 'Доступность' else ()
+            )
+            for key, caption, glyph in budget_metrics:
+                metric = QFrame()
+                metric.setObjectName('statisticRow')
+                line = QHBoxLayout(metric)
+                line.setContentsMargins(0, 8, 0, 8)
+                line.setSpacing(8)
+                line.addWidget(self.icon_label(glyph))
+                line.addWidget(self.text(caption), 1)
+                value = QLabel('—')
+                value.setObjectName('statisticValue')
+                line.addWidget(value)
+                column.addWidget(metric)
+                metric.hide()
+                self.budget_availability[key] = value
+                self.budget_availability_rows.append(metric)
             groups.addWidget(frame,1)
         layout.addLayout(groups)
         layout.addWidget(self.section_heading('Автоматизация','settings'))
@@ -329,7 +347,6 @@ class StatisticsPanel(QWidget):
         was_achievement=self.stack.currentWidget()!=self.stats_page
         self.current_achievement=None;self._snapshot=None;self._render_key=None;self.stack.setCurrentWidget(self.stats_page);self.message.clear()
         self.history_panel.refresh(self.profile_combo.currentData(),self.period,False,loaded={'bounds':None,'office_rows':[],'rows':[],'raw_rows':[]},signature=None)
-        self.history_panel.restriction_detail.hide()
         self.refresh_appointment_budget()
         self.refresh()
         if was_achievement:self.show_achievement()

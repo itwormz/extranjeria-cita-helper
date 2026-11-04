@@ -116,17 +116,21 @@ class Toggle(QAbstractButton):
         self.setCheckable(True)
         self.setAccessibleName(name)
         self.setFixedSize(42, 25)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
-        color = self.palette().link().color() if self.isChecked() else self.palette().mid().color()
+        dark = self.palette().window().color().lightness() < 128
+        if self.isChecked():
+            color = QColor('#777FD3') if dark else self.palette().link().color()
+        else:
+            color = QColor('#4D505B' if dark else '#777B89')
         painter.setBrush(color)
         painter.drawRoundedRect(1, 2, 40, 22, 11, 11)
-        painter.setBrush(self.palette().window().color())
-        painter.drawEllipse(22 if self.isChecked() else 3, 4, 18, 18)
+        painter.setBrush(QColor("#F5F6FB"))
+        painter.drawEllipse(21 if self.isChecked() else 3, 4, 18, 18)
         if self.hasFocus():
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.setPen(self.palette().link().color())
@@ -139,6 +143,7 @@ class DesktopWindow(QMainWindow):
         self.store, self.controller = store, controller
         load_fonts(QApplication.instance())
         self.state = {}
+        self.saved_journal = []
         self.errors = {}
         self._availability_count = 0
         self._last_logs = None
@@ -258,6 +263,13 @@ class DesktopWindow(QMainWindow):
             value.setFixedHeight(32);value.setToolTip(value.text())
             summary.addWidget(caption,row,0)
             summary.addWidget(value,row,1)
+        self.attempt_window_caption=label('Окно',muted=True)
+        self.attempt_window_caption.setWordWrap(False)
+        self.attempt_window_label=label('',name='nextAction')
+        self.attempt_window_label.setFixedHeight(32)
+        for column, widget in enumerate((self.attempt_window_caption,self.attempt_window_label)):
+            summary.addWidget(widget,3,column)
+            widget.hide()
         self.timer_label=label('—',name='compactTimer');self.timer_caption=label('до следующего действия',muted=True)
         timer_box=QWidget();timer_box.setObjectName("timerColumn");timer_box.setFixedWidth(140)
         timer_layout=QVBoxLayout(timer_box);timer_layout.setContentsMargins(16,0,0,0);timer_layout.setSpacing(2)
@@ -303,10 +315,13 @@ class DesktopWindow(QMainWindow):
         self.state_rail.hide()
         layout.addWidget(self.status_card)
         layout.addWidget(self.control_toolbar)
-        self.metrics=label('Проверки: 0 за запуск · Всего: —',muted=True,name='compactMetrics')
+        self.metrics=label('',muted=True,name='compactMetrics')
         self.metrics.setWordWrap(False)
+        self.work_budget=label('',muted=True)
+        self.work_budget.hide()
         self.notice=label('Бот сообщит, когда потребуется участие.',muted=True);self.notice.hide()
         layout.addWidget(self.metrics)
+        layout.addWidget(self.work_budget)
         status_page.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Maximum)
         outer.addWidget(status_page)
         journals = QWidget(); journals_layout = QVBoxLayout(journals); journals_layout.setContentsMargins(0,8,0,0)
@@ -516,6 +531,8 @@ class DesktopWindow(QMainWindow):
             if timing_column==0:timing_row+=1
         for previous,current in zip(self.timing_focus_fields,self.timing_focus_fields[1:]):QWidget.setTabOrder(previous,current)
         timing_layout.setColumnStretch(0,1);timing_layout.setColumnStretch(1,1)
+        if timing_column:
+            timing_row += 1
         timing_layout.setRowStretch(timing_row+1,1)
         timing_scroll=QScrollArea(); timing_scroll.setWidgetResizable(True); timing_scroll.setFrameShape(QScrollArea.Shape.NoFrame); timing_scroll.setWidget(timings_page)
         profile_tabs.addTab(timing_scroll,'Тайминги и повторы')
@@ -528,8 +545,8 @@ class DesktopWindow(QMainWindow):
         form.addWidget(label('Пароли и подтверждения — только в Camoufox.',muted=True))
         self.form_error=label(name='formError'); form.addWidget(self.form_error)
         actions=QHBoxLayout(); actions.addStretch(); save=QPushButton('Сохранить профиль');save.setObjectName('saveProfile'); save.setProperty('primary',True)
-        save.setDefault(True); save.clicked.connect(self.save_profile)
-        cancel=QPushButton('Отмена');cancel.setObjectName('cancelProfile');cancel.clicked.connect(self.profile_editor.reject); actions.addWidget(cancel); actions.addWidget(save)
+        save.setAutoDefault(False); save.clicked.connect(self.save_profile)
+        cancel=QPushButton('Отмена');cancel.setObjectName('cancelProfile');cancel.setAutoDefault(False);cancel.clicked.connect(self.profile_editor.reject); actions.addWidget(cancel); actions.addWidget(save)
         form.addLayout(actions); self.profile_editor.hide()
         layout.addWidget(label('Диагностика и звук',name='sectionHeading'))
         self.debug_toggle=self.toggle_row(layout,'Запись диагностики','Сохранять страницы, снимки и ошибки. Таймлайн записывается всегда.',key='diagnostics')
@@ -592,12 +609,17 @@ class DesktopWindow(QMainWindow):
         if index>=0:panel.profile_combo.setCurrentIndex(index)
         self.tabs.setCurrentIndex(1);panel.confirm_success()
 
-    def profile_check_total(self):
+    def profile_check_total(self, period="all"):
         from .statistics import ProfileStatistics
         try:
-            return ProfileStatistics(self.store.path.parent / 'data' / 'profile-statistics.json').total(self.profile_combo.currentData())
+            return ProfileStatistics(self.store.path.parent / 'data' / 'profile-statistics.json').total(self.profile_combo.currentData(), period)
         except (OSError, ValueError):
             return None
+
+    def show_check_metrics(self, today, total):
+        self.metrics.setText(self.t('Проверки за сегодня: {today} · Всего: {total}').format(
+            today=today if today is not None else '—',
+            total=total if total is not None else '—'))
 
     def profile_changed(self):
         profile_id=self.profile_combo.currentData()
@@ -607,8 +629,9 @@ class DesktopWindow(QMainWindow):
                 self.show_error('Не удалось сохранить настройки. Изменения не применены.','last_profile')
             else:self.clear_error('last_profile')
         if not self.controller.active and hasattr(self, 'metrics'):
+            self.load_saved_journal(profile_id)
             total = self.profile_check_total()
-            self.metrics.setText(f"Проверки: 0 за запуск · Всего: {total if total is not None else '—'}")
+            self.show_check_metrics(self.profile_check_total("today"), total)
             self.retranslate()
         self.update_start()
         task=next((t for t in self.profiles if t.id==self.profile_combo.currentData()),None)
@@ -692,54 +715,52 @@ class DesktopWindow(QMainWindow):
         self.profile_summary.setText(str(request.get('province',''))+' · '+PROCEDURE_NAMES.get(request.get('procedure',TIE_PROCEDURE),'')+' · '+self.t(auth))
 
     def build_appointment_protection(self, layout):
+        from textwrap import wrap
         layout.addWidget(label('Проверка сит', name='sectionHeading'), 0, 0, 1, 2)
         self.build_search_behavior(layout, 1)
         layout.addWidget(label('Защита от бана', name='sectionHeading'), 5, 0, 1, 2)
         defaults = AppointmentProtection()
         fields = (
-            ('confirm_new_round', 'Перепроверить после «Сит нет»',
-             'Когда плашка «Сит нет» исчезает, начните новый круг с авторизации. '
-             'Отправка возможна, если в новом круге предупреждение не появлялось.'),
+            ('confirm_new_round', 'Перепроверять наличие сит',
+             'Когда плашка «Сит нет» исчезнет, начнётся новый проход. Запрос уйдёт, если плашка больше не появится.'),
             ('daily_target', 'Бюджет попыток',
-             'По этому числу распределяются отправки в течение дня. '
-             'После исчерпания ориентира поиск продолжается с минимальной паузой.'),
-            ('adaptive_target', 'Адаптивный бюджет попыток',
-             'Если первый ответ «Сит нет» с cod oper пришёл на пятой отправке, '
-             'ориентир на завтра будет четыре.'),
-            ('retry_after_office', 'Дополнительная попытка после офиса',
-             'Если сайт показал офис, а затем ответил «Сит нет», разрешить одну попытку '
-             'раньше расписания после чистого круга и действующих пауз.'),
-            ('minimum_pause_minutes', 'Минимум между попытками',
-             'Минимальное время между отправками Solicitar cita, включая внеплановые.'),
-            ('first_cod_pause_minutes', 'Пауза после первого cod oper',
-             'Сколько ждать после первого ответа «Сит нет» с cod oper в текущем эпизоде.'),
-            ('next_cod_pause_minutes', 'Как часто проверять снова',
-             'Сколько ждать между следующими отправками, пока действует возможное ограничение.'),
+             'Ориентир на день для распределения запросов. После его исчерпания действует минимальная пауза.'),
+            ('adaptive_target', 'Адаптивный бюджет',
+             'Если получен cod. oper, бюджет на завтра равен числу запросов на запись, отправленных до первого такого ответа за день. Запрос с этим ответом не учитывается.'),
+            ('retry_after_office', 'Повторить после офиса',
+             'Если после показа офиса сайт ответит «Сит нет», можно сделать одну попытку раньше запланированного времени. Чистый проход и паузы по-прежнему обязательны.'),
+            ('minimum_pause_minutes', 'Пауза между попытками',
+             'Минимальное время между отправками запроса на запись, в том числе вне расписания.'),
+            ('first_cod_pause_minutes', 'Пауза после первого cod. oper',
+             'Сколько ждать до следующего запроса после первого ответа «Сит нет» с cod. oper.'),
+            ('next_cod_pause_minutes', 'Пауза при повторном cod. oper',
+             'Интервал между пробными запросами, пока сайт продолжает отвечать «Сит нет» с cod. oper.'),
+            ('adaptive_reload_on_429', 'Замедлять обновление при 429',
+             'Каждый новый HTTP 429 на форме заявителя добавляет 30 секунд к интервалу её обновления до конца запуска.'),
         )
         self.protection_fields = {}
         self.protection_labels = []
         for index, (key, title, description) in enumerate(fields):
-            default = getattr(defaults, key)
+            default = getattr(defaults, key, True)
             if isinstance(default, bool):
-                widget = ProfileChoice()
-                widget.addItem('Включено', True)
-                widget.addItem('Выключено', False)
-                box = ProfileField(title, widget)
+                widget = Toggle(title)
+                box = ProfileField(title, widget, description)
             else:
                 widget = ProfileNumber()
                 widget.setRange(1, 2_147_483_647)
                 widget.setValue(default)
                 box = TimingField(title, [widget], 'мин' if key.endswith('_minutes') else '')
             self.protection_labels.append((box, widget, title, description))
-            box.setToolTip(self.t(description))
-            widget.setToolTip(self.t(description))
+            tooltip = "\n".join(wrap(self.t(description), width=44))
+            box.setToolTip(tooltip)
+            widget.setToolTip(tooltip)
             widget.setAccessibleName(title)
             widget.setAccessibleDescription(description)
             layout.addWidget(box, 6 + index // 2, index % 2)
             self.protection_fields[key] = widget
             self.timing_focus_fields.append(widget)
-            if isinstance(widget, QComboBox):
-                widget.currentIndexChanged.connect(self.update_search_behavior)
+            if isinstance(widget, Toggle):
+                widget.toggled.connect(self.update_search_behavior)
         layout.addWidget(self.search_behavior_note, 10, 0, 1, 2)
         layout.addWidget(self.search_behavior_hint, 11, 0, 1, 2)
 
@@ -769,21 +790,44 @@ class DesktopWindow(QMainWindow):
         self.search_behavior_icon=QLabel();self.search_behavior_icon.setAlignment(Qt.AlignmentFlag.AlignTop);note.addWidget(self.search_behavior_icon)
         content=QVBoxLayout();content.setSpacing(4)
         self.search_behavior_title=label('');self.search_behavior_title.setObjectName('searchBehaviorTitle')
-        self.search_behavior_text=label('',muted=True);self.search_behavior_text.setWordWrap(True)
-        content.addWidget(self.search_behavior_title);content.addWidget(self.search_behavior_text);note.addLayout(content,1)
+        self.search_behavior_messages = (
+            'Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.',
+            'Повторная отправка данных может повысить риск блокировки',
+            'Часть настроек защиты отключена. Сайт может временно ограничить отправку запросов.',
+        )
+        messages = QGridLayout()
+        messages.setContentsMargins(0, 0, 0, 0)
+        self.search_behavior_texts = []
+        for message in self.search_behavior_messages:
+            text = label(message, muted=True)
+            text.setWordWrap(True)
+            policy = text.sizePolicy()
+            policy.setRetainSizeWhenHidden(True)
+            text.setSizePolicy(policy)
+            messages.addWidget(text, 0, 0)
+            self.search_behavior_texts.append(text)
+        self.search_behavior_text = self.search_behavior_texts[0]
+        content.addWidget(self.search_behavior_title)
+        content.addLayout(messages)
+        note.addLayout(content, 1)
         self.search_behavior_hint=label('Выбор поведения не меняет интервалы и паузы восстановления.',muted=True)
         self.search_behavior_hint.setWordWrap(True)
 
     def update_search_behavior(self,*_):
+        from textwrap import wrap
         for box, widget, title, description in self.protection_labels:
             box.caption.setText(self.t(title))
-            box.setToolTip(self.t(description))
-            widget.setToolTip(self.t(description))
+            if isinstance(widget, Toggle):
+                box.full_caption = self.t(title)
+                box.sync_caption()
+            tooltip = "\n".join(wrap(self.t(description), width=44))
+            box.setToolTip(tooltip)
+            widget.setToolTip(tooltip)
+            if isinstance(widget, Toggle):
+                box.helper.setToolTip(tooltip)
+                box.caption.setToolTip(self.t(title))
             widget.setAccessibleName(self.t(title))
             widget.setAccessibleDescription(self.t(description))
-            if isinstance(widget, QComboBox):
-                widget.setItemText(0, self.t('Включено'))
-                widget.setItemText(1, self.t('Выключено'))
         enter=self.applicant_no_slots_combo.currentData()=='continue'
         reload=self.no_slots_mode_combo.currentData()=='reload'
         descriptions=(
@@ -791,16 +835,20 @@ class DesktopWindow(QMainWindow):
             'После паузы открыть начальную страницу и пройти поиск заново.' if reload else 'После паузы нажать Salir и продолжить по странице сайта.')
         for widget,text in zip(self.search_mode_descriptions,descriptions):widget.setText(self.t(text))
         protection_disabled = any(
-            widget.currentData() is False
+            not widget.isChecked()
             for widget in self.protection_fields.values()
-            if isinstance(widget, QComboBox)
+            if isinstance(widget, Toggle)
         )
         risk=enter or protection_disabled
         for widget in (self.search_behavior_note,self.search_behavior_title):
             widget.setProperty('risk',risk)
             widget.style().unpolish(widget);widget.style().polish(widget)
         self.search_behavior_title.setText(self.t('Возможны блокировки' if risk else 'Рекомендуется для обычного поиска'))
-        self.search_behavior_text.setText(self.t('Часть настроек защиты отключена. Сайт может временно ограничить отправку запросов.' if protection_disabled else 'Повторная отправка данных может повысить риск блокировки' if risk else 'Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.'))
+        message_index = 2 if protection_disabled else int(risk)
+        for index, (text, message) in enumerate(zip(self.search_behavior_texts, self.search_behavior_messages)):
+            text.setText(self.t(message))
+            text.setVisible(index == message_index)
+        self.search_behavior_text = self.search_behavior_texts[message_index]
         self.search_behavior_icon.setPixmap(self.control_icon('shield' if risk else 'check').pixmap(QSize(18,18)))
 
     def profile_tab_changed(self,index):
@@ -817,9 +865,11 @@ class DesktopWindow(QMainWindow):
         self.update_search_behavior()
         protection = AppointmentProtection.parse(raw.get('request', {}).get('appointment_protection', {}), [])
         for key, widget in self.protection_fields.items():
+            if key == "adaptive_reload_on_429":
+                continue
             value = getattr(protection, key)
-            if isinstance(widget, QComboBox):
-                widget.setCurrentIndex(widget.findData(value))
+            if isinstance(widget, Toggle):
+                widget.setChecked(value)
             else:
                 widget.setValue(value)
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
@@ -849,6 +899,7 @@ class DesktopWindow(QMainWindow):
         from ..timings import AssistTimings, SEQUENCE_KEYS
         try: timings=self.store.timings(raw)
         except ProfileValidationError: timings=AssistTimings()
+        self.protection_fields["adaptive_reload_on_429"].setChecked(timings.adaptive_reload_on_429)
         for key,widgets in self.timing_widgets.items():
             value=getattr(timings,key)
             if key in SEQUENCE_KEYS: widgets[0].setText(', '.join(f'{v:g}' for v in value))
@@ -864,7 +915,7 @@ class DesktopWindow(QMainWindow):
     def save_profile(self):
         f=self.fields
         from ..timings import SEQUENCE_KEYS
-        timings={}
+        timings={"adaptive_reload_on_429": self.protection_fields["adaptive_reload_on_429"].isChecked()}
         try:
             for key,widgets in self.timing_widgets.items():
                 if key in SEQUENCE_KEYS:
@@ -883,8 +934,9 @@ class DesktopWindow(QMainWindow):
                 full_name=f['full_name'].text(),nationality=f['nationality'].currentText(),
                 contact=dict(phone=f['phone'].text(),email=f['email'].text())))
         data['request']['appointment_protection'] = {
-            key: widget.currentData() if isinstance(widget, QComboBox) else widget.value()
+            key: widget.isChecked() if isinstance(widget, Toggle) else widget.value()
             for key, widget in self.protection_fields.items()
+            if key != "adaptive_reload_on_429"
         }
         from ..notifications import NotificationError
         created=[];old=[]
@@ -898,7 +950,12 @@ class DesktopWindow(QMainWindow):
         for ref in old:self.notifications_panel.vault.delete(ref)
         if self.notification_delivery.profile_id==profile_id:self.notification_delivery.generation+=1
         self.profile_editor.accept(); self.refresh_profiles(profile_id)
-        self.statusBar().showMessage(self.t('Профиль сохранён'),5000)
+        if self.controller.active and profile_id == self.profile_combo.currentData():
+            self.controller.send({'command': 'profile_timings', 'timings': timings})
+            message = 'Тайминги применятся со следующего действия. Остальные изменения — при новом запуске.'
+        else:
+            message = 'Профиль сохранён'
+        self.statusBar().showMessage(self.t(message), 5000)
 
     def save_preferences(self):
         previous_revision=self.store.revision()
@@ -940,8 +997,11 @@ class DesktopWindow(QMainWindow):
         else:
             self.clear_error('worker')
             self.notification_delivery.reset()
-            self.controller.start(self.profile_combo.currentData())
-            self.state={}
+            profile_id = self.profile_combo.currentData()
+            self.load_saved_journal(profile_id)
+            self.state = {}
+            self.controller.start(profile_id)
+            self.render_logs()
             self.update_application_icon()
 
     def update_application_icon(self):
@@ -970,12 +1030,29 @@ class DesktopWindow(QMainWindow):
         self.heading.setText('Сит нет' if state.get('screen')=='Сит нет — требуется новый проход' else state.get('screen','Ищем ситу'))
         self.evidence.setText(state.get('evidence',''))
         self.next_label.setText(state.get('next_action',''))
+        from datetime import datetime
+        budget = state.get('appointment_budget') or {}
+        self.work_budget.setVisible(bool(budget))
+        if budget:
+            budget_text = self.t('Бюджет {target} · Остаток ≈{remaining}').format(**budget)
+            if budget.get('restricted'):
+                budget_text += ' · ' + self.t('Возможное ограничение · Проба с {time}').format(
+                    time=budget['ready'][11:16])
+            self.work_budget.setText(budget_text)
+        window = budget.get('attempt_window') if not budget.get('restricted') else None
+        if window:
+            start, end = (datetime.fromisoformat(value) for value in window)
+            self.attempt_window_label.setToolTip(self.t('Окно попытки по Мадриду'))
+            self.attempt_window_label.setText('{start}–{end}'.format(
+                start=start.strftime('%H:%M'), end=end.strftime('%H:%M')))
+        self.attempt_window_caption.setVisible(bool(window))
+        self.attempt_window_label.setVisible(bool(window))
         mode={'working':'Бот работает','waiting':'Ожидание','paused':'Приостановлен','manual':'Требуется участие','recovery':'Восстановление','finished':'Остановлен'}.get(state.get('mode'),'Запуск')
         if state.get('booking_handoff'):mode='Управление передано'
         self.status_label.setText('Связь с ботом потеряна' if state.get('connection_lost') else mode)
         remaining=state.get('remaining_seconds')
         self.timer_label.setText('—' if remaining is None or state.get('connection_lost') else f'{int(remaining)//60:02d}:{int(remaining)%60:02d}')
-        self.metrics.setText(f"Проверки: {state.get('checks',0)} за запуск · Всего: {state.get('profile_checks',0)}")
+        self.show_check_metrics(state.get("profile_checks_today"), state.get("profile_checks"))
         self.notice.setText('Показано последнее состояние. Проверить процесс бота.' if state.get('connection_lost') else
             ('Требуется участие в Camoufox.' if state.get('mode')=='manual' else 'Бот сообщит, когда потребуется участие.'))
         active=self.controller.active
@@ -1023,9 +1100,41 @@ class DesktopWindow(QMainWindow):
         else: self.clear_error('connection')
         if retained: self.status_label.setText('Доверши в Camoufox')
 
+    def load_saved_journal(self, profile_id):
+        import json
+        import os
+        from pathlib import Path
+
+        self.saved_journal = []
+        self.state = dict(self.state, journal=[], availability=[])
+        if not profile_id:
+            return
+        try:
+            root = Path(os.environ.get('DEBUG_DIR', self.store.settings().diagnostics_directory))
+            if not root.is_absolute():
+                root = runtime_root() / root
+            sessions = sorted((root / 'sessions').glob(f'{profile_id}-*/journal.jsonl'), reverse=True)
+            history = []
+            for session in sessions:
+                rows = {}
+                with session.open(encoding='utf-8', errors='replace') as stream:
+                    for line in stream:
+                        try:
+                            row = json.loads(line)
+                        except ValueError:
+                            continue
+                        if isinstance(row, dict) and isinstance(row.get('id'), (str, int)):
+                            rows[row['id']] = row
+                history[:0] = list(rows.values())[-250:]
+                if len(history) >= 250:
+                    break
+            self.saved_journal = history[-250:]
+        except (OSError, ValueError, KeyError, ProfileValidationError):
+            pass
+
     def render_logs(self):
         if not hasattr(self,'preferences'): return
-        rows=self.state.get('journal',[])
+        rows = self.saved_journal + self.state.get('journal', [])
         signature=(rows,self.state.get('availability',[]),self.preferences['dark'],self.preferences['language'])
         if signature == self._last_logs: return
         self._last_logs=signature
@@ -1168,6 +1277,9 @@ class DesktopWindow(QMainWindow):
         for button in (self.restart_button,self.browser_button): button.setEnabled(False)
         if code and not self.errors: self.show_error('Поиск завершился с ошибкой. Проверить диагностику сессии.')
         self.status_label.setText('Поиск остановлен' if not code else 'Поиск завершился с ошибкой')
+        self.work_budget.hide()
+        self.attempt_window_caption.hide()
+        self.attempt_window_label.hide()
         self.next_label.setText('Для начала — «Запустить»')
         self.state=dict(self.state,mode='finished',remaining_seconds=None,failed=bool(code))
         profile_id=getattr(self.controller,'profile_id',None) or self.profile_combo.currentData()
@@ -1451,6 +1563,10 @@ class DesktopWindow(QMainWindow):
             'lock':'<rect x="4" y="10" width="16" height="12" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 15v3"/>',
             'statistics':'<path d="M4 20V12M12 20V4M20 20V8"/>',
             'search':'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',
+            'hourglass':'<path d="M6 3h12M6 21h12M7 3v3c0 3 2 4 5 6-3 2-5 3-5 6v3M17 3v3c0 3-2 4-5 6 3 2 5 3 5 6v3"/>',
+            'flag':'<path d="M5 22V3c5-4 9 4 14 0v11c-5 4-9-4-14 0"/>',
+            'calendar_first':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18"/><circle cx="12" cy="15.5" r="2"/>',
+            'message':'<path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-6 4V5a1 1 0 0 1 1-1Zm3 6h10"/>',
             'clock':'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
             'calendar':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18m-14 6 3 3 6-6"/>',
             'list':'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',

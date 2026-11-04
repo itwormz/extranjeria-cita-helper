@@ -46,6 +46,8 @@ def validate_command(row):
         return set(row) == {'command', 'paused'} and type(row['paused']) is bool
     if name == 'appointment_distribution':
         return set(row) == {'command', 'disabled'} and type(row['disabled']) is bool
+    if name == 'profile_timings':
+        return set(row) == {'command', 'timings'} and isinstance(row['timings'], dict)
     if name == 'preferences':
         return set(row) == {'command', 'diagnostics', 'sound'} and all(type(row[k]) is bool for k in ('diagnostics', 'sound'))
     return False

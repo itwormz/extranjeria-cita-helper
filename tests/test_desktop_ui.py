@@ -41,6 +41,10 @@ def test_three_tabs_and_profile_creation_requires_valid_data(window):
     assert window.fields['delay_max'].value()==.8
     assert window.profile_editor.isVisible()
     assert window.fields["label"].text() == ""
+    window.fields["label"].setFocus()
+    QTest.keyClick(window.fields["label"], Qt.Key.Key_Return)
+    assert window.profile_editor.isVisible()
+    assert not window.form_error.text()
     for key,value in dict(label="Демонстрация",full_name="NOMBRE APELLIDO",document_number="X0000000T",phone="600000000",email="demo@example.com").items():
         window.fields[key].setText(value)
     window.fields["nationality"].setCurrentText("UCRANIA")
@@ -115,9 +119,9 @@ def test_language_switch_preserves_profile_edits_and_updates_live_status(window)
     assert window.fields['fill_mode'].itemText(0)=='Enter profile details'
     assert window.store.preferences()['language']=='en'
     window.on_state(dict(screen='Выбор офиса',evidence='Виден селектор доступных офисов',
-        next_action='Проверить доступные офисы',mode='working',checks=7))
+        next_action='Проверить доступные офисы',mode='working',checks=7,profile_checks_today=9,profile_checks=12))
     assert window.heading.text()=='Office selection'
-    assert window.metrics.text().startswith('Checks: 7')
+    assert window.metrics.text().startswith('Checks today: 9')
     window.language_actions['es'].trigger()
     assert window.tabs.tabText(0)=='Seguimiento'
     assert window.heading.text()=='Selección de oficina'
@@ -213,15 +217,37 @@ def test_window_icon_provides_native_raster_sizes(window):
     assert not window.windowIcon().pixmap(32, 32).isNull()
 
 
-def test_selected_profile_owns_persisted_total(window):
+def test_saved_journal_uses_runtime_root_for_relative_debug_dir(window, tmp_path, monkeypatch):
+    runtime = tmp_path / 'runtime'
+    journal = runtime / 'diagnostics' / 'sessions' / 'test-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    journal.write_text('{"id": 1, "event": "flow_start"}\n', encoding='utf-8')
+    monkeypatch.setenv('DEBUG_DIR', 'diagnostics')
+    monkeypatch.setattr('app.desktop.window.runtime_root', lambda: runtime)
+
+    window.load_saved_journal('test')
+
+    assert window.saved_journal == [{'id': 1, 'event': 'flow_start'}]
+
+
+def test_selected_profile_owns_persisted_total(window, monkeypatch):
     from app.desktop.statistics import ProfileStatistics
     window.profile_combo.addItem('First', 'first-profile')
     first = window.profile_combo.currentData()
     stats = ProfileStatistics(window.store.path.parent / 'data' / 'profile-statistics.json')
-    stats.increment(first)
+    from datetime import datetime, timedelta
+    from app.appointment_schedule import MADRID
+    from app.desktop import statistics
+    now = datetime(2026, 10, 30, 12, tzinfo=MADRID)
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz)
+    monkeypatch.setattr(statistics, 'datetime', FrozenDateTime)
+    stats.increment(first, at=now - timedelta(days=1))
     stats.increment(first)
     window.profile_changed()
-    assert window.metrics.text().endswith('2')
+    assert window.metrics.text() == window.t('Проверки за сегодня: {today} · Всего: {total}').format(today=1, total=2)
     window.profile_combo.addItem('Second test profile', 'second')
     window.profile_combo.setCurrentIndex(window.profile_combo.count()-1)
     assert window.metrics.text().endswith('0')

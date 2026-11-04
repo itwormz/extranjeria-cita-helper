@@ -250,7 +250,9 @@ class PageJournal:
                         'browser_shown':'Camoufox показан', 'browser_show_failed':'Не удалось показать Camoufox'}
             if event == 'flow_restart':
                 reason = detail.casefold()
-                message = ('Новый проход после истечения сессии' if any(t in reason for t in ('истёк','истек','session_expired')) else
+                message = ('Плашка «Сит нет» исчезла — проверяем чистый проход без отправки данных'
+                           if 'проверяем чистый проход' in reason else
+                           'Новый проход после истечения сессии' if any(t in reason for t in ('истёк','истек','session_expired')) else
                            'Новый проход после блокировки' if 'блокиров' in reason else
                            'Новый проход после ошибки сайта' if 'ошиб' in reason else
                            'Новый проход после таймаута действия' if 'таймаут' in reason else

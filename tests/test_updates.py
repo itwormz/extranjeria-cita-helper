@@ -147,3 +147,23 @@ def test_dev_current_version_compares_with_stable_without_accepting_dev_releases
     assert select_release(release('0.2.2'),'0.2.2.dev1','windows','x64').version=='0.2.2'
     with pytest.raises(ValueError):
         select_release(release('0.2.2.dev2'),'0.2.2.dev1','windows','x64')
+
+
+@pytest.mark.parametrize(("target", "arch", "portable", "name"), [
+    ("windows", "x64", False, "SantaCita-0.2.0-windows-x64.msi"),
+    ("windows", "x64", True, "SantaCita-0.2.0-windows-x64-portable.zip"),
+    ("macos", "arm64", False, "SantaCita-0.2.0-macOS-Apple-Silicon.dmg"),
+    ("macos", "x64", False, "SantaCita-0.2.0-macOS-Intel.dmg"),
+    ("linux", "x64", False, "SantaCita-0.2.0-x86_64.AppImage"),
+])
+def test_renamed_release_assets(target, arch, portable, name):
+    from app.desktop.updates import select_release
+
+    data = release()
+    old, sums, proof = data["assets"]
+    data["assets"] += [
+        {**old, "name": name, "browser_download_url": old["browser_download_url"].replace(old["name"], name)},
+        {**proof, "name": name + ".sigstore.json",
+         "browser_download_url": proof["browser_download_url"].replace(old["name"], name)},
+    ]
+    assert select_release(data, "0.1.0", target, arch, portable=portable).name == name

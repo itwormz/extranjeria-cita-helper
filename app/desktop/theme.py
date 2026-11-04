@@ -166,6 +166,7 @@ def apply_theme(app, *, dark):
         QWidget#profileField QLineEdit:focus, QWidget#profileField QComboBox:focus {{ border:0; }}
         QLabel#compactTimer {{ font-family:"IBM Plex Mono"; font-size:20px; }}
         QLabel#compactMetrics {{ font-size:11px; }}
+        QLabel#protectionCaption {{ color:{c['text']}; font-size:13px; }}
         QLabel#profileCaption {{ color:{c['muted']}; font-size:11px; }}
         QPushButton[profileMode="true"] {{ padding:5px 9px; font-size:12px; }}
         QPushButton[profileMode="true"]:checked {{ background:{c['selection']}; border-color:{c['accent']}; }}

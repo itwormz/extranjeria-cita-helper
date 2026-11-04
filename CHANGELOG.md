@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Search and browser reliability
+
+- Increase the applicant form refresh interval after HTTP 429 when adaptive timing is enabled.
+- Show the daily attempt budget and the next probe during a possible restriction. Count no-appointment replies with cod. oper from recorded history for the selected statistics period.
+- Keep recent timeline entries across search runs and explain why a new pass starts.
+- Apply saved timing changes during a search and simplify protection settings with switches and tooltips.
+- Retry Camoufox startup on macOS when display size constraints prevent fingerprint generation. Fix accidental profile validation when pressing Enter in a field.
+
+## 0.3.0.dev13 — Local testing
+
+- Observe ICP traffic without holding page resources and increase applicant form refresh intervals after HTTP 429.
+- Show the daily budget and restriction timing in the work tab, restore the previous journal, and apply saved timing settings during the run.
+
 ## 0.3.0 — Appointment pacing and restriction history
 
 - Pace desktop appointment submissions with a daily attempt budget, confirmation after a no-appointments notice and a minimum interval. Existing profiles receive the new defaults. A fresh search pass replaces result POST reloads in the desktop worker.

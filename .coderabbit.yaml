@@ -51,7 +51,7 @@ reviews:
       mode: off
     title:
       mode: warning
-      requirements: "Use fix:, test:, docs:, release: or chore:; keep under 72 characters."
+      requirements: "Start with fix:, test:, docs:, release: or chore: (case-insensitive, colon required). Keep the title under 72 characters."
     description:
       mode: off
     issue_assessment:
