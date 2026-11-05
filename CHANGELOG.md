@@ -13,6 +13,7 @@
 - Count each separate applicant page showing “No appointments”, even when the warning stays visible across refreshes. Recover earlier observations from saved journals when they can be matched to a recorded search session.
 - Telegram recipient connection links now remain valid for five minutes.
 - Stop search startup if notification credentials cannot be prepared; restore vault access or disable the affected channel before retrying.
+- Allow disabling an unreadable notification channel or saving replacement credentials without losing the existing secret reference when disabling. Report profile-read failures instead of silently cancelling startup.
 - Resume recipient detection when reusing a Telegram link after a polling error.
 - Preserve journal visits beyond the last heartbeat and retry unmatched visits when their search session becomes available.
 - Use “Try now” to bring the next attempt forward once, bypassing the budget window or `cod. oper` pause while keeping other protective delays and the clean-round check.

@@ -204,3 +204,17 @@ def test_disabled_notifications_do_not_require_vault_access(qt_app):
     assert delivery.prepare('one') is True
     delivery.vault.get.assert_not_called()
     delivery.stop()
+
+
+@pytest.mark.parametrize('error', [StopIteration(), ValueError('Unreadable profile')])
+def test_profile_read_failure_is_reported_before_start_is_rejected(qt_app, error):
+    from app.desktop.notification_delivery import NotificationDelivery
+    class Store:
+        def raw_profile(self, profile):
+            raise error
+    delivery = NotificationDelivery(Store())
+    errors = []
+    delivery.result.connect(lambda channel, message: errors.append((channel, message)))
+    assert delivery.prepare('missing') is False
+    assert errors == [('profile', 'Не удалось прочитать выбранный профиль. Выберите профиль заново и повторите запуск.')]
+    delivery.stop()

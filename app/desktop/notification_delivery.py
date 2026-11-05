@@ -23,6 +23,7 @@ class NotificationDelivery(QObject):
         try:
             raw = self.store.raw_profile(profile_id)
         except (ValueError, StopIteration):
+            self.result.emit('profile', 'Не удалось прочитать выбранный профиль. Выберите профиль заново и повторите запуск.')
             return False
         config = settings(raw.get('notifications', {}))
         for channel in ('telegram', 'webhook'):

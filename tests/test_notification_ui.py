@@ -324,3 +324,72 @@ def test_populated_notification_field_does_not_reenter_caption_layout(owner, qt_
     qt_app.processEvents()
 
     assert len(calls) <= 3
+
+
+@pytest.mark.parametrize('channel', ['telegram', 'webhook'])
+@pytest.mark.parametrize('recovery', ['disable', 'replace', 'unchanged'])
+def test_unreadable_channel_can_be_disabled_or_replaced_without_losing_other_secrets(owner, channel, recovery):
+    from unittest.mock import Mock
+    from app.notifications import NotificationError
+    panel = owner.notifications_panel
+    secrets = {'telegram': {'token': '123456:DEMO_token'},
+               'webhook': {'url': 'https://example.test/hook', 'method': 'POST'}}
+    def read(reference):
+        if reference == channel:
+            raise NotificationError('Secret unavailable')
+        return secrets[reference]
+    panel.vault = Mock()
+    panel.vault.get.side_effect = read
+    panel.vault.put.return_value = 'replacement'
+    panel.load({'telegram': {'enabled': True, 'secret_ref': 'telegram', 'events': ['booking'],
+                            'recipients': [{'id': '42', 'label': 'Demo'}]},
+                'webhook': {'enabled': True, 'secret_ref': 'webhook', 'events': ['booking']}})
+    if recovery == 'unchanged':
+        with pytest.raises(NotificationError, match='Secret unavailable'):
+            panel.prepare()
+        panel.vault.put.assert_not_called()
+        return
+    if recovery == 'disable':
+        getattr(panel, channel + '_toggle').setChecked(False)
+    elif channel == 'telegram':
+        panel.token.setText('123456:REPLACEMENT_token')
+    else:
+        panel.url.setText('https://example.test/replacement')
+    config, created, old = panel.prepare()
+    other = 'webhook' if channel == 'telegram' else 'telegram'
+    assert config[other]['enabled'] and config[other]['secret_ref'] == other
+    panel.vault.delete.assert_not_called()
+    if recovery == 'disable':
+        assert not config[channel]['enabled'] and config[channel]['secret_ref'] == channel
+        assert created == old == []
+        panel.vault.put.assert_not_called()
+    else:
+        assert config[channel]['secret_ref'] == 'replacement'
+        assert created == ['replacement'] and old == [channel]
+
+
+def test_profile_can_disable_unreadable_notifications_and_start_again(owner, task_mapping, monkeypatch):
+    from unittest.mock import Mock
+    from tests.test_desktop_profiles import fields
+    from app.notifications import NotificationError
+    data = fields(task_mapping)
+    data['notifications'] = {'telegram': {'enabled': True, 'secret_ref': 'unreadable',
+                            'events': ['booking'], 'recipients': [{'id': '42', 'label': 'Demo'}]}}
+    profile = owner.store.save_profile(None, data, revision=owner.store.revision())
+    panel = owner.notifications_panel
+    panel.vault = Mock()
+    panel.vault.get.side_effect = lambda ref: (_ for _ in ()).throw(NotificationError('Vault unavailable')) if ref else {}
+    owner.refresh_profiles(profile)
+    owner.open_editor(profile)
+    owner.profile_tabs.setCurrentIndex(2)
+    panel.telegram_toggle.setChecked(False)
+    owner.save_profile()
+    saved = owner.store.raw_profile(profile)['notifications']['telegram']
+    assert not saved['enabled'] and saved['secret_ref'] == 'unreadable'
+    panel.vault.put.assert_not_called()
+    panel.vault.delete.assert_not_called()
+    owner.notification_delivery.vault.get = Mock(side_effect=AssertionError('Disabled channel must not read vault'))
+    start = Mock()
+    monkeypatch.setattr(owner.controller, 'start', start, raising=False)
+    owner.start_or_pause()
+    start.assert_called_once_with(profile)

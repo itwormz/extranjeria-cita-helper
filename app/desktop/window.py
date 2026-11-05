@@ -1218,7 +1218,8 @@ class DesktopWindow(QMainWindow):
             QApplication.instance().setWindowIcon(self._status_icons[status])
 
     def notification_result(self,channel,message):
-        self.statusBar().showMessage(channel.title()+': '+self.t(message),7000)
+        title = self.t('Профиль') if channel == 'profile' else channel.title()
+        self.statusBar().showMessage(title+': '+self.t(message),7000)
 
     def on_state(self, state):
         profile_id=getattr(self.controller,'profile_id',None) or self.profile_combo.currentData()
