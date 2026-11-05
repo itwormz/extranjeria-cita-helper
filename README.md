@@ -36,7 +36,7 @@ In **Settings → Edit profile → Notifications**, enable Telegram and/or a web
 
 Enabled notification credentials are read before a search starts. If the operating system needs permission to access its secret store, the request appears at this stage. Sending an office or booking alert uses the prepared credentials. Telegram recipient connection links expire after five minutes.
 
-**Telegram:** create a bot with [@BotFather](https://t.me/BotFather), paste its token and click **Check**. Use **+** next to recipients to open the bot or copy a two-minute pairing link for another recipient; confirm the detected chat. Groups and manual Chat ID/channel entry are supported. An existing Telegram webhook is never disconnected. Finish with **Send test** and save the profile.
+**Telegram:** create a bot with [@BotFather](https://t.me/BotFather), paste its token and click **Check**. Use **+** next to recipients to open the bot or copy a five-minute pairing link for another recipient; confirm the detected chat. Groups and manual Chat ID/channel entry are supported. An existing Telegram webhook is never disconnected. Finish with **Send test** and save the profile.
 
 **Webhook:** enter an HTTPS URL and select POST (JSON) or GET (URL parameters). **Advanced parameters** opens custom headers, URL parameters and a custom JSON template. Values are secret by default; the lock changes that display mode and the eye temporarily reveals a value. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Send a test before saving.
 

@@ -36,7 +36,7 @@ En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un web
 
 Las credenciales de los canales activados se leen antes de iniciar la búsqueda. Si el sistema necesita permiso para acceder al almacén de secretos, lo solicita en ese momento. Las alertas de oficina o cita utilizan las credenciales preparadas. Los enlaces para conectar un destinatario de Telegram caducan a los cinco minutos.
 
-**Telegram:** crear un bot con [@BotFather](https://t.me/BotFather), pegar el token y pulsar **Comprobar**. El botón **+** junto a los destinatarios permite abrir el bot o copiar un enlace de vinculación de dos minutos para otra persona; confirmar el chat encontrado. Se admiten grupos y Chat ID/canal manual. No se desconecta ningún webhook existente de Telegram. Enviar una prueba y guardar el perfil.
+**Telegram:** crear un bot con [@BotFather](https://t.me/BotFather), pegar el token y pulsar **Comprobar**. El botón **+** junto a los destinatarios permite abrir el bot o copiar un enlace de vinculación de cinco minutos para otra persona; confirmar el chat encontrado. Se admiten grupos y Chat ID/canal manual. No se desconecta ningún webhook existente de Telegram. Enviar una prueba y guardar el perfil.
 
 **Webhook:** introducir una URL HTTPS y seleccionar POST (JSON) o GET (parámetros de URL). **Parámetros avanzados** abre las cabeceras, los parámetros de URL y la plantilla JSON personalizada. Los valores son secretos por defecto; el candado cambia este modo de visualización y el ojo muestra temporalmente el valor. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Enviar una prueba antes de guardar.
 
