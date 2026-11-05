@@ -208,6 +208,7 @@ def test_try_now_waits_for_copied_document_budget():
     asyncio.run(r.step())
     assert r.control.pending_attempt_now
     assert not temporary.immediate_attempt
+
     document = r.budget = AppointmentBudget(day=now.date(), sent=3, first_cod_oper=now,
                                             last_submission=now)
     r.control.appointment_budget_is_temporary = False
@@ -219,3 +220,42 @@ def test_try_now_waits_for_copied_document_budget():
     document.submitted(now + timedelta(minutes=15), r.protection)
     assert not document.immediate_attempt
     assert not temporary.immediate_attempt
+
+
+@pytest.mark.parametrize('still_temporary', [False, True])
+def test_pending_try_now_expires_at_madrid_midnight(monkeypatch, still_temporary):
+    from datetime import datetime, timezone
+    from unittest.mock import Mock
+    import app.desktop.worker as worker
+    import app.assist_flow as flow
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_schedule import MADRID
+    from app.config import AppointmentProtection
+
+    class Clock(datetime):
+        current = datetime(2026, 11, 5, 22, 59, tzinfo=timezone.utc)
+
+        @classmethod
+        def now(cls, tz=None):
+            return cls.current.astimezone(tz)
+
+    monkeypatch.setattr(worker, 'datetime', Clock)
+    monkeypatch.setattr(flow, 'datetime', Clock)
+    r = runner()
+    r.protection = AppointmentProtection()
+    r.budget = AppointmentBudget(day=Clock.now(MADRID).date())
+    r.control.appointment_budget_is_temporary = True
+    r.control.save_appointment_budget = Mock()
+    r.observe = AsyncMock(return_value=Observed('applicant', 'doc', 'sig', None))
+    r.observe_appointment_budget = Mock()
+    r.manual_signature = 'sig'
+    assert worker.apply_command(r.control, {'command': 'appointment_try_now'})
+    assert r.control.pending_attempt_now_day == Clock.now(MADRID).date()
+    asyncio.run(r.step())
+    assert r.control.pending_attempt_now
+    Clock.current = datetime(2026, 11, 5, 23, 1, tzinfo=timezone.utc)
+    r.control.appointment_budget_is_temporary = still_temporary
+    asyncio.run(r.step())
+    assert not r.control.pending_attempt_now
+    assert not r.budget.immediate_attempt
+    assert 'истёк' in r.last_action_detail

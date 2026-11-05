@@ -5,9 +5,11 @@ import os
 import signal
 import sys
 from contextlib import suppress
+from datetime import datetime
 
 from ..assist_control import AssistControl
 from ..assist_runtime import run_assist
+from ..appointment_schedule import MADRID
 from ..logging_utils import register_sensitive
 from .profiles import ProfileStore
 from .protocol import JsonLinesDecoder, encode_message, validate_command
@@ -33,6 +35,7 @@ def apply_command(control, message):
         control.daily_target_pending = True
     elif command == 'appointment_try_now':
         control.pending_attempt_now = True
+        control.pending_attempt_now_day = datetime.now(MADRID).date()
     elif command == 'appointment_distribution':
         budget = getattr(control, 'appointment_budget', None)
         if budget is not None and isinstance(message.get('disabled'), bool):
