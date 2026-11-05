@@ -169,3 +169,38 @@ def test_unprepared_booking_never_prompts_for_vault_access(qt_app):
         queued[0]()
     delivery.vault.get.assert_not_called()
     delivery.stop()
+
+
+def test_secret_preparation_reports_failure_and_can_be_retried(qt_app):
+    from unittest.mock import Mock
+    from app.desktop.notification_delivery import NotificationDelivery
+
+    class Store:
+        def raw_profile(self, profile):
+            return {'notifications': {
+                'telegram': {'enabled': True, 'events': ['booking'], 'secret_ref': 'tg'},
+                'webhook': {'enabled': True, 'events': ['booking'], 'secret_ref': 'web'}}}
+
+    delivery = NotificationDelivery(Store())
+    errors = []
+    delivery.result.connect(lambda channel, message: errors.append((channel, message)))
+    delivery.vault.get = Mock(side_effect=[n.NotificationError('Vault denied'), {'url': 'https://example.test'}])
+    assert delivery.prepare('one') is False
+    assert errors == [('telegram', 'Vault denied')]
+    delivery.vault.get = Mock(return_value={'token': 'synthetic'})
+    assert delivery.prepare('one') is True
+    delivery.vault.get.assert_called_once_with('tg')
+    delivery.stop()
+
+
+def test_disabled_notifications_do_not_require_vault_access(qt_app):
+    from unittest.mock import Mock
+    from app.desktop.notification_delivery import NotificationDelivery
+    class Store:
+        def raw_profile(self, profile):
+            return {'notifications': {}}
+    delivery = NotificationDelivery(Store())
+    delivery.vault.get = Mock(side_effect=AssertionError('Disabled channels must not read vault'))
+    assert delivery.prepare('one') is True
+    delivery.vault.get.assert_not_called()
+    delivery.stop()

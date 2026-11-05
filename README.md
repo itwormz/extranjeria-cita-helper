@@ -34,7 +34,7 @@ Linux packaging changes use `Cita_Extranjeria_Helper-<version>-x86_64.AppImage` 
 
 In **Settings → Edit profile → Notifications**, enable Telegram and/or a webhook and choose events independently for each channel: authentication, office selection, appointment selection or search stopped with an error. Routine “no appointments” results do not send messages.
 
-Enabled notification credentials are read before a search starts. If the operating system needs permission to access its secret store, the request appears at this stage. Sending an office or booking alert uses the prepared credentials. Telegram recipient connection links expire after five minutes.
+Enabled notification credentials are read before a search starts. If the operating system needs permission to access its secret store, the request appears at this stage. If credentials for an enabled notification channel cannot be read, the search does not start; restore secret-store access or disable that channel, then start again. Sending an office or booking alert uses the prepared credentials. Telegram recipient connection links expire after five minutes.
 
 **Telegram:** create a bot with [@BotFather](https://t.me/BotFather), paste its token and click **Check**. Use **+** next to recipients to open the bot or copy a five-minute pairing link for another recipient; confirm the detected chat. Groups and manual Chat ID/channel entry are supported. An existing Telegram webhook is never disconnected. Finish with **Send test** and save the profile.
 

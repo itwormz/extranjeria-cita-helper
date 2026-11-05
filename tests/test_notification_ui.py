@@ -212,6 +212,49 @@ def test_dialog_does_not_release_another_dialogs_pairing_lease(owner):
     second.reject()
 
 
+def test_reusing_pair_after_poll_error_restarts_polling(owner, monkeypatch):
+    from unittest.mock import Mock
+    from app.notifications import Pairing
+
+    dialog = RecipientDialog(owner, '123456:DEMO_retry')
+    dialog.pair = Pairing('demo_bot')
+    dialog.owns_poll = True
+    dialog._polling_tokens.add(dialog.token)
+    dialog.timer.start()
+    dialog.jobs.submit = lambda work, done: done(False, 'HTTP 503')
+    dialog.poll()
+    assert not dialog.timer.isActive() and not dialog.owns_poll
+    opened = Mock()
+    monkeypatch.setattr(dialog, 'open_link', opened)
+    monkeypatch.setattr(dialog.client, 'begin_pairing', Mock(side_effect=AssertionError('Must reuse link')))
+    received = []
+    dialog.jobs.submit = lambda work, done: received.append(done)
+    dialog.start_pairing(True)
+    assert dialog.owns_poll and dialog.timer.isActive()
+    assert len(received) == 1
+    opened.assert_called_once_with(True)
+    received[0](True, None)
+    dialog.reject()
+
+
+def test_reused_pair_does_not_take_another_dialogs_polling_claim(owner, monkeypatch):
+    from unittest.mock import Mock
+    from app.notifications import Pairing
+    token = '123456:DEMO_reuse_claim'
+    first, second = RecipientDialog(owner, token), RecipientDialog(owner, token)
+    first.pair = Pairing('demo_bot')
+    second.owns_poll = True
+    second._polling_tokens.add(token)
+    opened = Mock()
+    monkeypatch.setattr(first, 'open_link', opened)
+    first.start_pairing(True)
+    opened.assert_not_called()
+    assert not first.owns_poll and second.owns_poll
+    first.reject()
+    assert token in second._polling_tokens
+    second.reject()
+
+
 def test_found_chat_button_contents_fit_its_actual_height(owner,qt_app):
     dialog=RecipientDialog(owner,'123456:DEMO_token')
     dialog.found({'id':'42','label':'Demo','type':'private','username':'demo_user'})

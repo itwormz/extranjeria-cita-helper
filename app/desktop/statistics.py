@@ -197,6 +197,7 @@ class ProfileStatistics:
             db.execute('CREATE TABLE IF NOT EXISTS activity_days(profile TEXT,day TEXT,PRIMARY KEY(profile,day))')
             db.execute('CREATE TABLE IF NOT EXISTS applicant_notices (profile TEXT,session TEXT,document TEXT,start TEXT,PRIMARY KEY(profile,session,document))')
             db.execute('CREATE INDEX IF NOT EXISTS applicant_notices_profile_time ON applicant_notices(profile,start)')
+            db.execute('CREATE TABLE IF NOT EXISTS pending_applicant_notices (profile TEXT,document TEXT,start TEXT,PRIMARY KEY(profile,document,start))')
             db.execute('CREATE INDEX IF NOT EXISTS episodes_profile_range ON episodes(profile,start,last_seen)')
             db.execute('CREATE INDEX IF NOT EXISTS episodes_open ON episodes(profile,session,kind,end)')
             episode_columns = {row[1] for row in db.execute('PRAGMA table_info(episodes)')}
@@ -579,7 +580,9 @@ class ProfileStatistics:
     def restore_applicant_notices(self, profile_id, root):
         """Recover document-level counts from append-only presentation journals."""
         for path in sorted((Path(root) / 'sessions').glob(f'{profile_id}-*/journal.jsonl')):
-            key = 'applicant-notices:' + _digest(str(path.resolve()))
+            # Re-read old cursors once: the previous importer could drop the tail
+            # of an open session permanently. Document keys make replay idempotent.
+            key = 'applicant-notices-v2:' + _digest(str(path.resolve()))
             with self._db(write=False) as db:
                 saved = db.execute('SELECT value FROM metadata WHERE key=?', (key,)).fetchone()
             offset = int(saved[0]) if saved else 0
@@ -611,17 +614,27 @@ class ProfileStatistics:
                 continue
             with self._db() as db:
                 for document, timestamp in rows:
-                    session = db.execute(
-                        'SELECT session FROM sessions WHERE profile=? AND start<=? '
-                        'AND COALESCE(end,last_seen)>=? ORDER BY start DESC LIMIT 1',
-                        (profile_id, timestamp, timestamp),
-                    ).fetchone()
-                    if session:
-                        db.execute('INSERT INTO applicant_notices VALUES (?,?,?,?) '
-                                   'ON CONFLICT(profile,session,document) DO UPDATE SET start=MIN(start,excluded.start)',
-                                   (profile_id, session['session'], document, timestamp))
+                    db.execute('INSERT OR IGNORE INTO pending_applicant_notices VALUES (?,?,?)',
+                               (profile_id, document, timestamp))
                 db.execute('INSERT INTO metadata VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
                            (key, str(offset)))
+        # Retry unmatched visits even when no journal grew. Advancing the cursor
+        # is safe because the hashed visit is retained, not silently discarded.
+        with self._db() as db:
+            pending = db.execute('SELECT document,start FROM pending_applicant_notices WHERE profile=?',
+                                 (profile_id,)).fetchall()
+            for document, timestamp in pending:
+                session = db.execute(
+                    'SELECT session FROM sessions WHERE profile=? AND start<=? '
+                    'AND (end IS NULL OR end>=?) ORDER BY start DESC LIMIT 1',
+                    (profile_id, timestamp, timestamp),
+                ).fetchone()
+                if session:
+                    db.execute('INSERT INTO applicant_notices VALUES (?,?,?,?) '
+                               'ON CONFLICT(profile,session,document) DO UPDATE SET start=MIN(start,excluded.start)',
+                               (profile_id, session['session'], document, timestamp))
+                    db.execute('DELETE FROM pending_applicant_notices WHERE profile=? AND document=? AND start=?',
+                               (profile_id, document, timestamp))
 
     def observe_page(self, profile_id, session_id, stage, document, at=None, recognition='known', evidence=(), variant=''):
         return self._episode(profile_id, session_id, 'page', stage=stage, document=document, at=at, recognition=recognition, evidence=evidence, variant=variant)

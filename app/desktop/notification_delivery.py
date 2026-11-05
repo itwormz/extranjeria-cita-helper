@@ -19,10 +19,11 @@ class NotificationDelivery(QObject):
         previous = self.secrets if self.prepared_profile == profile_id else {}
         self.secrets = {}
         self.prepared_profile = profile_id
+        ready = True
         try:
             raw = self.store.raw_profile(profile_id)
         except (ValueError, StopIteration):
-            return
+            return False
         config = settings(raw.get('notifications', {}))
         for channel in ('telegram', 'webhook'):
             connection = config[channel]
@@ -35,7 +36,9 @@ class NotificationDelivery(QObject):
             try:
                 self.secrets[reference] = self.vault.get(reference)
             except NotificationError as exc:
+                ready = False
                 self.result.emit(channel, str(exc))
+        return ready
 
     def observe(self,profile_id,state,language):
         if not profile_id or self.closed:return

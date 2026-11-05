@@ -34,7 +34,7 @@ Los nuevos paquetes Linux usan `Cita_Extranjeria_Helper-<version>-x86_64.AppImag
 
 En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un webhook. Elegir los eventos por separado para cada canal: autenticación, selección de oficina, selección de cita o búsqueda detenida por un error. La ausencia habitual de citas no genera mensajes.
 
-Las credenciales de los canales activados se leen antes de iniciar la búsqueda. Si el sistema necesita permiso para acceder al almacén de secretos, lo solicita en ese momento. Las alertas de oficina o cita utilizan las credenciales preparadas. Los enlaces para conectar un destinatario de Telegram caducan a los cinco minutos.
+Las credenciales de los canales activados se leen antes de iniciar la búsqueda. Si el sistema necesita permiso para acceder al almacén de secretos, lo solicita en ese momento. Si no se pueden leer las credenciales de un canal activado, la búsqueda no se inicia: restaura el acceso al almacén o desactiva ese canal y vuelve a iniciar la búsqueda. Las alertas de oficina o cita utilizan las credenciales preparadas. Los enlaces para conectar un destinatario de Telegram caducan a los cinco minutos.
 
 **Telegram:** crear un bot con [@BotFather](https://t.me/BotFather), pegar el token y pulsar **Comprobar**. El botón **+** junto a los destinatarios permite abrir el bot o copiar un enlace de vinculación de cinco minutos para otra persona; confirmar el chat encontrado. Se admiten grupos y Chat ID/canal manual. No se desconecta ningún webhook existente de Telegram. Enviar una prueba y guardar el perfil.
 

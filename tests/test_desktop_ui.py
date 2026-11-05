@@ -1320,6 +1320,22 @@ def test_try_now_routes_only_for_active_profile_before_handoff(window):
     assert len(commands) == 1
 
 
+def test_search_does_not_start_until_notification_secrets_are_ready(window, monkeypatch):
+    from unittest.mock import Mock
+    prepare = Mock(side_effect=[False, True])
+    monkeypatch.setattr(window.notification_delivery, 'prepare', prepare)
+    start = Mock()
+    monkeypatch.setattr(window.controller, 'start', start)
+    journal = Mock()
+    monkeypatch.setattr(window, 'load_saved_journal', journal)
+    window.start_or_pause()
+    start.assert_not_called()
+    journal.assert_not_called()
+    window.start_or_pause()
+    start.assert_called_once()
+    journal.assert_called_once()
+
+
 def test_daily_budget_dialog_saves_total_and_offers_reset(window):
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QDialog, QPushButton

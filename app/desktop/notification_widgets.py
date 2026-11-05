@@ -527,11 +527,19 @@ class RecipientDialog(QDialog):
 
     def start_pairing(self,copy_link):
         if self.busy:return
-        if self.pair and time.monotonic()-self.pair.created<PAIRING_LIFETIME_SECONDS:self.open_link(copy_link);return
+        reuse = self.pair and time.monotonic()-self.pair.created < PAIRING_LIFETIME_SECONDS
+        if reuse and self.owns_poll and self.timer.isActive():
+            self.open_link(copy_link)
+            return
         self.timer.stop()
         self.release()
         if self.token in self._polling_tokens:self.status.setText(self.owner.t('Подключение этого бота уже открыто в другом окне.'));return
         self._polling_tokens.add(self.token);self.owns_poll=True
+        if reuse:
+            self.open_link(copy_link)
+            self.timer.start()
+            self.poll()
+            return
         def ready(pair):self.pair=pair;self.open_link(copy_link);self.timer.start();self.poll()
         self.status.setText(self.owner.t('Выполняется запрос…'));self.request(self.client.begin_pairing,ready)
 

@@ -633,3 +633,46 @@ def test_old_applicant_notice_counts_restore_from_journal_without_duplicates(tmp
     assert stats.get('one')['banners'] == 3
     assert stats.get('one', period='today', at='2026-11-05T13:00:00Z')['banners'] == 3
     assert stats.get('one', period='today', at='2026-11-06T13:00:00Z')['banners'] == 0
+
+
+def test_journal_restore_keeps_open_session_tail_and_retries_unmatched_visits(tmp_path):
+    import json
+    from app.desktop.statistics import ProfileStatistics
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    stats.start_session('one', 'first', {}, at='2026-11-05T11:00:00Z')
+    stats.end_session('one', 'first', 'stopped', at='2026-11-05T11:30:00Z')
+    root = tmp_path / 'debug'
+    journal = root / 'sessions' / 'one-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    rows = [dict(event='visit', stage='applicant_no_slots', document='unmatched', time='2026-11-05T12:00:00Z'),
+            dict(event='visit', stage='applicant_no_slots', document='matched', time='2026-11-05T11:15:00Z')]
+    journal.write_text('\n'.join(map(json.dumps, rows)) + '\n')
+    stats.restore_applicant_notices('one', root)
+    assert stats.get('one')['banners'] == 1
+    # The new session has not yet heartbeated as far as the journal visit.
+    stats.start_session('one', 'second', {}, at='2026-11-05T11:45:00Z')
+    stats.restore_applicant_notices('one', root)
+    stats.restore_applicant_notices('one', root)
+    assert stats.get('one')['banners'] == 2
+
+
+def test_restore_replays_old_cursor_but_respects_closed_session_end(tmp_path):
+    import json
+    from app.desktop.statistics import ProfileStatistics, _digest
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    stats.start_session('one', 's', {}, at='2026-11-05T11:00:00Z')
+    stats.end_session('one', 's', 'stopped', at='2026-11-05T12:00:00Z')
+    root = tmp_path / 'debug'
+    journal = root / 'sessions' / 'one-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    rows = [dict(event='visit', stage='applicant_no_slots', document=doc, time=stamp)
+            for doc, stamp in [('inside', '2026-11-05T11:30:00Z'), ('after', '2026-11-05T12:30:00Z')]]
+    journal.write_text('\n'.join(map(json.dumps, rows)) + '\n')
+    with stats._db() as db:
+        db.execute('INSERT INTO metadata VALUES (?,?)',
+                   ('applicant-notices:' + _digest(str(journal.resolve())), str(journal.stat().st_size)))
+    stats.restore_applicant_notices('one', root)
+    stats.restore_applicant_notices('one', root)
+    assert stats.get('one')['banners'] == 1
+    with stats._db(write=False) as db:
+        assert db.execute('SELECT COUNT(*) FROM pending_applicant_notices').fetchone()[0] == 1

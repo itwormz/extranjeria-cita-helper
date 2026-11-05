@@ -1199,7 +1199,8 @@ class DesktopWindow(QMainWindow):
             self.clear_error('worker')
             self.notification_delivery.reset()
             profile_id = self.profile_combo.currentData()
-            self.notification_delivery.prepare(profile_id)
+            if not self.notification_delivery.prepare(profile_id):
+                return
             self.load_saved_journal(profile_id)
             self.state = {}
             self.controller.start(profile_id)
