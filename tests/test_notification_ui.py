@@ -212,6 +212,49 @@ def test_dialog_does_not_release_another_dialogs_pairing_lease(owner):
     second.reject()
 
 
+def test_reusing_pair_after_poll_error_restarts_polling(owner, monkeypatch):
+    from unittest.mock import Mock
+    from app.notifications import Pairing
+
+    dialog = RecipientDialog(owner, '123456:DEMO_retry')
+    dialog.pair = Pairing('demo_bot')
+    dialog.owns_poll = True
+    dialog._polling_tokens.add(dialog.token)
+    dialog.timer.start()
+    dialog.jobs.submit = lambda work, done: done(False, 'HTTP 503')
+    dialog.poll()
+    assert not dialog.timer.isActive() and not dialog.owns_poll
+    opened = Mock()
+    monkeypatch.setattr(dialog, 'open_link', opened)
+    monkeypatch.setattr(dialog.client, 'begin_pairing', Mock(side_effect=AssertionError('Must reuse link')))
+    received = []
+    dialog.jobs.submit = lambda work, done: received.append(done)
+    dialog.start_pairing(True)
+    assert dialog.owns_poll and dialog.timer.isActive()
+    assert len(received) == 1
+    opened.assert_called_once_with(True)
+    received[0](True, None)
+    dialog.reject()
+
+
+def test_reused_pair_does_not_take_another_dialogs_polling_claim(owner, monkeypatch):
+    from unittest.mock import Mock
+    from app.notifications import Pairing
+    token = '123456:DEMO_reuse_claim'
+    first, second = RecipientDialog(owner, token), RecipientDialog(owner, token)
+    first.pair = Pairing('demo_bot')
+    second.owns_poll = True
+    second._polling_tokens.add(token)
+    opened = Mock()
+    monkeypatch.setattr(first, 'open_link', opened)
+    first.start_pairing(True)
+    opened.assert_not_called()
+    assert not first.owns_poll and second.owns_poll
+    first.reject()
+    assert token in second._polling_tokens
+    second.reject()
+
+
 def test_found_chat_button_contents_fit_its_actual_height(owner,qt_app):
     dialog=RecipientDialog(owner,'123456:DEMO_token')
     dialog.found({'id':'42','label':'Demo','type':'private','username':'demo_user'})
@@ -259,3 +302,94 @@ def test_profile_editor_reloads_secrets_when_notifications_tab_is_already_open(o
     owner.open_editor(profiles[1])
     assert panel.token.text()=='second-token'
     assert panel.vault.get.call_count==4
+
+
+def test_populated_notification_field_does_not_reenter_caption_layout(owner, qt_app, monkeypatch):
+    box = owner.notifications_panel.token_box
+    original = box.sync_caption
+    calls = []
+    def counted(*args):
+        calls.append(True)
+        # Keep a broken implementation from exhausting the Python stack.
+        if len(calls) < 8:
+            original(*args)
+    monkeypatch.setattr(box, 'sync_caption', counted)
+    owner.open_editor(None)
+    owner.profile_tabs.setCurrentIndex(2)
+    owner.notifications_panel.telegram_toggle.setChecked(True)
+    qt_app.processEvents()
+    calls.clear()
+
+    owner.notifications_panel.token.setText('synthetic-token')
+    qt_app.processEvents()
+
+    assert len(calls) <= 3
+
+
+@pytest.mark.parametrize('channel', ['telegram', 'webhook'])
+@pytest.mark.parametrize('recovery', ['disable', 'replace', 'unchanged'])
+def test_unreadable_channel_can_be_disabled_or_replaced_without_losing_other_secrets(owner, channel, recovery):
+    from unittest.mock import Mock
+    from app.notifications import NotificationError
+    panel = owner.notifications_panel
+    secrets = {'telegram': {'token': '123456:DEMO_token'},
+               'webhook': {'url': 'https://example.test/hook', 'method': 'POST'}}
+    def read(reference):
+        if reference == channel:
+            raise NotificationError('Secret unavailable')
+        return secrets[reference]
+    panel.vault = Mock()
+    panel.vault.get.side_effect = read
+    panel.vault.put.return_value = 'replacement'
+    panel.load({'telegram': {'enabled': True, 'secret_ref': 'telegram', 'events': ['booking'],
+                            'recipients': [{'id': '42', 'label': 'Demo'}]},
+                'webhook': {'enabled': True, 'secret_ref': 'webhook', 'events': ['booking']}})
+    if recovery == 'unchanged':
+        with pytest.raises(NotificationError, match='Secret unavailable'):
+            panel.prepare()
+        panel.vault.put.assert_not_called()
+        return
+    if recovery == 'disable':
+        getattr(panel, channel + '_toggle').setChecked(False)
+    elif channel == 'telegram':
+        panel.token.setText('123456:REPLACEMENT_token')
+    else:
+        panel.url.setText('https://example.test/replacement')
+    config, created, old = panel.prepare()
+    other = 'webhook' if channel == 'telegram' else 'telegram'
+    assert config[other]['enabled'] and config[other]['secret_ref'] == other
+    panel.vault.delete.assert_not_called()
+    if recovery == 'disable':
+        assert not config[channel]['enabled'] and config[channel]['secret_ref'] == channel
+        assert created == old == []
+        panel.vault.put.assert_not_called()
+    else:
+        assert config[channel]['secret_ref'] == 'replacement'
+        assert created == ['replacement'] and old == [channel]
+
+
+def test_profile_can_disable_unreadable_notifications_and_start_again(owner, task_mapping, monkeypatch):
+    from unittest.mock import Mock
+    from tests.test_desktop_profiles import fields
+    from app.notifications import NotificationError
+    data = fields(task_mapping)
+    data['notifications'] = {'telegram': {'enabled': True, 'secret_ref': 'unreadable',
+                            'events': ['booking'], 'recipients': [{'id': '42', 'label': 'Demo'}]}}
+    profile = owner.store.save_profile(None, data, revision=owner.store.revision())
+    panel = owner.notifications_panel
+    panel.vault = Mock()
+    panel.vault.get.side_effect = lambda ref: (_ for _ in ()).throw(NotificationError('Vault unavailable')) if ref else {}
+    owner.refresh_profiles(profile)
+    owner.open_editor(profile)
+    owner.profile_tabs.setCurrentIndex(2)
+    panel.telegram_toggle.setChecked(False)
+    owner.save_profile()
+    saved = owner.store.raw_profile(profile)['notifications']['telegram']
+    assert not saved['enabled'] and saved['secret_ref'] == 'unreadable'
+    panel.vault.put.assert_not_called()
+    panel.vault.delete.assert_not_called()
+    owner.notification_delivery.vault.get = Mock(side_effect=AssertionError('Disabled channel must not read vault'))
+    start = Mock()
+    monkeypatch.setattr(owner.controller, 'start', start, raising=False)
+    owner.start_or_pause()
+    start.assert_called_once_with(profile)

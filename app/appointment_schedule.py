@@ -23,7 +23,9 @@ def attempt_windows(now: datetime, remaining: int) -> tuple[tuple[datetime, date
     end = evening if local < evening else midnight
     step = (end - start) / remaining
     windows = []
-    for index in range(1, remaining + 1):
+    # Only near-term windows are needed: the schedule is rebuilt after a
+    # submission or expiry of its first window. Bound memory for large targets.
+    for index in range(1, min(remaining, 24 * 60) + 1):
         center = start + step * index
         windows.append((max(morning, center - WINDOW_RADIUS), min(midnight, center + WINDOW_RADIUS)))
     return tuple(windows)

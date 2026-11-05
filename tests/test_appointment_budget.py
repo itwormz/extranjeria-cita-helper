@@ -10,6 +10,46 @@ def at(day, hour, minute=0):
     return datetime(2026, 11, day, hour, minute, tzinfo=MADRID)
 
 
+def test_try_now_bypasses_window_and_cod_pause_but_preserves_minimum():
+    policy = AppointmentProtection(minimum_pause_minutes=15)
+    budget = AppointmentBudget()
+    budget.submitted(at(3, 12), policy)
+    budget.cod_oper(at(3, 12, 1), policy)
+    budget.try_now(at(3, 12, 2), policy)
+    assert budget.next_submission(at(3, 12, 2), policy) == at(3, 12, 15)
+    assert budget.summary(at(3, 12, 2), policy)['restricted']
+    budget.submitted(at(3, 12, 15), policy)
+    assert budget.next_submission(at(3, 12, 16), policy) == at(3, 13, 15)
+
+
+def test_try_now_one_submission_then_replans_and_expires_at_midnight():
+    policy = AppointmentProtection()
+    budget = AppointmentBudget()
+    budget.submitted(at(3, 9), policy)
+    budget.try_now(at(3, 9, 31), policy)
+    assert budget.next_submission(at(3, 9, 31), policy) == at(3, 9, 31)
+    assert budget.summary(at(3, 9, 31), policy)['attempt_window'] is None
+    budget.submitted(at(3, 9, 31), policy)
+    assert budget.next_submission(at(3, 9, 32), policy) > at(3, 10, 1)
+    budget.try_now(at(3, 23), policy)
+    budget.refresh(at(4, 0), policy)
+    assert not budget.immediate_attempt
+
+
+def test_changed_cod_timings_recalculate_from_original_pause_start():
+    budget = AppointmentBudget()
+    policy = AppointmentProtection()
+    budget.submitted(at(3, 12), policy)
+    budget.cod_oper(at(3, 12, 1), policy)
+    changed = AppointmentProtection(first_cod_pause_minutes=10, next_cod_pause_minutes=20)
+    budget.recalculate_restriction(changed)
+    assert budget.restriction_until == at(3, 12, 11)
+    budget.submitted(at(3, 13), policy)
+    budget.cod_oper(at(3, 13, 1), policy)
+    budget.recalculate_restriction(changed)
+    assert budget.restriction_until == at(3, 13, 20)
+
+
 def test_first_attempt_early_window_and_replan():
     policy = AppointmentProtection()
     budget = AppointmentBudget()
@@ -35,7 +75,7 @@ def test_cod_oper_persists_across_midnight(tmp_path):
 
     restored = store.load()
     assert restored.next_submission(at(4, 0), policy) == at(4, 0, 21)
-    assert restored.target(policy) == 4
+    assert restored.target(policy) == 5
     assert restored.sent == 0
     assert 'X0000000T' not in store.path.read_text()
 
@@ -46,7 +86,7 @@ def test_zero_target_still_allows_clean_round_after_pause():
     budget.submitted(at(3, 23, 50), policy)
     budget.cod_oper(at(3, 23, 51), policy)
     assert budget.next_submission(at(4, 0), policy) == at(4, 0, 21)
-    assert budget.target(policy) == 0
+    assert budget.target(policy) == 5
 
 
 def test_hot_retry_does_not_grant_another_hot_retry():
@@ -166,9 +206,74 @@ def test_adaptive_target_applies_only_to_the_next_day(tmp_path):
     store.remember_profile(profile.id)
 
     next_day = BudgetStore.load_profile(tmp_path, profile.id)
-    assert next_day.summary(at(4, 0), policy)['target'] == 0
+    assert next_day.summary(at(4, 0), policy)['target'] == 5
     assert next_day.next_target is None
     assert BudgetStore.save_profile(tmp_path, profile.id, next_day)
 
     later = BudgetStore.load_profile(tmp_path, profile.id)
     assert later.summary(at(5, 0), policy)['target'] == policy.daily_target
+
+
+def test_adaptive_floor_and_manual_daily_override_preserve_restriction(tmp_path):
+    from types import SimpleNamespace
+    policy = AppointmentProtection(daily_target=50)
+    store = BudgetStore(tmp_path, SimpleNamespace(id='demo', document_type='NIE', document_number='X0000000T'))
+    budget = AppointmentBudget(day=at(3, 12).date(), sent=3, target_override=1)
+    budget.cod_oper(at(3, 12), policy)
+    restriction = budget.restriction_until
+    assert budget.target(policy) == 5
+    budget.set_daily_target(20, at(3, 12), policy)
+    assert budget.target(policy) == 20
+    assert budget.remaining(policy) == 17
+    assert budget.restriction_until == restriction
+    store.save(budget)
+    restored = store.load()
+    assert restored.target(policy) == 20
+    restored.set_daily_target(None, at(3, 12), policy)
+    assert restored.target(policy) == 5
+    restored.set_daily_target(20, at(3, 12), policy)
+    restored.refresh(at(4, 0), policy)
+    assert restored.manual_target is None
+    assert restored.target(policy) == 5
+
+
+def test_copy_profile_restart_uses_last_document_budget_including_manual_reset(tmp_path):
+    from types import SimpleNamespace
+
+    profile = SimpleNamespace(id='copy', document_type='NIE', document_number='')
+    initial = BudgetStore(tmp_path, profile)
+    initial.save(AppointmentBudget(day=at(3, 12).date(), manual_target=20))
+    document = BudgetStore(tmp_path, SimpleNamespace(id='copy', document_type='NIE', document_number='X0000000T'))
+    document.save(AppointmentBudget(day=at(3, 12).date(), manual_target=None, sent=3))
+    document.remember_profile(profile.id)
+
+    restarted = BudgetStore(tmp_path, profile, use_saved_profile=True)
+
+    assert restarted.key == document.key
+    assert restarted.load().manual_target is None
+    assert restarted.load().sent == 3
+
+
+def test_manual_budget_keeps_collecting_tomorrows_adaptive_estimate():
+    policy = AppointmentProtection()
+    budget = AppointmentBudget(day=at(3, 12).date(), target_override=10, sent=7)
+    budget.set_daily_target(40, at(3, 12), policy)
+
+    budget.cod_oper(at(3, 12), policy)
+
+    assert budget.target(policy) == 40
+    assert budget.next_target == 6
+    budget.set_daily_target(None, at(3, 12), policy)
+    assert budget.target(policy) == 10
+    assert budget.next_target == 6
+    budget.refresh(at(4, 0), policy)
+    assert budget.target(policy) == 6
+
+
+def test_large_target_keeps_schedule_memory_bounded():
+    budget = AppointmentBudget(day=at(3, 12).date(), sent=1)
+    policy = AppointmentProtection(minimum_pause_minutes=1)
+    budget.set_daily_target(2_147_483_647, at(3, 12), policy)
+    budget.summary(at(3, 12), policy)
+    assert 0 < len(budget.windows) <= 1440
+    assert budget.target(policy) == 2_147_483_647

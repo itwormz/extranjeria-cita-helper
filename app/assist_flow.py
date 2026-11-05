@@ -772,7 +772,30 @@ class AssistRunner:
             self.control.pending_appointment_protection = None
             if self.budget is not None and self.protection != protection:
                 self.budget.windows = ()
+                self.budget.recalculate_restriction(protection)
+                if self.protection and self.protection.adaptive_target and not protection.adaptive_target:
+                    self.budget.manual_target = None
+                    self.control.daily_target_choice = (datetime.now(MADRID).date(), None)
+                self.control.save_appointment_budget(self.budget)
             self.protection = self.control.effective_appointment_protection = protection
+        if getattr(self.control, 'daily_target_pending', False) and self.budget is not None:
+            now = datetime.now(MADRID)
+            self.budget.set_daily_target(self.control.pending_daily_target, now, self.protection)
+            self.control.daily_target_choice = (now.date(), self.control.pending_daily_target)
+            self.control.daily_target_pending = False
+            self.control.save_appointment_budget(self.budget)
+        if self.control.pending_attempt_now:
+            now = datetime.now(MADRID)
+            if self.control.pending_attempt_now_day != now.date():
+                self.control.pending_attempt_now = False
+                self.control.pending_attempt_now_day = None
+                self.record('action', None, 'Запрос «Попробовать сейчас» истёк в полночь — действуют обычные паузы')
+            elif self.budget is not None and not self.control.appointment_budget_is_temporary:
+                self.control.pending_attempt_now = False
+                self.control.pending_attempt_now_day = None
+                self.budget.try_now(now, self.protection)
+                self.control.save_appointment_budget(self.budget)
+                self.record('action', None, 'Ручная ближайшая попытка: ожидание cod. oper и бюджетного окна пропущено; остальные тайминги сохранены')
         if self.control.booking_handoff and self.handoff_observed is not None:
             # Ownership stays with the user even after navigation or an error.
             # Only explicit session restart can start another automatic pass.

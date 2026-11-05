@@ -103,7 +103,7 @@ def test_statistics_actions_and_first_availability_copy(tmp_path,qt_app):
     panel=StatisticsPanel(host);panel.set_profiles(host.store.load(),'one')
     assert panel.stats_hint.isHidden()
     assert panel.achievement_button.isHidden()
-    assert panel.success_button.text()=='Sita obtained'
+    assert panel.success_button.text()=='Confirm booking'
     assert panel.first_value.text()=='Not seen yet'
     panel.statistics.observe('one','pass','start');panel.refresh()
     assert panel.stat_values['days'].text()=='1'
@@ -425,3 +425,27 @@ def test_budget_display_retranslates_without_a_new_read(tmp_path,qt_app):
     assert 'Objetivo' in panel.budget_label.text()
     assert panel.budget_action.text()=='Pausar la distribución hoy'
     panel.deleteLater();host.deleteLater()
+
+
+def test_confirm_booking_appears_after_detection_independent_of_period(tmp_path, qt_app):
+    from app.desktop.statistics_panel import StatisticsPanel
+    profiles = [SimpleNamespace(id='one', label='One', province='Barcelona'),
+                SimpleNamespace(id='two', label='Two', province='Barcelona')]
+    host = make_host(tmp_path, profiles)
+    panel = StatisticsPanel(host)
+    panel.set_profiles(profiles, 'one')
+    assert panel.success_button.isHidden()
+    assert panel.manual_success_action.isVisible()
+    panel.statistics.observe_page('one', 'old', 'booking', 'date-screen',
+                                  at='2020-01-01T12:00:00+01:00')
+    panel.today_button.click()
+    assert panel.stat_values['booking_screens'].text() == '0'
+    assert not panel.success_button.isHidden()
+    assert panel.success_button.text() == 'Confirm booking'
+    assert not panel.success_button.property('primary')
+    panel.all_button.click()
+    assert not panel.success_button.isHidden()
+    panel.profile_combo.setCurrentIndex(1)
+    assert panel.success_button.isHidden()
+    panel.deleteLater()
+    host.deleteLater()

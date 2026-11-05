@@ -44,7 +44,8 @@ def test_pairing_matches_exact_code_and_chat_type_only():
           {'update_id':2,'message':{'text':'/start '+pair.code,'chat':{'id':2,'type':'private','first_name':'Demo'}}}]
     assert pair.match(rows,'private',now=20)=={'id':'2','label':'Demo','type':'private','username':''}
     assert pair.match(rows,'group',now=20) is None
-    assert pair.match(rows,'private',now=131) is None
+    assert pair.match(rows,'private',now=309) is not None
+    assert pair.match(rows,'private',now=310) is None
 
 
 def test_router_deduplicates_but_allows_new_visit():

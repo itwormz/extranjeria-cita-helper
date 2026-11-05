@@ -5,9 +5,11 @@ import os
 import signal
 import sys
 from contextlib import suppress
+from datetime import datetime
 
 from ..assist_control import AssistControl
 from ..assist_runtime import run_assist
+from ..appointment_schedule import MADRID
 from ..logging_utils import register_sensitive
 from .profiles import ProfileStore
 from .protocol import JsonLinesDecoder, encode_message, validate_command
@@ -28,6 +30,12 @@ def apply_command(control, message):
         control.request_restart()
     elif command == 'show_browser':
         control.show_browser_requested = True
+    elif command == 'appointment_daily_target':
+        control.pending_daily_target = message['target']
+        control.daily_target_pending = True
+    elif command == 'appointment_try_now':
+        control.pending_attempt_now = True
+        control.pending_attempt_now_day = datetime.now(MADRID).date()
     elif command == 'appointment_distribution':
         budget = getattr(control, 'appointment_budget', None)
         if budget is not None and isinstance(message.get('disabled'), bool):
@@ -46,12 +54,37 @@ def apply_command(control, message):
             protection = AppointmentProtection.parse(message['protection'], errors)
             if errors:
                 return False
+            previous = (control.pending_appointment_protection
+                        or control.effective_appointment_protection or AppointmentProtection())
+            if previous.adaptive_target and not protection.adaptive_target:
+                # A later switch to the base budget supersedes an earlier queued override.
+                control.pending_daily_target = None
+                control.daily_target_pending = False
             control.pending_appointment_protection = protection
         control.pending_profile_timings = timings
     elif command == 'preferences':
         control.set_diagnostics(message['diagnostics'])
         control.set_sound(message['sound'])
     return True
+
+
+def load_bound_budget(control, store, policy, *, transfer_manual=False):
+    """Keep today's user choice when a copied document gets its own budget."""
+    from datetime import datetime
+    from ..appointment_schedule import MADRID
+
+    budget = store.load()
+    now = datetime.now(MADRID)
+    choice = control.daily_target_choice
+    previous = getattr(control, 'appointment_budget', None)
+    if (choice is None and transfer_manual and previous is not None
+            and previous.day == now.date() and previous.manual_target is not None):
+        choice = (previous.day, previous.manual_target)
+    if choice is not None and choice[0] == now.date():
+        budget.set_daily_target(choice[1], now, policy)
+        store.save(budget)
+        control.daily_target_choice = choice
+    return budget
 
 
 async def consume_commands(stream, control, emit):
@@ -158,8 +191,11 @@ async def run_worker(task_id):
     except (ValueError, StopIteration):
         emit({'type':'error', 'message':'Не удалось загрузить выбранный профиль.'})
         return 2
+    control.effective_appointment_protection = task.appointment_protection
     from ..appointment_budget_store import BudgetStore
-    budget_store = BudgetStore(profiles.path.parent / 'data' / 'appointment-budget', task)
+    from dataclasses import replace
+    budget_identity = replace(task, document_number='') if task.applicant_fill_mode == 'copy' else task
+    budget_store = BudgetStore(profiles.path.parent / 'data' / 'appointment-budget', budget_identity)
     register_sensitive([task.document_number, task.full_name, task.contact_phone, task.contact_email])
     loop = asyncio.get_running_loop()
     signals = []
@@ -213,8 +249,13 @@ async def run_worker(task_id):
                     return True
                 if not locks.enter_context(state_store.task_lock('budget-' + store.key)):
                     return False
-                control.appointment_budget = store.load()
+                control.appointment_budget = load_bound_budget(
+                    control, store, task.appointment_protection,
+                    transfer_manual=(bound_key == budget_store.key
+                                     and BudgetStore._profile_key(budget_store.root, task.id) in (None, budget_store.key)))
                 control.save_appointment_budget = store.save
+                control.appointment_budget_is_temporary = (
+                    task.applicant_fill_mode == 'copy' and store is budget_store)
                 if task.applicant_fill_mode != "copy" or store is not budget_store:
                     store.remember_profile(task.id)
                 bound_key = store.key

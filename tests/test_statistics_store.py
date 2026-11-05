@@ -596,3 +596,83 @@ def test_booking_details_never_create_missing_or_wrong_session_event(tmp_path):
     assert not stats.save_booking_details('p','real','other-document',details)
     assert stats.get('p')['booking_screens']==1
     assert 'booking_details' not in stats.history('p')[0]['evidence']
+
+
+def test_applicant_notice_counter_counts_documents_inside_one_continuous_episode(tmp_path):
+    from app.desktop.statistics import ProfileStatistics
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    for index in range(3):
+        for _ in range(2):
+            stats.observe_page('one', 's', 'applicant_no_slots', f'doc-{index}',
+                               at=f'2026-11-05T12:00:{index:02d}+01:00')
+    assert stats.get('one')['banners'] == 3
+    with stats._db(write=False) as db:
+        assert db.execute("SELECT COUNT(*) FROM episodes WHERE kind='page'").fetchone()[0] == 1
+
+
+def test_old_applicant_notice_counts_restore_from_journal_without_duplicates(tmp_path):
+    import json
+    from app.desktop.statistics import ProfileStatistics
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    stats.start_session('one', 's', {}, at='2026-11-05T11:00:00Z')
+    stats.observe_page('one', 's', 'applicant_no_slots', 'doc-0', at='2026-11-05T12:00:00Z')
+    stats.end_session('one', 's', 'stopped', at='2026-11-05T13:00:00Z')
+    with stats._db() as db:
+        db.execute('DELETE FROM applicant_notices')
+    root = tmp_path / 'debug'
+    journal = root / 'sessions' / 'one-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    rows = [dict(event='visit', stage='applicant_no_slots', document=f'doc-{i}',
+                 time=f'2026-11-05T12:00:0{i}Z') for i in range(3)]
+    journal.write_text('\n'.join(json.dumps(row) for row in rows + rows) + '\n')
+    assert stats.get('one')['banners'] == 1
+
+    stats.restore_applicant_notices('one', root)
+    stats.restore_applicant_notices('one', root)
+
+    assert stats.get('one')['banners'] == 3
+    assert stats.get('one', period='today', at='2026-11-05T13:00:00Z')['banners'] == 3
+    assert stats.get('one', period='today', at='2026-11-06T13:00:00Z')['banners'] == 0
+
+
+def test_journal_restore_keeps_open_session_tail_and_retries_unmatched_visits(tmp_path):
+    import json
+    from app.desktop.statistics import ProfileStatistics
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    stats.start_session('one', 'first', {}, at='2026-11-05T11:00:00Z')
+    stats.end_session('one', 'first', 'stopped', at='2026-11-05T11:30:00Z')
+    root = tmp_path / 'debug'
+    journal = root / 'sessions' / 'one-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    rows = [dict(event='visit', stage='applicant_no_slots', document='unmatched', time='2026-11-05T12:00:00Z'),
+            dict(event='visit', stage='applicant_no_slots', document='matched', time='2026-11-05T11:15:00Z')]
+    journal.write_text('\n'.join(map(json.dumps, rows)) + '\n')
+    stats.restore_applicant_notices('one', root)
+    assert stats.get('one')['banners'] == 1
+    # The new session has not yet heartbeated as far as the journal visit.
+    stats.start_session('one', 'second', {}, at='2026-11-05T11:45:00Z')
+    stats.restore_applicant_notices('one', root)
+    stats.restore_applicant_notices('one', root)
+    assert stats.get('one')['banners'] == 2
+
+
+def test_restore_replays_old_cursor_but_respects_closed_session_end(tmp_path):
+    import json
+    from app.desktop.statistics import ProfileStatistics, _digest
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    stats.start_session('one', 's', {}, at='2026-11-05T11:00:00Z')
+    stats.end_session('one', 's', 'stopped', at='2026-11-05T12:00:00Z')
+    root = tmp_path / 'debug'
+    journal = root / 'sessions' / 'one-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    rows = [dict(event='visit', stage='applicant_no_slots', document=doc, time=stamp)
+            for doc, stamp in [('inside', '2026-11-05T11:30:00Z'), ('after', '2026-11-05T12:30:00Z')]]
+    journal.write_text('\n'.join(map(json.dumps, rows)) + '\n')
+    with stats._db() as db:
+        db.execute('INSERT INTO metadata VALUES (?,?)',
+                   ('applicant-notices:' + _digest(str(journal.resolve())), str(journal.stat().st_size)))
+    stats.restore_applicant_notices('one', root)
+    stats.restore_applicant_notices('one', root)
+    assert stats.get('one')['banners'] == 1
+    with stats._db(write=False) as db:
+        assert db.execute('SELECT COUNT(*) FROM pending_applicant_notices').fetchone()[0] == 1

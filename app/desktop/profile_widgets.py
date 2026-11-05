@@ -74,7 +74,8 @@ class ProfileField(QWidget):
         self.sync_caption()
 
     def eventFilter(self,watched,event):
-        if watched is self.caption and event.type() == QEvent.Type.Resize:
+        if (watched is self.caption and event.type() == QEvent.Type.Resize
+                and isinstance(self.field, QAbstractButton)):
             self.sync_caption()
         if event.type() in (QEvent.Type.FocusIn,QEvent.Type.FocusOut):
             self.setProperty('focused',event.type()==QEvent.Type.FocusIn)

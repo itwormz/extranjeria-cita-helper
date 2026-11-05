@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.3.3 — Daily budgets and interface improvements
+
+- **Adaptive budgets now have a minimum of five attempts**, including previously saved estimates.
+- **Set a manual budget for today without disabling adaptation.** It applies from the next action and expires at midnight. Used attempts and active restriction pauses are preserved, while the adaptive algorithm continues to learn for tomorrow.
+- **Edit the daily budget from Monitor, Statistics or profile settings.** A compact pencil button opens a dialog showing the daily total, sent requests and remaining attempts. Restore the adaptive or base budget at any time.
+- **Read budget information more easily.** The budget source appears in the edit button’s tooltip, and the next probe during a possible restriction appears on a separate line.
+- **Confirm booking appears after a date selection screen has been detected.** Recording a booking remains manual. If detection was missed, use the actions menu to confirm it manually.
+- **Notification credentials are prepared before the search starts.** Sending an office or booking alert no longer reads the secret store. Telegram settings on macOS explain when the system may ask for a Keychain password.
+- Count each separate applicant page showing “No appointments”, even when the warning stays visible across refreshes. Recover earlier observations from saved journals when they can be matched to a recorded search session.
+- Telegram recipient connection links now remain valid for five minutes.
+- Stop search startup if notification credentials cannot be prepared; restore vault access or disable the affected channel before retrying.
+- Allow disabling an unreadable notification channel or saving replacement credentials without losing the existing secret reference when disabling. Report profile-read failures instead of silently cancelling startup.
+- Resume recipient detection when reusing a Telegram link after a polling error.
+- Preserve journal visits beyond the last heartbeat and retry unmatched visits when their search session becomes available.
+- Use “Try now” to bring the next attempt forward once, bypassing the budget window or `cod. oper` pause while keeping other protective delays and the clean-round check.
+- Changes to `cod. oper` pause settings recalculate an ongoing pause from its original start without restarting the search.
+- Fix repeated layout updates in a populated bot token field.
+- Keep schedule calculations responsive when a very large attempt budget is configured.
+
 ## 0.3.2 — Statistics and profile settings
 
 - The “No appointments” counters now follow the Today or All time filter. The attempt budget still shows what remains today.

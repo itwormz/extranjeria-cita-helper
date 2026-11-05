@@ -212,6 +212,9 @@ def recipient_from_chat(chat):
                 type=chat.get('type','private'),username=chat.get('username',''))
 
 
+PAIRING_LIFETIME_SECONDS = 300
+
+
 class Pairing:
     def __init__(self,username,*,now=None):
         self.username=username;self.code=secrets.token_urlsafe(18)
@@ -221,7 +224,7 @@ class Pairing:
     def link(self,kind):return f'https://t.me/{self.username}?{"startgroup" if kind=="group" else "start"}={self.code}'
 
     def match(self,updates,kind,*,now=None):
-        if (time.monotonic() if now is None else now)-self.created>120:return None
+        if (time.monotonic() if now is None else now)-self.created>=PAIRING_LIFETIME_SECONDS:return None
         for update in updates:
             self.offset=max(self.offset or 0,int(update.get('update_id',0))+1)
             message=update.get('message',{});text=message.get('text','');chat=message.get('chat',{})
@@ -251,7 +254,7 @@ class Telegram:
         return Pairing(self.check()['username'])
 
     def poll(self,pair,kind):
-        if time.monotonic()-pair.created>120:raise NotificationError('Ссылка подключения истекла. Открыть бота заново.')
+        if time.monotonic()-pair.created>=PAIRING_LIFETIME_SECONDS:raise NotificationError('Ссылка подключения истекла. Открыть бота заново.')
         data={'timeout':0,'limit':100}
         if pair.offset is not None:data['offset']=pair.offset
         return pair.match(self.call('getUpdates',data),kind)

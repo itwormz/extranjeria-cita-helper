@@ -232,3 +232,28 @@ def test_clave_human_attention_stops_sound_across_navigation():
     asyncio.run(scenario())
     alerter.start.assert_awaited_once()
     alerter.stop.assert_awaited_once()
+
+
+@pytest.mark.parametrize('target', [20, None])
+def test_copy_document_budget_keeps_explicit_daily_choice_without_copying_counters(tmp_path, target):
+    from datetime import datetime, timedelta
+    from app.appointment_schedule import MADRID
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_budget_store import BudgetStore
+    from app.config import AppointmentProtection
+    from app.desktop.worker import load_bound_budget
+
+    now = datetime.now(MADRID)
+    control = AssistControl()
+    control.appointment_budget = AppointmentBudget(day=now.date(), manual_target=30, sent=10)
+    control.daily_target_choice = (now.date(), target)
+    task = SimpleNamespace(id='copied', document_type='NIE', document_number='X0000000T')
+    store = BudgetStore(tmp_path, task)
+    destination = AppointmentBudget(day=now.date(), sent=3, manual_target=15,
+                                    restriction_until=now + timedelta(minutes=30))
+    store.save(destination)
+    restored = load_bound_budget(control, store, AppointmentProtection(), transfer_manual=True)
+    assert restored.manual_target == target
+    assert restored.sent == 3
+    assert restored.restriction_until == destination.restriction_until
+    assert store.load().manual_target == target
