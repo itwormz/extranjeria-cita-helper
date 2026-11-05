@@ -332,6 +332,11 @@ class ProfileStatistics:
             ).fetchone()
             effort=db.execute("SELECT MIN(time) FROM events WHERE profile=? AND kind IN ('effort_started','automation_action','processed_page')",(profile_id,)).fetchone()[0]
             row['effort_started_at']=effort
+            has_booking_screen = bool(db.execute(
+                "SELECT 1 FROM events WHERE profile=? AND kind='booking' "
+                "UNION ALL SELECT 1 FROM episodes WHERE profile=? AND kind='page' AND stage='booking' LIMIT 1",
+                (profile_id, profile_id),
+            ).fetchone()) or bool(baseline and json.loads(baseline[0]).get('booking_screens', 0))
             first_office, first_booking = facts['office'], facts['booking']
             if lower is None and upper is None:
                 activity=db.execute('SELECT SUM(seconds) AS seconds,MIN(start) AS started FROM active WHERE profile=?',(profile_id,)).fetchone()
@@ -396,7 +401,7 @@ class ProfileStatistics:
             row['first_available_seconds'] = max(0, (_time(available)-_time(row['started_at'])).total_seconds())
         return {k: row[k] for k in (*COUNTERS, 'active_seconds', 'started_at', 'first_available_seconds')} | dict(
             first_available_at=available, unique_offices=len(offices), days=days, effort_started_at=row['effort_started_at'],
-            **dict(availability),
+            **dict(availability), has_booking_screen=has_booking_screen,
             legacy_first_available_at=provenance.get('legacy_first_available_at'),
             legacy_first_available_elapsed_seconds=provenance.get('legacy_first_available_elapsed_seconds'),
             legacy_unknown_fields=[('unique_offices' if key == '_offices' else key) for key in

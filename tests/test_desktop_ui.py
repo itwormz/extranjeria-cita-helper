@@ -1240,3 +1240,119 @@ def test_malformed_saved_journal_row_does_not_hide_other_entries(window):
     assert [window.timeline.item(row, 3).text() for row in range(3)] == [
         'Later search entry', 'Office: Test office', 'Earlier search entry',
     ]
+
+
+def test_manual_daily_budget_can_be_edited_and_reset_while_stopped(window, task_mapping, monkeypatch):
+    import copy
+    from datetime import datetime
+    from app.appointment_schedule import MADRID
+    from app.appointment_budget_store import BudgetStore
+
+    raw = copy.deepcopy(task_mapping['tasks'][0])
+    raw['request']['access_mode'] = 'certificate'
+    raw['applicant']['contact'] = dict(phone='600000000', email='demo@example.com')
+    profile_id = window.store.save_profile(None, raw, revision=window.store.revision())
+    window.refresh_profiles(profile_id)
+    task = window.store.load()[0]
+    store = BudgetStore(window.store.path.parent / 'data' / 'appointment-budget', task)
+    budget = store.load()
+    budget.refresh(datetime.now(MADRID), task.appointment_protection)
+    budget.target_override = 1
+    budget.sent = 3
+    store.save(budget)
+    store.remember_profile(profile_id)
+    window.open_editor(profile_id)
+    window.profile_tabs.setCurrentIndex(1)
+    assert window.t('На сегодня {target}').format(target=5) + ' · ' + window.t('Адаптивный бюджет') in window.daily_budget_note.text()
+    monkeypatch.setattr(window, 'request_daily_target', lambda budget: (20, True))
+
+    window.edit_daily_budget(profile_id)
+
+    assert store.load().manual_target == 20
+    assert window.t('На сегодня {target}').format(target=20) + ' · ' + window.t('Задан вручную') in window.daily_budget_note.text()
+    assert window.protection_fields['adaptive_target'].isChecked()
+    window.edit_daily_budget(profile_id, reset=True)
+    assert store.load().manual_target is None
+    assert window.t('На сегодня {target}').format(target=5) + ' · ' + window.t('Адаптивный бюджет') in window.daily_budget_note.text()
+    window.edit_daily_budget(profile_id)
+    window.protection_fields['daily_target'].setValue(40)
+    window.protection_fields['adaptive_target'].setChecked(False)
+    window.save_profile()
+    assert store.load().manual_target is None
+    assert window.current_daily_budget(profile_id)['target'] == 40
+
+
+def test_manual_daily_budget_edit_routes_to_active_worker(window, monkeypatch):
+    from datetime import datetime
+    from app.appointment_schedule import MADRID
+    from app.appointment_budget import AppointmentBudget
+    from app.config import AppointmentProtection
+
+    profile_id = 'running'
+    window.controller.active = True
+    window.controller.profile_id = profile_id
+    commands = []
+    window.controller.send = commands.append
+    summary = AppointmentBudget().summary(datetime.now(MADRID), AppointmentProtection())
+    window.state['appointment_budget'] = summary
+    monkeypatch.setattr(window, 'request_daily_target', lambda budget: (20, True))
+
+    window.edit_daily_budget(profile_id)
+    window.edit_daily_budget(profile_id, reset=True)
+
+    assert commands == [{'command': 'appointment_daily_target', 'target': 20},
+                        {'command': 'appointment_daily_target', 'target': None}]
+
+
+def test_daily_budget_dialog_saves_total_and_offers_reset(window):
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QDialog, QPushButton
+    from app.desktop.profile_widgets import ProfileNumber
+    from PySide6.QtWidgets import QLabel
+
+    budget = dict(target=20, sent=3, target_source='manual')
+    def save():
+        dialog = window.findChild(QDialog, 'dailyBudgetDialog')
+        number = dialog.findChild(ProfileNumber, 'dailyBudgetValue')
+        number.setValue(10)
+        assert dialog.findChild(QLabel, 'dailyBudgetRemaining').text() == '7'
+        QTest.keyClick(number, Qt.Key.Key_Return)
+    QTimer.singleShot(0, save)
+    assert window.request_daily_target(budget) == (10, True)
+    QApplication.sendPostedEvents(None, 0)
+    QApplication.processEvents()
+    def reset():
+        dialog = QApplication.activeModalWidget()
+        dialog.findChild(QPushButton, 'resetDailyBudget').click()
+    QTimer.singleShot(0, reset)
+    assert window.request_daily_target(budget) == (None, True)
+
+
+def test_manual_budget_follows_current_document_after_profile_identity_edit(window, task_mapping, monkeypatch):
+    import copy
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_budget_store import BudgetStore
+
+    raw = copy.deepcopy(task_mapping['tasks'][0])
+    raw['request']['access_mode'] = 'certificate'
+    raw['applicant']['fill_mode'] = 'manual'
+    raw['applicant']['contact'] = dict(phone='600000000', email='demo@example.com')
+    profile_id = window.store.save_profile(None, raw, revision=window.store.revision())
+    first = window.store.load()[0]
+    root = window.store.path.parent / 'data' / 'appointment-budget'
+    old_store = BudgetStore(root, first)
+    old_store.save(AppointmentBudget(manual_target=10, sent=4))
+    old_store.remember_profile(profile_id)
+    raw['applicant']['document_number'] = 'Y0000000Z'
+    window.store.save_profile(profile_id, raw, revision=window.store.revision())
+    updated = window.store.load()[0]
+    new_store = BudgetStore(root, updated)
+    assert new_store.key != old_store.key
+    assert window.current_daily_budget(profile_id)['target_source'] == 'base'
+    monkeypatch.setattr(window, 'request_daily_target', lambda budget: (20, True))
+
+    window.edit_daily_budget(profile_id)
+
+    assert new_store.load().manual_target == 20
+    assert old_store.load().manual_target == 10
+    assert old_store.load().sent == 4

@@ -87,7 +87,7 @@ class StatisticsPanel(QWidget):
         header=QHBoxLayout();self.heading_icon=self.icon_label('statistics');header.addWidget(self.heading_icon);self.title=QLabel();self.title.setObjectName('statisticsTitle');header.addWidget(self.title,1);self.back_button=self.button('К статистике','back',self.show_statistics);header.insertWidget(0,self.back_button)
         self.profile_combo=QComboBox();self.profile_combo.setMinimumWidth(180);self.profile_combo.setAccessibleName('Профиль для статистики');self.profile_combo.currentIndexChanged.connect(self.profile_selected);header.addWidget(self.icon_label('user'));header.addWidget(self.profile_combo)
         self.more=QToolButton();self.more.setText('⋯');self.more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        menu=QMenu(self.more);self.edit_action=menu.addAction('Исправить данные записи');self.edit_action.triggered.connect(self.edit_appointment);self.more.setMenu(menu);header.addWidget(self.more)
+        menu=QMenu(self.more);self.edit_action=menu.addAction('Исправить данные записи');self.edit_action.triggered.connect(self.edit_appointment);self.manual_success_action=menu.addAction('Подтвердить запись вручную');self.manual_success_action.triggered.connect(self.confirm_success);self.more.setMenu(menu);header.addWidget(self.more)
         layout.addLayout(header);self.stack=CurrentPageStack();self.stack.layout().setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint);self.stack.currentChanged.connect(self.fit_current_page);layout.addWidget(self.stack)
         self.stats_page=QWidget();self.stats_layout=QVBoxLayout(self.stats_page);self.stats_layout.setContentsMargins(0,0,0,0);self.stats_layout.setSpacing(16)
         self.stats_hint=QLabel();self.stats_hint.setProperty('muted',True);self.stats_layout.addWidget(self.stats_hint);self.stats_hint.hide()
@@ -103,9 +103,15 @@ class StatisticsPanel(QWidget):
         self.budget_label = QLabel()
         self.budget_label.setWordWrap(True)
         self.budget_label.setTextFormat(Qt.TextFormat.RichText)
-        self.budget_label.linkActivated.connect(self.show_budget_history)
+        self.budget_label.linkActivated.connect(self.budget_link)
         self.budget_label.setMinimumWidth(0)
         budget_row.addWidget(self.budget_label, 1)
+        self.budget_edit = QToolButton()
+        self.budget_edit.setFixedSize(30, 30)
+        self._icon_bindings.append((self.budget_edit, 'pencil'))
+        self.budget_edit.clicked.connect(lambda: self.host.edit_daily_budget(self.profile_combo.currentData()))
+        self.budget_edit.hide()
+        budget_row.addWidget(self.budget_edit)
         self.budget_menu = QToolButton()
         self.budget_menu.setText('⋯')
         self.budget_menu.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
@@ -129,10 +135,8 @@ class StatisticsPanel(QWidget):
             caption.setMaximumWidth(190);value.setWordWrap(True)
             first_grid.addWidget(self.icon_label(icon),row,0,Qt.AlignmentFlag.AlignTop);first_grid.addWidget(caption,row,1);first_grid.addWidget(value,row,2)
         first_grid.setColumnMinimumWidth(1,190);first_grid.setColumnStretch(2,1);self.stats_layout.addLayout(first_grid)
-        self.success_note=self.text('После оформления ситы можно сохранить данные записи, добавить её в календарь и поделиться статистикой поиска.',muted=True)
-        actions=QHBoxLayout();actions.setSpacing(12);self.success_button=self.button('Сита получена','check',self.confirm_success,primary=True);self.success_button.setObjectName('statisticsSuccess');self.success_button.setFixedHeight(38);self.success_button.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed);actions.addWidget(self.success_button)
+        actions=QHBoxLayout();actions.setSpacing(12);self.success_button=self.button('Подтвердить запись','plus',self.confirm_success);self.success_button.setObjectName('statisticsSuccess');self.success_button.setFixedHeight(38);self.success_button.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed);actions.addWidget(self.success_button)
         self.achievement_button=self.button('Достижения профиля','award',self.show_achievement);actions.addWidget(self.achievement_button);actions.addStretch();self.stats_layout.addLayout(actions)
-        self.stats_layout.addWidget(self.success_note)
         self.history_panel=StatisticsHistory(host,self.statistics);self.stats_layout.addWidget(self.history_panel)
         self.stats_layout.addStretch();self.stack.addWidget(self.stats_page)
         self.achievement_page=QWidget();body=QVBoxLayout(self.achievement_page);body.setContentsMargins(0,0,0,0);body.setSpacing(12)
@@ -156,12 +160,18 @@ class StatisticsPanel(QWidget):
         card_button=self.payment_button('Картой','GitHub Sponsors','credit_card','https://github.com/sponsors/itwormz');card_button.setToolTip('GitHub Sponsors');donation.addWidget(card_button)
         crypto_button=self.payment_button('Криптовалютой','NOWPayments','bitcoin','https://nowpayments.io/donation/itworm');crypto_button.setToolTip('NOWPayments');donation.addWidget(crypto_button);body.addLayout(donation)
         body.addStretch();self.stack.addWidget(self.achievement_page)
-        self.empty_page=QWidget();empty=QVBoxLayout(self.empty_page);empty.setContentsMargins(0,24,0,24);empty.addWidget(self.section_heading('Пока нет отмеченных сит','calendar'));empty.addWidget(self.text('После подтверждения записи на сайте — «Сита получена». Здесь появятся карточка достижения и данные для календаря.',muted=True));empty.addWidget(self.button('Сита получена','check',self.confirm_success,primary=True),0,Qt.AlignmentFlag.AlignLeft);empty.addStretch();self.stack.addWidget(self.empty_page)
+        self.empty_page=QWidget();empty=QVBoxLayout(self.empty_page);empty.setContentsMargins(0,24,0,24);empty.addWidget(self.section_heading('Пока нет отмеченных сит','calendar'));empty.addWidget(self.text('После оформления записи на сайте нажмите «Подтвердить запись». Здесь появятся карточка достижения и данные для календаря.',muted=True));empty.addWidget(self.button('Подтвердить запись','plus',self.confirm_success),0,Qt.AlignmentFlag.AlignLeft);empty.addStretch();self.stack.addWidget(self.empty_page)
         self.message=QLabel();self.message.setProperty('muted',True);self.message.setWordWrap(True);layout.addWidget(self.message)
         self.refresh_timer=QTimer(self);self.refresh_timer.setInterval(2000);self.refresh_timer.timeout.connect(self.poll);self.refresh_timer.start()
 
     def toggle_budget_distribution(self):
         self.host.controller.send({'command': 'appointment_distribution', 'disabled': not self.budget_disabled})
+
+    def budget_link(self, action):
+        if action in {'edit', 'reset'}:
+            self.host.edit_daily_budget(self.profile_combo.currentData(), reset=action == 'reset')
+        else:
+            self.show_budget_history()
 
     def show_budget_history(self, *_):
         budget = self.budget_state
@@ -214,6 +224,10 @@ class StatisticsPanel(QWidget):
         now = datetime.now(MADRID)
         self._budget_day = now.date()
         profile_id = self.profile_combo.currentData()
+        if hasattr(self.host, 'current_daily_budget'):
+            self.show_appointment_budget(self.host.current_daily_budget(profile_id), live=(
+                self.host.controller.active and profile_id == getattr(self.host.controller, 'profile_id', None)))
+            return
         controller = self.host.controller
         if controller.active and profile_id == getattr(controller, 'profile_id', None):
             current = self.host.state.get('appointment_budget')
@@ -240,6 +254,11 @@ class StatisticsPanel(QWidget):
         self.budget_icon.setVisible(bool(budget))
         self.budget_label.setVisible(bool(budget))
         self.budget_menu.setVisible(bool(budget))
+        self.budget_edit.setVisible(bool(budget))
+        self.budget_edit.setToolTip(self.tr_text('Изменить на сегодня'))
+        self.budget_edit.setAccessibleName(self.tr_text('Изменить на сегодня'))
+        if budget and hasattr(self.host, 'daily_budget_tooltip'):
+            self.budget_edit.setToolTip(self.host.daily_budget_tooltip(budget))
         self.budget_action.setEnabled(live)
         if not budget:
             return
@@ -251,9 +270,13 @@ class StatisticsPanel(QWidget):
         if self.budget_disabled:
             text += ' · Распределение отключено'
         else:
-            text += f" · Ориентир {budget['target']} · Остаток ≈{budget['remaining']}"
+            if hasattr(self.host, 'daily_budget_text'):
+                text += ' · ' + self.host.daily_budget_text(budget)
+                text += ' · ' + self.tr_text('Остаток {remaining}').format(**budget)
+            else:
+                text += f" · Ориентир {budget['target']} · Остаток ≈{budget['remaining']}"
         if budget['restricted']:
-            text += f' · <a href="restriction">⚠ Возможное ограничение · Проба с {ready}</a>'
+            text += f'<br><a href="restriction">⚠ Возможное ограничение · Проба с {ready}</a>'
         self.budget_label.setText(self.tr_text(text))
 
     def text(self,source,muted=False):
@@ -453,7 +476,8 @@ class StatisticsPanel(QWidget):
         self.title.setText(t('Достижения профиля' if self.stack.currentWidget()!=self.stats_page else 'Статистика профиля'))
         self.back_button.setVisible(self.stack.currentWidget()!=self.stats_page)
         self.profile_combo.setAccessibleName(t('Профиль для статистики'))
-        self.edit_action.setText(t('Исправить данные записи'));self.more.setVisible(self.stack.currentWidget()==self.achievement_page);self.edit_action.setEnabled(bool(self.current_achievement))
+        self.edit_action.setText(t('Исправить данные записи'));self.more.setVisible(bool(self.profile_combo.currentData()));self.edit_action.setEnabled(bool(self.current_achievement));self.edit_action.setVisible(self.stack.currentWidget()==self.achievement_page)
+        self.manual_success_action.setText(t('Подтвердить запись вручную'));self.manual_success_action.setVisible(self.stack.currentWidget()==self.stats_page)
         if hasattr(self.host,'control_icon') and hasattr(self.host,'preferences'):
             for widget,name in self._icon_bindings:
                 if not name:continue
@@ -471,12 +495,13 @@ class StatisticsPanel(QWidget):
             else:button.setText({'telegram':'↗','x':'𝕏','facebook':'f','instagram':'◎'}[network])
         self.today_button.setChecked(self.period=='today');self.all_button.setChecked(self.period=='all')
         warning=bool(getattr(self.host,'state',{}).get('statistics_error'));self.statistics_warning.setVisible(warning)
-        profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id))
+        profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id));self.success_button.hide()
         if not profile_id:self.achievement_button.hide();self.first_value.setText(t('Ещё не появлялись'));return
         if not snapshot:
             for widget in self.stat_values.values():widget.setText('—')
             self.first_value.setText('—');self.first_booking_value.setText('—');self.achievement_button.hide();return
         data,records=snapshot
+        self.success_button.setVisible(bool(data.get('has_booking_screen')))
         if self._statistics_read_failure:
             if self.message.text()==self._statistics_read_message:self.message.clear()
             self._statistics_read_failure=None;self._statistics_read_message=None

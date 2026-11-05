@@ -772,7 +772,17 @@ class AssistRunner:
             self.control.pending_appointment_protection = None
             if self.budget is not None and self.protection != protection:
                 self.budget.windows = ()
+                if self.protection and self.protection.adaptive_target and not protection.adaptive_target:
+                    self.budget.manual_target = None
+                    self.control.daily_target_choice = (datetime.now(MADRID).date(), None)
+                self.control.save_appointment_budget(self.budget)
             self.protection = self.control.effective_appointment_protection = protection
+        if getattr(self.control, 'daily_target_pending', False) and self.budget is not None:
+            now = datetime.now(MADRID)
+            self.budget.set_daily_target(self.control.pending_daily_target, now, self.protection)
+            self.control.daily_target_choice = (now.date(), self.control.pending_daily_target)
+            self.control.daily_target_pending = False
+            self.control.save_appointment_budget(self.budget)
         if self.control.booking_handoff and self.handoff_observed is not None:
             # Ownership stays with the user even after navigation or an error.
             # Only explicit session restart can start another automatic pass.

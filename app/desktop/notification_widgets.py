@@ -3,6 +3,7 @@ import copy
 import json
 import html
 import time
+import sys
 from PySide6.QtCore import Qt, QSize, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import (QWidget,QDialog,QVBoxLayout,QHBoxLayout,QGridLayout,QLabel,QLineEdit,
@@ -172,6 +173,9 @@ class NotificationPanel(QWidget):
         self.token_box=ActionField(owner,'Токен бота',self.token,'key',[self.eye])
         token_row=QHBoxLayout();token_row.setSpacing(10);token_row.addWidget(self.token_box,1)
         self.check_bot=button(owner,'Проверить','check');self.check_bot.setFixedHeight(48);self.check_bot.clicked.connect(self.verify_bot);token_row.addWidget(self.check_bot);tg.addLayout(token_row)
+        self.keychain_hint = text(owner, 'Токен хранится в Связке ключей. При запуске поиска macOS может запросить пароль.', True)
+        self.keychain_hint.setVisible(sys.platform == 'darwin')
+        tg.addWidget(self.keychain_hint)
         self.bot_status=text(owner,'',True);self.bot_status.setProperty('notificationData',True);help_row=QHBoxLayout()
         help_button=TextDisclosure(owner,'Как получить токен');help_button.toggled.connect(lambda value:self.token_help.setVisible(value))
         help_row.addWidget(help_button);help_row.addStretch();help_row.addWidget(self.bot_status);tg.addLayout(help_row)

@@ -60,6 +60,7 @@ def test_saved_protection_applies_next_step_without_resetting_budget():
     from app.desktop.worker import apply_command
 
     r = runner()
+    r.control.save_appointment_budget = Mock()
     r.checker.settings = Settings()
     r.page.set_default_timeout = Mock()
     now = datetime.now(timezone.utc)
@@ -74,7 +75,7 @@ def test_saved_protection_applies_next_step_without_resetting_budget():
 
     assert apply_command(r.control, {'command': 'profile_timings', 'timings': {},
                                      'protection': {'daily_target': 50, 'adaptive_target': False}})
-    assert r.budget.target(r.protection) == 1
+    assert r.budget.target(r.protection) == 5
 
     asyncio.run(r.step())
 
@@ -83,3 +84,44 @@ def test_saved_protection_applies_next_step_without_resetting_budget():
     assert r.budget.windows == ()
     assert r.budget.restriction_until == restriction
     assert r.control.effective_appointment_protection == r.protection
+
+
+def test_manual_daily_budget_command_applies_at_next_step_and_persists():
+    from datetime import datetime, timezone, timedelta
+    from unittest.mock import Mock
+    from app.appointment_budget import AppointmentBudget
+    from app.config import AppointmentProtection
+    from app.desktop.worker import apply_command
+
+    r = runner()
+    r.protection = AppointmentProtection(daily_target=50)
+    now = datetime.now(timezone.utc)
+    from app.appointment_schedule import MADRID
+    r.budget = AppointmentBudget(day=now.astimezone(MADRID).date(),
+                                 sent=3, target_override=1,
+                                 restriction_until=now + timedelta(minutes=30))
+    restriction = r.budget.restriction_until
+    r.control.save_appointment_budget = Mock()
+    r.observe = AsyncMock(return_value=Observed('applicant', 'doc', 'sig', None))
+    r.observe_appointment_budget = Mock()
+    r.manual_signature = 'sig'
+    assert apply_command(r.control, {'command': 'appointment_daily_target', 'target': 20})
+    assert r.budget.target(r.protection) == 5
+    asyncio.run(r.step())
+    assert r.budget.remaining(r.protection) == 17
+    assert r.budget.restriction_until == restriction
+    r.control.save_appointment_budget.assert_called_once_with(r.budget)
+    assert apply_command(r.control, {'command': 'appointment_daily_target', 'target': None})
+    asyncio.run(r.step())
+    assert r.budget.target(r.protection) == 5
+    r.budget.manual_target = 20
+    assert apply_command(r.control, {'command': 'profile_timings', 'timings': {},
+                                     'protection': {'daily_target': 40, 'adaptive_target': False}})
+    from app.config import Settings
+    r.checker.settings = Settings()
+    r.page.set_default_timeout = Mock()
+    asyncio.run(r.step())
+    assert r.budget.target(r.protection) == 40
+    assert r.budget.manual_target is None
+    for invalid in (True, 0, -1, 2**31, '20'):
+        assert not apply_command(r.control, {'command': 'appointment_daily_target', 'target': invalid})

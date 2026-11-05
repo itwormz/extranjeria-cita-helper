@@ -18,6 +18,7 @@ class AppointmentBudget:
     episode_history: list[dict] = field(default_factory=list)
     target_override: int | None = None
     next_target: int | None = None
+    manual_target: int | None = None
     last_submission: datetime | None = None
     first_cod_oper: datetime | None = None
     last_cod_oper: datetime | None = None
@@ -29,6 +30,7 @@ class AppointmentBudget:
         day = now.astimezone(MADRID).date()
         if self.day != day:
             self.day = day
+            self.manual_target = None
             self.sent = 0
             self.banners = 0
             self.no_slots = 0
@@ -44,9 +46,18 @@ class AppointmentBudget:
             self.windows = attempt_windows(now, self.remaining(policy))
 
     def target(self, policy: AppointmentProtection) -> int:
+        if self.manual_target is not None:
+            return self.manual_target
         if policy.adaptive_target and self.target_override is not None:
-            return self.target_override
+            return max(5, self.target_override)
         return policy.daily_target
+
+    def set_daily_target(self, target: int | None, now: datetime, policy: AppointmentProtection) -> None:
+        if target is not None and (type(target) is not int or not 1 <= target <= 2_147_483_647):
+            raise ValueError('Daily target must be a positive integer')
+        self.refresh(now, policy)
+        self.manual_target = target
+        self.windows = ()
 
     def remaining(self, policy: AppointmentProtection) -> int:
         return max(0, self.target(policy) - self.sent)
@@ -82,7 +93,7 @@ class AppointmentBudget:
         self.refresh(now, policy)
         self.cod_oper_count += 1
         if self.next_target is None and self.sent:
-            self.next_target = self.sent - 1
+            self.next_target = max(5, self.sent - 1)
         if self.first_cod_oper is None:
             self.offices_during_restriction = 0
             self.episode_offices = []
@@ -117,6 +128,11 @@ class AppointmentBudget:
                            if start <= ready <= end), None)
         return dict(
             attempt_window=window,
+            target_source=('manual' if self.manual_target is not None else
+                           'adaptive' if policy.adaptive_target and self.target_override is not None else 'base'),
+            manual_target=self.manual_target, adaptive_enabled=policy.adaptive_target,
+            adaptive_target=max(5, self.target_override) if self.target_override is not None else None,
+            base_target=policy.daily_target,
             target=self.target(policy), sent=self.sent, remaining=self.remaining(policy),
             disabled=self.distribution_disabled, banners=self.banners, no_slots=self.no_slots,
             cod_oper_count=self.cod_oper_count,

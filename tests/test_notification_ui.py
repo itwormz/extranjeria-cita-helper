@@ -259,3 +259,25 @@ def test_profile_editor_reloads_secrets_when_notifications_tab_is_already_open(o
     owner.open_editor(profiles[1])
     assert panel.token.text()=='second-token'
     assert panel.vault.get.call_count==4
+
+
+def test_populated_notification_field_does_not_reenter_caption_layout(owner, qt_app, monkeypatch):
+    box = owner.notifications_panel.token_box
+    original = box.sync_caption
+    calls = []
+    def counted(*args):
+        calls.append(True)
+        # Keep a broken implementation from exhausting the Python stack.
+        if len(calls) < 8:
+            original(*args)
+    monkeypatch.setattr(box, 'sync_caption', counted)
+    owner.open_editor(None)
+    owner.profile_tabs.setCurrentIndex(2)
+    owner.notifications_panel.telegram_toggle.setChecked(True)
+    qt_app.processEvents()
+    calls.clear()
+
+    owner.notifications_panel.token.setText('synthetic-token')
+    qt_app.processEvents()
+
+    assert len(calls) <= 3

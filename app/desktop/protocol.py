@@ -44,6 +44,10 @@ def validate_command(row):
         return set(row) == {'command'}
     if name == 'pause':
         return set(row) == {'command', 'paused'} and type(row['paused']) is bool
+    if name == 'appointment_daily_target':
+        return (set(row) == {'command', 'target'}
+                and (row['target'] is None or
+                     type(row['target']) is int and 1 <= row['target'] <= 2_147_483_647))
     if name == 'appointment_distribution':
         return set(row) == {'command', 'disabled'} and type(row['disabled']) is bool
     if name == 'profile_timings':

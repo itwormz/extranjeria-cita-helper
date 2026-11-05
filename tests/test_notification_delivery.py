@@ -66,6 +66,7 @@ def test_unreachable_telegram_chat_does_not_prevent_other_recipients(qt_app,monk
             delivered.append(chat)
     monkeypatch.setattr(module,'Telegram',Client)
     delivery=module.NotificationDelivery(Store());delivery.vault.get=lambda reference:{'token':'test'}
+    delivery.prepare('one')
     delivery.jobs.submit=lambda work,done:done(True,work())
     delivery.observe('one',{'booking_handoff':True,'mode':'manual'},'en')
     assert delivered==['2']
@@ -88,6 +89,7 @@ def test_telegram_waits_for_details_once_but_webhook_stays_generic(qt_app,monkey
     monkeypatch.setattr(module,'send_request',send)
     delivery=module.NotificationDelivery(Store())
     delivery.vault.get=lambda ref:{'token':'test'} if ref=='tg' else {'url':'https://example.test'}
+    delivery.prepare('one')
     delivery.jobs.submit=lambda work,done:done(True,work())
     state={'booking_handoff':True,'mode':'manual','run_id':'one','booking_details_pending':True}
     delivery.observe('one',state,'en')
@@ -109,10 +111,61 @@ def test_telegram_empty_details_falls_back_once_after_read(qt_app,monkeypatch):
         def send(self,chat,message,current):sent.append(message)
     monkeypatch.setattr(module,'Telegram',Client)
     delivery=module.NotificationDelivery(Store());delivery.vault.get=lambda ref:{'token':'test'}
+    delivery.prepare('one')
     delivery.jobs.submit=lambda work,done:done(True,work())
     state={'booking_handoff':True,'mode':'manual','run_id':'one','booking_details_pending':True}
     delivery.observe('one',state,'ru');assert not sent
     state.update(booking_details_pending=False,booking_details={})
     delivery.observe('one',state,'ru');delivery.observe('one',state,'ru')
     assert len(sent)==1 and 'Открыт выбор ситы' in sent[0] and 'CAPTCHA' in sent[0]
+    delivery.stop()
+
+
+def test_booking_delivery_uses_preloaded_secret_without_reading_vault(qt_app, monkeypatch):
+    from unittest.mock import Mock
+    from app.desktop import notification_delivery as module
+
+    class Store:
+        def raw_profile(self, profile):
+            return {'label': 'Demo', 'notifications': {'telegram': {
+                'enabled': True, 'events': ['booking'], 'secret_ref': 'tg',
+                'recipients': [{'id': '1'}]}}}
+    sent = []
+    class Client:
+        def __init__(self, token):
+            assert token == 'synthetic-token'
+        def send(self, chat, message, current):
+            sent.append(chat)
+    monkeypatch.setattr(module, 'Telegram', Client)
+    delivery = module.NotificationDelivery(Store())
+    delivery.vault.get = Mock(return_value={'token': 'synthetic-token'})
+    delivery.prepare('one')
+    delivery.vault.get.assert_called_once_with('tg')
+    delivery.vault.get.side_effect = AssertionError('Vault must not be accessed during booking')
+    delivery.jobs.submit = lambda work, done: done(True, work())
+
+    delivery.observe('one', {'booking_handoff': True, 'mode': 'manual'}, 'en')
+
+    assert sent == ['1']
+    assert delivery.vault.get.call_count == 1
+    delivery.stop()
+    assert not delivery.secrets
+
+
+def test_unprepared_booking_never_prompts_for_vault_access(qt_app):
+    from unittest.mock import Mock
+    from app.desktop.notification_delivery import NotificationDelivery
+
+    class Store:
+        def raw_profile(self, profile):
+            return {'notifications': {'telegram': {
+                'enabled': True, 'events': ['booking'], 'secret_ref': 'tg'}}}
+    delivery = NotificationDelivery(Store())
+    delivery.vault.get = Mock(side_effect=AssertionError('Unexpected vault access'))
+    queued = []
+    delivery.jobs.submit = lambda work, done: queued.append(work)
+    delivery.observe('one', {'booking_handoff': True, 'mode': 'manual'}, 'en')
+    with pytest.raises(n.NotificationError, match='не подготовлены'):
+        queued[0]()
+    delivery.vault.get.assert_not_called()
     delivery.stop()

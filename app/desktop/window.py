@@ -290,7 +290,7 @@ class DesktopWindow(QMainWindow):
         self.more_actions.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu=QMenu(self.more_actions); self.restart_action=menu.addAction('Перезапустить сессию')
         self.restart_action.triggered.connect(self.reset_session)
-        self.success_action=menu.addAction('Сита получена')
+        self.success_action=menu.addAction('Подтвердить запись вручную')
         self.success_action.triggered.connect(self.mark_success_from_work)
         self.more_actions.setMenu(menu)
         self.actions.addWidget(self.more_actions); self.actions.addStretch()
@@ -318,10 +318,18 @@ class DesktopWindow(QMainWindow):
         self.metrics=label('',muted=True,name='compactMetrics')
         self.metrics.setWordWrap(False)
         self.work_budget=label('',muted=True)
+        self.work_budget.setTextFormat(Qt.TextFormat.RichText)
+        self.work_budget.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
         self.work_budget.hide()
         self.notice=label('Бот сообщит, когда потребуется участие.',muted=True);self.notice.hide()
         layout.addWidget(self.metrics)
-        layout.addWidget(self.work_budget)
+        work_budget_row = QHBoxLayout()
+        work_budget_row.addWidget(self.work_budget, 1)
+        self.work_budget_edit = self.daily_budget_button(
+            lambda: self.edit_daily_budget(getattr(self.controller, 'profile_id', None)))
+        self.work_budget_edit.hide()
+        work_budget_row.addWidget(self.work_budget_edit)
+        layout.addLayout(work_budget_row)
         status_page.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Maximum)
         outer.addWidget(status_page)
         journals = QWidget(); journals_layout = QVBoxLayout(journals); journals_layout.setContentsMargins(0,8,0,0)
@@ -498,7 +506,7 @@ class DesktopWindow(QMainWindow):
             ('Уведомления', {'alert_seconds'})]
         ordered=[]
         self.build_appointment_protection(timing_layout)
-        timing_row=12
+        timing_row=13
         for group, keys in timing_groups:
             ordered.append((None,group,0,0))
             ordered.extend(field for field in TIMING_FIELDS if field[0] in keys)
@@ -542,7 +550,7 @@ class DesktopWindow(QMainWindow):
         for previous,current in zip(self.profile_focus_fields,self.profile_focus_fields[1:]):
             QWidget.setTabOrder(previous,current)
         profile_tabs.currentChanged.connect(self.profile_tab_changed)
-        form.addWidget(label('Пароли и подтверждения — только в Camoufox.',muted=True))
+        form.addWidget(label('Пароли для входа на сайт — только в Camoufox.',muted=True))
         self.form_error=label(name='formError'); form.addWidget(self.form_error)
         actions=QHBoxLayout(); actions.addStretch(); save=QPushButton('Сохранить профиль');save.setObjectName('saveProfile'); save.setProperty('primary',True)
         save.setAutoDefault(False); save.clicked.connect(self.save_profile)
@@ -723,10 +731,10 @@ class DesktopWindow(QMainWindow):
         fields = (
             ('confirm_new_round', 'Перепроверять наличие сит',
              'Когда плашка «Сит нет» исчезнет, начнётся новый проход. Запрос уйдёт, если плашка больше не появится.'),
-            ('daily_target', 'Бюджет попыток',
-             'Ориентир на день для распределения запросов. После его исчерпания действует минимальная пауза.'),
+            ('daily_target', 'Базовый бюджет',
+             'Используется без адаптации или пока нет адаптивной оценки. Бюджет только на сегодня можно изменить отдельно.'),
             ('adaptive_target', 'Адаптивный бюджет',
-             'Если получен cod. oper, бюджет на завтра равен числу запросов на запись, отправленных до первого такого ответа за день. Запрос с этим ответом не учитывается.'),
+             'Бюджет на завтра определяется числом запросов до первого ответа с cod. oper, но составляет не менее пяти попыток. Запрос с этим ответом не учитывается.'),
             ('retry_after_office', 'Повторить после офиса',
              'Если после показа офиса сайт ответит «Сит нет», можно сделать одну попытку раньше запланированного времени. Чистый проход и паузы по-прежнему обязательны.'),
             ('minimum_pause_minutes', 'Пауза между попытками',
@@ -761,8 +769,178 @@ class DesktopWindow(QMainWindow):
             self.timing_focus_fields.append(widget)
             if isinstance(widget, Toggle):
                 widget.toggled.connect(self.update_search_behavior)
-        layout.addWidget(self.search_behavior_note, 10, 0, 1, 2)
-        layout.addWidget(self.search_behavior_hint, 11, 0, 1, 2)
+        self.daily_budget_note = label('', muted=True)
+        self.daily_budget_note.setTextFormat(Qt.TextFormat.RichText)
+        self.daily_budget_note.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        daily_budget_row = QHBoxLayout()
+        daily_budget_row.addWidget(self.daily_budget_note, 1)
+        self.daily_budget_edit = self.daily_budget_button(lambda: self.edit_daily_budget(self.editing_id))
+        daily_budget_row.addWidget(self.daily_budget_edit)
+        layout.addLayout(daily_budget_row, 10, 0, 1, 2)
+        layout.addWidget(self.search_behavior_note, 11, 0, 1, 2)
+        layout.addWidget(self.search_behavior_hint, 12, 0, 1, 2)
+
+    def daily_budget_text(self, budget):
+        return self.t('На сегодня {target}').format(**budget)
+
+    def daily_budget_source(self, budget):
+        return self.t({'manual': 'Задан вручную', 'adaptive': 'Адаптивный бюджет',
+                       'base': 'Базовый бюджет'}[budget.get('target_source', 'base')])
+
+    def daily_budget_tooltip(self, budget):
+        return self.t('Изменить на сегодня') + '\n' + self.daily_budget_source(budget)
+
+    def daily_budget_button(self, callback):
+        button = QToolButton()
+        button.setFixedSize(30, 30)
+        button.setIcon(self.control_icon('pencil'))
+        button.setToolTip(self.t('Изменить на сегодня'))
+        button.setAccessibleName(self.t('Изменить на сегодня'))
+        button.clicked.connect(callback)
+        return button
+
+    def request_daily_target(self, budget):
+        dialog = QDialog(self.profile_editor if self.profile_editor.isVisible() else self)
+        dialog.setObjectName('dailyBudgetDialog')
+        dialog.setWindowTitle(self.t('Бюджет на сегодня'))
+        dialog.setMinimumWidth(510)
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
+        layout.addWidget(label(self.t('Бюджет на сегодня'), name='sectionHeading'))
+        meta = QHBoxLayout()
+        deadline = label(self.t('До полуночи'), muted=True)
+        deadline.setWordWrap(False)
+        source = label(self.daily_budget_source(budget), muted=True)
+        source.setWordWrap(False)
+        meta.addWidget(deadline)
+        meta.addStretch()
+        meta.addWidget(source)
+        layout.addLayout(meta)
+        number = ProfileNumber()
+        number.setObjectName('dailyBudgetValue')
+        number.setRange(1, 2_147_483_647)
+        number.setValue(budget['target'])
+        number.setAccessibleName(self.t('Всего попыток на день'))
+        row = QHBoxLayout()
+        row.setSpacing(24)
+        row.addWidget(TimingField(self.t('Всего попыток на день'), [number], ''), 1)
+        counts = QGridLayout()
+        counts.setHorizontalSpacing(16)
+        counts.setVerticalSpacing(5)
+        remaining = label('')
+        remaining.setObjectName('dailyBudgetRemaining')
+        for index, (caption, value) in enumerate((
+                ('Отправлено', label(str(budget['sent']))), ('Осталось', remaining))):
+            counts.addWidget(label(self.t(caption), muted=True), index, 0)
+            value.setAlignment(Qt.AlignmentFlag.AlignRight)
+            counts.addWidget(value, index, 1)
+        row.addLayout(counts)
+        layout.addLayout(row)
+        number.valueChanged.connect(lambda value: remaining.setText(str(max(0, value - budget['sent']))))
+        remaining.setText(str(max(0, number.value() - budget['sent'])))
+        if budget.get('adaptive_enabled', True):
+            layout.addWidget(label(self.t('Адаптивный бюджет продолжает рассчитываться на завтра.'), muted=True))
+        automatic = False
+        def restore_automatic():
+            nonlocal automatic
+            automatic = True
+            dialog.accept()
+        actions = QHBoxLayout()
+        actions.setSpacing(10)
+        if budget.get('target_source') == 'manual':
+            adaptive = budget.get('adaptive_enabled', True) and budget.get('adaptive_target') is not None
+            reset = QPushButton(self.t('Вернуть адаптивный' if adaptive else 'Вернуть базовый'))
+            reset.setObjectName('resetDailyBudget')
+            reset.setAutoDefault(False)
+            reset.clicked.connect(restore_automatic)
+            actions.addWidget(reset)
+        actions.addStretch()
+        cancel = QPushButton(self.t('Отмена'))
+        cancel.setAutoDefault(False)
+        cancel.clicked.connect(dialog.reject)
+        actions.addWidget(cancel)
+        save = QPushButton(self.t('Сохранить'))
+        save.setObjectName('saveDailyBudget')
+        save.setProperty('primary', True)
+        save.setDefault(True)
+        save.clicked.connect(dialog.accept)
+        actions.addWidget(save)
+        layout.addLayout(actions)
+        number.setFocus()
+        number.selectAll()
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        target = None if automatic else number.value()
+        dialog.deleteLater()
+        return target, accepted
+
+    def current_daily_budget(self, profile_id):
+        from datetime import datetime
+        from ..appointment_budget_store import BudgetStore
+        from ..appointment_schedule import MADRID
+
+        if self.controller.active and profile_id == getattr(self.controller, 'profile_id', None):
+            return self.state.get('appointment_budget')
+        try:
+            task = next((task for task in self.store.load() if task.id == profile_id), None)
+            if task is None:
+                return None
+            root = self.store.path.parent / 'data' / 'appointment-budget'
+            stored = BudgetStore(root, task, use_saved_profile=task.applicant_fill_mode == 'copy').load()
+            return stored.summary(datetime.now(MADRID), task.appointment_protection)
+        except (OSError, ValueError, TypeError, KeyError):
+            return None
+
+    def refresh_daily_budget_note(self):
+        profile_id = getattr(self, 'editing_id', None)
+        budget = self.current_daily_budget(profile_id) if profile_id else None
+        self.daily_budget_note.setText(
+            self.daily_budget_text(budget) + ' · ' + self.daily_budget_source(budget) if budget else '')
+        self.daily_budget_note.setVisible(bool(budget))
+        self.daily_budget_edit.setVisible(bool(budget))
+        self.daily_budget_edit.setIcon(self.control_icon('pencil'))
+        self.daily_budget_edit.setToolTip(self.daily_budget_tooltip(budget) if budget else '')
+        self.daily_budget_edit.setAccessibleName(self.t('Изменить на сегодня'))
+
+    def edit_daily_budget(self, profile_id, *, reset=False):
+        from datetime import datetime
+        from ..appointment_budget_store import BudgetStore
+        from ..appointment_schedule import MADRID
+
+        if not profile_id:
+            return
+        budget = self.current_daily_budget(profile_id)
+        if not budget:
+            return
+        target = None
+        if not reset:
+            target, accepted = self.request_daily_target(budget)
+            if not accepted:
+                return
+        if self.controller.active and profile_id == getattr(self.controller, 'profile_id', None):
+            self.controller.send({'command': 'appointment_daily_target', 'target': target})
+            self.statusBar().showMessage(self.t('Бюджет применится со следующего действия'), 5000)
+        else:
+            task = next((task for task in self.store.load() if task.id == profile_id), None)
+            if task is None:
+                return
+            root = self.store.path.parent / 'data' / 'appointment-budget'
+            from ..state import StateStore
+            try:
+                store = BudgetStore(root, task, use_saved_profile=task.applicant_fill_mode == 'copy')
+                with StateStore(runtime_root() / 'data' / 'state.db').task_lock('budget-' + store.key) as acquired:
+                    if not acquired:
+                        self.statusBar().showMessage(self.t('Этот бюджет используется другим поиском'), 5000)
+                        return
+                    stored = store.load()
+                    stored.set_daily_target(target, datetime.now(MADRID), task.appointment_protection)
+                    store.save(stored)
+                    store.remember_profile(profile_id)
+            except (OSError, ValueError, TypeError, KeyError):
+                self.statusBar().showMessage(self.t('Не удалось сохранить бюджет на сегодня'), 5000)
+                return
+            self.statistics_panel.refresh_appointment_budget()
+            self.refresh_daily_budget_note()
 
     def build_search_behavior(self, layout, row):
         self.applicant_no_slots_combo=ProfileChoice()
@@ -864,6 +1042,7 @@ class DesktopWindow(QMainWindow):
         self.applicant_no_slots_combo.setCurrentIndex(max(0,self.applicant_no_slots_combo.findData(raw.get('request',{}).get('applicant_no_slots_mode','wait'))))
         self.update_search_behavior()
         protection = AppointmentProtection.parse(raw.get('request', {}).get('appointment_protection', {}), [])
+        self.editing_adaptive_budget = protection.adaptive_target
         for key, widget in self.protection_fields.items():
             if key == "adaptive_reload_on_429":
                 continue
@@ -872,6 +1051,7 @@ class DesktopWindow(QMainWindow):
                 widget.setChecked(value)
             else:
                 widget.setValue(value)
+        self.refresh_daily_budget_note()
         applicant=raw.get('applicant',{}); contact=applicant.get('contact',{})
         values=dict(label=raw.get('label',''),full_name=applicant.get('full_name',''),
             document_number=applicant.get('document_number',''),phone=contact.get('phone',''),email=contact.get('email',''))
@@ -951,10 +1131,13 @@ class DesktopWindow(QMainWindow):
         if self.notification_delivery.profile_id==profile_id:self.notification_delivery.generation+=1
         self.profile_editor.accept(); self.refresh_profiles(profile_id)
         if self.controller.active and profile_id == self.controller.profile_id:
+            self.notification_delivery.prepare(profile_id)
             self.controller.send({'command': 'profile_timings', 'timings': timings,
                                   'protection': data['request']['appointment_protection']})
             message = 'Тайминги и защита от бана применятся со следующего действия. Остальные изменения — при новом запуске.'
         else:
+            if self.editing_adaptive_budget and not data['request']['appointment_protection']['adaptive_target']:
+                self.edit_daily_budget(profile_id, reset=True)
             message = 'Профиль сохранён'
         self.statusBar().showMessage(self.t(message), 5000)
 
@@ -999,6 +1182,7 @@ class DesktopWindow(QMainWindow):
             self.clear_error('worker')
             self.notification_delivery.reset()
             profile_id = self.profile_combo.currentData()
+            self.notification_delivery.prepare(profile_id)
             self.load_saved_journal(profile_id)
             self.state = {}
             self.controller.start(profile_id)
@@ -1023,6 +1207,8 @@ class DesktopWindow(QMainWindow):
         self.notification_delivery.observe(profile_id,state,self.preferences['language'])
         previous_mode=self.state.get('mode')
         self.state=state
+        if self.profile_editor.isVisible():
+            self.refresh_daily_budget_note()
         if self.statistics_panel.profile_combo.currentData() == profile_id:
             if state.get('appointment_budget'):
                 self.statistics_panel.show_appointment_budget(state['appointment_budget'])
@@ -1034,10 +1220,14 @@ class DesktopWindow(QMainWindow):
         from datetime import datetime
         budget = state.get('appointment_budget') or {}
         self.work_budget.setVisible(bool(budget))
+        self.work_budget_edit.setVisible(bool(budget))
+        self.work_budget_edit.setIcon(self.control_icon('pencil'))
+        self.work_budget_edit.setToolTip(self.daily_budget_tooltip(budget) if budget else '')
+        self.work_budget_edit.setAccessibleName(self.t('Изменить на сегодня'))
         if budget:
-            budget_text = self.t('Бюджет {target} · Остаток ≈{remaining}').format(**budget)
+            budget_text = self.t('Бюджет {target} · Остаток {remaining}').format(**budget)
             if budget.get('restricted'):
-                budget_text += ' · ' + self.t('Возможное ограничение · Проба с {time}').format(
+                budget_text += '<br>' + self.t('Возможное ограничение · Проба с {time}').format(
                     time=budget['ready'][11:16])
             self.work_budget.setText(budget_text)
         window = budget.get('attempt_window') if not budget.get('restricted') else None
@@ -1291,6 +1481,7 @@ class DesktopWindow(QMainWindow):
         if code and not self.errors: self.show_error('Поиск завершился с ошибкой. Проверить диагностику сессии.')
         self.status_label.setText('Поиск остановлен' if not code else 'Поиск завершился с ошибкой')
         self.work_budget.hide()
+        self.work_budget_edit.hide()
         self.attempt_window_caption.hide()
         self.attempt_window_label.hide()
         self.next_label.setText('Для начала — «Запустить»')
@@ -1312,6 +1503,8 @@ class DesktopWindow(QMainWindow):
         return translate(text, getattr(self,'preferences',{}).get('language','en'))
 
     def retranslate(self):
+        if self.profile_editor.isVisible():
+            self.refresh_daily_budget_note()
         if not hasattr(self,'preferences'): return
         self.refresh_error_band()
         def update(key, current, setter):
@@ -1355,7 +1548,7 @@ class DesktopWindow(QMainWindow):
                 item=table.horizontalHeaderItem(index)
                 update((table,index),item.text(),item.setText)
         language=self.preferences['language']
-        self.success_action.setText(self.t("Сита получена"))
+        self.success_action.setText(self.t("Подтвердить запись вручную"))
         self.restart_action.setText(self.t('Перезапустить сессию' if self.controller.active else 'Сбросить сессию'))
         self.more_actions.setToolTip(self.t('Другие действия'))
         self.more_actions.setAccessibleName(self.t('Другие действия'))

@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## Unreleased — Daily budgets and interface improvements
+
+- **Adaptive budgets now have a minimum of five attempts**, including previously saved estimates.
+- **Set a manual budget for today without disabling adaptation.** It applies from the next action and expires at midnight. Used attempts and active restriction pauses are preserved, while the adaptive algorithm continues to learn for tomorrow.
+- **Edit the daily budget from Monitor, Statistics or profile settings.** A compact pencil button opens a dialog showing the daily total, sent requests and remaining attempts. Restore the adaptive or base budget at any time.
+- **Read budget information more easily.** The budget source appears in the edit button’s tooltip, and the next probe during a possible restriction appears on a separate line.
+- **Confirm booking appears after a date selection screen has been detected.** Recording a booking remains manual. If detection was missed, use the actions menu to confirm it manually.
+- **Notification credentials are prepared before the search starts.** Sending an office or booking alert no longer reads the secret store. Telegram settings on macOS explain when the system may ask for a Keychain password.
+- Fix repeated layout updates in a populated bot token field.
+- Keep schedule calculations responsive when a very large attempt budget is configured.
 
 ## 0.3.2 — Statistics and profile settings
 

@@ -15,7 +15,7 @@ from .locking import locked_file
 
 
 class BudgetStore:
-    def __init__(self, root: Path, task):
+    def __init__(self, root: Path, task, *, use_saved_profile=False):
         self.root = root
         root.mkdir(parents=True, exist_ok=True)
         secret = root / 'key'
@@ -25,10 +25,13 @@ class BudgetStore:
                 with os.fdopen(fd, 'wb') as stream:
                     stream.write(secrets.token_bytes(32))
             secret_key = secret.read_bytes()
-        document = ''.join(task.document_number.upper().split())
+        document = ('' if use_saved_profile and getattr(task, 'applicant_fill_mode', None) == 'copy'
+                    else ''.join(task.document_number.upper().split()))
         identity = (f'{task.document_type.upper()}:{document}' if document
                     else f'profile:{task.id}')
         self.key = hmac.new(secret_key, identity.encode(), hashlib.sha256).hexdigest()
+        if use_saved_profile:
+            self.key = self._profile_key(root, task.id) or self.key
         self.path = root / (self.key + '.json')
 
     def remember_profile(self, profile_id):
@@ -73,6 +76,11 @@ class BudgetStore:
                 data[key] = datetime.fromisoformat(data[key])
         data['windows'] = tuple(tuple(datetime.fromisoformat(v) for v in pair)
                                 for pair in data.get('windows', ()))
+        if data.get('target_override') is not None and data['target_override'] < 5:
+            data['target_override'] = 5
+            data['windows'] = ()
+        if data.get('next_target') is not None:
+            data['next_target'] = max(5, data['next_target'])
         return AppointmentBudget(**data)
 
     def save(self, budget):

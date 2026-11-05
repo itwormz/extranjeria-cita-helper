@@ -28,6 +28,9 @@ def apply_command(control, message):
         control.request_restart()
     elif command == 'show_browser':
         control.show_browser_requested = True
+    elif command == 'appointment_daily_target':
+        control.pending_daily_target = message['target']
+        control.daily_target_pending = True
     elif command == 'appointment_distribution':
         budget = getattr(control, 'appointment_budget', None)
         if budget is not None and isinstance(message.get('disabled'), bool):
@@ -52,6 +55,25 @@ def apply_command(control, message):
         control.set_diagnostics(message['diagnostics'])
         control.set_sound(message['sound'])
     return True
+
+
+def load_bound_budget(control, store, policy, *, transfer_manual=False):
+    """Keep today's user choice when a copied document gets its own budget."""
+    from datetime import datetime
+    from ..appointment_schedule import MADRID
+
+    budget = store.load()
+    now = datetime.now(MADRID)
+    choice = control.daily_target_choice
+    previous = getattr(control, 'appointment_budget', None)
+    if (choice is None and transfer_manual and previous is not None
+            and previous.day == now.date() and previous.manual_target is not None):
+        choice = (previous.day, previous.manual_target)
+    if choice is not None and choice[0] == now.date():
+        budget.set_daily_target(choice[1], now, policy)
+        store.save(budget)
+        control.daily_target_choice = choice
+    return budget
 
 
 async def consume_commands(stream, control, emit):
@@ -159,7 +181,9 @@ async def run_worker(task_id):
         emit({'type':'error', 'message':'Не удалось загрузить выбранный профиль.'})
         return 2
     from ..appointment_budget_store import BudgetStore
-    budget_store = BudgetStore(profiles.path.parent / 'data' / 'appointment-budget', task)
+    from dataclasses import replace
+    budget_identity = replace(task, document_number='') if task.applicant_fill_mode == 'copy' else task
+    budget_store = BudgetStore(profiles.path.parent / 'data' / 'appointment-budget', budget_identity)
     register_sensitive([task.document_number, task.full_name, task.contact_phone, task.contact_email])
     loop = asyncio.get_running_loop()
     signals = []
@@ -213,7 +237,10 @@ async def run_worker(task_id):
                     return True
                 if not locks.enter_context(state_store.task_lock('budget-' + store.key)):
                     return False
-                control.appointment_budget = store.load()
+                control.appointment_budget = load_bound_budget(
+                    control, store, task.appointment_protection,
+                    transfer_manual=(bound_key == budget_store.key
+                                     and BudgetStore._profile_key(budget_store.root, task.id) in (None, budget_store.key)))
                 control.save_appointment_budget = store.save
                 if task.applicant_fill_mode != "copy" or store is not budget_store:
                     store.remember_profile(task.id)

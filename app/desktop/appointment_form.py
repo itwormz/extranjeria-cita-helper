@@ -86,7 +86,7 @@ class OfficeDelegate(QStyledItemDelegate):
 
 class AppointmentForm(QDialog):
     def __init__(self,host,offices,selected='',saved=None):
-        super().__init__(host);self.host=host;t=host.t;self.setWindowTitle(t('Сита получена'));self.setMinimumWidth(540)
+        super().__init__(host);self.host=host;t=host.t;self.setWindowTitle(t('Подтвердить запись'));self.setMinimumWidth(540)
         layout=QVBoxLayout(self);layout.setContentsMargins(24,20,24,20);layout.setSpacing(12)
         title=QLabel(t('Сохранить запись для напоминания в календаре.'));title.setWordWrap(True);title.setProperty('muted',True);layout.addWidget(title)
         self.date=SeparatedDateTimeEdit('date');self.date.setText(QDate.currentDate().toString('dd.MM.yyyy'));self.date.setObjectName('appointmentDate');self.date.setMaxLength(10);self.date.setFixedWidth(98)
