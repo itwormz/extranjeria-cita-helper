@@ -1230,7 +1230,7 @@ def test_search_note_colors_follow_mode_switches_and_theme(window,dark):
 def test_malformed_saved_journal_row_does_not_hide_other_entries(window):
     window.saved_journal = [
         {'event': 'visit', 'message': 'Earlier search entry'},
-        {'event': 'visit', 'message': 'Original diagnostics', 'time': 'invalid',
+        {'event': 'visit', 'message': 'Office: {offices}', 'offices': ['Test office'], 'time': 'invalid',
          'ended_at': 'also invalid'},
         {'event': 'visit', 'message': 'Later search entry'},
     ]
@@ -1238,5 +1238,5 @@ def test_malformed_saved_journal_row_does_not_hide_other_entries(window):
     window.render_logs()
 
     assert [window.timeline.item(row, 3).text() for row in range(3)] == [
-        'Later search entry', 'Original diagnostics', 'Earlier search entry',
+        'Later search entry', 'Office: Test office', 'Earlier search entry',
     ]

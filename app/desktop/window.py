@@ -1154,15 +1154,19 @@ class DesktopWindow(QMainWindow):
                 tooltips = [values[0], row.get('page', ''), values[2], values[3]]
                 if not all(isinstance(value, str) for value in (*values, *tooltips)):
                     raise TypeError('Journal display values must be strings')
-                if row.get('ended_at'):
-                    from datetime import datetime
-                    duration = (datetime.fromisoformat(row['ended_at']) - datetime.fromisoformat(row['time'])).total_seconds()
-                    tooltips[0] += '\n' + self.t('Завершено') + ': ' + row['ended_at'][11:23] + ' · ' + str(round(duration, 1)) + ' ' + self.t('секунд')
             except (AttributeError, KeyError, TypeError, ValueError):
                 tone = 'attention'
                 message = row.get('message') if isinstance(row, dict) else None
                 values = ['', '', self.t('Нужна проверка'), message if isinstance(message, str) else '']
                 tooltips = values
+            else:
+                if row.get('ended_at'):
+                    try:
+                        from datetime import datetime
+                        duration = (datetime.fromisoformat(row['ended_at']) - datetime.fromisoformat(row['time'])).total_seconds()
+                        tooltips[0] += '\n' + self.t('Завершено') + ': ' + row['ended_at'][11:23] + ' · ' + str(round(duration, 1)) + ' ' + self.t('секунд')
+                    except (KeyError, TypeError, ValueError):
+                        pass
             for col, (value, tooltip) in enumerate(zip(values, tooltips)):
                 item=QTableWidgetItem(value)
                 item.setToolTip(tooltip)
