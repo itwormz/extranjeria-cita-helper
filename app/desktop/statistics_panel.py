@@ -119,6 +119,8 @@ class StatisticsPanel(QWidget):
         self.budget_menu.setText('⋯')
         self.budget_menu.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu = QMenu(self.budget_menu)
+        self.try_now_action = menu.addAction(self.tr_text('Попробовать сейчас'))
+        self.try_now_action.triggered.connect(lambda: self.host.try_appointment_now(self.profile_combo.currentData()))
         self.budget_action = menu.addAction('Отключить распределение на сегодня')
         self.budget_action.triggered.connect(self.toggle_budget_distribution)
         self.budget_history_action = menu.addAction(self.tr_text('История возможных ограничений'))
@@ -263,6 +265,9 @@ class StatisticsPanel(QWidget):
         if budget and hasattr(self.host, 'daily_budget_tooltip'):
             self.budget_edit.setToolTip(self.host.daily_budget_tooltip(budget))
         self.budget_action.setEnabled(live)
+        self.try_now_action.setText(self.tr_text('Попробовать сейчас'))
+        self.try_now_action.setEnabled(live and not self.host.state.get('booking_handoff', False)
+                                      and not self.host.state.get('browser_retained', False))
         if not budget:
             return
         self.budget_disabled = budget['disabled']

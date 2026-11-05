@@ -40,7 +40,7 @@ class JsonLinesDecoder:
 
 def validate_command(row):
     name = row.get('command')
-    if name in {'stop', 'shutdown', 'restart', 'show_browser'}:
+    if name in {'stop', 'shutdown', 'restart', 'show_browser', 'appointment_try_now'}:
         return set(row) == {'command'}
     if name == 'pause':
         return set(row) == {'command', 'paused'} and type(row['paused']) is bool

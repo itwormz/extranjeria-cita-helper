@@ -12,6 +12,8 @@
 - **Notification credentials are prepared before the search starts.** Sending an office or booking alert no longer reads the secret store. Telegram settings on macOS explain when the system may ask for a Keychain password.
 - Count each separate applicant page showing “No appointments”, even when the warning stays visible across refreshes. Recover earlier observations from saved journals when they can be matched to a recorded search session.
 - Telegram recipient connection links now remain valid for five minutes.
+- Use “Try now” to bring the next attempt forward once, bypassing the budget window or `cod. oper` pause while keeping other protective delays and the clean-round check.
+- Changes to `cod. oper` pause settings recalculate an ongoing pause from its original start without restarting the search.
 - Fix repeated layout updates in a populated bot token field.
 - Keep schedule calculations responsive when a very large attempt budget is configured.
 

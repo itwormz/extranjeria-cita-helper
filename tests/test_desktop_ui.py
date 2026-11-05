@@ -1304,6 +1304,22 @@ def test_manual_daily_budget_edit_routes_to_active_worker(window, monkeypatch):
                         {'command': 'appointment_daily_target', 'target': None}]
 
 
+def test_try_now_routes_only_for_active_profile_before_handoff(window):
+    commands = []
+    window.controller.send = commands.append
+    window.try_appointment_now('running')
+    assert commands == []
+    window.controller.active = True
+    window.controller.profile_id = 'running'
+    window.try_appointment_now('other')
+    assert commands == []
+    window.try_appointment_now('running')
+    assert commands == [{'command': 'appointment_try_now'}]
+    window.state['booking_handoff'] = True
+    window.try_appointment_now('running')
+    assert len(commands) == 1
+
+
 def test_daily_budget_dialog_saves_total_and_offers_reset(window):
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QDialog, QPushButton

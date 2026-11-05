@@ -24,6 +24,7 @@ class AppointmentBudget:
     last_cod_oper: datetime | None = None
     restriction_until: datetime | None = None
     distribution_disabled: bool = False
+    immediate_attempt: bool = False
     windows: tuple[tuple[datetime, datetime], ...] = ()
 
     def refresh(self, now: datetime, policy: AppointmentProtection) -> None:
@@ -36,6 +37,7 @@ class AppointmentBudget:
             self.no_slots = 0
             self.cod_oper_count = 0
             self.distribution_disabled = False
+            self.immediate_attempt = False
             self.windows = ()
             if self.next_target is not None:
                 self.target_override = self.next_target
@@ -62,16 +64,29 @@ class AppointmentBudget:
     def remaining(self, policy: AppointmentProtection) -> int:
         return max(0, self.target(policy) - self.sent)
 
+    def try_now(self, now: datetime, policy: AppointmentProtection) -> None:
+        self.refresh(now, policy)
+        self.immediate_attempt = True
+
+    def recalculate_restriction(self, policy: AppointmentProtection) -> None:
+        if self.first_cod_oper is None:
+            return
+        if self.last_submission is not None and self.last_submission > self.first_cod_oper:
+            self.restriction_until = self.last_submission + timedelta(minutes=policy.next_cod_pause_minutes)
+        else:
+            self.restriction_until = self.first_cod_oper + timedelta(minutes=policy.first_cod_pause_minutes)
+
     def next_submission(
         self, now: datetime, policy: AppointmentProtection, *, hot: bool = False,
     ) -> datetime:
         self.refresh(now, policy)
+        self.recalculate_restriction(policy)
         earliest = earliest_submission(
-            self.last_submission, self.restriction_until,
+            self.last_submission, None if self.immediate_attempt else self.restriction_until,
             timedelta(minutes=policy.minimum_pause_minutes),
         )
         ready = max(now, earliest) if earliest is not None else now
-        if self.first_cod_oper is not None or self.sent == 0 or self.distribution_disabled or hot or not self.remaining(policy):
+        if self.immediate_attempt or self.first_cod_oper is not None or self.sent == 0 or self.distribution_disabled or hot or not self.remaining(policy):
             return ready
         if not self.windows:
             self.windows = attempt_windows(now, self.remaining(policy))
@@ -84,6 +99,7 @@ class AppointmentBudget:
     def submitted(self, now: datetime, policy: AppointmentProtection) -> None:
         self.refresh(now, policy)
         self.sent += 1
+        self.immediate_attempt = False
         self.last_submission = now
         self.windows = attempt_windows(now, self.remaining(policy))
         if self.first_cod_oper is not None:
@@ -92,6 +108,7 @@ class AppointmentBudget:
     def cod_oper(self, now: datetime, policy: AppointmentProtection) -> None:
         self.refresh(now, policy)
         self.cod_oper_count += 1
+        self.immediate_attempt = False
         if self.next_target is None and self.sent:
             self.next_target = max(5, self.sent - 1)
         if self.first_cod_oper is None:
@@ -123,7 +140,7 @@ class AppointmentBudget:
     def summary(self, now: datetime, policy: AppointmentProtection, *, hot=False) -> dict:
         ready = self.next_submission(now, policy, hot=hot)
         window = None
-        if self.sent and not self.distribution_disabled and not hot and self.first_cod_oper is None and self.remaining(policy):
+        if self.sent and not self.immediate_attempt and not self.distribution_disabled and not hot and self.first_cod_oper is None and self.remaining(policy):
             window = next(((start.isoformat(), end.isoformat()) for start, end in self.windows
                            if start <= ready <= end), None)
         return dict(
@@ -135,6 +152,7 @@ class AppointmentBudget:
             base_target=policy.daily_target,
             target=self.target(policy), sent=self.sent, remaining=self.remaining(policy),
             disabled=self.distribution_disabled, banners=self.banners, no_slots=self.no_slots,
+            immediate_attempt=self.immediate_attempt,
             cod_oper_count=self.cod_oper_count,
             ready=ready.isoformat(), restricted=self.first_cod_oper is not None,
             offices=self.offices_during_restriction, next_target=self.next_target,

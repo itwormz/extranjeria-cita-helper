@@ -1060,7 +1060,9 @@
     "Секреты уведомлений не подготовлены. Проверить настройки до запуска поиска.": "Notification secrets are not ready. Check settings before starting the search.",
     "Токен хранится в Связке ключей. При запуске поиска macOS может запросить пароль.": "The token is stored in Keychain. macOS may ask for a password when you start a search.",
     "Пароли для входа на сайт — только в Camoufox.": "Enter website login passwords only in Camoufox.",
-    "Для другого получателя — отправить ему ссылку. Она действует 5 минут.": "For another recipient, send them the link. It expires in 5 minutes."
+    "Для другого получателя — отправить ему ссылку. Она действует 5 минут.": "For another recipient, send them the link. It expires in 5 minutes.",
+    "Попробовать сейчас": "Try now",
+    "Ближайшая попытка разрешена; остальные тайминги сохранены": "Next attempt allowed; other delays remain active"
   },
   "es": {
     "Перепроверять наличие сит": "Volver a comprobar citas",
@@ -2123,6 +2125,8 @@
     "Секреты уведомлений не подготовлены. Проверить настройки до запуска поиска.": "Los secretos de notificación no están preparados. Revisa los ajustes antes de iniciar la búsqueda.",
     "Токен хранится в Связке ключей. При запуске поиска macOS может запросить пароль.": "El token se guarda en el Llavero. macOS puede pedir una contraseña al iniciar la búsqueda.",
     "Пароли для входа на сайт — только в Camoufox.": "Introduce las contraseñas de acceso al sitio solo en Camoufox.",
-    "Для другого получателя — отправить ему ссылку. Она действует 5 минут.": "Para otro destinatario, enviarle el enlace. Caduca en 5 minutos."
+    "Для другого получателя — отправить ему ссылку. Она действует 5 минут.": "Para otro destinatario, enviarle el enlace. Caduca en 5 minutos.",
+    "Попробовать сейчас": "Intentar ahora",
+    "Ближайшая попытка разрешена; остальные тайминги сохранены": "Próximo intento permitido; se mantienen las demás pausas"
   }
 }

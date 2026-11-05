@@ -290,6 +290,8 @@ class DesktopWindow(QMainWindow):
         self.more_actions.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu=QMenu(self.more_actions); self.restart_action=menu.addAction('Перезапустить сессию')
         self.restart_action.triggered.connect(self.reset_session)
+        self.try_now_action = menu.addAction('Попробовать сейчас')
+        self.try_now_action.triggered.connect(lambda: self.try_appointment_now(getattr(self.controller, 'profile_id', None)))
         self.success_action=menu.addAction('Подтвердить запись вручную')
         self.success_action.triggered.connect(self.mark_success_from_work)
         self.more_actions.setMenu(menu)
@@ -909,6 +911,14 @@ class DesktopWindow(QMainWindow):
         self.daily_budget_edit.setToolTip(self.daily_budget_tooltip(budget) if budget else '')
         self.daily_budget_edit.setAccessibleName(self.t('Изменить на сегодня'))
 
+    def try_appointment_now(self, profile_id):
+        if (not self.controller.active or not profile_id
+                or profile_id != getattr(self.controller, 'profile_id', None)
+                or self.state.get('booking_handoff') or self.state.get('browser_retained')):
+            return
+        self.controller.send({'command': 'appointment_try_now'})
+        self.statusBar().showMessage(self.t('Ближайшая попытка разрешена; остальные тайминги сохранены'), 5000)
+
     def edit_daily_budget(self, profile_id, *, reset=False):
         from datetime import datetime
         from ..appointment_budget_store import BudgetStore
@@ -1283,6 +1293,7 @@ class DesktopWindow(QMainWindow):
         self.restart_button.setVisible(False)
         self.more_actions.setVisible(True)
         self.more_actions.setEnabled(not retained)
+        self.try_now_action.setEnabled(active and not retained and not state.get('booking_handoff', False))
         self.restart_action.setEnabled(bool(self.profile_combo.currentData()) and not retained)
         self.attention_label.setVisible(True)
         self.attention_label.setText('Требуется участие в Camoufox' if mode=='manual' or retained else 'Проверить состояние бота' if lost else 'Для начала — «Запустить»' if not active and not state.get('mode') else 'Участие не требуется')
@@ -1560,6 +1571,7 @@ class DesktopWindow(QMainWindow):
         language=self.preferences['language']
         self.success_action.setText(self.t("Подтвердить запись вручную"))
         self.restart_action.setText(self.t('Перезапустить сессию' if self.controller.active else 'Сбросить сессию'))
+        self.try_now_action.setText(self.t('Попробовать сейчас'))
         self.more_actions.setToolTip(self.t('Другие действия'))
         self.more_actions.setAccessibleName(self.t('Другие действия'))
         self.start_button.setIcon(self.control_icon('play' if not self.controller.active or self.state.get('paused') else 'pause'))

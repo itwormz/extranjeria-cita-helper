@@ -31,6 +31,8 @@ def apply_command(control, message):
     elif command == 'appointment_daily_target':
         control.pending_daily_target = message['target']
         control.daily_target_pending = True
+    elif command == 'appointment_try_now':
+        control.pending_attempt_now = True
     elif command == 'appointment_distribution':
         budget = getattr(control, 'appointment_budget', None)
         if budget is not None and isinstance(message.get('disabled'), bool):

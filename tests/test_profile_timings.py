@@ -154,3 +154,34 @@ def test_queued_budget_changes_preserve_order_when_adaptation_is_disabled(manual
     asyncio.run(r.step())
 
     assert r.budget.target(r.protection) == expected
+
+
+def test_live_cod_pause_change_and_manual_attempt_preserve_other_timing():
+    from datetime import datetime, timedelta
+    from unittest.mock import Mock
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_schedule import MADRID
+    from app.config import AppointmentProtection, Settings
+    from app.desktop.worker import apply_command
+
+    r = runner()
+    r.checker.settings = Settings()
+    r.page.set_default_timeout = Mock()
+    r.protection = AppointmentProtection()
+    now = datetime.now(MADRID)
+    r.budget = AppointmentBudget()
+    r.budget.submitted(now, r.protection)
+    r.budget.cod_oper(now, r.protection)
+    r.control.save_appointment_budget = Mock()
+    r.observe = AsyncMock(return_value=Observed('applicant', 'doc', 'sig', None))
+    r.observe_appointment_budget = Mock()
+    r.manual_signature = 'sig'
+    assert apply_command(r.control, {'command': 'profile_timings', 'timings': {},
+                                    'protection': {'first_cod_pause_minutes': 10, 'minimum_pause_minutes': 15}})
+    asyncio.run(r.step())
+    assert r.budget.restriction_until == now + timedelta(minutes=10)
+    assert apply_command(r.control, {'command': 'appointment_try_now'})
+    asyncio.run(r.step())
+    assert r.budget.next_submission(now, r.protection) == now + timedelta(minutes=15)
+    assert r.control.pending_attempt_now is False
+    assert 'Ручная ближайшая попытка' in r.last_action_detail
