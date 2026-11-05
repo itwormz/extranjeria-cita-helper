@@ -53,7 +53,7 @@ def test_review_request_rechecks_head_before_posting(monkeypatch, head_changes):
         final_pr['state'] = 'CLOSED'
     elif head_changes == 'draft':
         final_pr['isDraft'] = True
-    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], checks, [], final_pr]))
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[]], checks, [], final_pr]))
     monkeypatch.setattr(gate, 'review_threads', lambda *_: threads)
     monkeypatch.setattr(gate, 'required_check_names', lambda *_: {'Tests'})
     post = Mock()
@@ -86,3 +86,51 @@ def test_similarly_named_user_cannot_satisfy_greptile_gate():
     pr, reviews, threads, checks = ready_state()
     reviews[0]['user'] = {'login': 'greptile-apps', 'type': 'User'}
     assert gate.blockers(pr, reviews, threads, checks, {'Tests'})
+
+
+def summary_comment(commit='a' * 40, *, author_type='Bot', repository='owner/repo'):
+    return {'id': 10, 'updated_at': '2026-11-05T17:00:00Z',
+            'user': {'login': 'greptile-apps[bot]', 'type': author_type},
+            'body': '<!-- greptile_summary -->\n<sub>Last reviewed commit: '
+                    f'[fix](https://github.com/{repository}/commit/{commit})</sub>'}
+
+
+def test_summary_update_can_complete_review_without_new_github_review():
+    pr, reviews, threads, checks = ready_state()
+    pr['headRefOid'] = 'a' * 40
+    reviews[0]['commit_id'] = 'older'
+    checks.append({'name': 'Greptile Review', 'bucket': 'pass'})
+    summary = gate.summary_commit([summary_comment()], 'owner/repo')
+    assert gate.blockers(pr, reviews, threads, checks, {'Tests'}, summary_head=summary) == []
+
+
+@pytest.mark.parametrize('failure', ['user', 'repo', 'stale', 'marker', 'newer_summary', 'pending', 'no_check', 'requested', 'thread'])
+def test_summary_fallback_does_not_bypass_review_guards(failure):
+    pr, reviews, threads, checks = ready_state()
+    pr['headRefOid'] = 'a' * 40
+    reviews[0]['commit_id'] = 'older'
+    comments = [summary_comment()]
+    checks.append({'name': 'Greptile Review', 'bucket': 'pass'})
+    if failure == 'user':
+        comments[0]['user']['type'] = 'User'
+    elif failure == 'repo':
+        comments = [summary_comment(repository='other/repo')]
+    elif failure == 'stale':
+        comments = [summary_comment('b' * 40)]
+    elif failure == 'marker':
+        comments[0]['body'] = comments[0]['body'].replace('<!-- greptile_summary -->', '')
+    elif failure == 'newer_summary':
+        newer = summary_comment('b' * 40)
+        newer.update(id=11, updated_at='2026-11-05T18:00:00Z')
+        comments.append(newer)
+    elif failure == 'pending':
+        checks[-1]['bucket'] = 'pending'
+    elif failure == 'no_check':
+        checks.pop()
+    elif failure == 'requested':
+        reviews[0]['state'] = 'CHANGES_REQUESTED'
+    else:
+        threads.append({'isResolved': False, 'comments': {'nodes': [
+            {'author': {'login': 'greptile-apps', '__typename': 'Bot'}, 'url': 'finding'}]}})
+    summary = gate.summary_commit(comments, 'owner/repo')
+    assert gate.blockers(pr, reviews, threads, checks, {'Tests'}, summary_head=summary)

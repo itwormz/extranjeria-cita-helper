@@ -1,6 +1,7 @@
 """Request CodeRabbit only after Greptile and required CI checks are complete."""
 import argparse
 import json
+import re
 import subprocess
 from urllib.parse import quote
 
@@ -69,7 +70,20 @@ def required_check_names(repository, number, base):
     return names
 
 
-def blockers(pull_request, reviews, threads, checks, required_names):
+def summary_commit(comments, repository):
+    summaries = [comment for comment in comments
+                 if comment['user'].get('type') == 'Bot' and is_greptile(comment['user']['login'])
+                 and '<!-- greptile_summary -->' in (comment.get('body') or '')]
+    latest = max(summaries, key=lambda comment: (comment['updated_at'], comment['id']), default=None)
+    if latest is None:
+        return None
+    # Match the footer's reviewed commit, not arbitrary links elsewhere in the summary.
+    match = re.search(r'Last reviewed commit:\s*\[[^\n]*?\]\(https://github\.com/'
+                      + re.escape(repository) + r'/commit/([0-9a-f]{40})\)', latest['body'])
+    return match[1] if match else None
+
+
+def blockers(pull_request, reviews, threads, checks, required_names, *, summary_head=None):
     reasons = []
     if pull_request['state'] != 'OPEN' or pull_request['isDraft']:
         reasons.append('The pull request must be open and ready for review.')
@@ -77,12 +91,14 @@ def blockers(pull_request, reviews, threads, checks, required_names):
                  if review['user'].get('type') == 'Bot' and is_greptile(review['user']['login'])
                  and review['state'] not in {'PENDING', 'DISMISSED'}]
     latest = max(published, key=lambda review: review['id'], default=None)
-    if latest is None:
-        reasons.append('Greptile has not published a review.')
-    elif latest['commit_id'] != pull_request['headRefOid']:
-        reasons.append('Greptile must review the current commit after the latest changes.')
-    elif latest['state'] == 'CHANGES_REQUESTED':
+    summary_ready = (summary_head == pull_request['headRefOid'] and any(
+        check['name'] == 'Greptile Review' and check['bucket'] == 'pass' for check in checks))
+    if latest is not None and latest['state'] == 'CHANGES_REQUESTED':
         reasons.append('Greptile still requests changes.')
+    if latest is None and not summary_ready:
+        reasons.append('Greptile has not published a review.')
+    elif latest is not None and latest['commit_id'] != pull_request['headRefOid'] and not summary_ready:
+        reasons.append('Greptile must review the current commit after the latest changes.')
     for thread in threads:
         comments = thread['comments']['nodes']
         author = comments[0].get('author') if comments else None
@@ -110,13 +126,17 @@ def request_review(repository, number, *, request=False):
     pages = gh_json(['api', '--paginate', '--slurp',
                      f'repos/{repository}/pulls/{number}/reviews'])
     reviews = [review for page in pages for review in page]
+    comment_pages = gh_json(['api', '--paginate', '--slurp',
+                            f'repos/{repository}/issues/{number}/comments'])
+    summary_head = summary_commit([comment for page in comment_pages for comment in page], repository)
     check_arguments = ['pr', 'checks', str(number), '--repo', repository, '--json', 'name,bucket']
     checks = gh_json([*check_arguments, '--required'], allowed_codes=(0, 1, 8))
     all_checks = gh_json(check_arguments, allowed_codes=(0, 1, 8))
     checks += [check for check in all_checks
                if check['name'].lower().startswith(('greptile', 'coderabbit'))]
     reasons = blockers(pull_request, reviews, review_threads(repository, number), checks,
-                       required_check_names(repository, number, pull_request['baseRefName']))
+                       required_check_names(repository, number, pull_request['baseRefName']),
+                       summary_head=summary_head)
     if reasons:
         raise RuntimeError('\n'.join(reasons))
     # Recheck the head after reading reviews, discussions and CI to catch a push
