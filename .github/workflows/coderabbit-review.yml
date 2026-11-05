@@ -1,0 +1,37 @@
+name: Request CodeRabbit review
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number already reviewed by Greptile
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+  statuses: read
+
+concurrency:
+  group: coderabbit-review-${{ inputs.pr }}
+  cancel-in-progress: false
+
+jobs:
+  request:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Check Greptile and CI before requesting CodeRabbit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr }}
+        run: |
+          set -euo pipefail
+          python3 scripts/request_coderabbit_review.py --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --request

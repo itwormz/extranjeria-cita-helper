@@ -49,6 +49,12 @@ def apply_command(control, message):
             protection = AppointmentProtection.parse(message['protection'], errors)
             if errors:
                 return False
+            previous = (control.pending_appointment_protection
+                        or control.effective_appointment_protection or AppointmentProtection())
+            if previous.adaptive_target and not protection.adaptive_target:
+                # A later switch to the base budget supersedes an earlier queued override.
+                control.pending_daily_target = None
+                control.daily_target_pending = False
             control.pending_appointment_protection = protection
         control.pending_profile_timings = timings
     elif command == 'preferences':
@@ -180,6 +186,7 @@ async def run_worker(task_id):
     except (ValueError, StopIteration):
         emit({'type':'error', 'message':'Не удалось загрузить выбранный профиль.'})
         return 2
+    control.effective_appointment_protection = task.appointment_protection
     from ..appointment_budget_store import BudgetStore
     from dataclasses import replace
     budget_identity = replace(task, document_number='') if task.applicant_fill_mode == 'copy' else task

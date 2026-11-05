@@ -66,14 +66,13 @@ reviews:
       enabled: false
 
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
-    auto_incremental_review: true
+    auto_incremental_review: false
     auto_pause_after_reviewed_commits: 2
     ignore_title_keywords:
       - "[WIP]"
       - "[skip review]"
-      - "release:"
     ignore_usernames:
       - "dependabot[bot]"
       - "github-actions[bot]"

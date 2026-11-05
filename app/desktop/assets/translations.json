@@ -1059,7 +1059,8 @@
     "После оформления записи на сайте нажмите «Подтвердить запись». Здесь появятся карточка достижения и данные для календаря.": "After booking on the website, select “Confirm booking”. Your achievement card and calendar details will appear here.",
     "Секреты уведомлений не подготовлены. Проверить настройки до запуска поиска.": "Notification secrets are not ready. Check settings before starting the search.",
     "Токен хранится в Связке ключей. При запуске поиска macOS может запросить пароль.": "The token is stored in Keychain. macOS may ask for a password when you start a search.",
-    "Пароли для входа на сайт — только в Camoufox.": "Enter website login passwords only in Camoufox."
+    "Пароли для входа на сайт — только в Camoufox.": "Enter website login passwords only in Camoufox.",
+    "Для другого получателя — отправить ему ссылку. Она действует 5 минут.": "For another recipient, send them the link. It expires in 5 minutes."
   },
   "es": {
     "Перепроверять наличие сит": "Volver a comprobar citas",
@@ -2121,6 +2122,7 @@
     "После оформления записи на сайте нажмите «Подтвердить запись». Здесь появятся карточка достижения и данные для календаря.": "Tras completar la cita en la web, pulsa «Confirmar cita». Aquí aparecerán la tarjeta de logro y los datos para el calendario.",
     "Секреты уведомлений не подготовлены. Проверить настройки до запуска поиска.": "Los secretos de notificación no están preparados. Revisa los ajustes antes de iniciar la búsqueda.",
     "Токен хранится в Связке ключей. При запуске поиска macOS может запросить пароль.": "El token se guarda en el Llavero. macOS puede pedir una contraseña al iniciar la búsqueda.",
-    "Пароли для входа на сайт — только в Camoufox.": "Introduce las contraseñas de acceso al sitio solo en Camoufox."
+    "Пароли для входа на сайт — только в Camoufox.": "Introduce las contraseñas de acceso al sitio solo en Camoufox.",
+    "Для другого получателя — отправить ему ссылку. Она действует 5 минут.": "Para otro destinatario, enviarle el enlace. Caduca en 5 minutos."
   }
 }

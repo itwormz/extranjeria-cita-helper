@@ -12,7 +12,7 @@ from .profile_widgets import ProfileField
 from .notification_jobs import NotificationJobs
 from .notification_store import NotificationVault
 from ..notifications import (EVENTS,EVENT_LABELS,NotificationError,defaults,settings,Telegram,
-    make_event,validate_webhook,webhook_request,send_request)
+    make_event,validate_webhook,webhook_request,send_request,PAIRING_LIFETIME_SECONDS)
 
 
 def text(owner,value,muted=False):
@@ -464,7 +464,7 @@ class RecipientDialog(QDialog):
         self.pairing_actions=QWidget();actions=QHBoxLayout(self.pairing_actions);actions.setContentsMargins(0,0,0,0)
         self.open_button=button(owner,'Открыть бота','external');self.open_button.clicked.connect(lambda:self.start_pairing(False));actions.addWidget(self.open_button)
         self.link_button=button(owner,'Скопировать ссылку','copy');self.link_button.clicked.connect(lambda:self.start_pairing(True));actions.addWidget(self.link_button);actions.addStretch();auto.addWidget(self.pairing_actions)
-        self.link_hint=text(owner,'Для другого получателя — отправить ему ссылку. Она действует 2 минуты.',True);auto.addWidget(self.link_hint);layout.addWidget(self.auto)
+        self.link_hint=text(owner,'Для другого получателя — отправить ему ссылку. Она действует 5 минут.',True);auto.addWidget(self.link_hint);layout.addWidget(self.auto)
         self.manual=QWidget();manual=QVBoxLayout(self.manual);manual.setContentsMargins(0,0,0,0);manual.setSpacing(10)
         manual.addWidget(text(owner,'Указать Chat ID. Для публичного канала — @имя_канала.',True))
         self.chat_id=QLineEdit();self.chat_id.setMaxLength(128);input_row=QHBoxLayout()
@@ -527,7 +527,9 @@ class RecipientDialog(QDialog):
 
     def start_pairing(self,copy_link):
         if self.busy:return
-        if self.pair and time.monotonic()-self.pair.created<120:self.open_link(copy_link);return
+        if self.pair and time.monotonic()-self.pair.created<PAIRING_LIFETIME_SECONDS:self.open_link(copy_link);return
+        self.timer.stop()
+        self.release()
         if self.token in self._polling_tokens:self.status.setText(self.owner.t('Подключение этого бота уже открыто в другом окне.'));return
         self._polling_tokens.add(self.token);self.owns_poll=True
         def ready(pair):self.pair=pair;self.open_link(copy_link);self.timer.start();self.poll()

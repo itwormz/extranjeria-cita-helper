@@ -125,3 +125,32 @@ def test_manual_daily_budget_command_applies_at_next_step_and_persists():
     assert r.budget.manual_target is None
     for invalid in (True, 0, -1, 2**31, '20'):
         assert not apply_command(r.control, {'command': 'appointment_daily_target', 'target': invalid})
+
+
+@pytest.mark.parametrize('manual_first, expected', [(True, 40), (False, 20)])
+def test_queued_budget_changes_preserve_order_when_adaptation_is_disabled(manual_first, expected):
+    from datetime import datetime
+    from unittest.mock import Mock
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_schedule import MADRID
+    from app.config import AppointmentProtection, Settings
+    from app.desktop.worker import apply_command
+
+    r = runner()
+    r.checker.settings = Settings()
+    r.page.set_default_timeout = Mock()
+    r.protection = AppointmentProtection(daily_target=50)
+    r.budget = AppointmentBudget(day=datetime.now(MADRID).date(), sent=3, target_override=10)
+    r.control.save_appointment_budget = Mock()
+    r.observe = AsyncMock(return_value=Observed('applicant', 'doc', 'sig', None))
+    r.observe_appointment_budget = Mock()
+    r.manual_signature = 'sig'
+    manual = {'command': 'appointment_daily_target', 'target': 20}
+    disable = {'command': 'profile_timings', 'timings': {},
+               'protection': {'daily_target': 40, 'adaptive_target': False}}
+    for command in ([manual, disable] if manual_first else [disable, manual]):
+        assert apply_command(r.control, command)
+
+    asyncio.run(r.step())
+
+    assert r.budget.target(r.protection) == expected

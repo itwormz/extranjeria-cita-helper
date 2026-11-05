@@ -886,8 +886,15 @@ class DesktopWindow(QMainWindow):
             if task is None:
                 return None
             root = self.store.path.parent / 'data' / 'appointment-budget'
-            stored = BudgetStore(root, task, use_saved_profile=task.applicant_fill_mode == 'copy').load()
-            return stored.summary(datetime.now(MADRID), task.appointment_protection)
+            from ..state import StateStore
+            store = BudgetStore(root, task, use_saved_profile=task.applicant_fill_mode == 'copy')
+            with StateStore(runtime_root() / 'data' / 'state.db').task_lock('budget-' + store.key) as acquired:
+                stored = store.load()
+                previous_day = stored.day
+                summary = stored.summary(datetime.now(MADRID), task.appointment_protection)
+                if acquired and stored.day != previous_day:
+                    store.save(stored)
+                return summary
         except (OSError, ValueError, TypeError, KeyError):
             return None
 
@@ -1291,6 +1298,11 @@ class DesktopWindow(QMainWindow):
         else: self.clear_error('connection')
         if retained: self.status_label.setText('Доверши в Camoufox')
 
+    def history_journal_directory(self):
+        import os
+        root = Path(os.environ.get('DEBUG_DIR', self.store.settings().diagnostics_directory))
+        return root if root.is_absolute() else runtime_root() / root
+
     def load_saved_journal(self, profile_id):
         import json
         import os
@@ -1301,9 +1313,7 @@ class DesktopWindow(QMainWindow):
         if not profile_id:
             return
         try:
-            root = Path(os.environ.get('DEBUG_DIR', self.store.settings().diagnostics_directory))
-            if not root.is_absolute():
-                root = runtime_root() / root
+            root = self.history_journal_directory()
             sessions = sorted((root / 'sessions').glob(f'{profile_id}-*/journal.jsonl'), reverse=True)
             history = []
             for session in sessions:

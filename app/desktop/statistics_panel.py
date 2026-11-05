@@ -62,9 +62,12 @@ def _file_revision(path):
 _UNSTABLE_REVISION=object()
 
 
-def load_statistics_view(statistics, achievements, profile_id, period, custom_range, scope):
+def load_statistics_view(statistics, achievements, profile_id, period, custom_range, scope, journal_root=None):
     """Read totals, achievements and history without touching widgets."""
     try:
+        component='history'
+        if journal_root is not None:
+            statistics.restore_applicant_notices(profile_id, journal_root)
         component='totals';statistics_before=history_revision(statistics);data=statistics.get(profile_id,period=period)
         component='achievements';achievement_before=_file_revision(achievements.path);records=achievements.list(profile_id);achievement_after=_file_revision(achievements.path)
         component='history';loaded=read_history(statistics,profile_id,period,custom_range);statistics_after=history_revision(statistics)
@@ -433,8 +436,9 @@ class StatisticsPanel(QWidget):
         self._generation+=1;token=self._generation;self._inflight_token=token
         scope,custom=self.history_panel.read_plan(profile_id,self.period)
         statistics,achievements,period=self.statistics,self.achievements,self.period
+        journal_root = self.host.history_journal_directory() if hasattr(self.host, 'history_journal_directory') else None
         def work():
-            try:result=load_statistics_view(statistics,achievements,profile_id,period,custom,scope)
+            try:result=load_statistics_view(statistics,achievements,profile_id,period,custom,scope,journal_root)
             except Exception as exc:result=('err','totals',exc)
             self.loaded.emit(token,result)
         if not wait:

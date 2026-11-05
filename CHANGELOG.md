@@ -10,6 +10,8 @@
 - **Read budget information more easily.** The budget source appears in the edit button’s tooltip, and the next probe during a possible restriction appears on a separate line.
 - **Confirm booking appears after a date selection screen has been detected.** Recording a booking remains manual. If detection was missed, use the actions menu to confirm it manually.
 - **Notification credentials are prepared before the search starts.** Sending an office or booking alert no longer reads the secret store. Telegram settings on macOS explain when the system may ask for a Keychain password.
+- Count each separate applicant page showing “No appointments”, even when the warning stays visible across refreshes. Recover earlier observations from saved journals when they can be matched to a recorded search session.
+- Telegram recipient connection links now remain valid for five minutes.
 - Fix repeated layout updates in a populated bot token field.
 - Keep schedule calculations responsive when a very large attempt budget is configured.
 

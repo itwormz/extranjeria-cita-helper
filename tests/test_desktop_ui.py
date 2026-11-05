@@ -1356,3 +1356,33 @@ def test_manual_budget_follows_current_document_after_profile_identity_edit(wind
     assert new_store.load().manual_target == 20
     assert old_store.load().manual_target == 10
     assert old_store.load().sent == 4
+
+
+def test_viewing_stopped_budget_consumes_next_day_estimate_once(window, task_mapping, monkeypatch):
+    import copy
+    from datetime import datetime as RealDateTime
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_budget_store import BudgetStore
+    from app.appointment_schedule import MADRID
+
+    raw = copy.deepcopy(task_mapping['tasks'][0])
+    raw['request']['access_mode'] = 'certificate'
+    raw['request']['appointment_protection'] = {'daily_target': 50}
+    raw['applicant']['contact'] = dict(phone='600000000', email='demo@example.com')
+    profile_id = window.store.save_profile(None, raw, revision=window.store.revision())
+    task = window.store.load()[0]
+    root = window.store.path.parent / 'data' / 'appointment-budget'
+    store = BudgetStore(root, task)
+    store.save(AppointmentBudget(day=RealDateTime(2026, 11, 2).date(), next_target=10))
+    current = RealDateTime(2026, 11, 3, 12, tzinfo=MADRID)
+    class FrozenDateTime(RealDateTime):
+        @classmethod
+        def now(cls, tz=None):
+            return current.astimezone(tz)
+    monkeypatch.setattr('datetime.datetime', FrozenDateTime)
+
+    assert window.current_daily_budget(profile_id)['target'] == 10
+    assert store.load().day == current.date()
+    assert store.load().next_target is None
+    current = RealDateTime(2026, 11, 4, 12, tzinfo=MADRID)
+    assert window.current_daily_budget(profile_id)['target'] == 50

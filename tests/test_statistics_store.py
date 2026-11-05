@@ -596,3 +596,40 @@ def test_booking_details_never_create_missing_or_wrong_session_event(tmp_path):
     assert not stats.save_booking_details('p','real','other-document',details)
     assert stats.get('p')['booking_screens']==1
     assert 'booking_details' not in stats.history('p')[0]['evidence']
+
+
+def test_applicant_notice_counter_counts_documents_inside_one_continuous_episode(tmp_path):
+    from app.desktop.statistics import ProfileStatistics
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    for index in range(3):
+        for _ in range(2):
+            stats.observe_page('one', 's', 'applicant_no_slots', f'doc-{index}',
+                               at=f'2026-11-05T12:00:{index:02d}+01:00')
+    assert stats.get('one')['banners'] == 3
+    with stats._db(write=False) as db:
+        assert db.execute("SELECT COUNT(*) FROM episodes WHERE kind='page'").fetchone()[0] == 1
+
+
+def test_old_applicant_notice_counts_restore_from_journal_without_duplicates(tmp_path):
+    import json
+    from app.desktop.statistics import ProfileStatistics
+    stats = ProfileStatistics(tmp_path / 'statistics.json')
+    stats.start_session('one', 's', {}, at='2026-11-05T11:00:00Z')
+    stats.observe_page('one', 's', 'applicant_no_slots', 'doc-0', at='2026-11-05T12:00:00Z')
+    stats.end_session('one', 's', 'stopped', at='2026-11-05T13:00:00Z')
+    with stats._db() as db:
+        db.execute('DELETE FROM applicant_notices')
+    root = tmp_path / 'debug'
+    journal = root / 'sessions' / 'one-run' / 'journal.jsonl'
+    journal.parent.mkdir(parents=True)
+    rows = [dict(event='visit', stage='applicant_no_slots', document=f'doc-{i}',
+                 time=f'2026-11-05T12:00:0{i}Z') for i in range(3)]
+    journal.write_text('\n'.join(json.dumps(row) for row in rows + rows) + '\n')
+    assert stats.get('one')['banners'] == 1
+
+    stats.restore_applicant_notices('one', root)
+    stats.restore_applicant_notices('one', root)
+
+    assert stats.get('one')['banners'] == 3
+    assert stats.get('one', period='today', at='2026-11-05T13:00:00Z')['banners'] == 3
+    assert stats.get('one', period='today', at='2026-11-06T13:00:00Z')['banners'] == 0
