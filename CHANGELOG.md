@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — Daily budgets and interface improvements
+## Unreleased
+
+## 0.3.3 — Daily budgets and interface improvements
 
 - **Adaptive budgets now have a minimum of five attempts**, including previously saved estimates.
 - **Set a manual budget for today without disabling adaptation.** It applies from the next action and expires at midnight. Used attempts and active restriction pauses are preserved, while the adaptive algorithm continues to learn for tomorrow.
