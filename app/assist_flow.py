@@ -784,7 +784,8 @@ class AssistRunner:
             self.control.daily_target_choice = (now.date(), self.control.pending_daily_target)
             self.control.daily_target_pending = False
             self.control.save_appointment_budget(self.budget)
-        if getattr(self.control, 'pending_attempt_now', False) and self.budget is not None:
+        if (getattr(self.control, 'pending_attempt_now', False) and self.budget is not None
+                and not self.control.appointment_budget_is_temporary):
             self.control.pending_attempt_now = False
             self.budget.try_now(datetime.now(MADRID), self.protection)
             self.control.save_appointment_budget(self.budget)

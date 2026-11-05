@@ -185,3 +185,37 @@ def test_live_cod_pause_change_and_manual_attempt_preserve_other_timing():
     assert r.budget.next_submission(now, r.protection) == now + timedelta(minutes=15)
     assert r.control.pending_attempt_now is False
     assert 'Ручная ближайшая попытка' in r.last_action_detail
+
+
+def test_try_now_waits_for_copied_document_budget():
+    from datetime import datetime, timedelta
+    from unittest.mock import Mock
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_schedule import MADRID
+    from app.config import AppointmentProtection
+    from app.desktop.worker import apply_command
+
+    r = runner()
+    r.protection = AppointmentProtection()
+    now = datetime.now(MADRID)
+    temporary = r.budget = AppointmentBudget(day=now.date())
+    r.control.appointment_budget_is_temporary = True
+    r.control.save_appointment_budget = Mock()
+    r.observe = AsyncMock(return_value=Observed('applicant', 'doc', 'sig', None))
+    r.observe_appointment_budget = Mock()
+    r.manual_signature = 'sig'
+    assert apply_command(r.control, {'command': 'appointment_try_now'})
+    asyncio.run(r.step())
+    assert r.control.pending_attempt_now
+    assert not temporary.immediate_attempt
+    document = r.budget = AppointmentBudget(day=now.date(), sent=3, first_cod_oper=now,
+                                            last_submission=now)
+    r.control.appointment_budget_is_temporary = False
+    asyncio.run(r.step())
+    assert not r.control.pending_attempt_now
+    assert document.immediate_attempt
+    assert document.sent == 3
+    assert document.next_submission(now, r.protection) == now + timedelta(minutes=15)
+    document.submitted(now + timedelta(minutes=15), r.protection)
+    assert not document.immediate_attempt
+    assert not temporary.immediate_attempt

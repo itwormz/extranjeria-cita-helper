@@ -251,6 +251,8 @@ async def run_worker(task_id):
                     transfer_manual=(bound_key == budget_store.key
                                      and BudgetStore._profile_key(budget_store.root, task.id) in (None, budget_store.key)))
                 control.save_appointment_budget = store.save
+                control.appointment_budget_is_temporary = (
+                    task.applicant_fill_mode == 'copy' and store is budget_store)
                 if task.applicant_fill_mode != "copy" or store is not budget_store:
                     store.remember_profile(task.id)
                 bound_key = store.key
