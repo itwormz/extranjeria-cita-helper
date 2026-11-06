@@ -75,6 +75,7 @@ or installer validation. Preserve an active browser session when rebuilding.
 
 ## UI and documentation
 
+- Daily attempt scheduling is opt-in (`request.appointment_protection.distribute_attempts`, default false even for existing profiles). Minimum submission, cod. oper and HTTP 429 pauses still apply. Try now opens one early opportunity and starts a fresh pass in the same context; never submit the previously open form, consume the opportunity only on a real acCitar POST, and interrupt stale actions at the final dispatch boundary.
 - Profile search choices are independent: `request.applicant_no_slots_mode` defaults to `wait` (or `continue`), while `request.no_slots_mode` defaults to `salir` (or `reload`). Preserve both on edits; timings and POST safety are separate.
 - Booking details enrich the existing exact profile/session/document event without recounting or moving its detection time. Only recognized public office/address and explicit offered slots belong in statistics/logs; never CAPTCHA, hidden IDs or confirmation numbers. Keep these records independent of diagnostics.
 - Keep colours in `theme.py`. Keep user logs focused on pages, actions and outcomes;

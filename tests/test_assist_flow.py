@@ -22,6 +22,106 @@ def test_real_offices_ignore_placeholder_and_disabled():
     assert [o["value"] for o in assist_flow.available_offices(options)] == ["1"]
 
 
+def test_office_notification_state_uses_current_document_and_public_names_only():
+    control=AssistControl();control.set_session('run')
+    control.observe_visit(document='first',stage='office',page='https://example.test',title='Выбор офиса')
+    control.publish(screen='Выбор офиса',evidence='',next_action='Выбрать офис',mode='working')
+    control.update_offices([{'text':'CNP TEST','value':'private-option-id'}])
+    state=control.snapshot()
+    assert state['document']=='first' and state['available_offices']==['CNP TEST']
+    state['available_offices'].append('must-not-change-control')
+    assert control.snapshot()['available_offices']==['CNP TEST']
+    control.observe_visit(document='second',stage='office',page='https://example.test',title='Выбор офиса')
+    # A worker snapshot cannot pair a new document with the previous manual screen.
+    assert control.snapshot()['document']=='first'
+    control.publish(screen='Выбор офиса',evidence='',next_action='Выбрать офис',mode='working')
+    assert control.snapshot()['document']=='second'
+    assert control.snapshot()['available_offices']==[]
+    control.update_offices([{'text':'CNP OTHER','value':'other-private'}])
+    control.observe_visit(document='contact',stage='contact',page='https://example.test',title='Контактные данные')
+    assert control.snapshot()['available_offices']==[]
+
+
+def test_try_now_opens_one_early_opportunity_but_restarts_before_using_the_page():
+    from datetime import datetime
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_schedule import MADRID
+    from app.config import AppointmentProtection
+    from app.desktop.worker import apply_command
+    from app.assist_runtime import AssistRestartRequested
+    control=AssistControl();policy=AppointmentProtection(distribute_attempts=True)
+    control.appointment_budget=AppointmentBudget();control.save_appointment_budget=lambda budget:None
+    now=datetime.now(MADRID);control.appointment_budget.submitted(now,policy)
+    page=SimpleNamespace(url='https://example.test/applicant',wait_for_timeout=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),
+        SimpleNamespace(id='test',appointment_protection=policy),'run',control,SimpleNamespace(),SimpleNamespace())
+    runner.observe=AsyncMock(side_effect=AssertionError('The stale page must not be used'))
+    apply_command(control,{'command':'appointment_try_now'})
+    with pytest.raises(AssistRestartRequested) as error:asyncio.run(runner.step())
+    assert control._history_manual_restart and not error.value.clear_profile
+    assert error.value.delay_seconds==0 and not error.value.reopen_browser
+    assert control.appointment_budget.immediate_attempt and control.appointment_budget.sent==1
+    assert control.appointment_budget.next_submission(now,policy)>now
+    runner.observe.assert_not_awaited()
+
+
+def test_early_opportunity_requires_clean_round_even_if_normal_confirmation_is_off():
+    from app.appointment_budget import AppointmentBudget
+    from app.config import AppointmentProtection
+    control=AssistControl();policy=AppointmentProtection(confirm_new_round=False)
+    control.appointment_budget=AppointmentBudget(immediate_attempt=True)
+    page=SimpleNamespace(url='https://example.test/applicant',goto=AsyncMock())
+    checker=SimpleNamespace(_fill_applicant_manual=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),checker,
+        SimpleNamespace(id='test',appointment_protection=policy),'run',control,SimpleNamespace(),SimpleNamespace())
+    runner.round_saw_banner=True
+    observed=SimpleNamespace(kind='applicant',document='fresh',evidence='')
+    asyncio.run(runner.act(observed))
+    page.goto.assert_awaited_once()
+    checker._fill_applicant_manual.assert_not_awaited()
+    assert control.appointment_budget.immediate_attempt
+
+
+def test_budget_wait_has_reason_countdown_and_journal_deadline_before_filling():
+    from datetime import datetime
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_schedule import MADRID
+    from app.config import AppointmentProtection
+    control=AssistControl();policy=AppointmentProtection()
+    control.appointment_budget=AppointmentBudget()
+    control.appointment_budget.submitted(datetime.now(MADRID),policy)
+    page=SimpleNamespace(url='https://example.test/applicant',wait_for_timeout=AsyncMock())
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),
+        SimpleNamespace(id='test',appointment_protection=policy),'run',control,SimpleNamespace(),SimpleNamespace())
+    observed=assist_flow.Observed(kind='applicant',document='fresh',signature='fresh',source=page)
+    runner.publish(observed,mode='working')
+    state=control.snapshot()
+    assert state['mode']=='waiting' and state['next_action']=='Пауза между попытками'
+    assert 0<state['remaining_seconds']<=900
+    assert state['journal'][-1]['status']=='waiting' and state['journal'][-1]['deadline']
+    assert asyncio.run(runner.wait_for_budget(observed))
+    assert control.appointment_budget.sent==1
+
+
+@pytest.mark.parametrize('guard_name',['guard','action_guard'])
+def test_try_now_arriving_during_guard_never_allows_stale_form_action(guard_name):
+    from app.config import AppointmentProtection
+    from app.desktop.worker import apply_command
+    from app.assist_runtime import AssistRestartRequested
+    control=AssistControl();page=SimpleNamespace(url='https://example.test/request')
+    runner=assist_flow.AssistRunner(page,SimpleNamespace(),SimpleNamespace(),
+        SimpleNamespace(id='test',appointment_protection=AppointmentProtection()),
+        'run',control,SimpleNamespace(),SimpleNamespace())
+    observed=assist_flow.Observed('request_menu','old','old',page)
+    async def observe():
+        apply_command(control,{'command':'appointment_try_now'})
+        return observed
+    runner.observe=observe
+    with pytest.raises(AssistRestartRequested):
+        asyncio.run(runner.guard(observed) if guard_name=='guard' else runner.action_guard())
+    assert control.pending_attempt_fresh_pass
+
+
 def test_embedded_expired_page_wins_over_expected_form():
     from app.page_inspection import dead_document
     def frame(text):

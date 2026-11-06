@@ -427,6 +427,34 @@ def test_startup_uses_trusted_mouse_click():
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize('keyboard',[False,True])
+def test_try_now_before_dispatch_never_submits_the_stale_form(keyboard):
+    from app.assist_runtime import AssistRestartRequested
+    from app.desktop.worker import apply_command
+    async def scenario():
+        from playwright.async_api import async_playwright
+        async with async_playwright() as pw:
+            browser=await launch_browser(pw);ctx=await browser.new_context();page=await ctx.new_page()
+            posts=[]
+            async def respond(route):
+                if route.request.method=='POST':posts.append(route.request.url)
+                await route.fulfill(body='<form method="POST" action="acCitar"><button id="send">Solicitar cita</button></form>',content_type='text/html')
+            await page.route('**/*',respond)
+            await page.goto(BASE+'old')
+            runner=runner_for(page,ctx)
+            def requested_just_before_dispatch():
+                apply_command(runner.control,{'command':'appointment_try_now'})
+                runner.check_fresh_pass()
+            runner.checker._assist_before_dispatch=requested_just_before_dispatch
+            try:
+                with pytest.raises(AssistRestartRequested):
+                    await runner.checker._activate_control(page.locator('#send'),keyboard=keyboard)
+                assert posts==[] and runner.control.pending_attempt_fresh_pass
+                assert page.url==BASE+'old'
+            finally:await browser.close()
+    asyncio.run(scenario())
+
+
 def test_clave_card_activates_in_background_site_tab():
     async def scenario():
         from playwright.async_api import async_playwright

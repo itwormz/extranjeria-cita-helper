@@ -8,6 +8,7 @@ from contextlib import suppress
 from datetime import datetime
 
 from ..assist_control import AssistControl
+from ..config import AppointmentProtection
 from ..assist_runtime import run_assist
 from ..appointment_schedule import MADRID
 from ..logging_utils import register_sensitive
@@ -36,16 +37,20 @@ def apply_command(control, message):
         control.pending_daily_target = message['target']
         control.daily_target_pending = True
     elif command == 'appointment_try_now':
+        if control.booking_handoff or control.browser_retained:
+            return False
         control.pending_attempt_now = True
+        control.pending_attempt_fresh_pass = True
         control.pending_attempt_now_day = datetime.now(MADRID).date()
     elif command == 'appointment_distribution':
         budget = getattr(control, 'appointment_budget', None)
+        now=datetime.now(MADRID)
+        control.daily_distribution_choice=(now.date(),message['disabled'])
         if budget is not None and isinstance(message.get('disabled'), bool):
-            budget.distribution_disabled = message['disabled']
-            budget.windows = ()
+            policy=control.effective_appointment_protection or AppointmentProtection()
+            budget.set_distribution(message['disabled'],now,policy)
             control.save_appointment_budget(budget)
     elif command == 'profile_timings':
-        from ..config import AppointmentProtection
         from ..timings import parse_timings
         try:
             timings = parse_timings(message['timings'])
@@ -86,6 +91,10 @@ def load_bound_budget(control, store, policy, *, transfer_manual=False):
         budget.set_daily_target(choice[1], now, policy)
         store.save(budget)
         control.daily_target_choice = choice
+    distribution=getattr(control,'daily_distribution_choice',None)
+    if distribution is not None and distribution[0]==now.date():
+        budget.set_distribution(distribution[1],now,policy)
+        store.save(budget)
     return budget
 
 

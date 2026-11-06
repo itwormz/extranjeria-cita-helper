@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## Unreleased — Submission pacing and Telegram alerts
+
+- Include available office names and addresses in Telegram office-selection alerts. Repeated checks of the same office-selection page no longer send the alert again.
+- Make daily attempt scheduling opt-in, including existing profiles. Clean passes can submit after protective pauses without waiting for a calendar window; the daily budget and adaptive statistics remain available.
+- Show why a request is waiting, its deadline and a countdown. Keep today's scheduling choice when applicant details are copied from authentication and apply profile scheduling changes during the current search.
+- Make **Try now** open the next opportunity from now and start a fresh pass in the same browser session. A warning prevents submission without consuming the opportunity. Minimum submission intervals and HTTP 429 protection remain active.
+- Fit the **Continue searching** button to its translated label, icon and theme padding.
 
 ## 0.3.4 — Search continuation and calendar offers
 

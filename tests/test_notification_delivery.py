@@ -218,3 +218,49 @@ def test_profile_read_failure_is_reported_before_start_is_rejected(qt_app, error
     assert delivery.prepare('missing') is False
     assert errors == [('profile', 'Не удалось прочитать выбранный профиль. Выберите профиль заново и повторите запуск.')]
     delivery.stop()
+
+
+def test_office_alert_waits_in_queue_across_polling_and_contains_current_offices(qt_app,monkeypatch):
+    from app.assist_control import AssistControl
+    from app.desktop import notification_delivery as module
+    class Store:
+        def raw_profile(self,profile):
+            return {'label':'Demo','notifications':{'telegram':{
+                'enabled':True,'events':['office'],'secret_ref':'tg','recipients':[{'id':'1'}]}}}
+    sent=[]
+    class Client:
+        def __init__(self,token):pass
+        def send(self,chat,message,current):
+            assert current()
+            sent.append(message)
+    monkeypatch.setattr(module,'Telegram',Client)
+    delivery=module.NotificationDelivery(Store());delivery.vault.get=lambda ref:{'token':'synthetic'}
+    delivery.prepare('one')
+    queued=[]
+    delivery.jobs.submit=lambda work,done:queued.append(work)
+    control=AssistControl();control.set_session('run')
+    def publish(mode):
+        control.publish(screen='Выбор офиса', evidence='',next_action='Выбрать офис',mode=mode)
+        delivery.observe('one',control.snapshot(),'en')
+    control.observe_visit(document='office-one',stage='office',page='https://example.test',title='Выбор офиса')
+    publish('working')
+    control.update_offices([{'value':'private-one','text':'CNP TEST NORTH'},
+                            {'value':'private-two','text':'CNP TEST SOUTH'}])
+    publish('manual')
+    for _ in range(3):
+        control.publish(screen='Проверяем страницу',evidence='',next_action='Чтение страницы',mode='waiting')
+        delivery.observe('one',control.snapshot(),'en')
+        publish('working');publish('manual')
+    assert len(queued)==1
+    queued[0]()
+    assert len(sent)==1 and 'CNP TEST NORTH' in sent[0] and 'CNP TEST SOUTH' in sent[0]
+    assert 'private-one' not in sent[0] and 'private-two' not in sent[0]
+    # A new actual office document is a new visit and expires the old queued alert.
+    control.observe_visit(document='office-two',stage='office',page='https://example.test',title='Выбор офиса')
+    control.update_offices([{'value':'private-new','text':'CNP TEST WEST'}])
+    publish('manual')
+    assert len(queued)==2
+    with pytest.raises(n.NotificationError,match='устарело'):queued[0]()
+    queued[1]()
+    assert 'CNP TEST WEST' in sent[1] and 'CNP TEST NORTH' not in sent[1]
+    delivery.stop()

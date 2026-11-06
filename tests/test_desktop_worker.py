@@ -336,3 +336,23 @@ def test_copy_document_budget_keeps_explicit_daily_choice_without_copying_counte
     assert restored.sent == 3
     assert restored.restriction_until == destination.restriction_until
     assert store.load().manual_target == target
+
+
+@pytest.mark.parametrize('disabled',[False,True])
+def test_distribution_choice_reaches_copied_document_and_preserves_counters(tmp_path,disabled):
+    from datetime import datetime
+    from app.appointment_schedule import MADRID
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_budget_store import BudgetStore
+    from app.config import AppointmentProtection
+    from app.desktop.worker import apply_command,load_bound_budget
+    now=datetime.now(MADRID);policy=AppointmentProtection()
+    control=AssistControl();control.effective_appointment_protection=policy
+    control.appointment_budget=AppointmentBudget(day=now.date())
+    control.save_appointment_budget=lambda budget:None
+    assert apply_command(control,{'command':'appointment_distribution','disabled':disabled})
+    store=BudgetStore(tmp_path,SimpleNamespace(id='copy',document_type='NIE',document_number='X0000000T'))
+    store.save(AppointmentBudget(day=now.date(),sent=2))
+    restored=load_bound_budget(control,store,policy)
+    assert restored.sent==2 and restored.distributes(policy) is not disabled
+    assert store.load().distributes(policy) is not disabled

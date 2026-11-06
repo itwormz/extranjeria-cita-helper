@@ -325,6 +325,9 @@ class IcpPlusChecker:
         await asyncio.sleep(0)
         try:
             try:
+                before_dispatch=getattr(self,'_assist_before_dispatch',None)
+                if before_dispatch is not None:
+                    before_dispatch()
                 if keyboard:
                     await locator.press("Enter", **({"timeout":timeout} if timeout is not None else {}))
                 else:

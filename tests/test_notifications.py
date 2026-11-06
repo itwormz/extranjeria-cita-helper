@@ -58,6 +58,48 @@ def test_router_deduplicates_but_allows_new_visit():
     assert router.observe(dict(state,connection_lost=True)) is None
 
 
+def test_office_polling_does_not_repeat_alert_for_the_same_document():
+    router=n.EventRouter()
+    state=dict(screen='Выбор офиса', mode='manual', run_id='one', document='office-one',stage='office')
+    assert router.observe(dict(state, mode='working')) is None
+    assert router.observe(state)=='office'
+    for _ in range(3):
+        assert router.observe(dict(state,screen='Проверяем страницу',mode='waiting')) is None
+        assert router.observe(dict(state, mode='working')) is None
+        assert router.observe(state) is None
+    assert router.observe(dict(state, document='office-two'))=='office'
+
+
+@pytest.mark.parametrize('screen,event', [('Cl@ve Móvil','auth'),('Выбор ситы','booking')])
+def test_refresh_during_other_manual_steps_does_not_rearm_the_alert(screen,event):
+    router=n.EventRouter()
+    state=dict(screen=screen,mode='manual',run_id='one',document='first')
+    assert router.observe(state)==event
+    assert router.observe(dict(state,document='refreshed')) is None
+
+
+@pytest.mark.parametrize('language', ['ru','en','es'])
+def test_telegram_office_alert_lists_public_names_without_changing_webhook(language):
+    event=n.make_event('office','Demo','Barcelona',language)
+    message=event['message']
+    text=n.telegram_message(event,language,offices=['CNP TEST NORTH, CALLE TEST 1',
+                                                'CNP TEST SOUTH, CALLE TEST 2'])
+    assert 'CNP TEST NORTH, CALLE TEST 1' in text
+    assert 'CNP TEST SOUTH, CALLE TEST 2' in text
+    assert event['message']==message
+    assert n.telegram_message(event,language,offices=[])==message
+
+
+def test_telegram_office_list_is_bounded_and_ignores_non_text_values():
+    event=n.make_event('office','Demo','Barcelona','en')
+    names=['CNP TEST '+str(i)+' '+('A'*400) for i in range(20)]
+    text=n.telegram_message(event,'en',offices=[None,{'value':'private-id'},*names,names[0]])
+    assert len(text)<4096
+    assert 'private-id' not in text and 'None' not in text
+    assert 'CNP TEST 0 ' in text and 'More offices: 10' in text
+    assert text.count('CNP TEST 0 ')==1
+
+
 def test_request_failures_never_leak_endpoint_or_header(monkeypatch):
     from urllib.error import URLError
     def fail(*args,**kwargs):raise URLError('https://secret.example/TOKEN')

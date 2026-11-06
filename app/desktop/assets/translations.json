@@ -1064,7 +1064,15 @@
     "Попробовать сейчас": "Try now",
     "Ближайшая попытка разрешена; остальные тайминги сохранены": "Next attempt allowed; other delays remain active",
     "Не удалось прочитать выбранный профиль. Выберите профиль заново и повторите запуск.": "Could not read the selected profile. Select the profile again and retry starting the search.",
-    "Продолжить поиск": "Continue searching"
+    "Продолжить поиск": "Continue searching",
+    "Распределять попытки": "Schedule attempts",
+    "Распределять бюджет по времени дня. Вне окна чистый проход ждёт; «Попробовать сейчас» открывает ближайшее окно раньше.": "Spread the budget across the day. A clean pass waits outside its window; “Try now” opens the next opportunity earlier.",
+    "Ждём окно распределения": "Waiting for the scheduled window",
+    "Пауза после cod. oper": "Pause after cod. oper",
+    "До": "Until",
+    "Открыто сейчас": "Open now",
+    "Включить распределение на сегодня": "Enable scheduling for today",
+    "Без распределения": "Scheduling off"
   },
   "es": {
     "Перепроверять наличие сит": "Volver a comprobar citas",
@@ -2131,6 +2139,14 @@
     "Попробовать сейчас": "Intentar ahora",
     "Ближайшая попытка разрешена; остальные тайминги сохранены": "Próximo intento permitido; se mantienen las demás pausas",
     "Не удалось прочитать выбранный профиль. Выберите профиль заново и повторите запуск.": "No se pudo leer el perfil seleccionado. Vuelve a seleccionar el perfil e intenta iniciar la búsqueda de nuevo.",
-    "Продолжить поиск": "Continuar búsqueda"
+    "Продолжить поиск": "Continuar búsqueda",
+    "Распределять попытки": "Distribuir intentos",
+    "Распределять бюджет по времени дня. Вне окна чистый проход ждёт; «Попробовать сейчас» открывает ближайшее окно раньше.": "Distribuye el presupuesto a lo largo del día. Un recorrido limpio espera fuera de su ventana; «Intentar ahora» adelanta la siguiente oportunidad.",
+    "Ждём окно распределения": "Esperando la ventana programada",
+    "Пауза после cod. oper": "Pausa tras cod. oper",
+    "До": "Hasta",
+    "Открыто сейчас": "Abierta ahora",
+    "Включить распределение на сегодня": "Activar la distribución hoy",
+    "Без распределения": "Sin distribución"
   }
 }

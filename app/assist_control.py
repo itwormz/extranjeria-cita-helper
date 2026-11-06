@@ -52,6 +52,10 @@ class AssistControl:
         self._history_sink = None
         self._history_phase = None
         self._history_stage = ""
+        self._observed_document = None
+        self._observed_stage = ""
+        self.daily_distribution_choice = None
+        self.pending_attempt_fresh_pass = False
         self._history_pulse_at = None
         self._state = dict(screen="Запуск", evidence="", next_action="Открыть браузер",
                            mode="working", remaining_seconds=None, requests=0, checks=0, profile_checks=0,
@@ -75,6 +79,10 @@ class AssistControl:
 
     def observe_visit(self, *, document, stage, page, title, recognition="known", evidence=(), variant="", automated=True, applicant_continue=False):
         with self._lock:
+            if stage!='office' or document!=self._observed_document:
+                self._state['available_offices']=[]
+            self._observed_document=document
+            self._observed_stage=stage
             if automated and document and stage not in {'loading','unknown'} and not self._paused and not self.booking_handoff:
                 self.observe_statistics('processed_page',document)
             self._journal.observe(document=document, stage=stage, page=page, title=title, applicant_continue=applicant_continue)
@@ -83,11 +91,15 @@ class AssistControl:
 
     def update_offices(self, offices, selected=None):
         with self._lock:
+            self._state['available_offices']=[office['text'] for office in offices]
             self._journal.offices(offices, selected)
 
     def set_session(self, run_id):
         with self._lock:
             self._state["run_id"] = run_id
+            self._observed_document=None
+            self._observed_stage=''
+            self._state.update(document=None,stage='',available_offices=[])
             self.booking_handoff = False
             self._state.update(booking_details={}, booking_details_pending=False)
 
@@ -198,6 +210,7 @@ class AssistControl:
                 self.flush_statistics()
             self._state.update(screen=screen, evidence=evidence, next_action=next_action,
                                mode=mode, remaining_seconds=remaining_seconds,
+                               document=self._observed_document,stage=self._observed_stage,
                                updated_at=time.time())
             self._remaining_at = time.monotonic()
             if mode in {'manual', 'paused', 'finished', 'booking_handoff'}:
@@ -348,6 +361,7 @@ class AssistControl:
     def snapshot(self):
         with self._lock:
             state = dict(self._state, paused=self._paused, browser_retained=self.browser_retained, booking_handoff=self.booking_handoff, timeline=list(self._timeline), journal=self._journal.snapshot(), availability=list(self._availability))
+            state['available_offices']=list(self._state.get('available_offices',[]))
             remaining = state["remaining_seconds"]
             if remaining is not None and not self._paused:
                 state["remaining_seconds"] = max(0, remaining - (time.monotonic() - self._remaining_at))
