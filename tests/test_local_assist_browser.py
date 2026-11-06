@@ -1002,7 +1002,8 @@ def test_server_recovery_backoff_survives_return_to_authorization(certificate_fa
     asyncio.run(scenario())
 
 
-def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
+@pytest.mark.parametrize('pending_resource', [False, True])
+def test_manual_office_navigation_during_capture_does_not_wait_for_old_select(pending_resource):
     async def scenario():
         from playwright.async_api import async_playwright
         async with async_playwright() as pw:
@@ -1011,19 +1012,29 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
             # old-select regression bound only after the contact form is ready.
             page.set_default_timeout(10000)
             page.set_default_navigation_timeout(15000)
+            resource_requested = asyncio.Event()
+            release_resource = asyncio.Event()
             async def respond(route):
+                if route.request.url.endswith('pending.gif'):
+                    resource_requested.set()
+                    await release_resource.wait()
+                    await route.fulfill(status=204)
+                    return
                 body = ('<select id="idSede"><option value="1">Office A</option><option value="2">Office B</option></select>'
                         if route.request.url.endswith('acCitar') else
                         '<input id="txtTelefonoCitado"><input id="emailUNO"><input id="emailDOS">')
+                if pending_resource and route.request.url.endswith('acVerFormulario'):
+                    body += '<img src="pending.gif">'
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
             await page.route('**/*',respond)
             r=runner_for(page,ctx)
-            await page.goto(BASE+'acCitar')
+            await page.goto(BASE+'acCitar', wait_until='commit')
+            await page.locator('#idSede').wait_for(state='visible')
             observed=await r.observe()
             navigation_ready=asyncio.Event()
             continue_after_capture=asyncio.Event()
             async def save(observed,reason):
-                await page.goto(BASE+'acVerFormulario')
+                await page.goto(BASE+'acVerFormulario', wait_until='commit')
                 await page.locator('#emailDOS').wait_for(state='visible')
                 navigation_ready.set()
                 await continue_after_capture.wait()
@@ -1040,7 +1051,11 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select():
                 await asyncio.wait_for(operation,timeout=5)
                 r.silence.assert_awaited()
                 assert (await r.observe()).kind=='contact'
+                if pending_resource:
+                    await asyncio.wait_for(resource_requested.wait(), timeout=5)
+                    assert await page.evaluate('document.readyState') != 'complete'
             finally:
+                release_resource.set()
                 operation.cancel();ready.cancel()
                 await asyncio.gather(operation,ready,return_exceptions=True)
                 await browser.close()
@@ -1105,4 +1120,40 @@ def test_applicant_warning_after_post_never_resubmits_identity():
                 assert await page.locator('#txtIdCitado').input_value()==''
                 runner.hold.assert_not_awaited();runner.countdown.assert_awaited_once()
             finally:await browser.close()
+    asyncio.run(scenario())
+
+
+
+def test_packaged_smoke_readiness_does_not_wait_for_unrelated_resource():
+    async def scenario():
+        from playwright.async_api import async_playwright
+        from app.desktop.smoke import open_smoke_page
+
+        async with async_playwright() as pw:
+            browser = await launch_browser(pw)
+            context = await browser.new_context()
+            page = await context.new_page()
+            page.set_default_navigation_timeout(5000)
+            resource_requested = asyncio.Event()
+            release_resource = asyncio.Event()
+            async def respond(route):
+                if route.request.url.endswith('pending.gif'):
+                    resource_requested.set()
+                    await release_resource.wait()
+                    await route.fulfill(status=204)
+                else:
+                    await route.fulfill(content_type='text/html', body=
+                        '<title>Cita offline check</title><input id="demo">'
+                        '<img src="pending.gif">')
+            await page.route('**/*', respond)
+            try:
+                await open_smoke_page(page)
+                await asyncio.wait_for(resource_requested.wait(), timeout=5)
+                assert await page.evaluate('document.readyState') != 'complete'
+                await page.locator('#demo').fill('OFFLINE Ñ ТЕСТ')
+                assert await page.locator('#demo').input_value() == 'OFFLINE Ñ ТЕСТ'
+                assert await page.title() == 'Cita offline check'
+            finally:
+                release_resource.set()
+                await browser.close()
     asyncio.run(scenario())
