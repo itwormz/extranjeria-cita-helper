@@ -7,6 +7,24 @@ from urllib.parse import quote
 
 
 GREPTILE = 'greptile-apps'
+TRANSITION_MARKER = '<!-- coderabbit-second-stage-requested -->'
+
+
+class NotReady(RuntimeError):
+    """Expected waiting state, unlike an API or configuration failure."""
+
+
+def second_stage_started(comments, reviews):
+    return any(((comment['user'].get('type') == 'Bot'
+                 and comment['user']['login'] == 'github-actions[bot]')
+                or (comment['user'].get('type') == 'User'
+                    and comment.get('author_association') in {'OWNER', 'MEMBER', 'COLLABORATOR'}))
+               and (comment.get('body') or '').startswith('@coderabbitai full review\n')
+               and TRANSITION_MARKER in (comment.get('body') or '')
+               for comment in comments) or any(
+        review['user'].get('type') == 'Bot'
+        and review['user']['login'].removesuffix('[bot]') == 'coderabbitai'
+        and review['state'] not in {'PENDING', 'DISMISSED'} for review in reviews)
 
 
 def is_greptile(login):
@@ -83,7 +101,8 @@ def summary_commit(comments, repository):
     return match[1] if match else None
 
 
-def blockers(pull_request, reviews, threads, checks, required_names, *, summary_head=None):
+def blockers(pull_request, reviews, threads, checks, required_names, *, summary_head=None,
+             second_stage=False):
     reasons = []
     if pull_request['state'] != 'OPEN' or pull_request['isDraft']:
         reasons.append('The pull request must be open and ready for review.')
@@ -93,16 +112,16 @@ def blockers(pull_request, reviews, threads, checks, required_names, *, summary_
     latest = max(published, key=lambda review: review['id'], default=None)
     summary_ready = (summary_head == pull_request['headRefOid'] and any(
         check['name'] == 'Greptile Review' and check['bucket'] == 'pass' for check in checks))
-    if latest is not None and latest['state'] == 'CHANGES_REQUESTED':
+    if not second_stage and latest is not None and latest['state'] == 'CHANGES_REQUESTED':
         reasons.append('Greptile still requests changes.')
-    if latest is None and not summary_ready:
+    if not second_stage and latest is None and not summary_ready:
         reasons.append('Greptile has not published a review.')
-    elif latest is not None and latest['commit_id'] != pull_request['headRefOid'] and not summary_ready:
+    elif not second_stage and latest is not None and latest['commit_id'] != pull_request['headRefOid'] and not summary_ready:
         reasons.append('Greptile must review the current commit after the latest changes.')
     for thread in threads:
         comments = thread['comments']['nodes']
         author = comments[0].get('author') if comments else None
-        if not thread['isResolved'] and author and author.get('__typename') == 'Bot' and is_greptile(author['login']):
+        if not second_stage and not thread['isResolved'] and author and author.get('__typename') == 'Bot' and is_greptile(author['login']):
             reasons.append('Unresolved Greptile finding: ' + comments[0]['url'])
     reported = {check['name'] for check in checks}
     for missing in sorted(set(required_names) - reported):
@@ -112,14 +131,14 @@ def blockers(pull_request, reviews, threads, checks, required_names, *, summary_
     for check in checks:
         if check['name'] in required_names and check['bucket'] != 'pass':
             reasons.append(f"Required check {check['name']} is {check['bucket']}.")
-        if check['name'].lower().startswith('greptile') and check['bucket'] != 'pass':
+        if not second_stage and check['name'].lower().startswith('greptile') and check['bucket'] != 'pass':
             reasons.append(f"Greptile check is {check['bucket']}.")
         if check['name'].lower().startswith('coderabbit') and check['bucket'] == 'pending':
             reasons.append('CodeRabbit is already running.')
     return reasons
 
 
-def request_review(repository, number, *, request=False):
+def request_review(repository, number, *, request=False, automatic=False):
     arguments = ['pr', 'view', str(number), '--repo', repository,
                  '--json', 'headRefOid,state,isDraft,baseRefName']
     pull_request = gh_json(arguments)
@@ -128,7 +147,12 @@ def request_review(repository, number, *, request=False):
     reviews = [review for page in pages for review in page]
     comment_pages = gh_json(['api', '--paginate', '--slurp',
                             f'repos/{repository}/issues/{number}/comments'])
-    summary_head = summary_commit([comment for page in comment_pages for comment in page], repository)
+    comments = [comment for page in comment_pages for comment in page]
+    started = second_stage_started(comments, reviews)
+    if automatic and started:
+        print(f'PR #{number}: CodeRabbit stage already started; no automatic repeat.')
+        return
+    summary_head = summary_commit(comments, repository)
     check_arguments = ['pr', 'checks', str(number), '--repo', repository, '--json', 'name,bucket']
     checks = gh_json([*check_arguments, '--required'], allowed_codes=(0, 1, 8))
     all_checks = gh_json(check_arguments, allowed_codes=(0, 1, 8))
@@ -136,34 +160,60 @@ def request_review(repository, number, *, request=False):
                if check['name'].lower().startswith(('greptile', 'coderabbit'))]
     reasons = blockers(pull_request, reviews, review_threads(repository, number), checks,
                        required_check_names(repository, number, pull_request['baseRefName']),
-                       summary_head=summary_head)
+                       summary_head=summary_head, second_stage=started)
     if reasons:
-        raise RuntimeError('\n'.join(reasons))
+        raise NotReady('\n'.join(reasons))
     # Recheck the head after reading reviews, discussions and CI to catch a push
     # while the gate was checking. The caller must not push during the review.
     final = gh_json(arguments)
     if final['headRefOid'] != pull_request['headRefOid']:
-        raise RuntimeError('The PR changed while checking readiness. Run the gate again.')
+        raise NotReady('The PR changed while checking readiness. Run the gate again.')
     if final['state'] != 'OPEN' or final['isDraft']:
-        raise RuntimeError('The PR is no longer open and ready for review.')
+        raise NotReady('The PR is no longer open and ready for review.')
     if request:
         subprocess.run(['gh', 'pr', 'comment', str(number), '--repo', repository,
-                        '--body', '@coderabbitai full review'], check=True)
+                        '--body', '@coderabbitai full review\n\n' + TRANSITION_MARKER], check=True)
         print('CodeRabbit review requested for ' + pull_request['headRefOid'])
     else:
         print('Ready for CodeRabbit: ' + pull_request['headRefOid'])
 
 
+def request_ready_reviews(repository, base):
+    # A sweep handles delayed/missed check events and findings resolved after CI.
+    pages = gh_json(['api', '--paginate', '--slurp',
+                     f'repos/{repository}/pulls?state=open&base={quote(base, safe="")}&per_page=100'])
+    errors = []
+    for page in pages:
+        for pull_request in page:
+            if pull_request['draft']:
+                continue
+            number = pull_request['number']
+            try:
+                request_review(repository, number, request=True, automatic=True)
+            except NotReady as exc:
+                print(f'PR #{number}: waiting: {exc}')
+            except RuntimeError as exc:
+                errors.append(f'PR #{number}: {exc}')
+    if errors:
+        raise RuntimeError('\n'.join(errors))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', required=True, help='GitHub owner/repository')
-    parser.add_argument('--pr', required=True, type=int)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument('--pr', type=int)
+    target.add_argument('--automatic', action='store_true', help='Request the first review of ready open PRs')
+    parser.add_argument('--base', default='main', help='Target branch for the automatic sweep')
     parser.add_argument('--request', action='store_true', help='Post the full-review command')
     args = parser.parse_args()
-    if args.pr < 1 or len(args.repo.split('/')) != 2:
+    if (args.pr is not None and args.pr < 1) or len(args.repo.split('/')) != 2:
         parser.error('Use a positive PR number and owner/repository')
     try:
-        request_review(args.repo, args.pr, request=args.request)
+        if args.automatic:
+            request_ready_reviews(args.repo, args.base)
+        else:
+            request_review(args.repo, args.pr, request=args.request)
     except (RuntimeError, KeyError, ValueError) as exc:
         raise SystemExit(str(exc)) from None
 

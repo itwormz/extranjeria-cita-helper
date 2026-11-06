@@ -1,10 +1,18 @@
 name: Request CodeRabbit review
 
 on:
+  check_run:
+    types: [completed]
+  workflow_run:
+    workflows: [Tests, CodeQL]
+    types: [completed]
+  schedule:
+    # Recovery for missed events and findings resolved after checks completed.
+    - cron: '3-58/5 * * * *'
   workflow_dispatch:
     inputs:
       pr:
-        description: Pull request number already reviewed by Greptile
+        description: PR number (first review or repeat CodeRabbit review)
         required: true
         type: string
 
@@ -15,12 +23,15 @@ permissions:
   statuses: read
 
 concurrency:
-  group: coderabbit-review-${{ inputs.pr }}
+  # All triggers share the lock: event/scheduled/manual runs cannot double-post.
+  group: coderabbit-review-gate
   cancel-in-progress: false
 
 jobs:
   request:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: >-
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      (github.event_name != 'check_run' || github.event.check_run.name == 'Greptile Review')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -32,6 +43,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr }}
+          EVENT_NAME: ${{ github.event_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
-          python3 scripts/request_coderabbit_review.py --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --request
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            python3 scripts/request_coderabbit_review.py --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --request
+          else
+            python3 scripts/request_coderabbit_review.py --repo "$GITHUB_REPOSITORY" --automatic --base "$DEFAULT_BRANCH"
+          fi
