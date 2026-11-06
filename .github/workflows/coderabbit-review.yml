@@ -88,5 +88,5 @@ jobs:
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
             python3 scripts/request_coderabbit_review.py --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --request
           else
-            python3 scripts/request_coderabbit_review.py --repo "$GITHUB_REPOSITORY" --automatic --base "$DEFAULT_BRANCH"
+            python3 scripts/request_coderabbit_review.py --repo "$GITHUB_REPOSITORY" --automatic --base "$DEFAULT_BRANCH" --request
           fi

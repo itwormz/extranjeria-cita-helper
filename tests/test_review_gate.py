@@ -296,3 +296,22 @@ def test_missing_protection_summary_does_not_silently_drop_required_checks(monke
     monkeypatch.setattr(gate, 'gh_json', Mock(return_value={'protected': True}))
     with pytest.raises(RuntimeError, match='protection summary'):
         gate.required_check_names('owner/repo', 32, 'main')
+
+
+@pytest.mark.parametrize('post_requested', [False, True])
+def test_automatic_cli_only_posts_when_request_flag_is_present(monkeypatch, post_requested):
+    pr, reviews, threads, checks = ready_state()
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[
+        [[{'number': 32, 'draft': False}]], pr, [reviews], [[]], checks, [], pr]))
+    monkeypatch.setattr(gate, 'review_threads', lambda *_: threads)
+    monkeypatch.setattr(gate, 'required_check_names', lambda *_: {'Tests'})
+    post = Mock()
+    monkeypatch.setattr(gate.subprocess, 'run', post)
+    arguments = ['request_coderabbit_review.py', '--repo', 'owner/repo', '--automatic']
+    if post_requested:
+        arguments.append('--request')
+    monkeypatch.setattr('sys.argv', arguments)
+    gate.main()
+    assert post.call_count == int(post_requested)
+    if post_requested:
+        assert '@coderabbitai full review' in post.call_args.args[0][-1]

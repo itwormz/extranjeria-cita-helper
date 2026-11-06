@@ -179,7 +179,7 @@ def request_review(repository, number, *, request=False, automatic=False):
         print('Ready for CodeRabbit: ' + pull_request['headRefOid'])
 
 
-def request_ready_reviews(repository, base):
+def request_ready_reviews(repository, base, *, request=False):
     # A sweep handles delayed/missed check events and findings resolved after CI.
     pages = gh_json(['api', '--paginate', '--slurp',
                      f'repos/{repository}/pulls?state=open&base={quote(base, safe="")}&per_page=100'])
@@ -190,7 +190,7 @@ def request_ready_reviews(repository, base):
                 continue
             number = pull_request['number']
             try:
-                request_review(repository, number, request=True, automatic=True)
+                request_review(repository, number, request=request, automatic=True)
             except NotReady as exc:
                 print(f'PR #{number}: waiting: {exc}')
             except RuntimeError as exc:
@@ -204,7 +204,7 @@ def main():
     parser.add_argument('--repo', required=True, help='GitHub owner/repository')
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument('--pr', type=int)
-    target.add_argument('--automatic', action='store_true', help='Request the first review of ready open PRs')
+    target.add_argument('--automatic', action='store_true', help='Check ready open PRs; add --request to post reviews')
     parser.add_argument('--base', default='main', help='Target branch for the automatic sweep')
     parser.add_argument('--request', action='store_true', help='Post the full-review command')
     args = parser.parse_args()
@@ -212,7 +212,7 @@ def main():
         parser.error('Use a positive PR number and owner/repository')
     try:
         if args.automatic:
-            request_ready_reviews(args.repo, args.base)
+            request_ready_reviews(args.repo, args.base, request=args.request)
         else:
             request_review(args.repo, args.pr, request=args.request)
     except (RuntimeError, KeyError, ValueError) as exc:
