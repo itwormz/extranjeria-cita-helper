@@ -70,16 +70,15 @@ def review_threads(repository, number):
 
 
 def required_check_names(repository, number, base):
-    owner, name = repository.split('/')
-    query = """query($owner:String!,$name:String!,$number:Int!) {
-      repository(owner:$owner,name:$name) { pullRequest(number:$number) {
-        baseRef { branchProtectionRule { requiredStatusCheckContexts } }
-      } }
-    }"""
-    result = gh_json(['api', 'graphql', '-f', f'query={query}', '-f', f'owner={owner}',
-                      '-f', f'name={name}', '-F', f'number={number}'])
-    rule = result['data']['repository']['pullRequest']['baseRef']['branchProtectionRule']
-    names = set(rule['requiredStatusCheckContexts'] if rule else ())
+    # The branch summary needs contents:read; branchProtectionRule GraphQL
+    # requires administration access unavailable to the normal GITHUB_TOKEN.
+    branch = gh_json(['api', f'repos/{repository}/branches/{quote(base, safe="")}'])
+    protection = branch.get('protection')
+    if branch['protected'] and not isinstance(protection, dict):
+        raise RuntimeError('The protected branch protection summary is unavailable.')
+    required = (protection or {}).get('required_status_checks') or {}
+    names = set(required.get('contexts', ()))
+    names.update(check['context'] for check in required.get('checks', ()))
     # Rulesets can add checks beyond the older branch-protection rule.
     rules = gh_json(['api', '--paginate', '--slurp',
                      f'repos/{repository}/rules/branches/{quote(base, safe="")}'])

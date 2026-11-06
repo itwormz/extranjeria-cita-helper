@@ -274,3 +274,25 @@ def test_api_failure_identifies_operation_without_printing_request_parameters(mo
         gate.gh_json(['api', 'graphql', '-f', 'query=private-request-parameter'])
     assert 'api graphql' in str(error.value)
     assert 'private-request-parameter' not in str(error.value)
+
+
+def test_required_checks_use_readable_branch_summary_and_paginated_rulesets(monkeypatch):
+    def github(args, **kwargs):
+        if args == ['api', 'repos/owner/repo/branches/release%2Fnext']:
+            return {'protected': True, 'protection': {'required_status_checks': {
+                'contexts': ['Tests'], 'checks': [{'context': 'Analyze (python)', 'app_id': 15368}]}}}
+        if args == ['api', '--paginate', '--slurp', 'repos/owner/repo/rules/branches/release%2Fnext']:
+            return [[{'type': 'required_status_checks', 'parameters': {
+                'required_status_checks': [{'context': 'Analyze (actions)'}]}}],
+                    [{'type': 'required_status_checks', 'parameters': {
+                        'required_status_checks': [{'context': 'Additional CI'}]}}]]
+        raise AssertionError('Unexpected API; administrative GraphQL is not available: ' + str(args))
+    monkeypatch.setattr(gate, 'gh_json', github)
+    assert gate.required_check_names('owner/repo', 32, 'release/next') == {
+        'Tests', 'Analyze (python)', 'Analyze (actions)', 'Additional CI'}
+
+
+def test_missing_protection_summary_does_not_silently_drop_required_checks(monkeypatch):
+    monkeypatch.setattr(gate, 'gh_json', Mock(return_value={'protected': True}))
+    with pytest.raises(RuntimeError, match='protection summary'):
+        gate.required_check_names('owner/repo', 32, 'main')
