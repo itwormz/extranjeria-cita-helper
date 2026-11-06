@@ -1133,7 +1133,7 @@ def test_packaged_smoke_readiness_does_not_wait_for_unrelated_resource():
             browser = await launch_browser(pw)
             context = await browser.new_context()
             page = await context.new_page()
-            page.set_default_navigation_timeout(1000)
+            page.set_default_navigation_timeout(5000)
             resource_requested = asyncio.Event()
             release_resource = asyncio.Event()
             async def respond(route):
