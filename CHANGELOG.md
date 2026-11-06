@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — Search continuation and calendar offers
+## Unreleased
+
+## 0.3.4 — Search continuation and calendar offers
 
 - **Resume searching after the date-selection screen without clearing the browser session.** Start a new pass in the same Camoufox window while preserving cookies, the attempt budget and protective pauses. Refreshing the site alone does not resume automation.
 - Read offered dates and times from visible LIBRE cells in the appointment calendar, alongside the existing radio-button layout. Occupied, hidden and disabled cells are excluded.
