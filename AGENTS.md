@@ -53,7 +53,10 @@ uv run python -m camoufox fetch
 uv run python -m app.main desktop
 ```
 
-Before a release push, run `uv run python scripts/preflight.py` (add `--bundle` for a native bundle check); see `docs/BUILD.md`.
+Before finalizing a release, run `uv run python scripts/preflight.py` (add `--bundle` for a native bundle check); see `docs/BUILD.md`.
+Do not rerun the full local suite for every follow-up commit. For documentation
+or review-workflow changes, use focused tests and relevant linters. Broaden checks
+when application changes or failures justify it, and reuse still-valid results.
 
 Run tests appropriate to the changed behaviour. Add regressions for meaningful
 bugs; browser tests are opt-in and intercept website requests with synthetic pages.

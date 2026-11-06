@@ -1192,7 +1192,10 @@ class DesktopWindow(QMainWindow):
         self.statusBar().showMessage(self.t('Сессия сброшена. Можно запустить поиск.'),7000)
 
     def start_or_pause(self):
-        if self.state.get('booking_handoff'):return
+        if self.state.get('booking_handoff'):
+            if self.controller.active and not self.state.get('browser_retained'):
+                self.controller.send({'command': 'resume_search'})
+            return
         if self.controller.active:
             self.controller.send(dict(command='pause',paused=not self.state.get('paused',False)))
         else:
@@ -1267,10 +1270,11 @@ class DesktopWindow(QMainWindow):
             ('Требуется участие в Camoufox.' if state.get('mode')=='manual' else 'Бот сообщит, когда потребуется участие.'))
         active=self.controller.active
         self.profile_combo.setEnabled(not active)
-        self.start_button.setText('Ручное оформление' if state.get('booking_handoff') else ('Продолжить' if state.get('paused') else 'Пауза') if active else 'Запустить')
+        self.start_button.setText('Продолжить поиск' if state.get('booking_handoff') else ('Продолжить' if state.get('paused') else 'Пауза') if active else 'Запустить')
         for button in (self.restart_button,self.browser_button): button.setEnabled(active)
         self.update_start()
-        if state.get('booking_handoff'):self.start_button.setEnabled(False)
+        if state.get('booking_handoff'):
+            self.start_button.setEnabled(active and not state.get('connection_lost', False))
         if state.get('browser_retained'):
             for button in (self.start_button,  self.restart_button): button.setEnabled(False)
         self.update_state_presentation()
@@ -1508,7 +1512,8 @@ class DesktopWindow(QMainWindow):
         self.attempt_window_caption.hide()
         self.attempt_window_label.hide()
         self.next_label.setText('Для начала — «Запустить»')
-        self.state=dict(self.state,mode='finished',remaining_seconds=None,failed=bool(code))
+        self.state=dict(self.state,mode='finished',remaining_seconds=None,failed=bool(code),
+                        booking_handoff=False,browser_retained=False)
         profile_id=getattr(self.controller,'profile_id',None) or self.profile_combo.currentData()
         self.notification_delivery.observe(profile_id,self.state,self.preferences['language'])
         self.timer_label.setText('—'); self.timer_label.hide(); self.timer_caption.hide()
@@ -1576,7 +1581,7 @@ class DesktopWindow(QMainWindow):
         self.try_now_action.setText(self.t('Попробовать сейчас'))
         self.more_actions.setToolTip(self.t('Другие действия'))
         self.more_actions.setAccessibleName(self.t('Другие действия'))
-        self.start_button.setIcon(self.control_icon('play' if not self.controller.active or self.state.get('paused') else 'pause'))
+        self.start_button.setIcon(self.control_icon('play' if not self.controller.active or self.state.get('paused') or self.state.get('booking_handoff') else 'pause'))
         self.start_button.setIconSize(QSize(16,16))
         self.language_button.setText(language.upper())
         self.language_button.setIcon(QIcon())
@@ -1629,7 +1634,7 @@ class DesktopWindow(QMainWindow):
         for image,icon in self.empty_icon_labels:image.setPixmap(self.control_icon(icon).pixmap(QSize(28,28)))
         # Compact controls keep their width across ordinary work states.
         self.start_button.setFixedWidth(max(138,max(self.start_button.fontMetrics().horizontalAdvance(self.t(text)) for text in ('Запустить','Пауза','Продолжить'))+40,
-                                           self.start_button.fontMetrics().horizontalAdvance(self.t('Ручное оформление'))+40 if self.state.get('booking_handoff') else 0))
+                                           self.start_button.fontMetrics().horizontalAdvance(self.t('Продолжить поиск'))+40 if self.state.get('booking_handoff') else 0))
         self.browser_button.setFixedWidth(120)
         for button in (self.start_button,self.browser_button):button.setFixedHeight(36)
         self.update_editor_height()

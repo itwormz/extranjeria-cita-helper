@@ -191,8 +191,15 @@ async def _run_session(task, settings, control, *, max_cycles=None, network_jour
                 if restart.clear_profile or restart.reopen_browser:
                     raise
                 await alerter.stop()
+                if control.restart_requested and not control.stop_requested:
+                    raise AssistRestartRequested('ручной перезапуск', clear_profile=True,
+                                                 delay_seconds=0, user_requested=True)
                 runner = None
                 operation = asyncio.current_task()
+                if control.resume_search_requested:
+                    control.resume_search_requested = False
+                    control.booking_handoff = False
+                    control.set_booking_details({})
                 control.clear_restart()
                 control.record('flow_restart', detail=f'Новый проход: {restart.reason} — окно и профиль сохранены')
                 if not await wait_restart(control, restart.delay_seconds, reuse_browser=True):

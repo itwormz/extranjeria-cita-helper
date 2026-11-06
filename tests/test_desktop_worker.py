@@ -23,6 +23,24 @@ def test_worker_commands_and_eof_stop_are_process_owned():
     assert control.stop_requested
 
 
+def test_resume_search_is_explicit_and_does_not_request_browser_reset():
+    control = AssistControl()
+    assert apply_command(control, {'command': 'resume_search'})
+    assert not control.resume_search_requested
+    control.booking_handoff = True
+    control.set_paused(True)
+    assert apply_command(control, {'command': 'resume_search'})
+    assert control.resume_search_requested and not control.paused
+    assert control.booking_handoff and not control.restart_requested
+    assert not apply_command(control, {'command': 'resume_search', 'clear_profile': True})
+    events = []
+    control.set_history_sink(lambda kind, **fields: events.append((kind, fields)))
+    control.record('flow_restart', detail='Continue searching')
+    assert events[-1][0] == 'flow_restart' and events[-1][1]['initiator'] == 'user'
+    control.request_stop()
+    assert not control.resume_search_requested
+
+
 def test_reset_removes_only_owned_profile_after_session_unwinds(monkeypatch, tmp_path):
     from app import assist_runtime
     from types import SimpleNamespace
@@ -127,6 +145,67 @@ def test_paused_zero_delay_restart_waits_for_resume():
         control.set_paused(False)
         assert await asyncio.wait_for(waiting, 1)
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize('late_restart', [False, True])
+def test_resume_after_booking_reuses_context_cookies_and_budget(monkeypatch, tmp_path, late_restart):
+    from app import assist_runtime, assist, site
+    from app.appointment_budget import AppointmentBudget
+    from app import alerts
+    import playwright.async_api
+    calls = []
+    control = AssistControl()
+    control.set_diagnostics(False)
+    budget = control.appointment_budget = AppointmentBudget(sent=3)
+    context = SimpleNamespace(on=lambda *_: None, route=AsyncMock(), cookies={'session': 'synthetic'})
+    page = SimpleNamespace(set_default_timeout=lambda *_: None, is_closed=lambda: False)
+    class Checker:
+        def __init__(self, settings): self.settings = settings
+        def _debug_directory(self, *_): return tmp_path
+        async def launch_context(self, *_, **kwargs): calls.append('launch'); return context
+        async def page_for_context(self, *_): return page
+        async def _open_entry(self, *_): calls.append('entry')
+        async def close_context(self, *_): calls.append('close')
+    class Driver:
+        async def start(self): return self
+        async def stop(self): pass
+    class Alerter:
+        def __init__(self, *args, **kwargs): pass
+        async def stop(self):
+            if late_restart and control.resume_search_requested:
+                apply_command(control, {'command': 'restart'})
+                await asyncio.sleep(0)
+    class Runner:
+        def __init__(self, *args): assert args[1] is context
+        def detach(self): pass
+        def save_error_details(self, *_): pass
+        async def wait_unpaused(self): pass
+        async def run(self, **kwargs):
+            if calls.count('entry') == 1:
+                control.booking_handoff = True
+                apply_command(control, {'command': 'resume_search'})
+                raise AssistRestartRequested('continue', delay_seconds=0, user_requested=True)
+            assert not control.booking_handoff and not control.resume_search_requested
+            assert control.appointment_budget is budget and budget.sent == 3
+            assert context.cookies == {'session': 'synthetic'}
+            return 0
+    monkeypatch.setattr(playwright.async_api, 'async_playwright', Driver)
+    monkeypatch.setattr(alerts, 'Alerter', Alerter)
+    monkeypatch.setattr(site, 'IcpPlusChecker', Checker)
+    reset = AsyncMock()
+    monkeypatch.setattr(site, 'reset_browser_profile', reset)
+    monkeypatch.setattr(assist, '_install_lifecycle_logging', lambda *_: None)
+    monkeypatch.setattr(assist_runtime, 'AssistRunner', Runner)
+    if late_restart:
+        with pytest.raises(AssistRestartRequested) as error:
+            asyncio.run(assist_runtime._run_session(SimpleNamespace(id='test'), Settings(), control))
+        assert error.value.clear_profile and error.value.delay_seconds == 0
+        assert calls == ['launch', 'entry', 'close']
+    else:
+        result = asyncio.run(assist_runtime._run_session(SimpleNamespace(id='test'), Settings(), control))
+        assert result == 0
+        assert calls == ['launch', 'entry', 'entry', 'close']
+    reset.assert_not_called()
 
 
 @pytest.mark.parametrize('mode,expected',[('manual','_fill_applicant_manual'),('copy','_fill_applicant_with_clave')])

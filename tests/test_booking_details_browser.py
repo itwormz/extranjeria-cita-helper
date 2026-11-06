@@ -11,6 +11,57 @@ from tests.test_local_assist_browser import runner_for, BASE
 pytestmark=pytest.mark.skipif(os.getenv('CITA_BROWSER_TESTS')!='1',reason='opt-in browser tests')
 
 
+def test_booking_calendar_reads_only_visible_free_slots_without_actions():
+    async def scenario():
+        from playwright.async_api import async_playwright, expect
+        from app.booking_details import read_booking_details
+        async with async_playwright() as pw:
+            browser = await launch_browser(pw)
+            context = await browser.new_context()
+            page = await context.new_page()
+            html = '''<table id="VistaMapa_Datatable"><thead><tr><td></td>
+                <th class="colFecha0">12/01/2027</th><th class="colFecha1">13/01/2027</th>
+                <th class="colFecha2" hidden>14/01/2027</th></tr></thead><tbody>
+                <tr><th role="button">09:14</th><td class="colFecha0"><span>OCUPADO</span></td>
+                <td class="colFecha1"><a role="button" onclick="window.clicked++" data-id="PRIVATE-ID">LIBRE</a></td>
+                <td class="colFecha2"><a role="button">LIBRE</a></td></tr>
+                <tr><th>10:00</th><td class="colFecha0"><a role="button">LIBRE</a></td>
+                <td class="colFecha1"><a role="button" aria-disabled="true">LIBRE</a></td></tr>
+                <tr hidden><th>10:30</th><td class="colFecha0"><a role="button">LIBRE</a></td></tr>
+                <tr><th>11:00</th><td class="colFecha0" aria-hidden="true"><a role="button">LIBRE</a></td>
+                <td class="colFecha1"><a role="button" disabled>LIBRE</a></td></tr>
+                <tr><th>11:30</th><td class="colFecha0"><a role="button">OCUPADO</a></td>
+                <td class="unknown"><a role="button">LIBRE</a></td></tr>
+                <tr><th>bad time</th><td class="colFecha0"><a role="button">LIBRE</a></td></tr>
+                </tbody></table>
+                <select id="txtHora"><option>08:00</option></select>
+                <input id="captcha" value="PRIVATE-CAPTCHA"><input type="hidden" value="PRIVATE-TOKEN">
+                <div style="height:2000px"></div>'''
+            calls = []
+            async def respond(route):
+                calls.append(route.request.method)
+                await route.fulfill(body=html, content_type='text/html; charset=utf-8')
+            await page.route('**/*', respond)
+            await page.goto(BASE + 'acCita')
+            await expect(page.locator('#VistaMapa_Datatable')).to_be_visible(timeout=10_000)
+            await page.locator('#captcha').focus()
+            await page.evaluate('window.scrollTo(0, 120)')
+            await page.evaluate('''() => {
+                document.documentElement.dataset.clicks = '0';
+                document.addEventListener('click', () => document.documentElement.dataset.clicks = '1', true);
+            }''')
+            before = await page.evaluate('({scroll:scrollY,focus:document.activeElement.id})')
+            details = await read_booking_details(page, timeout=10)
+            assert details == {'offers': [{'date': '2027-01-13', 'time': '09:14'},
+                                         {'date': '2027-01-12', 'time': '10:00'}]}
+            assert await page.evaluate('({scroll:scrollY,focus:document.activeElement.id})') == before
+            assert await page.locator('#captcha').input_value() == 'PRIVATE-CAPTCHA'
+            assert await page.locator('html').get_attribute('data-clicks') == '0'
+            assert calls == ['GET']
+            await browser.close()
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize('radio_name', ['rdbCita', 'rdbCITA'])
 def test_booking_radio_details_are_passive_and_exclude_filters_hidden_and_disabled_offers(radio_name):
     async def scenario():
