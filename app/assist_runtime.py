@@ -196,6 +196,9 @@ async def _run_session(task, settings, control, *, max_cycles=None, network_jour
                                                  delay_seconds=0, user_requested=True)
                 runner = None
                 operation = asyncio.current_task()
+                if control.pending_attempt_fresh_pass:
+                    control.pending_attempt_fresh_pass=False
+                    control._history_manual_restart=True
                 if control.resume_search_requested:
                     control.resume_search_requested = False
                     control.booking_handoff = False

@@ -7,6 +7,7 @@ from app.desktop.profiles import ProfileStore, ProfileValidationError
 from app.assist import reuse_policy_from_settings
 from tests.test_desktop_recovery import runner
 from app.assist_flow import Observed
+from app.assist_runtime import AssistRestartRequested
 
 
 def test_new_install_defaults_to_english_preserving_explicit_language(tmp_path, catalog_path):
@@ -181,7 +182,10 @@ def test_live_cod_pause_change_and_manual_attempt_preserve_other_timing():
     asyncio.run(r.step())
     assert r.budget.restriction_until == now + timedelta(minutes=10)
     assert apply_command(r.control, {'command': 'appointment_try_now'})
-    asyncio.run(r.step())
+    r.observe.reset_mock()
+    with pytest.raises(AssistRestartRequested):
+        asyncio.run(r.step())
+    r.observe.assert_not_awaited()
     assert r.budget.next_submission(now, r.protection) == now + timedelta(minutes=15)
     assert r.control.pending_attempt_now is False
     assert 'Ручная ближайшая попытка' in r.last_action_detail
@@ -205,7 +209,9 @@ def test_try_now_waits_for_copied_document_budget():
     r.observe_appointment_budget = Mock()
     r.manual_signature = 'sig'
     assert apply_command(r.control, {'command': 'appointment_try_now'})
-    asyncio.run(r.step())
+    with pytest.raises(AssistRestartRequested):
+        asyncio.run(r.step())
+    r.observe.assert_not_awaited()
     assert r.control.pending_attempt_now
     assert not temporary.immediate_attempt
 
@@ -251,7 +257,9 @@ def test_pending_try_now_expires_at_madrid_midnight(monkeypatch, still_temporary
     r.manual_signature = 'sig'
     assert worker.apply_command(r.control, {'command': 'appointment_try_now'})
     assert r.control.pending_attempt_now_day == Clock.now(MADRID).date()
-    asyncio.run(r.step())
+    with pytest.raises(AssistRestartRequested):
+        asyncio.run(r.step())
+    r.observe.assert_not_awaited()
     assert r.control.pending_attempt_now
     Clock.current = datetime(2026, 11, 5, 23, 1, tzinfo=timezone.utc)
     r.control.appointment_budget_is_temporary = still_temporary

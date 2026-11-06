@@ -271,7 +271,7 @@ class StatisticsPanel(QWidget):
         if not budget:
             return
         self.budget_disabled = budget['disabled']
-        self.budget_action.setText(self.tr_text('Вернуть распределение' if self.budget_disabled else 'Отключить распределение на сегодня'))
+        self.budget_action.setText(self.tr_text('Включить распределение на сегодня' if self.budget_disabled else 'Отключить распределение на сегодня'))
         self.budget_history_action.setText(self.tr_text('История возможных ограничений'))
         ready = budget['ready'][11:16]
         text = '<b>Защита от бана</b>'

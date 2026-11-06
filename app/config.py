@@ -39,6 +39,7 @@ class AppointmentProtection:
     confirm_new_round: bool = True
     daily_target: int = 5
     adaptive_target: bool = True
+    distribute_attempts: bool = False
     retry_after_office: bool = True
     minimum_pause_minutes: int = 15
     first_cod_pause_minutes: int = 30

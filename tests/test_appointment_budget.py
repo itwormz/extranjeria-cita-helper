@@ -10,6 +10,40 @@ def at(day, hour, minute=0):
     return datetime(2026, 11, day, hour, minute, tzinfo=MADRID)
 
 
+def test_existing_profiles_default_to_no_windows_but_keep_minimum_pause():
+    policy=AppointmentProtection.parse({'daily_target':5},[])
+    assert policy.distribute_attempts is False
+    budget=AppointmentBudget()
+    budget.submitted(at(3,9),policy)
+    assert budget.next_submission(at(3,9,10),policy)==at(3,9,15)
+    assert budget.next_submission(at(3,9,16),policy)==at(3,9,16)
+    summary=budget.summary(at(3,9,10),policy)
+    assert summary['disabled'] and summary['attempt_window'] is None
+    assert summary['wait_reason']=='minimum_pause'
+
+
+def test_opt_in_windows_and_daily_toggle_preserve_protective_pauses():
+    policy=AppointmentProtection(distribute_attempts=True)
+    budget=AppointmentBudget();budget.submitted(at(3,9),policy)
+    assert budget.next_submission(at(3,9,20),policy)>at(3,9,20)
+    assert budget.summary(at(3,9,20),policy)['wait_reason']=='window'
+    budget.set_distribution(True,at(3,9,20),policy)
+    assert budget.next_submission(at(3,9,20),policy)==at(3,9,20)
+    budget.cod_oper(at(3,9,20),policy)
+    assert budget.summary(at(3,9,21),policy)['wait_reason']=='cod_oper'
+    assert budget.next_submission(at(3,9,21),policy)==at(3,9,50)
+
+
+def test_today_enable_is_optional_and_expires_at_midnight():
+    policy=AppointmentProtection()
+    budget=AppointmentBudget();budget.submitted(at(3,9),policy)
+    budget.set_distribution(False,at(3,9,20),policy)
+    assert not budget.summary(at(3,9,20),policy)['disabled']
+    assert budget.next_submission(at(3,9,20),policy)>at(3,9,20)
+    budget.refresh(at(4,0),policy)
+    assert budget.summary(at(4,0),policy)['disabled']
+
+
 def test_try_now_bypasses_window_and_cod_pause_but_preserves_minimum():
     policy = AppointmentProtection(minimum_pause_minutes=15)
     budget = AppointmentBudget()
@@ -23,7 +57,7 @@ def test_try_now_bypasses_window_and_cod_pause_but_preserves_minimum():
 
 
 def test_try_now_one_submission_then_replans_and_expires_at_midnight():
-    policy = AppointmentProtection()
+    policy = AppointmentProtection(distribute_attempts=True)
     budget = AppointmentBudget()
     budget.submitted(at(3, 9), policy)
     budget.try_now(at(3, 9, 31), policy)
@@ -51,7 +85,7 @@ def test_changed_cod_timings_recalculate_from_original_pause_start():
 
 
 def test_first_attempt_early_window_and_replan():
-    policy = AppointmentProtection()
+    policy = AppointmentProtection(distribute_attempts=True)
     budget = AppointmentBudget()
     assert budget.next_submission(at(3, 14), policy) == at(3, 14)
     budget.submitted(at(3, 14), policy)
@@ -272,7 +306,7 @@ def test_manual_budget_keeps_collecting_tomorrows_adaptive_estimate():
 
 def test_large_target_keeps_schedule_memory_bounded():
     budget = AppointmentBudget(day=at(3, 12).date(), sent=1)
-    policy = AppointmentProtection(minimum_pause_minutes=1)
+    policy = AppointmentProtection(minimum_pause_minutes=1,distribute_attempts=True)
     budget.set_daily_target(2_147_483_647, at(3, 12), policy)
     budget.summary(at(3, 12), policy)
     assert 0 < len(budget.windows) <= 1440

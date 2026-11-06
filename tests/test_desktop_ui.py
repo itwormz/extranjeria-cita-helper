@@ -19,6 +19,46 @@ class Controller(QObject):
         self.close_browser=close_browser
         self.active = False
 
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_resume_button_fits_its_translated_label_and_icon(window,language):
+    window.preferences['language']=language
+    window.controller.active=True
+    window.on_state(dict(screen='Выбор ситы',mode='manual',booking_handoff=True,
+                         next_action='Выбрать дату',evidence='',paused=False,checks=0))
+    QApplication.processEvents()
+    assert window.start_button.width()>=window.start_button.sizeHint().width()
+
+
+def test_optional_scheduling_defaults_off_without_risk_warning(window):
+    window.create_profile()
+    assert not window.protection_fields['distribute_attempts'].isChecked()
+    assert window.search_behavior_title.text()==window.t('Рекомендуется для обычного поиска')
+
+
+def test_work_explains_budget_wait_and_exposes_try_now_only_for_bypassable_waits(window):
+    from datetime import datetime,timedelta
+    from app.appointment_budget import AppointmentBudget
+    from app.appointment_schedule import MADRID
+    from app.config import AppointmentProtection
+    now=datetime.now(MADRID);policy=AppointmentProtection()
+    budget=AppointmentBudget();budget.submitted(now,policy)
+    summary=budget.summary(now,policy)
+    window.controller.active=True
+    state=dict(screen='Форма заявителя',mode='waiting',stage='applicant',
+               next_action='Пауза между попытками',remaining_seconds=900,checks=0,appointment_budget=summary)
+    window.on_state(state)
+    assert window.next_label.text()==window.t('Пауза между попытками')
+    assert window.attempt_window_caption.text()==window.t('До')
+    assert window.attempt_window_label.text()==datetime.fromisoformat(summary['ready']).strftime('%H:%M')
+    assert not window.try_now_button.isVisible()
+    state['appointment_budget']=dict(summary,wait_reason='window')
+    window.on_state(state)
+    assert window.try_now_button.isVisible()
+    state['booking_handoff']=True
+    window.on_state(state)
+    assert not window.try_now_button.isVisible()
+
 @pytest.fixture
 def window(tmp_path, catalog_path, qt_app):
     app = qt_app

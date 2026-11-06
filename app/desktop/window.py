@@ -292,6 +292,10 @@ class DesktopWindow(QMainWindow):
         self.restart_action.triggered.connect(self.reset_session)
         self.try_now_action = menu.addAction('Попробовать сейчас')
         self.try_now_action.triggered.connect(lambda: self.try_appointment_now(getattr(self.controller, 'profile_id', None)))
+        self.try_now_button=QPushButton('Попробовать сейчас')
+        self.try_now_button.clicked.connect(self.try_now_action.trigger)
+        self.try_now_button.hide()
+        self.actions.insertWidget(1,self.try_now_button)
         self.success_action=menu.addAction('Подтвердить запись вручную')
         self.success_action.triggered.connect(self.mark_success_from_work)
         self.more_actions.setMenu(menu)
@@ -747,6 +751,8 @@ class DesktopWindow(QMainWindow):
              'Интервал между пробными запросами, пока сайт продолжает отвечать «Сит нет» с cod. oper.'),
             ('adaptive_reload_on_429', 'Замедлять обновление при 429',
              'Каждый новый HTTP 429 на форме заявителя добавляет 30 секунд к интервалу её обновления до конца запуска.'),
+            ('distribute_attempts', 'Распределять попытки',
+             'Распределять бюджет по времени дня. Вне окна чистый проход ждёт; «Попробовать сейчас» открывает ближайшее окно раньше.'),
         )
         self.protection_fields = {}
         self.protection_labels = []
@@ -778,7 +784,7 @@ class DesktopWindow(QMainWindow):
         daily_budget_row.addWidget(self.daily_budget_note, 1)
         self.daily_budget_edit = self.daily_budget_button(lambda: self.edit_daily_budget(self.editing_id))
         daily_budget_row.addWidget(self.daily_budget_edit)
-        layout.addLayout(daily_budget_row, 10, 0, 1, 2)
+        layout.addLayout(daily_budget_row, 10, 1)
         layout.addWidget(self.search_behavior_note, 11, 0, 1, 2)
         layout.addWidget(self.search_behavior_hint, 12, 0, 1, 2)
 
@@ -1031,8 +1037,8 @@ class DesktopWindow(QMainWindow):
         for widget,text in zip(self.search_mode_descriptions,descriptions):widget.setText(self.t(text))
         protection_disabled = any(
             not widget.isChecked()
-            for widget in self.protection_fields.values()
-            if isinstance(widget, Toggle)
+            for key,widget in self.protection_fields.items()
+            if isinstance(widget, Toggle) and key!='distribute_attempts'
         )
         risk=enter or protection_disabled
         for widget in (self.search_behavior_note,self.search_behavior_title):
@@ -1248,18 +1254,30 @@ class DesktopWindow(QMainWindow):
         self.work_budget_edit.setAccessibleName(self.t('Изменить на сегодня'))
         if budget:
             budget_text = self.t('Бюджет {target} · Остаток {remaining}').format(**budget)
+            if budget.get('disabled'):
+                budget_text += ' · '+self.t('Без распределения')
             if budget.get('restricted'):
                 budget_text += '<br>' + self.t('Возможное ограничение · Проба с {time}').format(
                     time=budget['ready'][11:16])
             self.work_budget.setText(budget_text)
         window = budget.get('attempt_window') if not budget.get('restricted') else None
+        waiting=budget.get('wait_reason')
+        self.try_now_button.setVisible(bool(waiting in {'window','cod_oper'} and self.controller.active
+                                           and not state.get('booking_handoff') and not state.get('browser_retained')))
+        self.try_now_button.setText(self.t('Попробовать сейчас'))
+        self.attempt_window_caption.setText(self.t('До' if waiting else 'Окно'))
         if window:
             start, end = (datetime.fromisoformat(value) for value in window)
             self.attempt_window_label.setToolTip(self.t('Окно попытки по Мадриду'))
             self.attempt_window_label.setText('{start}–{end}'.format(
                 start=start.strftime('%H:%M'), end=end.strftime('%H:%M')))
-        self.attempt_window_caption.setVisible(bool(window))
-        self.attempt_window_label.setVisible(bool(window))
+        if waiting:
+            self.attempt_window_label.setText(datetime.fromisoformat(budget['ready']).strftime('%H:%M'))
+            self.attempt_window_label.setToolTip(self.t(state.get('next_action','')))
+        elif budget.get('immediate_attempt'):
+            self.attempt_window_label.setText(self.t('Открыто сейчас'))
+        self.attempt_window_caption.setVisible(bool(window or waiting or budget.get('immediate_attempt')))
+        self.attempt_window_label.setVisible(bool(window or waiting or budget.get('immediate_attempt')))
         mode={'working':'Бот работает','waiting':'Ожидание','paused':'Приостановлен','manual':'Требуется участие','recovery':'Восстановление','finished':'Остановлен'}.get(state.get('mode'),'Запуск')
         if state.get('booking_handoff'):mode='Управление передано'
         self.status_label.setText('Связь с ботом потеряна' if state.get('connection_lost') else mode)
@@ -1300,6 +1318,7 @@ class DesktopWindow(QMainWindow):
         self.more_actions.setVisible(True)
         self.more_actions.setEnabled(not retained)
         self.try_now_action.setEnabled(active and not retained and not state.get('booking_handoff', False))
+        self.try_now_button.setEnabled(self.try_now_action.isEnabled())
         self.restart_action.setEnabled(bool(self.profile_combo.currentData()) and not retained)
         self.attention_label.setVisible(True)
         self.attention_label.setText('Требуется участие в Camoufox' if mode=='manual' or retained else 'Проверить состояние бота' if lost else 'Для начала — «Запустить»' if not active and not state.get('mode') else 'Участие не требуется')
@@ -1511,6 +1530,7 @@ class DesktopWindow(QMainWindow):
         self.work_budget_edit.hide()
         self.attempt_window_caption.hide()
         self.attempt_window_label.hide()
+        self.try_now_button.hide()
         self.next_label.setText('Для начала — «Запустить»')
         self.state=dict(self.state,mode='finished',remaining_seconds=None,failed=bool(code),
                         booking_handoff=False,browser_retained=False)
@@ -1633,7 +1653,7 @@ class DesktopWindow(QMainWindow):
         self.update_copy_label()
         for image,icon in self.empty_icon_labels:image.setPixmap(self.control_icon(icon).pixmap(QSize(28,28)))
         # Compact controls keep their width across ordinary work states.
-        self.start_button.setFixedWidth(max(138,max(self.start_button.fontMetrics().horizontalAdvance(self.t(text)) for text in ('Запустить','Пауза','Продолжить'))+40,
+        self.start_button.setFixedWidth(max(138,self.start_button.sizeHint().width(),max(self.start_button.fontMetrics().horizontalAdvance(self.t(text)) for text in ('Запустить','Пауза','Продолжить'))+40,
                                            self.start_button.fontMetrics().horizontalAdvance(self.t('Продолжить поиск'))+40 if self.state.get('booking_handoff') else 0))
         self.browser_button.setFixedWidth(120)
         for button in (self.start_button,self.browser_button):button.setFixedHeight(36)

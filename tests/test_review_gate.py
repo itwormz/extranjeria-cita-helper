@@ -7,7 +7,7 @@ from scripts import request_coderabbit_review as gate
 
 def ready_state():
     return (
-        {'state': 'OPEN', 'isDraft': False, 'headRefOid': 'current', 'baseRefName': 'main'},
+        {'state': 'OPEN', 'isDraft': False, 'headRefOid': 'current', 'baseRefName': 'main', 'labels': []},
         [{'id': 1, 'user': {'login': 'greptile-apps[bot]', 'type': 'Bot'},
           'state': 'COMMENTED', 'commit_id': 'current'}],
         [],
@@ -65,8 +65,8 @@ def test_review_request_rechecks_head_before_posting(monkeypatch, head_changes):
     else:
         gate.request_review('owner/repo', 31, request=True)
         post.assert_called_once_with(
-            ['gh', 'pr', 'comment', '31', '--repo', 'owner/repo',
-             '--body', '@coderabbitai full review\n\n' + gate.TRANSITION_MARKER], check=True)
+            ['gh', 'api', '--silent', '--method', 'POST', 'repos/owner/repo/issues/31/labels',
+             '-f', 'labels[]=coderabbit-ready'], check=True)
 
 
 def test_review_gate_rejects_required_check_that_has_not_reported():
@@ -154,8 +154,7 @@ def test_automatic_transition_posts_once_even_after_later_push(monkeypatch):
 
     def post(args, **kwargs):
         posted.append(args)
-        comments.append({'user': {'type': 'Bot', 'login': 'github-actions[bot]'},
-                         'body': args[-1]})
+        pr['labels'] = [{'name': 'coderabbit-ready'}]
 
     monkeypatch.setattr(gate, 'gh_json', github)
     monkeypatch.setattr(gate, 'review_threads', lambda *_: threads)
@@ -163,17 +162,17 @@ def test_automatic_transition_posts_once_even_after_later_push(monkeypatch):
     monkeypatch.setattr(gate.subprocess, 'run', post)
     gate.request_review('owner/repo', 32, request=True, automatic=True)
     assert len(posted) == 1
-    assert '@coderabbitai full review' in posted[0][-1]
+    assert posted[0][-1] == 'labels[]=coderabbit-ready'
     pr['headRefOid'] = 'later-coderabbit-fix'
     gate.request_review('owner/repo', 32, request=True, automatic=True)
     assert len(posted) == 1
     # A manual repeat checks CI, but does not demand another Greptile review.
     gate.request_review('owner/repo', 32, request=True)
-    assert len(posted) == 2
+    assert len(posted) == 3
     checks[0]['bucket'] = 'pending'
     with pytest.raises(gate.NotReady):
         gate.request_review('owner/repo', 32, request=True)
-    assert len(posted) == 2
+    assert len(posted) == 3
 
 
 @pytest.mark.parametrize('failure', ['stale', 'thread', 'ci'])
@@ -196,22 +195,11 @@ def test_automatic_transition_keeps_first_stage_guards(monkeypatch, failure):
     post.assert_not_called()
 
 
-@pytest.mark.parametrize('author_type,login,expected', [
-    ('Bot', 'github-actions[bot]', True),
-    ('User', 'github-actions', False),
-    ('Bot', 'unrelated[bot]', False),
-])
-def test_transition_marker_only_trusted_from_actions(author_type, login, expected):
-    comments = [{'user': {'type': author_type, 'login': login},
-                 'body': '@coderabbitai full review\n\n' + gate.TRANSITION_MARKER}]
-    assert gate.second_stage_started(comments, []) is expected
-
-
 def test_existing_coderabbit_review_prevents_another_automatic_first_review():
     review = {'user': {'type': 'Bot', 'login': 'coderabbitai[bot]'}, 'state': 'COMMENTED'}
-    assert gate.second_stage_started([], [review])
+    assert gate.second_stage_started([review])
     review['user']['type'] = 'User'
-    assert not gate.second_stage_started([], [review])
+    assert not gate.second_stage_started([review])
 
 
 def test_automatic_sweep_waits_for_unready_prs_but_checks_the_rest(monkeypatch):
@@ -245,23 +233,7 @@ def test_second_stage_still_requires_open_pr_ci_and_no_overlapping_review():
 
 def test_coderabbit_pending_review_is_not_a_completed_transition():
     reviews = [{'user': {'type': 'Bot', 'login': 'coderabbitai[bot]'}, 'state': 'PENDING'}]
-    assert not gate.second_stage_started([], reviews)
-
-
-@pytest.mark.parametrize('association,expected', [('OWNER', True), ('MEMBER', True),
-                                                ('COLLABORATOR', True), ('CONTRIBUTOR', False),
-                                                ('NONE', False)])
-def test_authorized_local_request_is_also_a_transition(association, expected):
-    comment = {'user': {'type': 'User', 'login': 'maintainer'},
-               'author_association': association,
-               'body': '@coderabbitai full review\n\n' + gate.TRANSITION_MARKER}
-    assert gate.second_stage_started([comment], []) is expected
-
-
-def test_quoted_transition_marker_does_not_bypass_first_stage():
-    comment = {'user': {'type': 'Bot', 'login': 'github-actions[bot]'},
-               'body': 'Example command:\n@coderabbitai full review\n' + gate.TRANSITION_MARKER}
-    assert not gate.second_stage_started([comment], [])
+    assert not gate.second_stage_started(reviews)
 
 
 def test_api_failure_identifies_operation_without_printing_request_parameters(monkeypatch):
@@ -314,4 +286,84 @@ def test_automatic_cli_only_posts_when_request_flag_is_present(monkeypatch, post
     gate.main()
     assert post.call_count == int(post_requested)
     if post_requested:
-        assert '@coderabbitai full review' in post.call_args.args[0][-1]
+        assert post.call_args.args[0][-1] == 'labels[]=coderabbit-ready'
+
+
+def test_ignored_legacy_command_does_not_prevent_label_request(monkeypatch):
+    pr, reviews, threads, checks = ready_state()
+    comment = {'user': {'type': 'Bot', 'login': 'github-actions[bot]'},
+               'body': '@coderabbitai full review\n\n<!-- coderabbit-second-stage-requested -->'}
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[comment]], checks, [], pr]))
+    monkeypatch.setattr(gate, 'review_threads', lambda *_: threads)
+    monkeypatch.setattr(gate, 'required_check_names', lambda *_: {'Tests'})
+    post = Mock()
+    monkeypatch.setattr(gate.subprocess, 'run', post)
+    gate.request_review('owner/repo', 34, request=True, automatic=True)
+    assert post.call_args.args[0][-1] == 'labels[]=coderabbit-ready'
+
+
+def test_existing_label_is_pending_request_not_published_review(monkeypatch, capsys):
+    pr, reviews, threads, checks = ready_state()
+    pr['labels'] = [{'name': 'coderabbit-ready'}]
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[]]]))
+    post = Mock()
+    monkeypatch.setattr(gate.subprocess, 'run', post)
+    gate.request_review('owner/repo', 34, request=True, automatic=True)
+    post.assert_not_called()
+    assert 'awaiting CodeRabbit' in capsys.readouterr().out
+
+
+def test_manual_repeat_removes_then_adds_label(monkeypatch):
+    pr, reviews, threads, checks = ready_state()
+    pr['labels'] = [{'name': 'coderabbit-ready'}]
+    reviews[0]['commit_id'] = 'before-coderabbit-fixes'
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[]], checks, [], pr]))
+    monkeypatch.setattr(gate, 'review_threads', lambda *_: threads)
+    monkeypatch.setattr(gate, 'required_check_names', lambda *_: {'Tests'})
+    post = Mock()
+    monkeypatch.setattr(gate.subprocess, 'run', post)
+    gate.request_review('owner/repo', 34, request=True)
+    assert [call.args[0] for call in post.call_args_list] == [
+        ['gh', 'api', '--silent', '--method', 'DELETE',
+         'repos/owner/repo/issues/34/labels/coderabbit-ready'],
+        ['gh', 'api', '--silent', '--method', 'POST',
+         'repos/owner/repo/issues/34/labels', '-f', 'labels[]=coderabbit-ready'],
+    ]
+
+
+def test_dry_run_never_removes_existing_label(monkeypatch):
+    pr, reviews, threads, checks = ready_state()
+    pr['labels'] = [{'name': 'coderabbit-ready'}]
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[]], checks, [], pr]))
+    monkeypatch.setattr(gate, 'review_threads', lambda *_: threads)
+    monkeypatch.setattr(gate, 'required_check_names', lambda *_: {'Tests'})
+    post = Mock()
+    monkeypatch.setattr(gate.subprocess, 'run', post)
+    gate.request_review('owner/repo', 34)
+    post.assert_not_called()
+
+
+def test_label_configuration_keeps_reviews_sequential_and_pushes_manual():
+    from pathlib import Path
+    import yaml
+
+    configuration = yaml.safe_load((Path(__file__).parents[1] / '.coderabbit.yaml').read_text())
+    automatic = configuration['reviews']['auto_review']
+    assert automatic['enabled'] is False
+    assert automatic['labels'] == [gate.REVIEW_LABEL]
+    assert automatic['auto_incremental_review'] is False
+
+
+def test_failed_label_removal_does_not_send_a_second_request(monkeypatch):
+    import subprocess
+
+    pr, reviews, threads, checks = ready_state()
+    pr['labels'] = [{'name': 'coderabbit-ready'}]
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[]], checks, [], pr]))
+    monkeypatch.setattr(gate, 'review_threads', lambda *_: threads)
+    monkeypatch.setattr(gate, 'required_check_names', lambda *_: {'Tests'})
+    post = Mock(side_effect=subprocess.CalledProcessError(1, 'gh'))
+    monkeypatch.setattr(gate.subprocess, 'run', post)
+    with pytest.raises(subprocess.CalledProcessError):
+        gate.request_review('owner/repo', 34, request=True)
+    assert post.call_count == 1

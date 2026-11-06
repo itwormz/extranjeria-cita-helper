@@ -813,3 +813,33 @@ def test_keyboard_timeout_observes_navigation_without_resending(monkeypatch, nav
         locator.press.assert_awaited_once()
         locator.click.assert_not_awaited()
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize('method', ['_accept_cookies', '_enter_with_clave',
+                                    '_enter_with_certificate_impl', '_type_no_paste'])
+def test_site_helpers_propagate_fresh_pass_restart(method):
+    from app.assist_runtime import AssistRestartRequested
+
+    restart = AssistRestartRequested('fresh pass', user_requested=True)
+    checker = IcpPlusChecker(SimpleNamespace(navigation_timeout_seconds=1))
+    checker._pace = AsyncMock()
+    checker._activate_control = AsyncMock()
+    checker._raise_if_dead_page = AsyncMock(side_effect=restart)
+    checker._assist_guard = AsyncMock(side_effect=restart)
+    locator = SimpleNamespace(count=AsyncMock(return_value=1),
+                              is_visible=AsyncMock(return_value=True),
+                              wait_for=AsyncMock())
+    locator.first = locator
+    page = SimpleNamespace(locator=lambda *args, **kwargs: locator,
+                           wait_for_timeout=AsyncMock(side_effect=AssertionError('must not retry restart')))
+    if method == '_accept_cookies':
+        checker._pace.side_effect = restart
+        arguments = (page,)
+    elif method == '_type_no_paste':
+        arguments = (locator, 'synthetic')
+    else:
+        arguments = (page, SimpleNamespace(id='test'), 'run')
+    with pytest.raises(AssistRestartRequested) as error:
+        asyncio.run(getattr(checker, method)(*arguments))
+    assert error.value is restart
+    page.wait_for_timeout.assert_not_awaited()
