@@ -7,6 +7,10 @@ on:
         description: Include optional Windows portable ZIP
         type: boolean
         default: true
+      browser_regression_only:
+        description: Only run the focused offline browser regressions on macOS Intel (no packages or release)
+        type: boolean
+        default: false
   push:
     tags: ['v*']
 
@@ -18,7 +22,45 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
+  browser-regression:
+    if: github.event_name == 'workflow_dispatch' && inputs.browser_regression_only
+    runs-on: macos-15-intel
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: '1'
+      CITA_BROWSER_TESTS: '1'
+      CITA_TEST_ENGINE: camoufox
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.13'
+      - name: Install locked test dependencies
+        run: uv sync --frozen --extra desktop
+      - name: Fetch public browser
+        run: uv run python -m camoufox fetch
+      - name: Focused offline browser regressions
+        run: >-
+          uv run pytest -v -s -o addopts= --tb=short
+          --junitxml=.local/builds/test-artifacts/browser-focused.xml
+          tests/test_local_assist_browser.py::test_manual_office_navigation_during_capture_does_not_wait_for_old_select
+          tests/test_local_assist_browser.py::test_packaged_smoke_readiness_does_not_wait_for_unrelated_resource
+      - name: Upload synthetic browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: browser-focused-macos-x64
+          path: .local/builds/test-artifacts/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
   build:
+    if: github.event_name != 'workflow_dispatch' || !inputs.browser_regression_only
     permissions:
       contents: read
       id-token: write

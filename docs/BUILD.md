@@ -184,6 +184,15 @@ Keep local work on a `codex/` development branch and use numbered PEP 440 versio
 
 ## Browser regression contracts
 
+For a quick macOS Intel check of offline page readiness and manual office
+navigation, run **Build desktop packages** manually on the branch under test
+with **browser_regression_only** enabled. This runs only the three targeted
+Camoufox cases and uploads synthetic traces on failure. It does not build
+packages, sign artifacts or publish a release. The option defaults to false;
+tag pushes always use the complete native matrix. A focused check does not
+replace the full native verification before a release.
+
+
 Real-browser fixtures use supported application navigation budgets; they must not shorten a navigation deadline below the configuration minimum to speed up a test. Confirm visible source controls and the expected destination, not only completion of a click. Delayed Regreso responses explicitly check one POST, exact applicant fields and the recognized request menu. Pure timeout tests use controlled dependencies separately.
 
 The regular browser suite reports all failures in a run rather than stopping at the first one; it does not retry failed tests. CI browser steps write JUnit reports; failures upload them as `browser-failure-<platform>-<arch>` artifacts for seven days. The Regreso submission scenario also preserves a Playwright trace of its intercepted synthetic pages on failure. These diagnostics are separate from `package-*` artifacts and never enter release assets. No real appointment data or live website requests are required. Production pauses, action/navigation timeouts and POST safeguards are unchanged.
