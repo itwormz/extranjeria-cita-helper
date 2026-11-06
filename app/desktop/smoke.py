@@ -11,6 +11,13 @@ from .paths import bundled_browser, resource_root, runtime_root
 from .i18n import translate
 
 
+async def open_smoke_page(page):
+    # Only the synthetic form must be ready; unrelated load events are not
+    # part of the packaged browser/input check.
+    await page.goto('https://icp.administracionelectronica.gob.es/icpplus/smoke', wait_until='commit')
+    await page.locator('#demo').wait_for(state='visible')
+
+
 async def run():
     from playwright.async_api import async_playwright
     from ..config import Settings
@@ -27,7 +34,7 @@ async def run():
                      '<p style="font-family:serif">Кириллица: имя и фамилия</p>'
                      '<input id="demo">',
                 content_type='text/html; charset=utf-8'))
-            await page.goto('https://icp.administracionelectronica.gob.es/icpplus/smoke')
+            await open_smoke_page(page)
             assert await page.title() == 'Cita offline check'
             sample = 'TEST Ñ ÁÉÍÓÚ Кириллица X0000000T'
             await page.locator('#demo').fill(sample)
