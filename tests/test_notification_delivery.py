@@ -264,3 +264,46 @@ def test_office_alert_waits_in_queue_across_polling_and_contains_current_offices
     queued[1]()
     assert 'CNP TEST WEST' in sent[1] and 'CNP TEST NORTH' not in sent[1]
     delivery.stop()
+
+
+@pytest.mark.parametrize('interruption', ['paused', 'connection_lost'])
+def test_queued_office_alert_survives_interruption_but_not_a_new_document(qt_app, monkeypatch, interruption):
+    from app.desktop import notification_delivery as module
+
+    class Store:
+        def raw_profile(self, profile):
+            return {'notifications': {'telegram': {
+                'enabled': True, 'events': ['office'], 'secret_ref': 'tg',
+                'recipients': [{'id': '1'}]}}}
+
+    sent = []
+    class Client:
+        def __init__(self, token):
+            pass
+        def send(self, chat, message, current):
+            assert current()
+            sent.append(message)
+
+    monkeypatch.setattr(module, 'Telegram', Client)
+    delivery = module.NotificationDelivery(Store())
+    delivery.vault.get = lambda ref: {'token': 'synthetic'}
+    delivery.prepare('one')
+    queued = []
+    delivery.jobs.submit = lambda work, done: queued.append(work)
+    state = {'screen': 'Выбор офиса', 'mode': 'manual', 'run_id': 'run',
+             'document': 'office-one', 'stage': 'office', 'available_offices': ['CNP TEST']}
+    try:
+        delivery.observe('one', state, 'en')
+        delivery.observe('one', dict(state, **{interruption: True}), 'en')
+        queued[0]()
+        assert len(sent) == 1
+        delivery.observe('one', state, 'en')
+        assert len(queued) == 1
+        delivery.observe('one', dict(state, document='office-two'), 'en')
+        with pytest.raises(n.NotificationError, match='устарело'):
+            queued[0]()
+        assert len(queued) == 2
+        queued[1]()
+        assert len(sent) == 2
+    finally:
+        delivery.stop()

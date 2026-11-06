@@ -536,6 +536,8 @@ class IcpPlusChecker:
         return page
 
     async def _accept_cookies(self, page) -> bool:
+        from .assist_runtime import AssistRestartRequested
+
         button = page.locator("#cookie-law-info-bar #cookie_action_close_header").first
         try:
             if not await button.count() or not await button.is_visible():
@@ -544,7 +546,7 @@ class IcpPlusChecker:
             await self._activate_control(button, timeout=2000)
             await button.wait_for(state="hidden", timeout=2000)
             return True
-        except SiteCheckError:
+        except (SiteCheckError, AssistRestartRequested):
             raise
         except Exception:
             return False
@@ -809,6 +811,8 @@ class IcpPlusChecker:
 
     async def _enter_with_clave(self, page, task: TaskConfig, run_id: str) -> None:
         """Follow Cl@ve SSO and stop safely when interactive authentication is needed."""
+        from .assist_runtime import AssistRestartRequested
+
         await self._pace(page)
         button = page.locator("#btnAccesoClave")
         if not await button.count() or not await button.first.is_visible():
@@ -865,7 +869,7 @@ class IcpPlusChecker:
                         return
                 elif _flow_endpoint(current_url) not in {"acInfo", "procesarRespuestaClave"}:
                     await self._assert_no_challenge(page, "auth.clave")
-            except SiteCheckError:
+            except (SiteCheckError, AssistRestartRequested):
                 raise
             except Exception:
                 # Navigation replaces the execution context several times in
@@ -963,6 +967,8 @@ class IcpPlusChecker:
         needs the "Acceso DNIe / Certificado electrónico" button plus a manual
         Keychain approval.
         """
+        from .assist_runtime import AssistRestartRequested
+
         await self._pace(page)
         button = page.locator("#btnAccesoClave")
         if not await button.count() or not await button.first.is_visible():
@@ -1031,7 +1037,7 @@ class IcpPlusChecker:
                         return mode
                 elif _flow_endpoint(current_url) not in {"acInfo", "procesarRespuestaClave"}:
                     await self._assert_no_challenge(page, "auth.certificate")
-            except SiteCheckError:
+            except (SiteCheckError, AssistRestartRequested):
                 raise
             except Exception:
                 pass
@@ -1156,6 +1162,8 @@ class IcpPlusChecker:
         return found
 
     async def _type_no_paste(self, locator, value: str) -> bool:
+        from .assist_runtime import AssistRestartRequested
+
         try:
             guard = getattr(self, "_assist_guard", None)
             if guard is not None:
@@ -1167,6 +1175,8 @@ class IcpPlusChecker:
             await locator.press_sequentially(value, delay=round(random.uniform(*self.settings.assist_timings.contact_typing_ms)), timeout=20_000)
             self._completed_action()
             return True
+        except AssistRestartRequested:
+            raise
         except Exception:
             return False
 

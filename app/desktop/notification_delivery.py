@@ -48,6 +48,11 @@ class NotificationDelivery(QObject):
         event=self.router.observe(state)
         kind=state_event(state)
         active=state_event(state,include_transient=True)
+        if active is None and (state.get('paused') or state.get('connection_lost')):
+            # Match the router's retained office visit through an interruption.
+            resumed = dict(state, paused=False, connection_lost=False)
+            if state_event(resumed, include_transient=True) == 'office':
+                active = 'office'
         visit=(profile_id,state.get('run_id'),state.get('document') if active=='office' else None,active)
         if visit!=self.current_visit:
             self.generation+=1;self.current_visit=visit
