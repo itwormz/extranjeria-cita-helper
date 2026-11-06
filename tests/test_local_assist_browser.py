@@ -1027,26 +1027,27 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select(pe
                 if pending_resource and route.request.url.endswith('acVerFormulario'):
                     body += '<script async src="pending.js"></script>'
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
-            await page.route('**/*',respond)
-            r=runner_for(page,ctx)
-            await page.goto(BASE+'acCitar', wait_until='commit')
-            await page.locator('#idSede').wait_for(state='visible')
-            observed=await r.observe()
-            navigation_ready=asyncio.Event()
-            continue_after_capture=asyncio.Event()
-            async def save(observed,reason):
-                await page.goto(BASE+'acVerFormulario', wait_until='commit')
-                await page.locator('#emailDOS').wait_for(state='visible')
-                if pending_resource:
-                    # Establish the fixture before timing the stale-select check.
-                    await asyncio.wait_for(resource_requested.wait(), timeout=15)
-                navigation_ready.set()
-                await continue_after_capture.wait()
-            r.save=save
-            r.silence=AsyncMock()
-            operation=asyncio.create_task(r.office(observed))
-            ready=asyncio.create_task(navigation_ready.wait())
+            operation = ready = None
             try:
+                await page.route('**/*',respond)
+                r=runner_for(page,ctx)
+                await page.goto(BASE+'acCitar', wait_until='commit')
+                await page.locator('#idSede').wait_for(state='visible')
+                observed=await r.observe()
+                navigation_ready=asyncio.Event()
+                continue_after_capture=asyncio.Event()
+                async def save(observed,reason):
+                    await page.goto(BASE+'acVerFormulario', wait_until='commit')
+                    await page.locator('#emailDOS').wait_for(state='visible')
+                    if pending_resource:
+                        # Establish the fixture before timing the stale-select check.
+                        await asyncio.wait_for(resource_requested.wait(), timeout=15)
+                    navigation_ready.set()
+                    await continue_after_capture.wait()
+                r.save=save
+                r.silence=AsyncMock()
+                operation=asyncio.create_task(r.office(observed))
+                ready=asyncio.create_task(navigation_ready.wait())
                 done,_=await asyncio.wait((operation,ready),return_when=asyncio.FIRST_COMPLETED)
                 if operation in done:
                     await operation  # Surface fixture/navigation failures directly.
@@ -1064,8 +1065,10 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select(pe
                 raise
             finally:
                 release_resource.set()
-                operation.cancel();ready.cancel()
-                await asyncio.gather(operation,ready,return_exceptions=True)
+                pending = [task for task in (operation, ready) if task is not None]
+                for task in pending:
+                    task.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
                 await browser.close()
     asyncio.run(scenario())
 
