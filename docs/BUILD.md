@@ -142,6 +142,16 @@ and workflow access controls remain necessary.
 
 ## Security checks before a release
 
+Documentation-only PRs and main pushes are explicitly exempt from application tests
+and CodeQL scans: the allowlisted documentation scope uses link/markup and privacy
+checks instead. The required `Tests`, `Analyze (python)` and `Analyze (actions)`
+jobs report success with the selected mode; this does not mean a scan ran.
+Code, dependency, workflow, release-metadata and mixed changes still require both
+actual CodeQL analyses and the normal test suite. Unknown scopes or failed Git
+comparisons also run normal checks. Scheduled and manual CodeQL runs always scan.
+See [the documentation CI policy](review-process.md#ci-для-документации).
+
+
 CodeQL uses the explicit `.github/workflows/codeql.yml` workflow (Advanced setup),
 with separate Python and GitHub Actions analyses on pull requests to `main`, pushes
 to `main`, a weekly schedule and manual runs. Pull requests use `pull_request`,
@@ -152,7 +162,8 @@ Both `Analyze (python)` and `Analyze (actions)` must finish successfully before
 merging; a neutral "configurations not found" result is not a successful scan.
 
 Disable Default setup only when activating this explicit workflow, and verify that
-both `/language:python` and `/language:actions` results appear on `main` and the PR.
+both `/language:python` and `/language:actions` results appear on code-changing
+`main` pushes and PRs (documentation-only checks use the exemption above).
 Do not enable both setup modes: Default setup blocks advanced CodeQL uploads.
 
 Dependabot temporarily excludes Playwright versions `>=1.63`, matching Camoufox's

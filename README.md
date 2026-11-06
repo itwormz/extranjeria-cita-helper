@@ -15,38 +15,27 @@ If the app helped you, I would appreciate a donation to support its development 
 
 <a href="docs/images/monitor-dark.png"><img src="docs/images/monitor-dark.png" alt="Monitor" width="165"></a> <a href="docs/images/profile-dark.png"><img src="docs/images/profile-dark.png" alt="Profile" width="165"></a> <a href="docs/images/settings-dark.png"><img src="docs/images/settings-dark.png" alt="Settings" width="165"></a> <a href="docs/images/timings-dark.png"><img src="docs/images/timings-dark.png" alt="Timings" width="165"></a>
 
-A desktop assistant for finding Extranjería appointments: **Toma de huellas / TIE** and **Autorización de regreso**. It fills in forms on ICP Plus, checks appointment availability and alerts you when your attention is needed.
+An assistant for finding **Toma de huellas / TIE** and **Autorización de regreso** appointments through ICP Plus.
 
-Only these two appointment procedures are supported. Other services and appointment options were neither intended nor tested.
+- Fills forms and checks appointment availability.
+- Sends sound alerts, Telegram messages or webhooks.
+- Keeps search history and statistics.
+- Date selection, CAPTCHA and booking confirmation stay manual in Camoufox.
 
 ## 🚀 Quick start
 
-1. **[Download the latest release](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)**. Supported platforms: **<img src="docs/images/platform-macos.svg" width="16" height="16" alt=""> macOS (Apple Silicon and Intel), <img src="docs/images/platform-windows.svg" width="16" height="16" alt=""> Windows x64 and <img src="docs/images/platform-linux.svg" width="16" height="16" alt=""> Linux x64**.
-2. Open **Settings → Create profile**. Select the province, service and authentication method, configure document/name entry or copying, and enter your phone and email. Save the profile.
-3. In **Monitor**, select the profile and click **Start**. Complete authentication in Camoufox. See [Authentication](#-authentication) for the available methods.
-4. Leave Camoufox open behind other windows and keep sound alerts enabled. When your participation is needed, switch to the browser. Complete CAPTCHA if shown, choose the appointment date/time and confirm the booking yourself.
+1. [Download the app](https://github.com/itwormz/extranjeria-cita-helper/releases/latest).
+2. In **Settings → Create profile**, enter the province, service, authentication method and applicant details.
+3. In **Monitor**, select the profile, click **Start** and sign in through Camoufox.
+4. Leave the browser open. When alerted, choose an office or complete the booking.
 
-Packages: **macOS — DMG · Windows — MSI · Linux — AppImage**. The optional Windows portable ZIP stores data next to the application.
+| System | Package |
+| --- | --- |
+| <img src="docs/images/platform-macos.svg" width="16" height="16" alt=""> macOS Apple Silicon / Intel | DMG |
+| <img src="docs/images/platform-windows.svg" width="16" height="16" alt=""> Windows x64 | MSI or portable ZIP |
+| <img src="docs/images/platform-linux.svg" width="16" height="16" alt=""> Linux x64, glibc ≥ 2.35 | AppImage |
 
-Linux packaging changes use `Cita_Extranjeria_Helper-<version>-x86_64.AppImage` with an AppImageUpdate `.zsync` sidecar. When upgrading from 0.2.3 or earlier to the first release with this name, download the AppImage manually from GitHub Releases; the old updater expects the previous filename. Linux requires glibc 2.35 or newer.
-
-## 🔔 Profile notifications
-
-In **Settings → Edit profile → Notifications**, enable Telegram and/or a webhook and choose events independently for each channel: authentication, office selection, appointment selection or search stopped with an error. Routine “no appointments” results do not send messages.
-
-Enabled notification credentials are read before a search starts. If the operating system needs permission to access its secret store, the request appears at this stage. If credentials for an enabled notification channel cannot be read, the search does not start; restore secret-store access or disable that channel, then start again. Sending an office or booking alert uses the prepared credentials. Telegram recipient connection links expire after five minutes.
-
-**Telegram:** create a bot with [@BotFather](https://t.me/BotFather), paste its token and click **Check**. Use **+** next to recipients to open the bot or copy a five-minute pairing link for another recipient; confirm the detected chat. Groups and manual Chat ID/channel entry are supported. An existing Telegram webhook is never disconnected. Finish with **Send test** and save the profile.
-
-**Webhook:** enter an HTTPS URL and select POST (JSON) or GET (URL parameters). **Advanced parameters** opens custom headers, URL parameters and a custom JSON template. Values are secret by default; the lock changes that display mode and the eye temporarily reveals a value. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Send a test before saving.
-
-Notification credentials use macOS Keychain, Windows Credential Manager or Linux Secret Service (an unlocked secret-service provider is required). Opening the profile Notifications tab reads these credentials; editing other profile fields does not. There is no plaintext fallback; moving a profile to another computer requires entering credentials again. Messages include the profile display name and province. Telegram office-selection alerts list the available offices (up to ten, followed by the remaining count for longer lists). Repeated checks of the same page do not repeat the alert; a new office-selection page can notify again. Telegram appointment alerts also include the current office/address and explicitly offered dates/times when recognized; search filters are excluded, and unsupported layouts retain the general alert. Webhook payloads remain unchanged. Applicant identifiers, contacts, CAPTCHA, confirmation numbers and page captures are not sent. Remote booking is not included; manual actions remain in Camoufox.
-
-## Update integrity
-
-The attestation-enabled release workflow builds packages on GitHub-hosted runners and publishes only after verifying their signed Sigstore build provenance. The updater checks the package hash, our repository and workflow, release tag and source commit, then verifies again before launching the installer. Missing or invalid proof blocks installation. No GitHub CLI, account or manual release approval is required. Published immutable releases cannot have their packages or tags replaced.
-
-Trust roots ship with the application; verification does not trust a shared local Sigstore cache. Older app versions keep their checksum-only updater until upgraded. Provenance confirms build origin, not the safety of the source code.
+The Windows portable version stores data next to the app. When upgrading Linux from version 0.2.3 or earlier, download the new AppImage manually.
 
 ## 🔄 How it works
 
@@ -56,120 +45,119 @@ Trust roots ship with the application; verification does not trust a shared loca
   <img src="docs/images/workflow-en-light.svg" alt="Application workflow" width="820">
 </picture>
 
-## 🎯 Purpose and responsible use
-
-Cita Extranjeria Helper is an independent assistant for finding a fingerprinting or Autorización de regreso appointment through the official service. Its sole purpose is to reduce repetitive actions and help users obtain their own appointment.
-
-The project is not affiliated with Spanish public authorities, does not guarantee an appointment and is not intended for reselling or bulk hoarding of appointments, using other people's credentials, unauthorized access or disrupting the public service. Use of the application must comply with applicable law and the service's rules.
-
-I developed Cita Extranjeria Helper to help users obtain their own appointment through the official service. My purpose is not to violate the law, gain unauthorized access, disrupt government information systems or restrict other users' access.
-
-I included intervals between actions and pauses when requests are rate-limited to reduce the load on the service. These measures do not guarantee the absence of unintended consequences. If behaviour that disrupts the service is discovered, it should be stopped and corrected.
-
-This statement of the project's purpose is not a legal guarantee that every use of the application is permitted.
-
-The application is provided “as is”. I do not guarantee that it will work or that you will obtain an appointment. You use it at your own risk and are responsible for your actions. I am not responsible for the consequences of using it.
-
 ## 🔐 Authentication
 
-The app searches for appointments **with authentication**. Without signing in, the site may show “no appointments” while suggesting that you check availability using Cl@ve or a certificate.
+Camoufox is included with the app and starts automatically. No separate installation is needed.
 
-Recommended order for convenience:
-
-**1. Electronic certificate — recommended**
-
-Allows extended operation without repeated manual confirmations. A valid certificate also works with an expired TIE. It can also be used to register for Cl@ve.
-
-[Obtain an FNMT certificate](https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener-certificado-software)
-
-**2. Cl@ve Móvil / PIN**
-
-Confirm access in the Cl@ve app or with a PIN sent by SMS. You will need to sign in again when the session expires. Select **Cl@ve Móvil** in your profile.
-
-[Register for Cl@ve](https://clave.gob.es/registro/como-puedo-registrarme) · [Sign in using the app or SMS](https://clave.gob.es/clave-movil/uso-clave-movil)
-
-**3. Cl@ve Permanente**
-
-Sign in with a permanent password; an additional SMS code may be required. You will need to sign in again when the session expires.
-
-[Activate and manage your password](https://clave.gob.es/clave-permanente/procedimientos.html)
-
-**Booking for someone else.** The person authenticating and the appointment recipient can be different people. Enter the recipient’s document details and name in the profile and select **Enter profile details**, rather than copying them from the authenticated page. The authentication holder completes sign-in themselves.
-
-**Passwords and PINs are entered only on the official website in Camoufox.** The application does not intercept or store them. You choose the date and time and complete the final booking confirmation yourself.
-
-## 🎛️ Controls and appointment selection
-
-If exactly one office is available, the assistant selects it and continues automatically. With multiple offices, it waits for your choice. It then fills contact details and leaves date/time selection to you.
-
-**Pause / Resume** pauses and resumes automated actions. **Restart session** in the actions menu clears the browser session and starts the flow again. Before starting, **Reset session** clears the selected profile’s browser session without starting the search or removing profile details. The bell button at the top toggles sound alerts. Closing the application window ends the search and closes Camoufox.
-
-## 📊 Profile statistics and achievements
-
-The Statistics tab keeps **Today / All time** counters separately for each profile, including checks, cumulative active search time, offices, appointment-selection screens, server errors, HTTP 429, access restrictions and repeated passes. A local timeline distinguishes observed pages, recovery, manual control and gaps; the office list shows recorded appearance dates. Times use Europe/Madrid. Selecting a statistics profile does not change the running search.
-
-Hover over the timeline to highlight a segment or event; click for its duration and counters. Drag across complete segments to select a range; **Select multiple** or ⌘/Ctrl-click combines selections. Unselected gaps are excluded and events are not counted twice. Drag empty space or Alt-drag to pan; trackpad gestures remain available.
-
-Actions performed and pages processed measure automated work: one completed activation, selection, field fill or reload counts as one action; a recognized document is counted once. Manual actions and repeated recognition are excluded. These counters start with the updated app and do not reconstruct earlier work.
-
-In **Timing and retries → Check appointments**, choose whether to wait or fill the applicant form while the no-appointments notice is visible. **Recheck availability** takes precedence when enabled. Once the notice disappears, the assistant starts a new pass from sign-in and submits only after a pass where the notice never appeared. After a no-appointments result, choose **Via Salir** or **Start a new pass**. The latter opens the start page with a fresh GET.
-
-Under **Submission pacing**, the default attempt budget is **5**. **Schedule attempts** is off by default, including existing profiles: a clean pass can submit as soon as protective pauses end. The budget remains a daily reference and adaptive statistics keep accumulating. Optionally enable scheduling in the profile, or for today through **⋯**. It spreads remaining attempts across **09:00–18:00 Madrid time**, then until midnight, with **±30-minute** windows recalculated after submissions and missed windows. With scheduling enabled and budget remaining, a clean pass waits outside its window. Once the daily budget is exhausted, distribution windows no longer delay clean passes: submissions can continue after the applicable protective pauses and may be more frequent than the schedule suggests. The budget is a reference, not a hard daily stop. The first attempt remains available at any time after applicable pauses. Minimum submission pauses and cod. oper/HTTP 429 protection remain active in both modes.
-
-A no-appointments response with **cod oper** after **Solicitar cita** triggers a **30-minute** first pause and **60 minutes** between further probes. With adaptive budgeting, the first such result on attempt N sets tomorrow’s budget to **max(5, N−1)**. **Base budget** is used when adaptation is off or no estimate is available. Use **Change for today** next to the current budget in Monitor, Statistics or profile settings to set a manual daily total. It applies from the next action and expires at midnight in Madrid. **Restore adaptive budget** (or **Restore base budget** when no adaptive estimate is available) cancels today’s manual override. Adaptive budgeting continues to learn for tomorrow. Used attempts and restriction pauses are preserved. Other protection options remain enabled for existing profiles when their settings are absent. The no-appointments counters follow the selected statistics period. Each distinct applicant page showing no appointments counts once, including refreshes while the notice stays visible. Earlier counts are restored from saved journals where the search session is known. The budget and remaining attempts always refer to today. Use **⋯** to pause scheduling for today or inspect possible restriction history, including offices and the observed recovery interval. Pausing scheduling keeps the submission pauses.
-
-Use **Try now** on Monitor while waiting for a window or cod. oper pause, or in **⋯** on Monitor/Statistics. It opens the next opportunity from now and starts a fresh pass in the same browser session before using the applicant form. If the no-appointments warning appears, no request is sent; the early opportunity remains available for a later clean pass. Only a real submission consumes it, and it expires at the end of the day. Minimum submission intervals, refresh delays and HTTP 429 pauses remain active. Monitor shows the waiting reason, deadline and countdown. Changing cod. oper pause settings recalculates an ongoing pause from its original start.
-
-The **Monitor** tab shows the daily budget and remaining attempts, along with the next probe time during a possible restriction. The timeline keeps recent entries for the selected profile across runs and app restarts. **Statistics** shows a separate count of no-appointments replies with cod. oper for the selected period.
-
-After the date-selection screen appears, automatic form actions remain stopped even if you refresh the page. **Continue searching** starts a new pass in the same Camoufox window, preserving browser cookies, the profile, the attempt budget and protective pauses. **Restart session** is the separate action that clears the browser profile. Public date/time offers can be read from radio labels or visible **LIBRE** cells in the appointment calendar; notifications include up to eight offers.
-
-**Slow refresh after HTTP 429** adds 30 seconds to the applicant form refresh interval after each new HTTP 429 received while refreshing it. The increase lasts for the current run. With diagnostics enabled, ICP requests are recorded in the network log.
-
-The last working profile is restored on startup; opening Statistics initially follows that profile. Cod. Oper. periods continue through intermediate navigation until a normal availability result returns. Zoom and routine refreshes preserve the current timeline selection; changing the statistics profile or Today/All time scope clears it. Once cleared, selection does not return automatically.
-
-Statistics are stored in SQLite independently of page diagnostics and survive application restarts. Existing totals migrate automatically with an unchanged original and a backup; undated old totals do not become invented daily history. No statistics are uploaded automatically. A no-appointments page with Cod. Oper. is an observed state, not proof of a document-specific ban.
-
-Recognized booking events retain the selected office/address and explicit offered dates/times locally, even with diagnostics off. Hover or select the booking marker to inspect them; the journal and session timeline also include them. Enrichment does not add another booking count, and old events without details are not guessed.
-
-History initially shows all observed days; **Period** selects a date range. Known dates and durations remain separate: the old elapsed time to first availability is not active search time. **≥** marks a confirmed minimum when history is incomplete.
-
-After completing a booking on the website, select **Confirm booking**. The button appears after a date selection screen has been detected. If detection was missed, use **⋯ → Confirm booking manually**. Appointment details remain local; **Add to calendar** exports a private calendar event. Public PNG cards and prepared social posts contain search statistics only, without the appointment date, office or confirmation number. Posting and attaching the card remain manual. Marking an appointment as obtained stops the search and keeps Camoufox open for viewing or managing the booking. The note suggests the latest known office for the profile; saved office/address and confirmation values can be selected and copied.
-
-## ⚙️ Basic settings
-
-| Setting | Purpose |
+| Method | Sign-in |
 | --- | --- |
-| Profile | Applicant details, contacts, authentication method and timing settings |
-| Province | Choose the province for the appointment |
-| Service | Toma de huellas / TIE or Autorización de regreso |
-| Document and name | Enter profile values or copy authenticated data. Fingerprinting uses NIE and citizenship; Regreso supports NIE, DNI or passport |
-| Timing | Action intervals, typing speed, appointment-check waits and recovery pauses |
-| Jitter | Random delay within a configured range; additional recovery jitter is off by default |
-| Sound | Repeating alerts when your attention is needed |
-| Diagnostics | Optional page HTML and screenshots; off by default. Manual booking keeps HTML capture without screenshots |
-| Language and theme | English, Russian or Spanish; light or dark appearance |
+| Electronic certificate | Certificate-based sign-in; fewer repeated manual confirmations |
+| Cl@ve Móvil / PIN | Confirmation in the Cl@ve app or an SMS code |
+| Cl@ve Permanente | Permanent password, sometimes an SMS code |
 
-By default, after a regular no-appointments result the assistant waits **30–60 seconds**, clicks **Salir** and follows the website; the profile can also start a fresh pass. A no-appointments page with **Aceptar** starts a new pass after a **3-minute** pause. Actions are spaced **0.3–0.8 seconds** apart, and alerts repeat every **3 seconds**. Edit timings inside the profile; timing changes apply at the next action. Other profile changes apply on the next start. The initial language follows the system language, falling back to English when unsupported.
+[Get an FNMT certificate](https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener-certificado-software) · [Register with Cl@ve](https://clave.gob.es/registro/como-puedo-registrarme) · [Cl@ve Permanente](https://clave.gob.es/clave-permanente/procedimientos.html)
 
-Monitor shows the recognized page, next action, countdown, check count, page visit timeline and available-office log. Each visit shows its current status, action and confirmed outcome; sending a button alone does not confirm a transition. **About** lets you check for a new version, download a verified package and start installation. Automatic GitHub Releases checks on startup and once a day can be disabled in Settings. Installation ends the current session and preserves profiles and settings.
+Passwords and PINs are entered on the official website in Camoufox and are not saved by the app.
 
-Selected log rows can be copied with **⌘C / Ctrl+C**, the clipboard button or the context menu. Without a selection, the clipboard button copies the entire current tab.
+To book for someone else, select **enter details from the profile** and provide their document and name. The certificate or Cl@ve holder completes authentication.
+
+## 🎛️ Controls
+
+- **Pause / Resume** — stop or resume automatic actions.
+- **Continue searching** after date selection — start a new pass while keeping the browser session.
+- **Restart session** — start a new pass with a cleared browser session.
+- **Confirm booking** — record the result after booking on the website. Calendar export and a shareable statistics card are available.
+
+A single available office is selected automatically; multiple offices require your choice. Closing the app stops the search and closes Camoufox.
+
+## ⚙️ Search settings
+
+- Province, service, authentication method, applicant details and contacts.
+- Intervals between actions, page refreshes and retries after errors.
+- Sound, interface language, light or dark theme.
+- No-appointments checks, attempt budgets and restriction pauses.
+
+Timings and protection settings apply from the next action. Other profile settings apply when starting a new run.
+
+### Protection against restrictions
+
+- **Recheck availability** — when the no-appointments notice disappears, start a new pass; submit details only if no notice appeared during that pass.
+- **Attempt budget** — a daily reference, **5** by default. It is not a hard limit.
+- **Adaptive budget** — tomorrow’s estimate based on submissions before the first cod. oper, with a minimum of **5**.
+- **Change for today** — set a manual budget until midnight. Adaptation keeps collecting data for tomorrow.
+- **Schedule attempts** — optional waiting for time windows; off by default. After the budget is exhausted, submissions continue after protective pauses without waiting for windows.
+- **Try now** — bring the next opportunity forward to now and start a fresh pass. Minimum intervals and HTTP 429 pauses remain active.
+- **Slow refresh after HTTP 429** — add 30 seconds to the form-refresh interval after each HTTP 429, for the rest of the run.
+
+Cod. oper on the no-appointments page likely indicates a restriction on the **NIE or IP** that may last until the end of the day. The default first pause is **30 minutes**, followed by probes every **60 minutes**.
+
+<details>
+<summary>Scheduling attempts across the day</summary>
+
+**±30-minute** windows cover the rest of the day: first **09:00–18:00**, then until midnight, Madrid time. They are recalculated after a submission or a missed window. The first attempt is available at any time after protective pauses.
+
+With scheduling enabled, a clean pass waits for its window while budget remains. Once the budget is exhausted, only protective pauses remain, so attempts may become more frequent.
+
+Try now bypasses the window or cod. oper pause. If the notice appears during the new pass, permission remains available for a later clean pass. It is consumed on submission and expires at the end of the day.
+
+</details>
+
+## 🔔 Notifications
+
+**Settings → Edit profile → Notifications.** Events: authentication, office selection, appointment selection and stopping with an error.
+
+### Telegram
+
+1. Create a bot through [@BotFather](https://t.me/BotFather) using `/newbot`.
+2. Enable Telegram in the profile, paste the token and click **Check**.
+3. Use **+** beside recipients to connect a chat, group or channel. A link for another recipient lasts **5 minutes**.
+4. Choose events, send a test and save the profile.
+
+Messages include the profile, province, available offices and recognized appointment dates/times. On macOS, reading the bot token may require the Keychain password.
+
+### Webhook
+
+HTTPS address, POST or GET, and event selection. Optional headers, URL parameters and a JSON template.
+
+Connection details are stored in the system credential store. If it is unavailable, restore access or disable the channel before starting a search. Re-enter connection details after moving to another computer.
+
+## 📊 Statistics
+
+- **Today / All time** periods for each profile.
+- Appointment checks, search time, offices, date offers, errors and restrictions.
+- Timeline, office history and action log across runs.
+- Today’s budget, remaining attempts and next attempt time.
+- Recognized appointment details and calendar export of a confirmed booking.
+
+Data stays local. Statistics are not published automatically. Copy log rows with **⌘C / Ctrl+C** or the clipboard button.
+
+## ⬆️ Updates
+
+**About → check, download and install.** Automatic checks run at startup and once a day; disable them in settings.
+
+Package authenticity and integrity are verified before installation. The search ends; profiles and settings are preserved.
 
 ## ⚠️ Known issues
 
-- **Full-screen applications on macOS.** When another application (for example, Safari) is full-screen in a separate Space, Camoufox actions may stall: clicks and text entry can time out, delaying progress or restarting the search. Workaround: use the other application in a regular window and keep Camoufox open in the same Space; it may remain behind other windows. The underlying cause has not yet been confirmed.
-- **Temporary request-rate limits, including HTTP 429 — Too Many Requests.** Wait **5–10 minutes** and avoid frequent manual restarts. For HTTP 429, the assistant preserves the session and probes access every **3 minutes** by default; a recognized block starts a new session after pauses of **30, 60, 120, 300 and 600 seconds** for consecutive blocks. Custom timing schedules are preserved.
-- **Anti-bot protection.** A recognized block should automatically clear the session. If it does not, use **Restart session** to reset it manually.
-- **Expired sessions and server errors.** The assistant follows a recognized recovery button or retries a safe check after a pause. An unfamiliar screen may require manual action; Cl@ve users must periodically approve a new sign-in.
+- **macOS and full-screen apps:** keep Camoufox and other apps in regular windows in the same Space. Otherwise, clicks and typing may stall.
+- **HTTP 429:** wait for the pause; avoid frequent manual restarts. The default retry interval is **3 minutes**.
+- **Site blocking:** automatic recovery or **Restart session**.
+- **Expired authentication:** signing in again through Cl@ve may be required.
+- **Unknown screen:** manual action may be required.
 
 ## 🗂️ Diagnostics and local data
 
-Profiles, preferences and browser sessions are stored locally. With diagnostics enabled, HTML captures continue through manual booking and confirmation; native JavaScript confirmation dialogs are not saved as separate HTML pages. Already-loaded first-party ICP JavaScript is saved once per content version and linked to HTML captures, without additional requests; external authentication scripts are excluded. Settings lets you enable/disable page captures and open the diagnostics folder. Each recorded session has its own directory; the action timeline is recorded independently of page captures.
+Enable diagnostics in settings to save pages and screenshots locally. During manual booking, screenshots are suspended; HTML, navigation metadata and the site’s JavaScript may still be saved. Open the diagnostics folder from the app.
 
-Diagnostics may contain personal information. Remove sensitive details before sharing logs or screenshots. See [privacy notes](docs/PRIVACY.md).
+If the browser fails to start, click **Copy report** and attach it to a [GitHub Issue](https://github.com/itwormz/extranjeria-cita-helper/issues). Remove personal data before sharing diagnostics.
 
-If the browser fails to start, use **Copy report** in the error panel and send the text to the author or GitHub Issues. The report contains technical failure details, without profile settings or page contents; nothing is sent automatically.
+Document details, contacts, CAPTCHA and confirmation numbers are not sent through notifications. [Privacy](docs/PRIVACY.md).
+
+## 🎯 Purpose
+
+An independent project for obtaining your own appointment, not affiliated with Spanish authorities. Not intended for appointment resale or mass capture.
+
+Provided as is, without a guarantee of operation or an appointment. Users are responsible for following the law and the service rules.
 
 ## 📣 A message to the responsible authorities
 
@@ -207,8 +195,6 @@ If you face the same problem, record the dates of attempts, error messages and s
 
 ## 🧰 Technology stack
 
-Dependency versions are pinned in [`uv.lock`](uv.lock). Packages are built with Python 3.13; running from source requires Python 3.12 or newer.
-
 | Component | Version | Purpose |
 | --- | --- | --- |
 | Python | 3.13 | Application and automation logic |
@@ -219,68 +205,33 @@ Dependency versions are pinned in [`uv.lock`](uv.lock). Packages are built with 
 | PyYAML | 6.0.3 | Local profile configuration |
 | PyInstaller | 6.22.3 | Standalone application packaging |
 
+Versions are pinned in [uv.lock](uv.lock). Update verification uses Sigstore and SHA256; see the [build documentation](docs/BUILD.md#signed-build-provenance).
+
 ## 💻 Run from source
 
-### 1. Prepare the tools
-
-You need an internet connection, a terminal and a graphical desktop. Install [Git](https://git-scm.com/install/) following the instructions for your system, then verify:
-
-```sh
-git --version
-```
-
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/). In a macOS/Linux terminal or inside WSL:
-
-```sh
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-On Windows, run the commands in a WSL Linux terminal. The application and browser windows require a graphical environment such as [WSLg](https://learn.microsoft.com/en-us/windows/wsl/tutorials/gui-apps).
-
-Close and reopen the terminal to refresh PATH, then check the installation:
-
-```sh
-uv --version
-```
-
-You do not need to install Python, pip or a virtual environment separately: uv will prepare Python and the dependencies.
-
-### 2. Download the project
-
-In your terminal, navigate to the directory where you want to keep the project, then run:
+Requires [Git](https://git-scm.com/install/), [uv](https://docs.astral.sh/uv/getting-started/installation/), internet access and a graphical environment. On Windows, use WSL with GUI support.
 
 ```sh
 git clone https://github.com/itwormz/extranjeria-cita-helper.git
 cd extranjeria-cita-helper
-```
-
-### 3. Install Python, dependencies and the browser
-
-Run all following commands from the project directory:
-
-```sh
 uv python install 3.13
 uv sync --frozen --python 3.13 --extra desktop
 uv run python -m camoufox fetch
 ```
 
-uv creates a local `.venv` and installs the dependency versions recorded in `uv.lock`. The last command downloads Camoufox; a separate Firefox or Chrome installation is not required.
-
-Linux also needs browser system libraries. On distributions supported by Playwright, install them with the command below; administrator privileges may be requested. See the [system dependency documentation](https://playwright.dev/python/docs/browsers#install-system-dependencies).
+On Linux, also install browser libraries:
 
 ```sh
 uv run python -m playwright install-deps firefox
 ```
 
-### 4. Launch the app
+Launch the app from the project directory:
 
 ```sh
 uv run python -m app.main desktop
 ```
 
-On first launch, open **Settings → Create profile**. Enter all details and timings through the UI; ordinary use does not require preparing a YAML file or environment variables. For authentication, have access to Cl@ve or an electronic certificate available in Camoufox (through OS support or browser import).
-
-For subsequent launches, open a terminal in the project directory and run the same command. You do not need to activate `.venv` manually.
+To run again: `uv run python -m app.main desktop` from the project directory. [Build instructions](docs/BUILD.md).
 
 ## 💜 Acknowledgements
 
