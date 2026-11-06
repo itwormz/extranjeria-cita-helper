@@ -122,6 +122,8 @@ Usa **Intentar ahora** en el menú de Seguimiento o Estadísticas del perfil act
 
 La pestaña **Seguimiento** muestra el presupuesto diario, los intentos restantes y la hora de la siguiente prueba si hay una posible restricción. La cronología conserva las entradas recientes del perfil seleccionado entre búsquedas y reinicios. **Estadísticas** muestra por separado las respuestas sin citas con cod. oper del período seleccionado.
 
+Tras aparecer la pantalla de selección de cita, las acciones automáticas siguen detenidas aunque se actualice la página. **Continuar búsqueda** inicia un nuevo recorrido en la misma ventana de Camoufox, conservando cookies, perfil del navegador, presupuesto y pausas de protección. **Reiniciar sesión** es la acción separada que borra el perfil del navegador. Las fechas y horas se leen de las etiquetas de las opciones o de las celdas **LIBRE** visibles del calendario; las notificaciones incluyen hasta ocho opciones.
+
 **Ralentizar la recarga tras un 429** añade 30 segundos al intervalo de recarga del formulario del solicitante cada vez que se recibe un nuevo HTTP 429 al recargarlo. El aumento dura hasta que se detiene la búsqueda. Con el diagnóstico activado, las solicitudes a ICP se guardan en el registro de red.
 
 Al iniciar se restaura el último perfil de trabajo; Estadísticas muestra inicialmente ese perfil. Los periodos Cod. Oper. continúan durante la navegación intermedia hasta un resultado normal de disponibilidad. El zoom y las actualizaciones habituales conservan la selección; cambiar el perfil estadístico o el ámbito Hoy/Todo el tiempo la borra. Una vez borrada, no se restaura automáticamente.

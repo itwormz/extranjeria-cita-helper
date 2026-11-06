@@ -28,6 +28,8 @@ def apply_command(control, message):
         control.request_stop()
     elif command == 'restart':
         control.request_restart()
+    elif command == 'resume_search':
+        control.request_resume_search()
     elif command == 'show_browser':
         control.show_browser_requested = True
     elif command == 'appointment_daily_target':

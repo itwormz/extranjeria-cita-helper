@@ -796,6 +796,10 @@ class AssistRunner:
                 self.budget.try_now(now, self.protection)
                 self.control.save_appointment_budget(self.budget)
                 self.record('action', None, 'Ручная ближайшая попытка: ожидание cod. oper и бюджетного окна пропущено; остальные тайминги сохранены')
+        if self.control.resume_search_requested and self.control.booking_handoff:
+            from .assist_runtime import AssistRestartRequested
+            raise AssistRestartRequested('продолжить поиск по команде пользователя',
+                                         delay_seconds=0, user_requested=True)
         if self.control.booking_handoff and self.handoff_observed is not None:
             # Ownership stays with the user even after navigation or an error.
             # Only explicit session restart can start another automatic pass.

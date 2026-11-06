@@ -498,6 +498,25 @@ def test_explicit_restart_after_booking_clears_pause_but_not_old_page_latch():
     c.set_session('new')
     assert not c.booking_handoff
 
+
+def test_explicit_resume_requests_same_browser_pass_before_touching_booking_page():
+    from app.desktop.worker import apply_command
+    from app.assist_runtime import AssistRestartRequested
+    c = AssistControl()
+    c.booking_handoff = True
+    r = assist_flow.AssistRunner(SimpleNamespace(url='about:blank'), SimpleNamespace(), SimpleNamespace(),
+                                SimpleNamespace(id='test'), 'run', c, SimpleNamespace(), SimpleNamespace())
+    r.observe = AsyncMock()
+    apply_command(c, {'command': 'resume_search'})
+    r.handoff_observed = assist_flow.Observed('booking', 'doc', 'sig', None)
+    r.booking_attention = AsyncMock()
+    with pytest.raises(AssistRestartRequested) as error:
+        asyncio.run(r.step())
+    assert not error.value.clear_profile and not error.value.reopen_browser
+    assert error.value.delay_seconds == 0
+    assert c.booking_handoff  # Runtime releases the old page only after runner cleanup.
+    r.observe.assert_not_awaited()
+
 @pytest.mark.parametrize('kind', ['province', 'procedure', 'applicant', 'request_menu'])
 def test_cookie_banner_is_dismissed_before_automatic_form_action(kind):
     checker=SimpleNamespace(_accept_cookies=AsyncMock(return_value=True))

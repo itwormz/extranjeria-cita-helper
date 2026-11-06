@@ -22,6 +22,7 @@ class AssistControl:
         self.browser_retained = False
         self.booking_handoff = False
         self.restart_requested = False
+        self.resume_search_requested = False
         self._history_manual_restart = False
         self.diagnostics_enabled = None
         self.sound_enabled = True
@@ -101,15 +102,25 @@ class AssistControl:
 
     def request_stop(self):
         self.flush_statistics()
+        self.resume_search_requested = False
         self.stop_requested = True
 
     def request_restart(self):
         with self._lock:
+            self.resume_search_requested = False
             self.restart_requested = True
             self._history_manual_restart = True
             if self.booking_handoff:
                 # Explicit restart ends a prior pause too, but the handoff
                 # stays latched until the old browser context is closed.
+                self._paused = False
+
+    def request_resume_search(self):
+        with self._lock:
+            if (self.booking_handoff and not self.browser_retained
+                    and not self.stop_requested and not self.restart_requested):
+                self.resume_search_requested = True
+                self._history_manual_restart = True
                 self._paused = False
 
     def clear_restart(self):

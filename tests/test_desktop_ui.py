@@ -805,15 +805,32 @@ def test_identity_source_hides_inputs_and_keeps_manual_draft(window):
     assert f['document_number'].text()=='X0000000T' and f['full_name'].text()=='DEMO PERSON'
 
 
-def test_booking_handoff_disables_automation_control(window):
+def test_booking_handoff_offers_explicit_resume_in_same_session(window):
     window.controller.active=True
     window.set_language('en')
     window.on_state(dict(screen='Выбор ситы',mode='manual',booking_handoff=True,next_action='Выбери дату и время в окне сайта'))
-    assert not window.start_button.isEnabled()
-    assert window.start_button.text()=='Manual booking'
+    assert window.start_button.isEnabled()
+    assert window.start_button.text()=='Continue searching'
     assert window.status_label.text()=='Control handed over'
     assert window.browser_button.isEnabled()
+    sent = []
+    window.controller.send = sent.append
+    window.start_button.click()
+    assert sent == [{'command': 'resume_search'}]
     window.controller.active=False
+
+
+def test_finished_booking_browser_allows_a_normal_start(window, monkeypatch):
+    from unittest.mock import Mock
+    window.state = {'booking_handoff': True, 'browser_retained': True}
+    window.controller.active = False
+    window.on_finished(0)
+    assert not window.state['booking_handoff'] and not window.state['browser_retained']
+    monkeypatch.setattr(window.notification_delivery, 'prepare', lambda _: True)
+    start = Mock()
+    monkeypatch.setattr(window.controller, 'start', start)
+    window.start_or_pause()
+    start.assert_called_once()
 
 
 def test_application_icon_tracks_search_pause_attention_and_failure(window):

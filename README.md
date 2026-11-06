@@ -122,6 +122,8 @@ Use **Try now** in the actions menu on Monitor or Statistics for the active prof
 
 The **Monitor** tab shows the daily budget and remaining attempts, along with the next probe time during a possible restriction. The timeline keeps recent entries for the selected profile across runs and app restarts. **Statistics** shows a separate count of no-appointments replies with cod. oper for the selected period.
 
+After the date-selection screen appears, automatic form actions remain stopped even if you refresh the page. **Continue searching** starts a new pass in the same Camoufox window, preserving browser cookies, the profile, the attempt budget and protective pauses. **Restart session** is the separate action that clears the browser profile. Public date/time offers can be read from radio labels or visible **LIBRE** cells in the appointment calendar; notifications include up to eight offers.
+
 **Slow refresh after HTTP 429** adds 30 seconds to the applicant form refresh interval after each new HTTP 429 received while refreshing it. The increase lasts for the current run. With diagnostics enabled, ICP requests are recorded in the network log.
 
 The last working profile is restored on startup; opening Statistics initially follows that profile. Cod. Oper. periods continue through intermediate navigation until a normal availability result returns. Zoom and routine refreshes preserve the current timeline selection; changing the statistics profile or Today/All time scope clears it. Once cleared, selection does not return automatically.

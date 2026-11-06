@@ -4,19 +4,44 @@ from datetime import date, datetime
 import re
 
 MAX_OFFERS = 8
-# Known ICP radio layout. The time dropdown is a search filter, not an offer.
-OFFER_LABELS = """() => {
+# Known radio labels and calendar cells only. Time dropdowns are search filters.
+OFFER_LABELS = r"""() => {
     const visible = el => !!el && el.getClientRects().length > 0 &&
-        getComputedStyle(el).visibility === 'visible' && getComputedStyle(el).display !== 'none';
-    return Array.from(document.querySelectorAll('input[type="radio"][name="rdbCita" i]'))
+        getComputedStyle(el).visibility === 'visible' && getComputedStyle(el).display !== 'none' &&
+        !el.closest('[hidden], [inert], [aria-hidden="true"]');
+    const labels = Array.from(document.querySelectorAll('input[type="radio"][name="rdbCita" i]'))
         .filter(el => !el.matches(':disabled') && visible(el))
         .slice(0, 32).map(el => Array.from(el.labels || []).filter(visible)
             .map(label => label.innerText).join(' ').slice(0, 240));
+    const table = document.querySelector('#VistaMapa_Datatable');
+    if (!visible(table)) return labels;
+    const dates = new Map();
+    for (const header of Array.from(table.querySelectorAll('thead th')).slice(0, 32)) {
+        const column = Array.from(header.classList).find(name => /^colFecha\d+$/.test(name));
+        const date = header.innerText.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
+        if (column && date && visible(header)) dates.set(column, date[0]);
+    }
+    for (const row of Array.from(table.querySelectorAll('tbody > tr')).slice(0, 256)) {
+        const heading = row.querySelector(':scope > th');
+        if (!visible(row) || !visible(heading)) continue;
+        const time = heading.innerText.trim();
+        if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) continue;
+        for (const cell of Array.from(row.querySelectorAll(':scope > td')).slice(0, 32)) {
+            if (labels.length >= 32) return labels;
+            const column = Array.from(cell.classList).find(name => dates.has(name));
+            if (!column || !visible(cell) || cell.closest('[disabled], [aria-disabled="true"]')) continue;
+            const free = Array.from(cell.querySelectorAll('a[role="button"]')).slice(0, 8).some(link =>
+                visible(link) && !link.closest('[disabled], [aria-disabled="true"]') &&
+                link.innerText.trim().toUpperCase() === 'LIBRE');
+            if (free) labels.push('Día: ' + dates.get(column) + ' Hora: ' + time);
+        }
+    }
+    return labels;
 }"""
 
 
 def parse_offers(labels):
-    """Validate and deduplicate explicit radio-label dates and times within fixed limits."""
+    """Validate and deduplicate explicit offer dates and times within fixed limits."""
     offers=[]
     if not isinstance(labels,list):return offers
     for label in labels[:32]:
