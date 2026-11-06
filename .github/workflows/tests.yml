@@ -30,11 +30,11 @@ jobs:
       - name: Classify the complete change
         id: scope
         run: python3 scripts/ci_scope.py
-      - name: Check documentation links and markup
-        run: python3 scripts/check_docs.py
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: '3.13'
+      - name: Check documentation links and markup
+        run: uv run --no-project --with markdown-it-py==4.2.0 python scripts/check_docs.py
       - name: Install Linux GUI libraries
         if: steps.scope.outputs.docs_only != 'true'
         run: |

@@ -217,13 +217,18 @@ cd extranjeria-cita-helper
 uv python install 3.13
 uv sync --frozen --python 3.13 --extra desktop
 uv run python -m camoufox fetch
-uv run python -m app.main desktop
 ```
 
 En Linux, instale también las bibliotecas del navegador:
 
 ```sh
 uv run python -m playwright install-deps firefox
+```
+
+Abra la aplicación desde la carpeta del proyecto:
+
+```sh
+uv run python -m app.main desktop
 ```
 
 Para volver a abrir: `uv run python -m app.main desktop` desde la carpeta del proyecto. [Instrucciones de compilación](docs/BUILD.md).

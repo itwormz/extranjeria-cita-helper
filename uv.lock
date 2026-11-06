@@ -567,6 +567,7 @@ desktop = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "markdown-it-py" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -590,6 +591,7 @@ provides-extras = ["desktop", "build"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "markdown-it-py", specifier = "==4.2.0" },
     { name = "pytest", specifier = ">=8,<10" },
     { name = "pytest-cov", specifier = ">=5,<8" },
 ]

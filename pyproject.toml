@@ -30,6 +30,7 @@ build = [
 
 [dependency-groups]
 dev = [
+  "markdown-it-py==4.2.0",
   "pytest>=8,<10",
   "pytest-cov>=5,<8",
 ]

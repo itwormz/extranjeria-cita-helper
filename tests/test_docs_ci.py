@@ -118,7 +118,7 @@ def test_workflows_keep_required_jobs_and_condition_expensive_steps():
                                     'Run unit and offscreen UI tests', 'Initialize CodeQL', 'Analyze'}):
                 assert step['if'] == "steps.scope.outputs.docs_only != 'true'"
         if filename == 'tests.yml':
-            assert any(step.get('run') == 'python3 scripts/check_docs.py' for step in steps)
+            assert any(step.get('run') == 'uv run --no-project --with markdown-it-py==4.2.0 python scripts/check_docs.py' for step in steps)
             lightweight = next(step for step in steps
                                if step.get('name') == 'Check documentation-only source privacy')
             assert lightweight['if'] == "steps.scope.outputs.docs_only == 'true'"
@@ -134,3 +134,40 @@ def test_docs_checker_scans_uppercase_markdown_allowed_by_scope(tmp_path, monkey
     assert ci_scope.documentation_path('docs/GUIDE.MD')
     monkeypatch.chdir(tmp_path)
     assert check_docs.main() == 1
+
+
+@pytest.mark.parametrize('text', [
+    '[guide](guide(v2).md)',
+    r'[guide](guide\(v2\).md)',
+    '[guide](<guide(v2).md>)',
+    '[guide](guide(v2).md "A title")',
+])
+def test_markdown_links_with_parentheses_are_valid(tmp_path, text):
+    from scripts.check_docs import check_document
+
+    (tmp_path / 'guide(v2).md').write_text('Guide')
+    source = tmp_path / 'README.md'
+    source.write_text(text)
+    assert check_document(source) == []
+
+
+@pytest.mark.parametrize('text', [
+    '    [example](missing.md)\n',
+    '\t[example](missing.md)\n',
+    '- Example:\n\n      [example](missing.md)\n',
+    '> Example:\n>\n>     [example](missing.md)\n',
+])
+def test_indented_code_does_not_create_documentation_links(tmp_path, text):
+    from scripts.check_docs import check_document
+
+    source = tmp_path / 'README.md'
+    source.write_text(text)
+    assert check_document(source) == []
+
+
+def test_source_instructions_install_linux_libraries_before_launch():
+    root = Path(__file__).parents[1]
+    for name in ['README.md', 'README.ru.md', 'README.es.md']:
+        text = (root / name).read_text()
+        assert text.index('uv run python -m playwright install-deps firefox') < text.index(
+            'uv run python -m app.main desktop')

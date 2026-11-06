@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 from urllib.parse import unquote
 
+from markdown_it import MarkdownIt
+
 
 class Links(HTMLParser):
     def __init__(self):
@@ -35,31 +37,25 @@ class Links(HTMLParser):
 
 def check_document(path: Path) -> list[str]:
     text = path.read_text(encoding='utf-8')
-    lines = []
-    fence = None
-    for line in text.splitlines():
-        marker = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
-        if marker:
-            token, rest = marker.groups()
-            if fence is None:
-                fence = token
-            elif token[0] == fence[0] and len(token) >= len(fence) and not rest.strip():
-                fence = None
-            continue
-        if fence is None:
-            lines.append(line)
-    errors = ['Unclosed fenced code block'] if fence else []
-    visible = re.sub(r'(`+).*?\1', '', '\n'.join(lines))
+    parser = MarkdownIt('commonmark').enable('table')
+    tokens = parser.parse(text)
+    lines = text.splitlines()
+    errors = []
+    for token in tokens:
+        if token.type == 'fence':
+            last = lines[token.map[1] - 1]
+            closing = re.fullmatch(r'[ >\t]*(' + re.escape(token.markup[0])
+                                   + '{' + str(len(token.markup)) + r',})\s*', last)
+            if token.map[1] - token.map[0] < 2 or closing is None:
+                errors.append('Unclosed fenced code block')
+    # Rendering lets the CommonMark parser handle escaped/balanced link
+    # destinations and keep fenced, indented and inline code as literal text.
     html = Links()
-    html.feed(visible)
+    html.feed(parser.renderer.render(tokens, parser.options, {}))
     errors.extend(html.errors)
     if html.details:
         errors.append('Unclosed details tag')
     targets = html.targets
-    targets.extend(match.group(1) or match.group(2) for match in re.finditer(
-        r'\]\(\s*(?:<([^>]+)>|([^\s)]+))', visible))
-    targets.extend(match.group(1) or match.group(2) for match in re.finditer(
-        r'^ {0,3}\[[^\]]+\]:\s*(?:<([^>]+)>|(\S+))', visible, re.MULTILINE))
     for target in sorted(set(targets)):
         if target.startswith(('#', '//')) or re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*:', target):
             continue
