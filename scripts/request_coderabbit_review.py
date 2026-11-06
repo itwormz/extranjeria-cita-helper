@@ -7,24 +7,18 @@ from urllib.parse import quote
 
 
 GREPTILE = 'greptile-apps'
-TRANSITION_MARKER = '<!-- coderabbit-second-stage-requested -->'
+REVIEW_LABEL = 'coderabbit-ready'
 
 
 class NotReady(RuntimeError):
     """Expected waiting state, unlike an API or configuration failure."""
 
 
-def second_stage_started(comments, reviews):
-    return any(((comment['user'].get('type') == 'Bot'
-                 and comment['user']['login'] == 'github-actions[bot]')
-                or (comment['user'].get('type') == 'User'
-                    and comment.get('author_association') in {'OWNER', 'MEMBER', 'COLLABORATOR'}))
-               and (comment.get('body') or '').startswith('@coderabbitai full review\n')
-               and TRANSITION_MARKER in (comment.get('body') or '')
-               for comment in comments) or any(
-        review['user'].get('type') == 'Bot'
-        and review['user']['login'].removesuffix('[bot]') == 'coderabbitai'
-        and review['state'] not in {'PENDING', 'DISMISSED'} for review in reviews)
+def second_stage_started(reviews):
+    # A request (label or legacy command) is not proof the service reviewed it.
+    return any(review['user'].get('type') == 'Bot'
+               and review['user']['login'].removesuffix('[bot]') == 'coderabbitai'
+               and review['state'] not in {'PENDING', 'DISMISSED'} for review in reviews)
 
 
 def is_greptile(login):
@@ -141,7 +135,7 @@ def blockers(pull_request, reviews, threads, checks, required_names, *, summary_
 
 def request_review(repository, number, *, request=False, automatic=False):
     arguments = ['pr', 'view', str(number), '--repo', repository,
-                 '--json', 'headRefOid,state,isDraft,baseRefName']
+                 '--json', 'headRefOid,state,isDraft,baseRefName,labels']
     pull_request = gh_json(arguments)
     pages = gh_json(['api', '--paginate', '--slurp',
                      f'repos/{repository}/pulls/{number}/reviews'])
@@ -149,9 +143,13 @@ def request_review(repository, number, *, request=False, automatic=False):
     comment_pages = gh_json(['api', '--paginate', '--slurp',
                             f'repos/{repository}/issues/{number}/comments'])
     comments = [comment for page in comment_pages for comment in page]
-    started = second_stage_started(comments, reviews)
+    started = second_stage_started(reviews)
+    requested = any(label['name'] == REVIEW_LABEL for label in pull_request['labels'])
     if automatic and started:
-        print(f'PR #{number}: CodeRabbit stage already started; no automatic repeat.')
+        print(f'PR #{number}: CodeRabbit has published a review; no automatic repeat.')
+        return
+    if automatic and requested:
+        print(f'PR #{number}: review label already present; awaiting CodeRabbit, no automatic repeat.')
         return
     summary_head = summary_commit(comments, repository)
     check_arguments = ['pr', 'checks', str(number), '--repo', repository, '--json', 'name,bucket']
@@ -161,7 +159,7 @@ def request_review(repository, number, *, request=False, automatic=False):
                if check['name'].lower().startswith(('greptile', 'coderabbit'))]
     reasons = blockers(pull_request, reviews, review_threads(repository, number), checks,
                        required_check_names(repository, number, pull_request['baseRefName']),
-                       summary_head=summary_head, second_stage=started)
+                       summary_head=summary_head, second_stage=started or requested)
     if reasons:
         raise NotReady('\n'.join(reasons))
     # Recheck the head after reading reviews, discussions and CI to catch a push
@@ -172,9 +170,14 @@ def request_review(repository, number, *, request=False, automatic=False):
     if final['state'] != 'OPEN' or final['isDraft']:
         raise NotReady('The PR is no longer open and ready for review.')
     if request:
-        subprocess.run(['gh', 'pr', 'comment', str(number), '--repo', repository,
-                        '--body', '@coderabbitai full review\n\n' + TRANSITION_MARKER], check=True)
-        print('CodeRabbit review requested for ' + pull_request['headRefOid'])
+        endpoint = f'repos/{repository}/issues/{number}/labels'
+        if requested:
+            subprocess.run(['gh', 'api', '--silent', '--method', 'DELETE',
+                            endpoint + '/' + REVIEW_LABEL], check=True)
+        subprocess.run(['gh', 'api', '--silent', '--method', 'POST', endpoint,
+                        '-f', 'labels[]=' + REVIEW_LABEL], check=True)
+        print('CodeRabbit review requested via label for ' + pull_request['headRefOid']
+              + '; wait for a CodeRabbit response separately.')
     else:
         print('Ready for CodeRabbit: ' + pull_request['headRefOid'])
 
@@ -204,9 +207,9 @@ def main():
     parser.add_argument('--repo', required=True, help='GitHub owner/repository')
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument('--pr', type=int)
-    target.add_argument('--automatic', action='store_true', help='Check ready open PRs; add --request to post reviews')
+    target.add_argument('--automatic', action='store_true', help='Check ready open PRs; add --request to apply the review label')
     parser.add_argument('--base', default='main', help='Target branch for the automatic sweep')
-    parser.add_argument('--request', action='store_true', help='Post the full-review command')
+    parser.add_argument('--request', action='store_true', help='Apply the CodeRabbit opt-in label')
     args = parser.parse_args()
     if (args.pr is not None and args.pr < 1) or len(args.repo.split('/')) != 2:
         parser.error('Use a positive PR number and owner/repository')

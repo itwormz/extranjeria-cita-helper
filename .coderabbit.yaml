@@ -67,6 +67,8 @@ reviews:
 
   auto_review:
     enabled: false
+    labels:
+      - "coderabbit-ready"
     drafts: false
     auto_incremental_review: false
     auto_pause_after_reviewed_commits: 2
