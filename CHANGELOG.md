@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — Submission pacing and Telegram alerts
+## Unreleased
+
+## 0.3.5 — Submission pacing and Telegram alerts
 
 - Include available office names and addresses in Telegram office-selection alerts. Repeated checks of the same office-selection page no longer send the alert again.
 - Make daily attempt scheduling opt-in, including existing profiles. Clean passes can submit after protective pauses without waiting for a calendar window; the daily budget and adaptive statistics remain available.
