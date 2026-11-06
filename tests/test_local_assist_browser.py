@@ -11,7 +11,7 @@ from app.assist_control import AssistControl
 from app.assist_flow import AssistRunner
 from app.config import Settings
 from app.site import IcpPlusChecker
-from tests.browser_support import launch_browser
+from tests.browser_support import launch_browser, start_failure_trace, save_failure_trace
 
 pytestmark = pytest.mark.skipif(os.getenv("CITA_BROWSER_TESTS") != "1", reason="opt-in browser tests")
 BASE="https://icp.administracionelectronica.gob.es/icpplus/"
@@ -1012,37 +1012,42 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select(pe
             # old-select regression bound only after the contact form is ready.
             page.set_default_timeout(10000)
             page.set_default_navigation_timeout(15000)
+            tracing = await start_failure_trace(ctx)
             resource_requested = asyncio.Event()
             release_resource = asyncio.Event()
             async def respond(route):
-                if route.request.url.endswith('pending.gif'):
+                if route.request.url.endswith('pending.js'):
                     resource_requested.set()
                     await release_resource.wait()
-                    await route.fulfill(status=204)
+                    await route.fulfill(content_type='application/javascript', body='')
                     return
                 body = ('<select id="idSede"><option value="1">Office A</option><option value="2">Office B</option></select>'
                         if route.request.url.endswith('acCitar') else
                         '<input id="txtTelefonoCitado"><input id="emailUNO"><input id="emailDOS">')
                 if pending_resource and route.request.url.endswith('acVerFormulario'):
-                    body += '<img src="pending.gif">'
+                    body += '<script async src="pending.js"></script>'
                 await route.fulfill(body=body,content_type='text/html; charset=utf-8')
-            await page.route('**/*',respond)
-            r=runner_for(page,ctx)
-            await page.goto(BASE+'acCitar', wait_until='commit')
-            await page.locator('#idSede').wait_for(state='visible')
-            observed=await r.observe()
-            navigation_ready=asyncio.Event()
-            continue_after_capture=asyncio.Event()
-            async def save(observed,reason):
-                await page.goto(BASE+'acVerFormulario', wait_until='commit')
-                await page.locator('#emailDOS').wait_for(state='visible')
-                navigation_ready.set()
-                await continue_after_capture.wait()
-            r.save=save
-            r.silence=AsyncMock()
-            operation=asyncio.create_task(r.office(observed))
-            ready=asyncio.create_task(navigation_ready.wait())
+            operation = ready = None
             try:
+                await page.route('**/*',respond)
+                r=runner_for(page,ctx)
+                await page.goto(BASE+'acCitar', wait_until='commit')
+                await page.locator('#idSede').wait_for(state='visible')
+                observed=await r.observe()
+                navigation_ready=asyncio.Event()
+                continue_after_capture=asyncio.Event()
+                async def save(observed,reason):
+                    await page.goto(BASE+'acVerFormulario', wait_until='commit')
+                    await page.locator('#emailDOS').wait_for(state='visible')
+                    if pending_resource:
+                        # Establish the fixture before timing the stale-select check.
+                        await asyncio.wait_for(resource_requested.wait(), timeout=15)
+                    navigation_ready.set()
+                    await continue_after_capture.wait()
+                r.save=save
+                r.silence=AsyncMock()
+                operation=asyncio.create_task(r.office(observed))
+                ready=asyncio.create_task(navigation_ready.wait())
                 done,_=await asyncio.wait((operation,ready),return_when=asyncio.FIRST_COMPLETED)
                 if operation in done:
                     await operation  # Surface fixture/navigation failures directly.
@@ -1052,12 +1057,18 @@ def test_manual_office_navigation_during_capture_does_not_wait_for_old_select(pe
                 r.silence.assert_awaited()
                 assert (await r.observe()).kind=='contact'
                 if pending_resource:
-                    await asyncio.wait_for(resource_requested.wait(), timeout=5)
+                    assert resource_requested.is_set()
                     assert await page.evaluate('document.readyState') != 'complete'
+            except Exception:
+                if tracing:
+                    await save_failure_trace(ctx)
+                raise
             finally:
                 release_resource.set()
-                operation.cancel();ready.cancel()
-                await asyncio.gather(operation,ready,return_exceptions=True)
+                pending = [task for task in (operation, ready) if task is not None]
+                for task in pending:
+                    task.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
                 await browser.close()
     asyncio.run(scenario())
 
@@ -1134,25 +1145,30 @@ def test_packaged_smoke_readiness_does_not_wait_for_unrelated_resource():
             context = await browser.new_context()
             page = await context.new_page()
             page.set_default_navigation_timeout(5000)
+            tracing = await start_failure_trace(context)
             resource_requested = asyncio.Event()
             release_resource = asyncio.Event()
             async def respond(route):
-                if route.request.url.endswith('pending.gif'):
+                if route.request.url.endswith('pending.js'):
                     resource_requested.set()
                     await release_resource.wait()
-                    await route.fulfill(status=204)
+                    await route.fulfill(content_type='application/javascript', body='')
                 else:
                     await route.fulfill(content_type='text/html', body=
                         '<title>Cita offline check</title><input id="demo">'
-                        '<img src="pending.gif">')
+                        '<script async src="pending.js"></script>')
             await page.route('**/*', respond)
             try:
                 await open_smoke_page(page)
-                await asyncio.wait_for(resource_requested.wait(), timeout=5)
+                await asyncio.wait_for(resource_requested.wait(), timeout=15)
                 assert await page.evaluate('document.readyState') != 'complete'
                 await page.locator('#demo').fill('OFFLINE Ñ ТЕСТ')
                 assert await page.locator('#demo').input_value() == 'OFFLINE Ñ ТЕСТ'
                 assert await page.title() == 'Cita offline check'
+            except Exception:
+                if tracing:
+                    await save_failure_trace(context)
+                raise
             finally:
                 release_resource.set()
                 await browser.close()
