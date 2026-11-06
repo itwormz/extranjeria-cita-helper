@@ -262,3 +262,15 @@ def test_quoted_transition_marker_does_not_bypass_first_stage():
     comment = {'user': {'type': 'Bot', 'login': 'github-actions[bot]'},
                'body': 'Example command:\n@coderabbitai full review\n' + gate.TRANSITION_MARKER}
     assert not gate.second_stage_started([comment], [])
+
+
+def test_api_failure_identifies_operation_without_printing_request_parameters(monkeypatch):
+    monkeypatch.setattr(gate.subprocess, 'run', Mock(return_value=Mock(
+        returncode=1, stderr='gh: Resource not accessible by integration', stdout='')))
+    with pytest.raises(RuntimeError) as error:
+        gate.gh_json(['pr', 'checks', '32', '--repo', 'owner/repo', '--json', 'name,bucket'])
+    assert 'pr checks' in str(error.value)
+    with pytest.raises(RuntimeError) as error:
+        gate.gh_json(['api', 'graphql', '-f', 'query=private-request-parameter'])
+    assert 'api graphql' in str(error.value)
+    assert 'private-request-parameter' not in str(error.value)

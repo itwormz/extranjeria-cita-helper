@@ -34,7 +34,9 @@ def is_greptile(login):
 def gh_json(arguments, *, allowed_codes=(0,)):
     result = subprocess.run(['gh', *arguments], capture_output=True, text=True, check=False)
     if result.returncode not in allowed_codes:
-        raise RuntimeError(result.stderr.strip() or 'GitHub request failed')
+        operation = ' '.join(arguments[:2])
+        message = result.stderr.strip() or 'GitHub request failed'
+        raise RuntimeError(f'{operation}: {message}')
     return json.loads(result.stdout)
 
 
