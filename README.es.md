@@ -147,7 +147,7 @@ Se verifican la autenticidad y la integridad del paquete antes de instalarlo. La
 
 ## 🗂️ Diagnóstico y datos locales
 
-Active el diagnóstico en ajustes para guardar páginas y capturas localmente. Durante la reserva manual solo se guarda HTML. La carpeta de diagnóstico se abre desde la aplicación.
+Active el diagnóstico en ajustes para guardar páginas y capturas localmente. Durante la reserva manual no se toman capturas; pueden guardarse HTML, metadatos de navegación y JavaScript del sitio. La carpeta de diagnóstico se abre desde la aplicación.
 
 Si el navegador no arranca, pulse **Copiar informe** y adjúntelo a una [incidencia en GitHub](https://github.com/itwormz/extranjeria-cita-helper/issues). Elimine los datos personales antes de compartir el diagnóstico.
 

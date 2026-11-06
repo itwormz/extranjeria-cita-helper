@@ -39,14 +39,18 @@ def classify(event_name: str, event: dict, repository: Path) -> bool:
     # rename detection exposes both source and destination paths for moves.
     changed = subprocess.check_output([
         'git', '-C', str(repository), 'diff', '--no-renames', '--name-only', '-z',
-        base + separator + head, '--'])
+        base + separator + head, '--'], stderr=subprocess.PIPE)
     paths = [os.fsdecode(path) for path in changed.split(b'\0') if path]
     return bool(paths) and all(documentation_path(path) for path in paths)
 
 
 def main():
     event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text(encoding='utf-8'))
-    docs_only = classify(os.environ['GITHUB_EVENT_NAME'], event, Path.cwd())
+    try:
+        docs_only = classify(os.environ['GITHUB_EVENT_NAME'], event, Path.cwd())
+    except subprocess.CalledProcessError:
+        print('Git comparison failed; falling back to full CI.')
+        docs_only = False
     value = str(docs_only).lower()
     with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as output:
         output.write(f'docs_only={value}\n')

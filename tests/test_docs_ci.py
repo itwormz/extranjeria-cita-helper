@@ -171,3 +171,21 @@ def test_source_instructions_install_linux_libraries_before_launch():
         text = (root / name).read_text()
         assert text.index('uv run python -m playwright install-deps firefox') < text.index(
             'uv run python -m app.main desktop')
+
+
+def test_scope_main_runs_full_checks_when_git_comparison_fails(repository, monkeypatch, capsys):
+    import json
+
+    event = repository / 'event.json'
+    output = repository / 'outputs'
+    summary = repository / 'summary'
+    event.write_text(json.dumps({'before': 'a' * 40, 'after': 'b' * 40}))
+    monkeypatch.chdir(repository)
+    monkeypatch.setenv('GITHUB_EVENT_NAME', 'push')
+    monkeypatch.setenv('GITHUB_EVENT_PATH', str(event))
+    monkeypatch.setenv('GITHUB_OUTPUT', str(output))
+    monkeypatch.setenv('GITHUB_STEP_SUMMARY', str(summary))
+    ci_scope.main()
+    assert output.read_text() == 'docs_only=false\n'
+    assert 'run normal checks' in summary.read_text()
+    assert 'Git comparison failed' in capsys.readouterr().out

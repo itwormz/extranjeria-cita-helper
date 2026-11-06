@@ -147,7 +147,7 @@ Package authenticity and integrity are verified before installation. The search 
 
 ## 🗂️ Diagnostics and local data
 
-Enable diagnostics in settings to save pages and screenshots locally. During manual booking, only HTML is saved. Open the diagnostics folder from the app.
+Enable diagnostics in settings to save pages and screenshots locally. During manual booking, screenshots are suspended; HTML, navigation metadata and the site’s JavaScript may still be saved. Open the diagnostics folder from the app.
 
 If the browser fails to start, click **Copy report** and attach it to a [GitHub Issue](https://github.com/itwormz/extranjeria-cita-helper/issues). Remove personal data before sharing diagnostics.
 
