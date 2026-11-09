@@ -52,3 +52,15 @@ fn offers_are_explicit_labels_not_filters_or_private_fields() {
         );
     }
 }
+
+#[test]
+fn table_labels_follow_the_same_limits_as_radio_labels() {
+    let mut labels: Vec<String> = (1..=12).map(|day| format!("Día: {day:02}/01/2027 Hora: 09:14")).collect();
+    labels.insert(0, "Día: 31/02/2027 Hora: 09:14".into());
+    labels.insert(1, "Día: 01/01/2027 Hora: 09:14".into());
+    let details = decode_offers(&json!(labels).to_string(), None).unwrap();
+    assert_eq!(details.offers.len(), 8, "at most eight offers, duplicates and impossible dates dropped");
+    assert_eq!(details.offers[0].date, "2027-01-01");
+    assert_eq!(details.offers[7].date, "2027-01-08");
+    assert!(details.office.is_none());
+}

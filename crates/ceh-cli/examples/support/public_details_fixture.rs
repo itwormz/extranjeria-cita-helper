@@ -63,10 +63,33 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
     if fixture.posts != 0 {
         return Err("public detail read submitted a form".into());
     }
+    // Calendar table (Python 0.3.4+): only free LIBRE cells with a visible date column and a valid time are offers.
+    fixture.routes=vec![("GET",PATH,"<table id=\"VistaMapa_Datatable\"><thead><tr><td></td><th class=\"colFecha0\">12/01/2027</th><th class=\"colFecha1\">13/01/2027</th><th class=\"colFecha2\" hidden>14/01/2027</th></tr></thead><tbody><tr><th role=\"button\">09:14</th><td class=\"colFecha0\"><span>OCUPADO</span></td><td class=\"colFecha1\"><a role=\"button\" onclick=\"document.documentElement.dataset.clicks='1'\" data-id=\"PRIVATE-ID\">LIBRE</a></td><td class=\"colFecha2\"><a role=\"button\">LIBRE</a></td></tr><tr><th>10:00</th><td class=\"colFecha0\"><a role=\"button\">LIBRE</a></td><td class=\"colFecha1\"><a role=\"button\" aria-disabled=\"true\">LIBRE</a></td></tr><tr hidden><th>10:30</th><td class=\"colFecha0\"><a role=\"button\">LIBRE</a></td></tr><tr><th>11:00</th><td class=\"colFecha0\" aria-hidden=\"true\"><a role=\"button\">LIBRE</a></td><td class=\"colFecha1\"><a role=\"button\" disabled>LIBRE</a></td></tr><tr><th>11:30</th><td class=\"colFecha0\"><a role=\"button\">OCUPADO</a></td><td class=\"unknown\"><a role=\"button\">LIBRE</a></td></tr><tr><th>bad time</th><td class=\"colFecha0\"><a role=\"button\">LIBRE</a></td></tr></tbody></table><select id=\"txtHora\" name=\"txtHora\"><option>08:00</option></select><input id=\"captcha\" value=\"PRIVATE-CAPTCHA\"><input type=\"hidden\" value=\"PRIVATE-TOKEN\"><div style=\"height:2000px\"></div>".to_string())];
+    fixture.navigate(client, context, PATH)?;
+    seed_observer(client, &mut observer, &mut cursor)?;
+    client.call("script.evaluate",json!({"expression":"document.documentElement.dataset.clicks='0';document.addEventListener('click',()=>document.documentElement.dataset.clicks='1',true);document.getElementById('captcha').focus({preventScroll:true});window.scrollTo(0,120);true","target":{"context":context},"awaitPromise":false}))?;
+    let mut page = observer
+        .observe(client.bidi.as_mut().ok_or("missing BiDi")?, "manual")
+        .map_err(|_| "table observation failed")?;
+    // Page-kind recognition is unchanged from Python (shared selectors); this fixture's markup is synthetic,
+    // so only the passive offer read is under test here.
+    page.observation.kind = PageKind::Booking;
+    let table = read_booking(client.bidi.as_mut().ok_or("missing BiDi")?, &page, None)
+        .map_err(|e| format!("public table read failed: {e:?}"))?;
+    if serde_json::to_value(&table)? != json!({"offers":[{"date":"2027-01-13","time":"09:14"},{"date":"2027-01-12","time":"10:00"}]}) {
+        return Err(format!("table offers mismatch: {}", serde_json::to_value(&table)?).into());
+    }
+    let untouched=client.call("script.evaluate",json!({"expression":"document.activeElement.id==='captcha' && window.scrollY===120 && document.getElementById('captcha').value==='PRIVATE-CAPTCHA' && document.documentElement.dataset.clicks==='0'","target":{"context":context},"awaitPromise":false}))?;
+    if untouched["result"]["value"] != true {
+        return Err("table page changed during public read".into());
+    }
+    if fixture.posts != 0 {
+        return Err("table read submitted a form".into());
+    }
     println!(
         "{}",
         serde_json::to_string_pretty(
-            &json!({"public_offices":offices.offices.len(),"offered_slots":details.offers.len(),"manual_handoff_before_read":true,"manual_input_focus_scroll_preserved":true,"filters_hidden_disabled_excluded":true,"private_fields_excluded":true,"no_live_site_requests":true,"post_requests":fixture.posts})
+            &json!({"public_offices":offices.offices.len(),"offered_slots":details.offers.len(),"table_offers":table.offers.len(),"manual_handoff_before_read":true,"manual_input_focus_scroll_preserved":true,"filters_hidden_disabled_excluded":true,"private_fields_excluded":true,"no_live_site_requests":true,"post_requests":fixture.posts})
         )?
     );
     Ok(())
