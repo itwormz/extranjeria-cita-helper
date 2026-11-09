@@ -1,7 +1,7 @@
 <script lang="ts">
-import {onMount} from 'svelte';import Icon from './Icon.svelte';import {parseDailyTarget,sourceKey,type BudgetSummary} from './budget';
+import {onMount,untrack} from 'svelte';import Icon from './Icon.svelte';import {parseDailyTarget,sourceKey,type BudgetSummary} from './budget';
 let {budget,t,onclose,onsave}:{budget:BudgetSummary;t:(key:string)=>string;onclose:()=>void;onsave:(target:number|null)=>Promise<void>}=$props();
-let value=$state(String(budget.target));let busy=$state(false);let error=$state('');let dialog:HTMLDialogElement;let field:HTMLInputElement;
+let value=$state(untrack(()=>String(budget.target)));let busy=$state(false);let error=$state('');let dialog:HTMLDialogElement;let field:HTMLInputElement;
 const parsed=$derived(parseDailyTarget(value));const remaining=$derived(Math.max(0,(parsed??budget.target)-budget.sent));
 const adaptive=$derived(budget.adaptive_enabled&&budget.adaptive_target!==null);
 onMount(()=>{dialog.showModal();field.focus();field.select();return()=>dialog.close();});

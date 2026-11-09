@@ -1,6 +1,7 @@
 <script lang="ts">
 import {onMount,untrack} from 'svelte';
-import {loadNotificationEditor,saveProfile,type ProfileEditorData} from './bridge';
+import {loadNotificationEditor,saveProfile,loadBudget,setDailyTarget,type ProfileEditorData} from './bridge';
+import {protectionFields} from './protection';import {validateProtection,type Protection} from './validation';import {parseDailyTarget,budgetLine,sourceKey,type BudgetSummary} from './budget';import DailyBudgetDialog from './DailyBudgetDialog.svelte';
 import {timingInputs,parseTimingInputs,timingGroups,type Timings} from './timings';
 import NotificationPanel from './NotificationPanel.svelte';
 import {notificationError,type NotificationDraft} from './notifications';
@@ -11,16 +12,19 @@ let {model,editingId,t,language,onclose,onsaved}: {language:string;model:Profile
 let draft=$state(untrack(()=>({...structuredClone($state.snapshot(model.draft)),browser:model.draft.browser??'firefox'})));let saving=$state(false);let errors=$state<string[]>([]);let dialog:HTMLDialogElement;
 let notifications=$state<NotificationDraft|null>(null);let notificationLoading=$state(false);let notificationsDirty=$state(false);let notificationFailure=$state('');let alive=true;
 async function notificationTab(){tab='notifications';if(notifications||notificationLoading)return;notificationLoading=true;notificationFailure='';try{const result=await loadNotificationEditor(editingId,model.revision);if(alive)notifications=result.draft;}catch(reason){if(alive)notificationFailure=notificationError(reason,t);}finally{if(alive)notificationLoading=false;}}
+let protection=$state<Protection>(untrack(()=>({...model.protection})));let protectionText=$state<Record<string,string>>(untrack(()=>Object.fromEntries(Object.entries(model.protection).filter(([,v])=>typeof v==='number').map(([k,v])=>[k,String(v)]))));let protectionDirty=$state(false);let budgetNote=$state<BudgetSummary|null>(null);let budgetDialog=$state(false);
 let tab=$state('data');let timingsDirty=$state(false);let timingFields=$state(untrack(()=>timingInputs(model.timings)));
 let access=$state(draft.access_mode==='certificate'?'certificate':draft.access_mode==='clave'?draft.clave_method:'unconfigured');
 let lastDocument=draft.document_type;let regresoDocument=draft.document_type;const documentDrafts=new Map([[draft.document_type,draft.document_number]]);
 function documentChanged(type:string){documentDrafts.set(lastDocument,draft.document_number);draft.document_number=documentDrafts.get(type)??'';draft.document_type=type;lastDocument=type;}
 function procedureChanged(service:string){if(service==='huellas'){regresoDocument=draft.document_type;documentChanged('NIE');}else documentChanged(regresoDocument);}
 const choices=(values:string[])=>values.map(value=>({value,label:value}));
-onMount(()=>{dialog.showModal();dialog.querySelector<HTMLInputElement>('input')?.focus();return()=>{alive=false;notifications=null;dialog.close();};});
+onMount(()=>{if(editingId)loadBudget(editingId).then(value=>{if(alive)budgetNote=value;}).catch(()=>{});dialog.showModal();dialog.querySelector<HTMLInputElement>('input')?.focus();return()=>{alive=false;notifications=null;dialog.close();};});
 async function save(){if(saving||notificationLoading)return;if(!['certificate','movil','permanente'].includes(access)){errors=[t('Выбрать способ авторизации')];return;}let timings:Timings|null=null;if(timingsDirty){try{timings=parseTimingInputs($state.snapshot(timingFields),model.timings);}catch{errors=[t('Проверить значения интервалов')];tab='timings';return;}}
+ const candidate:Record<string,unknown>={...$state.snapshot(protection)};for(const field of protectionFields)if(field.kind==='int'&&field.source==='protection')candidate[field.key]=parseDailyTarget(protectionText[field.key]??'')??NaN;
+ if(protectionDirty&&validateProtection(candidate).length){errors=[t('Проверить значения защиты от бана')];return;}
  saving=true;errors=[];draft.access_mode=access==='certificate'?'certificate':'clave';if(access!=='certificate')draft.clave_method=access;
- try{const result=await saveProfile(editingId,draft,model.revision,timings,notificationsDirty&&notifications?$state.snapshot(notifications):null);onsaved(result.id);}catch(error){const failure=error as {code?:string;errors?:string[]};errors=failure?.code?.startsWith('secrets_')?[notificationError(failure,t)]:failure?.code==='validation'?profileErrors(failure.errors??['unknown'],t):[t(failure?.code==='conflict'?'Файл изменён извне. Перед сохранением открыть настройки заново.':'Не удалось сохранить профиль')];}finally{saving=false;}}
+ try{const result=await saveProfile(editingId,draft,model.revision,timings,notificationsDirty&&notifications?$state.snapshot(notifications):null,protectionDirty?candidate as unknown as Protection:null);onsaved(result.id);}catch(error){const failure=error as {code?:string;errors?:string[]};errors=failure?.code?.startsWith('secrets_')?[notificationError(failure,t)]:failure?.code==='validation'?profileErrors(failure.errors??['unknown'],t):[t(failure?.code==='conflict'?'Файл изменён извне. Перед сохранением открыть настройки заново.':'Не удалось сохранить профиль')];}finally{saving=false;}}
 </script>
 <dialog class="profile-editor" bind:this={dialog} oncancel={event=>{event.preventDefault();if(!saving)onclose();}}>
 <form novalidate onsubmit={event=>{event.preventDefault();void save();}}>
@@ -49,6 +53,9 @@ async function save(){if(saving||notificationLoading)return;if(!['certificate','
  <small class="muted">{t(draft.applicant_no_slots_mode==='continue'?'Вводить или копировать данные даже при предупреждении «нет сит».':'Не вводить данные, пока форма сообщает об отсутствии сит.')}</small>
  <small class="muted">{t(draft.no_slots_mode==='reload'?'После паузы повторять запрос доступности в текущей сессии.':'После паузы нажать Salir и продолжить по странице сайта.')}</small>
  <div class="search-behavior" class:risk={draft.applicant_no_slots_mode==='continue'||draft.no_slots_mode==='reload'}><Icon name={draft.applicant_no_slots_mode==='continue'||draft.no_slots_mode==='reload'?'shield':'check'} size={18}/><div><strong>{t(draft.applicant_no_slots_mode==='continue'||draft.no_slots_mode==='reload'?'Возможны блокировки':'Рекомендуется для обычного поиска')}</strong><p>{t(draft.applicant_no_slots_mode==='continue'||draft.no_slots_mode==='reload'?'Повторная отправка данных может повысить риск блокировки':'Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.')}</p></div></div>
+ <h2>{t('Защита от бана')}</h2>
+ {#each protectionFields as field}{#if field.kind==='flag'}<label class="protection-flag" title={t(field.description)}><input type="checkbox" aria-label={t(field.title)} checked={field.source==='timings'?timingFields[field.key]?.[0]!=='false':Boolean(protection[field.key as keyof Protection])} onchange={event=>{const on=event.currentTarget.checked;if(field.source==='timings'){timingFields[field.key]=[String(on)];timingsDirty=true;}else{(protection as unknown as Record<string,unknown>)[field.key]=on;protectionDirty=true;}}}/><span><strong>{t(field.title)}</strong><small class="muted">{t(field.description)}</small></span></label>{:else}<div class="timing-field" title={t(field.description)}><span>{t(field.title)}</span><div class="timing-values"><input aria-label={t(field.title)} inputmode="numeric" maxlength="10" value={protectionText[field.key]} aria-invalid={parseDailyTarget(protectionText[field.key]??'')===null} oninput={event=>{protectionText[field.key]=event.currentTarget.value;protectionDirty=true;}}/>{#if field.unit}<span class="muted">{t(field.unit)}</span>{/if}</div></div>{/if}{/each}
+ {#if budgetNote}<div class="budget-note"><span class="muted">{budgetLine(budgetNote,t).split('\n')[0]} · {t(sourceKey(budgetNote))}</span><button type="button" class="icon-button" title={t('Изменить на сегодня')} aria-label={t('Изменить на сегодня')} onclick={()=>budgetDialog=true}><Icon name="pencil" size={16}/></button></div>{/if}
  {#each timingGroups as group}<h2>{t(group.title)}</h2>{#each group.fields as [key,label]}
  <div class="timing-field"><span>{t(label)}</span><div class="timing-values">{#each timingFields[key] as _,index}{#if index>0}<span class="muted">—</span>{/if}<input aria-label={t(label)+(timingFields[key].length===2?(index===0?' · min':' · max'):'')} inputmode="decimal" autocomplete="off" spellcheck="false" bind:value={timingFields[key][index]} oninput={()=>timingsDirty=true}/>{/each}<small>{key.endsWith('_ms')?'ms':'s'}</small></div></div>
  {/each}{/each}
@@ -57,4 +64,5 @@ async function save(){if(saving||notificationLoading)return;if(!['certificate','
  {#if errors.length}<div class="editor-errors" role="alert">{#each errors as error}<p>{t(error)}</p>{/each}</div>{/if}
  <div class="editor-actions"><button class="primary" type="submit" disabled={saving||notificationLoading}><Icon name="check"/>{t('Сохранить профиль')}</button><button type="button" disabled={saving} onclick={onclose}><Icon name="close"/>{t('Отмена')}</button></div>
 </form>
+{#if budgetDialog&&budgetNote}<DailyBudgetDialog budget={budgetNote} {t} onclose={()=>budgetDialog=false} onsave={async target=>{await setDailyTarget(target,editingId);budgetNote=await loadBudget(editingId!);budgetDialog=false;}}/>{/if}
 </dialog>

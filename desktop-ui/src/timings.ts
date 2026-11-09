@@ -1,9 +1,10 @@
-export type Timings=Record<string,number|number[]>;
+export type Timings=Record<string,number|number[]|boolean>;
 export type TimingInputs=Record<string,string[]>;
 export const sequences=new Set(['expired_seconds','server_button_seconds','server_retry_seconds','blocked_seconds','timeout_retry_seconds']);
-export function timingInputs(values:Timings):TimingInputs{return Object.fromEntries(Object.entries(values).map(([key,value])=>[key,Array.isArray(value)?sequences.has(key)?[value.join(', ')]:value.map(String):[String(value)]]));}
+export function timingInputs(values:Timings):TimingInputs{return Object.fromEntries(Object.entries(values).map(([key,value])=>[key,typeof value==='boolean'?[String(value)]:Array.isArray(value)?sequences.has(key)?[value.join(', ')]:value.map(String):[String(value)]]));}
 export function parseTimingInputs(fields:TimingInputs,shape:Timings):Timings{
  return Object.fromEntries(Object.entries(shape).map(([key,value])=>{
+  if(typeof value==='boolean'){const flag=fields[key]?.[0];if(flag!=='true'&&flag!=='false')throw new Error(key);return [key,flag==='true'];}
   const parts=sequences.has(key)?fields[key]?.[0]?.split(','):fields[key];
   if(!parts?.length)throw new Error(key);
   const numbers=parts.map(part=>{const normalized=part.trim().replace(',','.');if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized))throw new Error(key);const number=Number(normalized);if(!Number.isFinite(number))throw new Error(key);return number;});
