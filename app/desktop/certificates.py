@@ -24,6 +24,10 @@ ICP_HOST = 'icp.administracionelectronica.gob.es'
 MAX_CERT_BYTES = 1024 * 1024
 
 
+class CertificateCacheError(RuntimeError):
+    """NSS rejected the optional intermediate cache, for example its profile path."""
+
+
 def trusted_roots():
     return x509.load_pem_x509_certificates(Path(certifi.where()).read_bytes())
 
@@ -152,21 +156,21 @@ def import_intermediates(profile, executable, certificates):
         profile = Path(profile)
         profile.mkdir(parents=True, exist_ok=True)
         if init(os.fsencode('sql:' + str(profile))) != 0:
-            raise RuntimeError('Could not open Camoufox certificate cache')
+            raise CertificateCacheError('Could not open Camoufox certificate cache')
         slot = None
         try:
             slot = slot_get()
             if not slot:
-                raise RuntimeError('Could not open NSS certificate slot')
+                raise CertificateCacheError('Could not open NSS certificate slot')
             for certificate in certificates:
                 data = certificate.public_bytes(Encoding.DER)
                 decoded = decode(data, len(data))
                 if not decoded:
-                    raise RuntimeError('NSS could not decode intermediate certificate')
+                    raise CertificateCacheError('NSS could not decode intermediate certificate')
                 try:
                     nickname = ('cita-intermediate-' + hashlib.sha256(data).hexdigest()).encode()
                     if add(slot, decoded, 0, nickname, 0) != 0:
-                        raise RuntimeError('NSS could not cache intermediate certificate')
+                        raise CertificateCacheError('NSS could not cache intermediate certificate')
                 finally:
                     destroy(decoded)
         finally:

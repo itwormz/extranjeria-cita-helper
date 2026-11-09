@@ -18,6 +18,39 @@ def test_tls_network_timeout_does_not_prevent_strict_browser_launch(monkeypatch,
     asyncio.run(checker._launch_camoufox(None,task,headless=True));assert launch.await_args.kwargs['ignore_https_errors'] is False
 
 
+def test_nss_cache_failure_does_not_prevent_strict_browser_launch(monkeypatch, tmp_path):
+    # NSS can reject a profile path it reads through the Windows ANSI code page.
+    import camoufox.async_api
+    from app import site
+    from app.config import Settings
+    from app.desktop import certificates
+    def rejected(*args):raise certificates.CertificateCacheError('Could not open Camoufox certificate cache')
+    launch=AsyncMock(return_value=SimpleNamespace(on=lambda *args:None))
+    monkeypatch.setattr(certificates,'prepare_intermediate_cache',rejected);monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch);monkeypatch.setattr(site,'bundled_browser',lambda:tmp_path/'camoufox');monkeypatch.setattr(site,'bundled_addons',lambda:[])
+    (tmp_path/'application.ini').write_text('[App]\nVersion=156.0.1\n')
+    checker=site.IcpPlusChecker(Settings(browser_session='fresh'));task=SimpleNamespace(id='test',schedule=SimpleNamespace(timezone='Europe/Madrid'))
+    asyncio.run(checker._launch_camoufox(None,task,headless=True));assert launch.await_args.kwargs['ignore_https_errors'] is False
+
+
+def test_unrelated_runtime_error_in_tls_preparation_is_not_hidden(monkeypatch, tmp_path):
+    import camoufox.async_api
+    from app import site
+    from app.config import Settings
+    from app.desktop import certificates
+    def broken(*args):raise RuntimeError('programming error')
+    launch=AsyncMock(return_value=SimpleNamespace(on=lambda *args:None))
+    monkeypatch.setattr(certificates,'prepare_intermediate_cache',broken);monkeypatch.setattr(camoufox.async_api,'AsyncNewBrowser',launch);monkeypatch.setattr(site,'bundled_browser',lambda:tmp_path/'camoufox');monkeypatch.setattr(site,'bundled_addons',lambda:[])
+    (tmp_path/'application.ini').write_text('[App]\nVersion=156.0.1\n')
+    checker=site.IcpPlusChecker(Settings(browser_session='fresh'));task=SimpleNamespace(id='test',schedule=SimpleNamespace(timezone='Europe/Madrid'))
+    with pytest.raises(RuntimeError,match='programming error'):asyncio.run(checker._launch_camoufox(None,task,headless=True))
+    launch.assert_not_awaited()
+
+
+def test_nss_failures_raise_certificate_cache_error():
+    from app.desktop import certificates
+    assert issubclass(certificates.CertificateCacheError, RuntimeError)
+
+
 def test_macos_camoufox_retry_keeps_automatic_display_bounds(monkeypatch, tmp_path):
     from camoufox import async_api, fingerprints
     from app import site
