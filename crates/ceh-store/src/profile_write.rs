@@ -286,7 +286,9 @@ pub fn save_profile_changes(
     if let Some(timings) = timings {
         let values = serde_json::to_value(timings).map_err(|_| ProfileWriteError::Read)?;
         for (key, value) in values.as_object().ok_or(ProfileWriteError::Read)? {
-            let raw = if let Some(items) = value.as_array() {
+            let raw = if let Some(flag) = value.as_bool() {
+                RawValue::Bool(flag)
+            } else if let Some(items) = value.as_array() {
                 RawValue::Sequence(
                     items
                         .iter()

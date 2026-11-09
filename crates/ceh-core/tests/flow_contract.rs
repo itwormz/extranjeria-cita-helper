@@ -950,3 +950,54 @@ fn applicant_banner_requires_a_new_get_before_filling() {
     assert!(e.observe_with_facts(page.clone(), facts, 1).unwrap().is_empty());
     assert!(matches!(e.observe_with_facts(page, facts, 2).unwrap().as_slice(), [FlowEffect::Recover { action: ceh_core::recovery::RecoveryAction::GetEntry, .. }]));
 }
+
+fn applicant_entry_facts() -> PageFacts {
+    PageFacts {
+        recovery: ceh_core::recovery::RecoveryFacts {
+            own_control: true,
+            official_site: true,
+            endpoint: ceh_core::recovery::RecoveryEndpoint::ApplicantEntry,
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+fn rate_limited(document: &str, method: RequestMethod) -> Observation {
+    Observation {
+        document: DocumentId::new(document).unwrap(),
+        kind: PageKind::RateLimited,
+        method,
+        operation_code: false,
+        variant: String::new(),
+    }
+}
+#[test]
+fn rate_limit_on_applicant_get_adds_thirty_seconds_once_per_document() {
+    let mut e = engine();
+    assert_eq!(e.applicant_reload_penalty(), 0.0);
+    e.observe_with_facts(rate_limited("first", RequestMethod::Get), applicant_entry_facts(), 0).unwrap();
+    e.observe_with_facts(rate_limited("first", RequestMethod::Get), applicant_entry_facts(), 1).unwrap();
+    assert_eq!(e.applicant_reload_penalty(), 30.0);
+    e.observe_with_facts(rate_limited("second", RequestMethod::Get), applicant_entry_facts(), 2).unwrap();
+    assert_eq!(e.applicant_reload_penalty(), 60.0);
+    let effects = e
+        .observe_with_facts(observation(PageKind::ApplicantNoSlots), applicant_entry_facts(), 1_000)
+        .unwrap();
+    assert_eq!(effects, vec![FlowEffect::WaitUntil(1_000 + 30_000 + 60_000)]);
+}
+#[test]
+fn rate_limit_on_post_or_other_endpoint_adds_no_penalty() {
+    let mut e = engine();
+    e.observe_with_facts(rate_limited("post", RequestMethod::Post), applicant_entry_facts(), 0).unwrap();
+    let mut other = applicant_entry_facts();
+    other.recovery.endpoint = ceh_core::recovery::RecoveryEndpoint::Availability;
+    e.observe_with_facts(rate_limited("availability", RequestMethod::Get), other, 1).unwrap();
+    assert_eq!(e.applicant_reload_penalty(), 0.0);
+}
+#[test]
+fn rate_limit_penalty_is_not_applied_when_flag_is_disabled() {
+    let timings = ceh_core::timings::parse_timings(&serde_json::json!({"adaptive_reload_on_429": false})).unwrap();
+    let mut e = FlowEngine::with_timings(SessionId::new("s").unwrap(), SearchOptions::default(), timings, 30.0).unwrap();
+    e.observe_with_facts(rate_limited("first", RequestMethod::Get), applicant_entry_facts(), 0).unwrap();
+    assert_eq!(e.applicant_reload_penalty(), 0.0);
+}

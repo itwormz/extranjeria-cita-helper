@@ -19,8 +19,11 @@ fn timing_validation_matches_python_defaults_bounds_and_legacy_upgrade() {
     for case in corpus["cases"].as_array().unwrap() {
         let result = parse_timings(&case["input"]);
         if case["expected"]["valid"] == true {
+            // The recorded corpus comes from Python 0.2.3; `adaptive_reload_on_429` is 0.3.1+ and has its own test.
+            let mut actual = serde_json::to_value(result.unwrap()).unwrap();
+            assert_eq!(actual.as_object_mut().unwrap().remove("adaptive_reload_on_429"), Some(Value::Bool(true)));
             assert_eq!(
-                floats(serde_json::to_value(result.unwrap()).unwrap()),
+                floats(actual),
                 floats(case["expected"]["value"].clone()),
                 "case {}",
                 case["id"]
@@ -61,4 +64,15 @@ fn virtual_deadlines_never_fire_early_and_reject_overflow() {
     assert!(deadline_millis(100, -1.).is_err());
     assert!(deadline_millis(100, f64::INFINITY).is_err());
     assert!(deadline_millis(u64::MAX, 1.).is_err());
+}
+
+#[test]
+fn adaptive_reload_flag_defaults_true_accepts_bool_and_rejects_other_values() {
+    assert!(parse_timings(&Value::Null).unwrap().adaptive_reload_on_429());
+    assert!(parse_timings(&serde_json::json!({})).unwrap().adaptive_reload_on_429());
+    assert!(!parse_timings(&serde_json::json!({"adaptive_reload_on_429": false})).unwrap().adaptive_reload_on_429());
+    for bad in [serde_json::json!("yes"), serde_json::json!(1), Value::Null] {
+        let error = parse_timings(&serde_json::json!({"adaptive_reload_on_429": bad})).err().unwrap();
+        assert_eq!(error.field, Some("adaptive_reload_on_429"));
+    }
 }

@@ -306,3 +306,23 @@ fn distribute_attempts_survives_save_and_reload() {
     let reloaded = decode_profiles(&std::fs::read(&path).unwrap(), &catalog(), "ru").unwrap();
     assert!(reloaded.profiles[0].appointment_policy.as_ref().unwrap().distribute_attempts);
 }
+
+#[test]
+fn adaptive_reload_on_429_roundtrips_through_timing_patch_and_rejects_non_bool() {
+    use ceh_store::profile_write::save_profile_with_timings;
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("tasks.yml");
+    let original = source();
+    std::fs::write(&path, &original).unwrap();
+    let revision = ceh_store::profiles::read_profiles(&path, &catalog(), "ru").unwrap().revision().to_owned();
+    let invalid = serde_json::json!({"adaptive_reload_on_429": "yes"});
+    assert!(matches!(
+        save_profile_with_timings(&path, Some("fixture"), draft(&original), &revision, &catalog(), Some(&invalid)),
+        Err(ProfileWriteError::Validation(_))
+    ));
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+    let patch = serde_json::json!({"adaptive_reload_on_429": false});
+    save_profile_with_timings(&path, Some("fixture"), draft(&original), &revision, &catalog(), Some(&patch)).unwrap();
+    let next = ceh_store::profiles::read_profiles(&path, &catalog(), "ru").unwrap();
+    assert!(!next.profiles[0].timings.as_ref().unwrap().adaptive_reload_on_429());
+}

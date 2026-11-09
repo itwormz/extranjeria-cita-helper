@@ -7,6 +7,9 @@ use crate::recovery::{
 use crate::timings::{AssistTimings, RetryKind, deadline_millis};
 use serde::{Deserialize, Serialize};
 
+/// Each distinct HTTP 429 on the applicant form lengthens its refresh interval by this much.
+const RATE_LIMIT_RELOAD_PENALTY_SECONDS: f64 = 30.0;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
 pub enum FlowEffect {
@@ -149,6 +152,8 @@ pub struct FlowEngine {
     attempted: Vec<(DocumentId, ActionKind)>,
     dispatches: Vec<DispatchRecord>,
     reload_delay: f64,
+    applicant_reload_penalty: f64,
+    last_rate_limit_document: Option<DocumentId>,
     recovery_jitter: f64,
     timings: AssistTimings,
     recovery_attempts: Vec<((PageKind, bool), usize)>,
@@ -174,6 +179,8 @@ impl FlowEngine {
             attempted: vec![],
             dispatches: vec![],
             reload_delay: AssistTimings::default().reload_seconds()[0],
+            applicant_reload_penalty: 0.0,
+            last_rate_limit_document: None,
             timings: AssistTimings::default(),
             recovery_jitter: AssistTimings::default().recovery_jitter_seconds()[0],
             recovery_attempts: vec![],
@@ -318,6 +325,10 @@ impl FlowEngine {
         }
         self.last_tick = Some(now);
         Ok(())
+    }
+    /// Seconds added to the applicant-form refresh interval after HTTP 429 responses (Python 0.3.1+).
+    pub fn applicant_reload_penalty(&self) -> f64 {
+        self.applicant_reload_penalty
     }
     pub fn control(&self) -> ControlSnapshot {
         self.authority.snapshot()
@@ -640,6 +651,15 @@ impl FlowEngine {
             self.phase = None;
         }
         self.current = Some(observed.clone());
+        if observed.kind == PageKind::RateLimited
+            && self.timings.adaptive_reload_on_429()
+            && facts.recovery.endpoint == RecoveryEndpoint::ApplicantEntry
+            && observed.method == RequestMethod::Get
+            && self.last_rate_limit_document.as_ref() != Some(&observed.document)
+        {
+            self.last_rate_limit_document = Some(observed.document.clone());
+            self.applicant_reload_penalty += RATE_LIMIT_RELOAD_PENALTY_SECONDS;
+        }
         if observed.kind == PageKind::Loading
             && let Some(deadline) = self.certificate_deadline
         {
@@ -976,10 +996,10 @@ impl FlowEngine {
                     self.phase = Some(Phase::Held);
                     return Ok(vec![FlowEffect::Hold]);
                 }
-                let delay = if observed.kind == PageKind::RequestNoSlotsRestart {
-                    self.timings.no_slots_restart_seconds()
-                } else {
-                    self.reload_delay
+                let delay = match observed.kind {
+                    PageKind::RequestNoSlotsRestart => self.timings.no_slots_restart_seconds(),
+                    PageKind::ApplicantNoSlots => self.reload_delay + self.applicant_reload_penalty,
+                    _ => self.reload_delay,
                 };
                 let deadline = deadline_millis(now, delay).map_err(|_| FlowError::ClockOverflow)?;
                 self.phase = Some(Phase::Waiting(deadline));

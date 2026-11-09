@@ -23,6 +23,12 @@ struct Values {
     timeout_retry_seconds: Vec<f64>,
     post_timeout_seconds: f64,
     restart_seconds: f64,
+    #[serde(default = "default_true")]
+    adaptive_reload_on_429: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Clone, Serialize)]
@@ -249,6 +255,16 @@ pub fn parse_timings(raw: &Value) -> Result<AssistTimings, TimingError> {
         };
         values.insert(spec.key.to_owned(), result);
     }
+    let adaptive = match input.and_then(|map| map.get("adaptive_reload_on_429")) {
+        None => true,
+        Some(Value::Bool(flag)) => *flag,
+        Some(_) => {
+            return Err(TimingError {
+                field: Some("adaptive_reload_on_429"),
+            });
+        }
+    };
+    values.insert("adaptive_reload_on_429".to_owned(), Value::Bool(adaptive));
     let values =
         serde_json::from_value(Value::Object(values)).map_err(|_| TimingError { field: None })?;
     Ok(AssistTimings(values))
@@ -283,6 +299,10 @@ impl AssistTimings {
     }
     pub fn reload_seconds(&self) -> [f64; 2] {
         self.0.reload_seconds
+    }
+    /// Whether each HTTP 429 on the applicant form lengthens its refresh interval.
+    pub fn adaptive_reload_on_429(&self) -> bool {
+        self.0.adaptive_reload_on_429
     }
     pub fn no_slots_restart_seconds(&self) -> f64 {
         self.0.no_slots_restart_seconds
