@@ -545,48 +545,50 @@ fn run_owned(
                         // Take the same browser back with a new control session; cookies and the site session stay.
                         // A second request finds `manual` already false and is dropped.
                         if manual && browser.resume_automation().is_ok() {
-                            let next = SessionId::new(uuid::Uuid::new_v4().to_string()).map_err(|_| "search_unavailable")?;
-                            gate = DispatchGate::new(next.clone());
-                            *shared_gate.lock().map_err(|_| "search_unavailable")? = Some(gate.clone());
-                            driver = SessionDriver::with_samples(
-                                &context,
-                                next.clone(),
-                                profile.clone(),
-                                timings.clone(),
-                                gate.clone(),
-                                ceh_browser::session_driver::SessionSamples {
-                                    first_bootstrap: unit_sample(),
-                                    second_bootstrap: unit_sample(),
-                                    reload: unit_sample(),
-                                    contact_typing: unit_sample(),
-                                },
-                            )
-                            .map_err(|_| "profile_invalid")?;
-                            presenter = crate::session_presentation::SessionPresentation::new(next, 3000);
-                            browser
-                                .connection()
-                                .call(
-                                    "browsingContext.navigate",
-                                    json!({"context": context, "url": "https://icp.administracionelectronica.gob.es/icpplus/index.html", "wait": "none"}),
+                            // Navigate first: if the original tab is gone the person keeps the browser.
+                            let navigated = browser.connection().call(
+                                "browsingContext.navigate",
+                                json!({"context": context, "url": "https://icp.administracionelectronica.gob.es/icpplus/index.html", "wait": "none"}),
+                            );
+                            if navigated.is_err() {
+                                browser.handoff();
+                            } else {
+                                let next = SessionId::new(uuid::Uuid::new_v4().to_string()).map_err(|_| "search_unavailable")?;
+                                gate = DispatchGate::new(next.clone());
+                                *shared_gate.lock().map_err(|_| "search_unavailable")? = Some(gate.clone());
+                                driver = SessionDriver::with_samples(
+                                    &context,
+                                    next.clone(),
+                                    profile.clone(),
+                                    timings.clone(),
+                                    gate.clone(),
+                                    ceh_browser::session_driver::SessionSamples {
+                                        first_bootstrap: unit_sample(),
+                                        second_bootstrap: unit_sample(),
+                                        reload: unit_sample(),
+                                        contact_typing: unit_sample(),
+                                    },
                                 )
-                                .map_err(|_| "browser_resume_failed")?;
-                            manual = false;
-                            wait = false;
-                            read_failures = 0;
-                            retry_at = Instant::now();
-                            observer = ceh_core::budget_observer::BudgetObserver::default();
-                            update(state, |s| {
-                                s.manual = false;
-                                s.attention = false;
-                                s.page = None;
-                                s.deadline = None;
-                            })?;
-                            stats
-                                .set_phase(&mut db, "working", wall()?, mono())
-                                .map_err(|_| "statistics_unavailable")?;
-                            journal
-                                .event(JournalEvent::Resume, None, None, true, wall()?)
-                                .map_err(|_| "search_unavailable")?;
+                                .map_err(|_| "profile_invalid")?;
+                                presenter = crate::session_presentation::SessionPresentation::new(next, 3000);
+                                manual = false;
+                                wait = false;
+                                read_failures = 0;
+                                retry_at = Instant::now();
+                                observer = ceh_core::budget_observer::BudgetObserver::default();
+                                update(state, |s| {
+                                    s.manual = false;
+                                    s.attention = false;
+                                    s.page = None;
+                                    s.deadline = None;
+                                })?;
+                                stats
+                                    .set_phase(&mut db, "working", wall()?, mono())
+                                    .map_err(|_| "statistics_unavailable")?;
+                                journal
+                                    .event(JournalEvent::Resume, None, None, true, wall()?)
+                                    .map_err(|_| "search_unavailable")?;
+                            }
                         }
                     }
                     LiveCommand::FreshPass => {
@@ -769,7 +771,7 @@ fn run_owned(
                 }
                 let entering_auth = effects.iter().any(|effect| matches!(effect, FlowEffect::EnterAuthentication { .. }));
                 let submits_appointment = effects.iter().any(|effect| matches!(effect, FlowEffect::Activate { action: ActionKind::Request, .. }));
-                let prior_budget = if submits_appointment {
+                let mut prior_budget = if submits_appointment {
                     let prior = (budget.clone(), observer.clone());
                     observer.request_sent(&mut budget, crate::current_time()?, &appointment_policy);
                     budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
@@ -780,6 +782,12 @@ fn run_owned(
                 let after = match driver.execute(browser.connection(), step) {
                     Ok(after) => after,
                     Err(ceh_browser::BrowserError::Paused) => {
+                        // Nothing was sent: the counted attempt goes back.
+                        if let Some((prior_budget, prior_observer)) = prior_budget.take() {
+                            budget = prior_budget;
+                            observer = prior_observer;
+                            budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+                        }
                         continue;
                     }
                     Err(
@@ -790,6 +798,11 @@ fn run_owned(
                             return Err("browser_auth_entry_changed");
                         }
                         // Do not replay this linear plan. Only a fresh observation may advance core.
+                        if let Some((prior_budget, prior_observer)) = prior_budget.take() {
+                            budget = prior_budget;
+                            observer = prior_observer;
+                            budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+                        }
                         update(state, |s| s.attention = true)?;
                         std::thread::sleep(Duration::from_millis(500));
                         continue;

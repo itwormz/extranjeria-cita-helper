@@ -82,6 +82,12 @@ impl NativeStep {
         &self.update
     }
 }
+/// A requested fresh pass only runs where the app may navigate: the official site, never a captcha or
+/// booking screen (the person owns those) nor a provider page such as Cl@ve. Elsewhere it is dropped
+/// instead of failing the whole search.
+fn fresh_pass_applicable(official: bool, kind: PageKind) -> bool {
+    official && !matches!(kind, PageKind::Captcha | PageKind::Booking)
+}
 pub struct SessionDriver {
     flow: FlowEngine,
     observer: PageObserver,
@@ -223,8 +229,8 @@ impl SessionDriver {
         self.timings = timings;
         Ok(())
     }
-    /// Ask for a new pass from the entry page (Try now). It replaces the next planned step, only while
-    /// automation owns the browser; otherwise the request is dropped.
+    /// Ask for a new pass from the entry page (Try now). It replaces the next planned step when the
+    /// automation owns an official, non-captcha page; on any other page the request is dropped.
     pub fn request_fresh_pass(&mut self) {
         self.fresh_pass_requested = true;
     }
@@ -344,7 +350,9 @@ impl SessionDriver {
         let mut effects = self.accept_observation(page.observation.clone(), facts, now)?;
         if self.fresh_pass_requested {
             self.fresh_pass_requested = false;
-            if self.flow.control().mode() == ControlMode::Automatic {
+            if self.flow.control().mode() == ControlMode::Automatic
+                && fresh_pass_applicable(page.page.snapshot.official, page.observation.kind)
+            {
                 effects = self.flow.fresh_pass(now).map_err(|_| BrowserError::InvalidControl)?;
             }
         }
@@ -720,5 +728,21 @@ mod office_memory_tests {
         assert_eq!(cached.as_deref(), Some("TWO"));
         update_office_cache(&mut cached, PageKind::Applicant, None, &[]);
         assert!(cached.is_none());
+    }
+}
+
+#[cfg(test)]
+mod fresh_pass_tests {
+    use super::fresh_pass_applicable;
+    use ceh_core::model::PageKind;
+
+    #[test]
+    fn fresh_pass_only_runs_on_official_pages_that_are_not_captcha_or_booking() {
+        assert!(fresh_pass_applicable(true, PageKind::ApplicantNoSlots));
+        assert!(fresh_pass_applicable(true, PageKind::RequestNoSlots));
+        assert!(!fresh_pass_applicable(true, PageKind::Captcha), "a captcha belongs to the person");
+        assert!(!fresh_pass_applicable(true, PageKind::Booking), "a booking screen belongs to the person");
+        assert!(!fresh_pass_applicable(false, PageKind::AuthWait), "the Cl@ve provider page is not the site");
+        assert!(!fresh_pass_applicable(false, PageKind::Applicant));
     }
 }

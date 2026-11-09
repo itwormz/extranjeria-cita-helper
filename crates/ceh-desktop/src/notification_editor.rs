@@ -122,6 +122,9 @@ pub struct NotificationDraft {
 pub struct NotificationEditor {
     pub revision: String,
     pub draft: NotificationDraft,
+    /// Channels whose stored secret could not be read (locked, revoked or deleted). Their token/config
+    /// fields are empty: such a channel can be disabled or given new credentials, never silently cleared.
+    pub unreadable: Vec<&'static str>,
 }
 #[derive(Debug)]
 pub enum EditError {
@@ -225,11 +228,25 @@ pub fn editor<B: Backend>(
     vault: &Vault<B>,
 ) -> Result<NotificationEditor, EditError> {
     let metadata = metadata(root, id, revision)?;
-    let tg = secret(vault, &metadata.telegram.channel.secret_ref)?;
-    let hook = secret(vault, &metadata.webhook.secret_ref)?;
+    let mut unreadable = Vec::new();
+    let tg = match secret(vault, &metadata.telegram.channel.secret_ref) {
+        Ok(secret) => secret.value().clone(),
+        Err(_) => {
+            unreadable.push("telegram");
+            json!({})
+        }
+    };
+    let hook = match secret(vault, &metadata.webhook.secret_ref) {
+        Ok(secret) => secret.value().clone(),
+        Err(_) => {
+            unreadable.push("webhook");
+            json!({})
+        }
+    };
     Ok(NotificationEditor {
         revision: revision.into(),
-        draft: from_secrets(&metadata, tg.value(), hook.value())?,
+        draft: from_secrets(&metadata, &tg, &hook)?,
+        unreadable,
     })
 }
 fn validate(draft: &NotificationDraft) -> Result<(), EditError> {

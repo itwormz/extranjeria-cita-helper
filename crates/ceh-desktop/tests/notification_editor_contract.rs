@@ -221,7 +221,10 @@ fn locked_vault_does_not_clear_saved_credentials() {
     let before = std::fs::read(root.path().join("tasks.yml")).unwrap();
     let entries = vault.backend().values.borrow().clone();
     vault.backend().locked.set(true);
-    assert!(editor(root.path(), Some(&created.id), &created.revision, &vault).is_err());
+    // The editor still opens (Python load_errors): the unreadable channels are marked, never silently emptied.
+    let opened = editor(root.path(), Some(&created.id), &created.revision, &vault).unwrap();
+    assert_eq!(opened.unreadable, ["telegram", "webhook"]);
+    assert!(opened.draft.telegram.token.is_empty() && opened.draft.telegram.enabled, "metadata is shown, the secret is not");
     let basic = ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap();
     // Enabling an unreadable channel without replacement credentials must fail (Python 0.3.3);
     // supplying credentials, or disabling, is allowed and covered by the tests below.
@@ -311,12 +314,8 @@ fn missing_secret_reference_fails_without_replacing_yaml() {
     .unwrap();
     let before = std::fs::read(root.path().join("tasks.yml")).unwrap();
     vault.backend().values.borrow_mut().clear();
-    assert!(matches!(
-        editor(root.path(), Some(&created.id), &created.revision, &vault),
-        Err(ceh_desktop::notification_editor::EditError::Secret(
-            VaultError::Missing
-        ))
-    ));
+    let opened = editor(root.path(), Some(&created.id), &created.revision, &vault).unwrap();
+    assert_eq!(opened.unreadable, ["telegram", "webhook"], "a deleted secret is reported, not fatal");
     assert_eq!(
         std::fs::read(root.path().join("tasks.yml")).unwrap(),
         before
@@ -489,4 +488,15 @@ fn replacement_credentials_for_an_unreadable_channel_get_a_new_reference_and_kee
     assert_ne!(after, before, "a new reference is written");
     let kept = vault.backend().values.borrow();
     assert!(entries.iter().all(|(key, value)| kept.get(key) == Some(value)), "the old secret entries stay in the vault");
+}
+
+#[test]
+fn readable_secrets_report_no_unreadable_channels() {
+    let root = tempfile::tempdir().unwrap();
+    let vault = Vault::new(Memory::default());
+    let (draft, revision) = profile(root.path());
+    let created = save(root.path(), None, draft, &revision, None, Some(&enabled()), &vault).unwrap();
+    let opened = editor(root.path(), Some(&created.id), &created.revision, &vault).unwrap();
+    assert!(opened.unreadable.is_empty());
+    assert_eq!(opened.draft.telegram.token, "123456:FAKE_TOKEN");
 }

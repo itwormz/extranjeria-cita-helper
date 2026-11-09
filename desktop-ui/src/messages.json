@@ -172,7 +172,17 @@
     "Плашек на форме": "Applicant notices",
     "Ответов без сит": "No-appointment responses",
     "Возможное ограничение · Cod. Oper.": "Possible restriction · Cod. Oper.",
-    "История возможных ограничений": "Possible restriction history"
+    "История возможных ограничений": "Possible restriction history",
+    "Страница входа изменилась до клика. Поиск остановлен.": "The sign-in page changed before the click. Search stopped.",
+    "Не удалось прочитать секреты уведомлений. Откройте настройки уведомлений профиля: отключите канал или введите данные заново.": "Notification secrets could not be read. Open the profile's notification settings: disable the channel or enter the details again.",
+    "Не удалось подготовить отправку уведомлений.": "Could not prepare notification delivery.",
+    "Не удалось продолжить поиск в открытом окне. Окно браузера сохранено.": "Could not continue searching in the open window. The browser window was kept.",
+    "«Попробовать сейчас» недоступно, пока браузер у вас.": "\"Try now\" is unavailable while you control the browser.",
+    "Продолжить поиск можно, только когда браузер передан вам.": "You can continue searching only when the browser has been handed to you.",
+    "Бюджет должен быть целым числом от 1 до 2 147 483 647.": "The budget must be a whole number from 1 to 2,147,483,647.",
+    "Firefox не подтвердил клик «Войти с Cl@ve». Поиск остановлен.": "Firefox did not confirm the \"Sign in with Cl@ve\" click. Search stopped.",
+    "Не удалось нажать «Войти с Cl@ve». Поиск остановлен.": "Could not click \"Sign in with Cl@ve\". Search stopped.",
+    "Сайт ограничил доступ. Поиск остановлен, окно браузера сохранено.": "The site restricted access. Search stopped, the browser window was kept."
   },
   "es": {
     "Всего": "Total",
@@ -347,6 +357,16 @@
     "Плашек на форме": "Avisos en el formulario",
     "Ответов без сит": "Respuestas sin citas",
     "Возможное ограничение · Cod. Oper.": "Posible restricción · Cod. Oper.",
-    "История возможных ограничений": "Historial de posibles restricciones"
+    "История возможных ограничений": "Historial de posibles restricciones",
+    "Страница входа изменилась до клика. Поиск остановлен.": "La página de acceso cambió antes del clic. Búsqueda detenida.",
+    "Не удалось прочитать секреты уведомлений. Откройте настройки уведомлений профиля: отключите канал или введите данные заново.": "No se pudieron leer los secretos de las notificaciones. Abra los ajustes de notificaciones del perfil: desactive el canal o introduzca los datos de nuevo.",
+    "Не удалось подготовить отправку уведомлений.": "No se pudo preparar el envío de notificaciones.",
+    "Не удалось продолжить поиск в открытом окне. Окно браузера сохранено.": "No se pudo continuar la búsqueda en la ventana abierta. La ventana del navegador se conservó.",
+    "«Попробовать сейчас» недоступно, пока браузер у вас.": "«Intentar ahora» no está disponible mientras usted controla el navegador.",
+    "Продолжить поиск можно, только когда браузер передан вам.": "Solo puede continuar la búsqueda cuando el navegador se le haya entregado.",
+    "Бюджет должен быть целым числом от 1 до 2 147 483 647.": "El presupuesto debe ser un número entero de 1 a 2 147 483 647.",
+    "Firefox не подтвердил клик «Войти с Cl@ve». Поиск остановлен.": "Firefox no confirmó el clic en «Acceder con Cl@ve». Búsqueda detenida.",
+    "Не удалось нажать «Войти с Cl@ve». Поиск остановлен.": "No se pudo pulsar «Acceder con Cl@ve». Búsqueda detenida.",
+    "Сайт ограничил доступ. Поиск остановлен, окно браузера сохранено.": "El sitio restringió el acceso. Búsqueda detenida, la ventana del navegador se conservó."
   }
 }
