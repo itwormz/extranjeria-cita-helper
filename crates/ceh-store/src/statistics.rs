@@ -160,6 +160,79 @@ impl<'a> StatisticsReader<'a> {
         row.insert("unique_offices".into(), serde_json::json!(offices.len()));
         let days:i64=self.db.query_row("SELECT COUNT(*) FROM activity_days WHERE profile=?1 AND (?2 IS NULL OR day>=?2) AND (?3 IS NULL OR day<?3)",params![profile,b.start.map(|v|v.with_timezone(&chrono_tz::Europe::Madrid).date_naive().to_string()),b.end.map(|v|v.with_timezone(&chrono_tz::Europe::Madrid).date_naive().to_string())],|r|r.get(0))?;
         row.insert("days".into(), serde_json::json!(days));
+        // "No appointments" counters (Python 0.3.x): banners before a request, answers after it, answers with cod. oper.
+        let lower = b.start.map(|v| v.to_rfc3339());
+        let upper = b.end.map(|v| v.to_rfc3339());
+        // Databases written before these columns/tables existed (not migrated yet) are read as they are.
+        let has_evidence: bool = self.db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_table_info('episodes') WHERE name='evidence')",
+            [],
+            |r| r.get(0),
+        )?;
+        let has_notices: bool = self.db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='applicant_notices')",
+            [],
+            |r| r.get(0),
+        )?;
+        let operation_code = if has_evidence {
+            "MAX(EXISTS (SELECT 1 FROM json_each(episodes.evidence) WHERE value='operation_code'))"
+        } else {
+            "0"
+        };
+        let (no_slots, cod_oper_count): (i64, i64) = self.db.query_row(
+            &format!("SELECT COALESCE(SUM(NOT banner AND NOT operation_code), 0), COALESCE(SUM(NOT banner AND operation_code), 0)
+             FROM (
+                 SELECT MIN(start) AS observed_at, stage='applicant_no_slots' AS banner,
+                        {operation_code} AS operation_code
+                 FROM episodes
+                 WHERE profile=?1 AND kind='page'
+                   AND stage IN ('applicant_no_slots', 'request_no_slots', 'request_no_slots_restart', 'post_contact_no_slots')
+                 GROUP BY session, document, banner, CASE WHEN banner OR document='' THEN id END
+             )
+             WHERE (?2 IS NULL OR observed_at>=?2) AND (?3 IS NULL OR observed_at<?3)"),
+            params![profile, lower, upper],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )?;
+        let notices = if has_notices {
+            "UNION ALL SELECT session, document, start FROM applicant_notices WHERE profile=?1"
+        } else {
+            ""
+        };
+        let banners: i64 = self.db.query_row(
+            &format!("SELECT COUNT(*) FROM (
+                 SELECT session, document, MIN(start) AS observed_at FROM (
+                     SELECT session, CASE WHEN document='' THEN 'episode-'||id ELSE document END AS document, start
+                     FROM episodes WHERE profile=?1 AND kind='page' AND stage='applicant_no_slots'
+                     {notices}
+                 ) GROUP BY session, document
+             ) WHERE (?2 IS NULL OR observed_at>=?2) AND (?3 IS NULL OR observed_at<?3)"),
+            params![profile, lower, upper],
+            |r| r.get(0),
+        )?;
+        row.insert("banners".into(), serde_json::json!(banners));
+        row.insert("no_slots".into(), serde_json::json!(no_slots));
+        row.insert("cod_oper_count".into(), serde_json::json!(cod_oper_count));
+        let recorded_booking: bool = self.db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM events WHERE profile=?1 AND kind='booking')
+                 OR EXISTS(SELECT 1 FROM episodes WHERE profile=?1 AND kind='page' AND stage='booking')",
+            [profile],
+            |r| r.get(0),
+        )?;
+        let legacy_booking = self
+            .db
+            .query_row("SELECT data FROM baseline WHERE profile=?1", [profile], |r| r.get::<_, String>(0))
+            .optional()?
+            .map(|data| serde_json::from_str::<Value>(&data).map_err(|_| StoreError::Corrupt))
+            .transpose()?
+            .is_some_and(|data| match &data["booking_screens"] {
+                Value::Number(number) => number.as_f64().is_some_and(|v| v != 0.0),
+                Value::Bool(flag) => *flag,
+                Value::String(text) => !text.is_empty(),
+                Value::Array(items) => !items.is_empty(),
+                Value::Object(map) => !map.is_empty(),
+                Value::Null => false,
+            });
+        row.insert("has_booking_screen".into(), serde_json::json!(recorded_booking || legacy_booking));
         let mut availability = baseline
             .as_ref()
             .and_then(|v| v.get("first_available_at"))

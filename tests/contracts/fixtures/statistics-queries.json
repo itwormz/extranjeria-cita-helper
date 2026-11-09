@@ -1898,7 +1898,7 @@
           "checks": 0,
           "booking_screens": 1,
           "_offices": [],
-          "_last_office": null
+          "_last_office": ""
         }
       },
       "expected": {
@@ -1956,7 +1956,7 @@
         "total": 0,
         "offices": [],
         "known": [],
-        "last": null,
+        "last": "",
         "bounds": [
           null,
           null

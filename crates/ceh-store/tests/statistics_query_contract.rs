@@ -80,6 +80,31 @@ fn read_queries_match_independent_python_fixtures() {
         let input = &case["input"];
         let db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("../src/schema.sql")).unwrap();
+        db.execute_batch("ALTER TABLE episodes ADD COLUMN recognition TEXT DEFAULT 'known';ALTER TABLE episodes ADD COLUMN evidence TEXT DEFAULT '[]';ALTER TABLE episodes ADD COLUMN variant TEXT DEFAULT ''").unwrap();
+        for episode in input.get("episodes").and_then(serde_json::Value::as_array).into_iter().flatten() {
+            let start = episode["start"].as_str().unwrap();
+            db.execute(
+                "INSERT INTO episodes(profile,session,kind,stage,mode,document,start,last_seen,evidence) VALUES ('fixture',?1,?2,?3,?4,?5,?6,?7,?8)",
+                rusqlite::params![
+                    episode["session"].as_str().unwrap_or("session"),
+                    episode["kind"].as_str().unwrap_or("page"),
+                    episode["stage"].as_str().unwrap(),
+                    episode["mode"].as_str().unwrap_or("working"),
+                    episode["document"].as_str().unwrap_or(""),
+                    start,
+                    episode["last_seen"].as_str().unwrap_or(start),
+                    episode["evidence"].to_string().replace("null", "[]"),
+                ],
+            )
+            .unwrap();
+        }
+        for notice in input.get("applicant_notices").and_then(serde_json::Value::as_array).into_iter().flatten() {
+            db.execute(
+                "INSERT INTO applicant_notices VALUES ('fixture',?1,?2,?3)",
+                rusqlite::params![notice["session"].as_str().unwrap_or("session"), notice["document"].as_str().unwrap(), notice["start"].as_str().unwrap()],
+            )
+            .unwrap();
+        }
         if !input["baseline"].is_null() {
             db.execute(
                 "INSERT INTO baseline VALUES ('fixture',?1)",
@@ -87,7 +112,7 @@ fn read_queries_match_independent_python_fixtures() {
             )
             .unwrap();
         }
-        for (i, event) in input["events"].as_array().unwrap().iter().enumerate() {
+        for (i, event) in input.get("events").and_then(serde_json::Value::as_array).into_iter().flatten().enumerate() {
             db.execute("INSERT INTO events(profile,identity,kind,time,session,counted,offices) VALUES (?1,?2,?3,?4,?5,?6,?7)",rusqlite::params![event["profile"].as_str().unwrap_or("fixture"),i.to_string(),event["kind"].as_str().unwrap(),event["time"].as_str().unwrap(),event["session"].as_str().unwrap_or("session"),event["counted"].as_i64().unwrap_or(1),event.get("offices").cloned().unwrap_or(serde_json::json!([])).to_string()]).unwrap();
         }
         if let Some(provenance) = input.get("provenance") {
