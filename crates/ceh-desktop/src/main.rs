@@ -214,6 +214,7 @@ async fn save_profile(
     revision: String,
     timings: Option<serde_json::Value>,
     notifications: Option<ceh_desktop::notification_editor::NotificationDraft>,
+    protection: Option<ceh_core::appointment_budget::AppointmentPolicy>,
 ) -> Result<ceh_store::profile_write::ProfileSaved, SaveFailure> {
     authorize(&window).map_err(|code| SaveFailure {
         code,
@@ -221,13 +222,14 @@ async fn save_profile(
     })?;
     let path = runtime.root.join("tasks.yml");
     let saved = tauri::async_runtime::spawn_blocking(move || {
-        ceh_desktop::notification_editor::save(
+        ceh_desktop::notification_editor::save_full(
             path.parent().expect("runtime root"),
             id.as_deref(),
             draft,
             &revision,
             timings.as_ref(),
             notifications.as_ref(),
+            protection.as_ref(),
             &ceh_services::secrets::Vault::new(ceh_services::secrets::native::NativeBackend::new()),
         )
     })

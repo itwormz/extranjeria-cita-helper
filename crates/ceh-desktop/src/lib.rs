@@ -109,6 +109,8 @@ pub struct ProfileEditor {
     pub draft: ceh_core::profiles::ProfileDraft,
     pub revision: String,
     pub timings: ceh_core::timings::AssistTimings,
+    /// Appointment protection of the profile (defaults for a new one).
+    pub protection: ceh_core::appointment_budget::AppointmentPolicy,
     pub provinces: Vec<String>,
     pub nationalities: Vec<String>,
 }
@@ -164,8 +166,13 @@ pub fn profile_editor(root: &Path, id: Option<&str>) -> Result<ProfileEditor, &'
     } else {
         Default::default()
     };
+    let protection = id
+        .and_then(|id| bundle.profiles.iter().find(|p| p.validation.normalized.id == id))
+        .and_then(|p| p.appointment_policy.clone())
+        .unwrap_or_default();
     Ok(ProfileEditor {
         timings,
+        protection,
         draft,
         revision: bundle.revision().to_owned(),
         provinces: catalog().provinces.clone(),

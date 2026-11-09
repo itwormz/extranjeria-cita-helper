@@ -170,6 +170,7 @@ pub fn save_profile_with_timings(
         ProfileEdits {
             timings,
             notifications: None,
+            protection: None,
         },
     )
 }
@@ -177,6 +178,8 @@ pub fn save_profile_with_timings(
 pub struct ProfileEdits<'a> {
     pub timings: Option<&'a serde_json::Value>,
     pub notifications: Option<&'a crate::notification_metadata::NotificationMetadata>,
+    /// Appointment protection of the profile; only the policy's own keys are written, other keys stay.
+    pub protection: Option<&'a ceh_core::appointment_budget::AppointmentPolicy>,
 }
 pub fn save_profile_changes(
     path: &Path,
@@ -188,6 +191,9 @@ pub fn save_profile_changes(
 ) -> Result<ProfileSaved, ProfileWriteError> {
     if let Some(metadata) = edits.notifications {
         metadata.validate()?;
+    }
+    if edits.protection.is_some_and(|policy| !policy.is_valid()) {
+        return Err(ProfileWriteError::Validation(vec!["Invalid appointment protection settings".into()]));
     }
     let timings = edits.timings;
     let timings = timings
@@ -299,6 +305,17 @@ pub fn save_profile_changes(
                 RawValue::Float(value.as_f64().expect("validated number"))
             };
             set(&mut task, &["timings", key], raw)?;
+        }
+    }
+    if let Some(policy) = edits.protection {
+        let values = serde_json::to_value(policy).map_err(|_| ProfileWriteError::Read)?;
+        for (key, value) in values.as_object().ok_or(ProfileWriteError::Read)? {
+            let raw = match value {
+                serde_json::Value::Bool(flag) => RawValue::Bool(*flag),
+                serde_json::Value::Number(number) => RawValue::Integer(number.to_string()),
+                _ => return Err(ProfileWriteError::Read),
+            };
+            set(&mut task, &["request", "appointment_protection", key], raw)?;
         }
     }
     if let Some(metadata) = edits.notifications {

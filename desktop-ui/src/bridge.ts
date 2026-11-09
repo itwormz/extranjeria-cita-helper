@@ -10,9 +10,10 @@ export async function bootstrap():Promise<{data:Bootstrap;native:boolean}>{
  return {native:false,data:{version:'0.0.0-dev.1',profiles:[],preferences:{dark:true,diagnostics:false,sound:true,language:'ru',automatic_updates:false},selected_profile:null,browser_connected:false}};
 }
 export interface ProfileDraft {id:string;label:string;enabled:boolean;procedure:string;province:string;office:string;document_type:string;document_number:string;full_name:string;nationality:string;phone:string;email:string;access_mode:string;clave_method:string;fill_mode:string;no_slots_mode:string;applicant_no_slots_mode:string;subprocedure:string|null;timezone:string;browser_session:string;browser?:string}
-export interface ProfileEditorData {draft:ProfileDraft;revision:string;timings:Timings;provinces:string[];nationalities:string[]}
+export interface AppointmentProtection {confirm_new_round:boolean;daily_target:number;adaptive_target:boolean;distribute_attempts:boolean;retry_after_office:boolean;minimum_pause_minutes:number;first_cod_pause_minutes:number;next_cod_pause_minutes:number}
+export interface ProfileEditorData {draft:ProfileDraft;revision:string;timings:Timings;protection:AppointmentProtection;provinces:string[];nationalities:string[]}
 export async function loadEditor(id:string|null):Promise<ProfileEditorData>{if(!isTauri())throw new Error('native_required');return invoke('profile_editor',{id});}
-export async function saveProfile(id:string|null,draft:ProfileDraft,revision:string,timings:Timings|null=null,notifications:NotificationDraft|null=null):Promise<{id:string;revision:string}>{if(!isTauri())throw new Error('native_required');return invoke('save_profile',{id,draft,revision,timings,notifications});}
+export async function saveProfile(id:string|null,draft:ProfileDraft,revision:string,timings:Timings|null=null,notifications:NotificationDraft|null=null,protection:AppointmentProtection|null=null):Promise<{id:string;revision:string}>{if(!isTauri())throw new Error('native_required');return invoke('save_profile',{id,draft,revision,timings,notifications,protection});}
 
 export async function savePreferences(preferences:Preferences):Promise<void>{if(isTauri())await invoke('save_preferences',{preferences});}
 export async function selectProfile(id:string):Promise<void>{if(isTauri())await invoke('select_profile',{id});}

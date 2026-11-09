@@ -331,6 +331,20 @@ pub fn save<B: Backend>(
     notifications: Option<&NotificationDraft>,
     vault: &Vault<B>,
 ) -> Result<ProfileSaved, EditError> {
+    save_full(root, id, draft, revision, timings, notifications, None, vault)
+}
+/// Like [`save`], plus the profile's appointment protection (`None` keeps the saved block untouched).
+#[allow(clippy::too_many_arguments)]
+pub fn save_full<B: Backend>(
+    root: &Path,
+    id: Option<&str>,
+    draft: ProfileDraft,
+    revision: &str,
+    timings: Option<&Value>,
+    notifications: Option<&NotificationDraft>,
+    protection: Option<&ceh_core::appointment_budget::AppointmentPolicy>,
+    vault: &Vault<B>,
+) -> Result<ProfileSaved, EditError> {
     let mut validation_draft = draft.clone();
     validation_draft.id = id.unwrap_or("new_profile").into();
     let report = validate_desktop_profile(validation_draft, crate::catalog());
@@ -350,6 +364,7 @@ pub fn save<B: Backend>(
             ProfileEdits {
                 timings,
                 notifications: None,
+                protection,
             },
         )?);
     };
@@ -441,6 +456,7 @@ pub fn save<B: Backend>(
         ProfileEdits {
             timings,
             notifications: Some(&metadata),
+            protection,
         },
     )?;
     // Retain old references: other profiles/backups may share them. Only failed new refs are rolled back.

@@ -326,3 +326,53 @@ fn adaptive_reload_on_429_roundtrips_through_timing_patch_and_rejects_non_bool()
     let next = ceh_store::profiles::read_profiles(&path, &catalog(), "ru").unwrap();
     assert!(!next.profiles[0].timings.as_ref().unwrap().adaptive_reload_on_429());
 }
+
+mod protection {
+    use super::*;
+    use ceh_core::appointment_budget::AppointmentPolicy;
+    use ceh_store::profile_write::{ProfileEdits, save_profile_changes};
+
+    fn with_block(block: &str) -> String {
+        source().replace(
+            "    access_mode: certificate\n",
+            &format!("    access_mode: certificate\n    appointment_protection:\n{block}"),
+        )
+    }
+
+    #[test]
+    fn protection_is_written_and_unknown_policy_keys_survive() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("tasks.yml");
+        let original = with_block("      vendor_flag: 7\n      distribute_attempts: false\n");
+        std::fs::write(&path, &original).unwrap();
+        let revision = decode_profiles(original.as_bytes(), &catalog(), "ru").unwrap().revision().to_owned();
+        let policy = AppointmentPolicy { daily_target: 9, distribute_attempts: true, minimum_pause_minutes: 20, ..Default::default() };
+        save_profile_changes(&path, Some("fixture"), draft(&original), &revision, &catalog(),
+            ProfileEdits { protection: Some(&policy), ..Default::default() }).unwrap();
+        let reloaded = decode_profiles(&std::fs::read(&path).unwrap(), &catalog(), "ru").unwrap();
+        assert_eq!(reloaded.profiles[0].appointment_policy.as_ref().unwrap(), &policy);
+        let document = ceh_store::legacy_yaml::read_document(&path).unwrap();
+        let block = document.root().get("tasks").unwrap().sequence().unwrap()[0].get("request").unwrap().get("appointment_protection").unwrap().clone();
+        assert_eq!(block.get("vendor_flag").unwrap().scalar_text().unwrap(), "7", "unknown policy keys are kept");
+    }
+
+    #[test]
+    fn invalid_protection_does_not_rewrite_the_profile() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("tasks.yml");
+        let original = with_block("      distribute_attempts: true\n");
+        std::fs::write(&path, &original).unwrap();
+        let revision = decode_profiles(original.as_bytes(), &catalog(), "ru").unwrap().revision().to_owned();
+        for bad in [
+            AppointmentPolicy { daily_target: 0, ..Default::default() },
+            AppointmentPolicy { minimum_pause_minutes: 0, ..Default::default() },
+            AppointmentPolicy { first_cod_pause_minutes: 0, ..Default::default() },
+            AppointmentPolicy { next_cod_pause_minutes: 0, ..Default::default() },
+        ] {
+            let result = save_profile_changes(&path, Some("fixture"), draft(&original), &revision, &catalog(),
+                ProfileEdits { protection: Some(&bad), ..Default::default() });
+            assert!(matches!(result, Err(ProfileWriteError::Validation(_))), "{bad:?}");
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+        }
+    }
+}
