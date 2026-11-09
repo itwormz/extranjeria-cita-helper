@@ -2,7 +2,7 @@
 //! `ProfileStatistics.restore_applicant_notices`). Journals are append-only JSON lines under
 //! `<root>/sessions/<profile>-*/journal.jsonl`; documents are kept only as SHA-256 digests.
 use crate::migrate::StoreError;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime};
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde_json::Value;
 use sha2::{Digest, Sha256};

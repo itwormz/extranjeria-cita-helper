@@ -37,6 +37,8 @@ pub struct SearchSnapshot {
     pub error: Option<&'static str>,
     pub rows: Vec<JournalRow>,
     pub counters: Counters,
+    /// Today's budget (Python `summary()` keys) while a search runs; the window shows it and its wait reason.
+    pub appointment_budget: Option<ceh_core::appointment_budget::BudgetSummary>,
     pub revision: u64,
 }
 #[derive(Clone, Copy, Deserialize)]
@@ -258,6 +260,7 @@ impl SearchController {
                 }
                 if let Ok(mut s) = state.lock() {
                     s.active = false;
+                    s.appointment_budget = None;
                     s.paused = false;
                     s.deadline = None;
                     if let Err(code) = result
@@ -350,6 +353,20 @@ fn unit_sample()->f64{
 }
 fn wall() -> Result<i64, &'static str> {
     crate::current_time().map(|v| v.timestamp_millis())
+}
+/// Publish today's budget summary to the window (called every tick of the search loop).
+fn publish_budget(
+    state: &Mutex<SearchSnapshot>,
+    budget: &mut ceh_core::appointment_budget::AppointmentBudget,
+    now: chrono::DateTime<chrono::Utc>,
+    policy: &ceh_core::appointment_budget::AppointmentPolicy,
+    hot: bool,
+) -> Result<(), &'static str> {
+    let summary = budget.summary(now, policy, hot);
+    update(state, |s| s.appointment_budget = Some(summary))
+}
+fn clear_budget(state: &Mutex<SearchSnapshot>) -> Result<(), &'static str> {
+    update(state, |s| s.appointment_budget = None)
 }
 fn update(
     state: &Mutex<SearchSnapshot>,
@@ -612,6 +629,7 @@ fn run_owned(
             if cancelled.load(Ordering::Acquire) {
                 return Ok(());
             }
+            publish_budget(state, &mut budget, crate::current_time()?, &appointment_policy, observer.hot_retry())?;
             let paused = driver.control().mode() == ControlMode::Paused;
             let mut effects = Vec::new();
             if !paused && !manual && Instant::now() < retry_at {
@@ -1166,5 +1184,37 @@ mod live_command_tests {
         let (controller, commands, _messages) = running(false);
         assert_eq!(controller.budget_command(BudgetCommand::TryNow), Ok(()));
         assert!(commands.try_recv().is_ok());
+    }
+}
+
+#[cfg(test)]
+mod budget_snapshot_tests {
+    use super::*;
+    use ceh_core::appointment_budget::{AppointmentBudget, AppointmentPolicy};
+
+    #[test]
+    fn snapshot_carries_the_budget_summary_and_clears_it_when_the_search_ends() {
+        let state = Mutex::new(SearchSnapshot::default());
+        assert!(serde_json::to_value(state.lock().unwrap().clone()).unwrap()["appointment_budget"].is_null());
+        let now = chrono::DateTime::parse_from_rfc3339("2026-11-10T11:00:00Z").unwrap().to_utc();
+        let mut budget = AppointmentBudget::default();
+        let policy = AppointmentPolicy::default();
+        budget.submitted(now, &policy);
+        publish_budget(&state, &mut budget, now, &policy, false).unwrap();
+        let json = serde_json::to_value(state.lock().unwrap().clone()).unwrap();
+        let summary = &json["appointment_budget"];
+        assert_eq!((summary["target"].as_u64(), summary["sent"].as_u64(), summary["wait_reason"].as_str()), (Some(5), Some(1), Some("minimum_pause")));
+        assert!(summary["ready"].is_string());
+        clear_budget(&state).unwrap();
+        assert!(serde_json::to_value(state.lock().unwrap().clone()).unwrap()["appointment_budget"].is_null());
+    }
+
+    #[test]
+    fn publishing_the_budget_does_not_touch_other_snapshot_fields() {
+        let state = Mutex::new(SearchSnapshot { profile: Some("p".into()), active: true, ..Default::default() });
+        let now = chrono::DateTime::parse_from_rfc3339("2026-11-10T11:00:00Z").unwrap().to_utc();
+        publish_budget(&state, &mut AppointmentBudget::default(), now, &AppointmentPolicy::default(), true).unwrap();
+        let snapshot = state.lock().unwrap().clone();
+        assert!(snapshot.active && snapshot.profile.as_deref() == Some("p") && snapshot.appointment_budget.is_some());
     }
 }
