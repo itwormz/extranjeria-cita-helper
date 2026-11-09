@@ -1,6 +1,7 @@
 //! Read-only legacy data adapters. No native vault or browser access.
 pub mod legacy_yaml;
 pub mod migrate;
+pub mod notices;
 pub mod periods;
 pub mod profiles;
 pub mod statistics;
