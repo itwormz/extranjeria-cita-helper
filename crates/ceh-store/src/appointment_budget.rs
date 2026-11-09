@@ -68,7 +68,9 @@ impl BudgetStore {
             .filter(|key| key.len() == 64 && key.bytes().all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c)))
             .ok_or(io::ErrorKind::InvalidData)?;
         match fs::read(root.join(format!("{key}.json"))) {
-            Ok(bytes) => serde_json::from_slice(&bytes).map(Some).map_err(Into::into),
+            Ok(bytes) => serde_json::from_slice::<AppointmentBudget>(&bytes)
+                .map(|budget| Some(budget.normalized()))
+                .map_err(Into::into),
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
             Err(error) => Err(error),
         }
@@ -76,7 +78,9 @@ impl BudgetStore {
 
     pub fn load(&self) -> io::Result<AppointmentBudget> {
         match fs::read(&self.path) {
-            Ok(bytes) => serde_json::from_slice(&bytes).map_err(Into::into),
+            Ok(bytes) => serde_json::from_slice::<AppointmentBudget>(&bytes)
+                .map(AppointmentBudget::normalized)
+                .map_err(Into::into),
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(AppointmentBudget::default()),
             Err(error) => Err(error),
         }

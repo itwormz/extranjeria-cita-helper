@@ -252,9 +252,36 @@ def run(root):
     return dict(schema=1, source="v0.3.6", scenarios=out)
 
 
+def emit_file(root):
+    """A budget file exactly as Python 0.3.6 BudgetStore writes it, plus the summary Python reads from it."""
+    from dataclasses import asdict
+
+    Budget, Protection, MADRID = load(root)
+    policy = Protection()
+
+    def at(day, hour, minute=0):
+        return datetime(2026, 11, day, hour, minute, tzinfo=MADRID)
+
+    budget = Budget()
+    budget.submitted(at(3, 19), policy)
+    budget.cod_oper(at(3, 19, 1), policy)
+    budget.submitted(at(3, 19, 31), policy)
+    budget.office_during_restriction(at(3, 19, 32), ["Демо-офис"])
+    budget.episode_offices[-1]["result"] = "post_contact_no_slots"
+    budget.ordinary_result(at(3, 19, 33))
+    budget.set_daily_target(20, at(3, 19, 34), policy)
+    budget.submitted(at(3, 20), policy)
+    stored = json.loads(json.dumps(asdict(budget), default=lambda value: value.isoformat()))
+    now = at(3, 20, 5)
+    summary = normal(budget.summary(now, policy))
+    return dict(schema=1, source="v0.3.6", file=stored, policy={}, at=utc_text(now), summary=summary)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--python-root", required=True)
+    parser.add_argument("--emit-file", action="store_true", help="emit one stored budget file instead of scenarios")
     arguments = parser.parse_args()
-    json.dump(run(arguments.python_root), sys.stdout, ensure_ascii=False, indent=1, sort_keys=True)
+    result = emit_file(arguments.python_root) if arguments.emit_file else run(arguments.python_root)
+    json.dump(result, sys.stdout, ensure_ascii=False, indent=1, sort_keys=True)
     sys.stdout.write("\n")

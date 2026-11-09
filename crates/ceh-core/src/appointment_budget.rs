@@ -134,6 +134,19 @@ pub struct AppointmentBudget {
 }
 
 impl AppointmentBudget {
+    /// Apply the Python 0.3.x load-time rules to a stored state: adaptive estimates are at least five
+    /// attempts; a raised estimate invalidates the planned windows.
+    pub fn normalized(mut self) -> Self {
+        if self.target_override.is_some_and(|estimate| estimate < ADAPTIVE_FLOOR) {
+            self.target_override = Some(ADAPTIVE_FLOOR);
+            self.windows.clear();
+        }
+        if let Some(next) = self.next_target {
+            self.next_target = Some(next.max(ADAPTIVE_FLOOR));
+        }
+        self
+    }
+
     pub fn refresh(&mut self, now: DateTime<Utc>, policy: &AppointmentPolicy) {
         let day = now.with_timezone(&Madrid).date_naive();
         if self.day != Some(day) {
