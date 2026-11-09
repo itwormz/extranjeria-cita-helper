@@ -108,6 +108,7 @@ pub enum Network {
     X,
     Facebook,
     Instagram,
+    Reddit,
 }
 #[cfg(feature = "shell")]
 impl Network {
@@ -117,6 +118,7 @@ impl Network {
             Self::X => "x",
             Self::Facebook => "facebook",
             Self::Instagram => "instagram",
+            Self::Reddit => "reddit",
         }
     }
 }

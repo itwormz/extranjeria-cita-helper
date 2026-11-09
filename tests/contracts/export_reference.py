@@ -5,6 +5,7 @@ from app.desktop.achievements import snapshot
 
 def replay(case,path):
     if case['op']=='snapshot':return snapshot(case['statistics'])
+    if case['op']=='share':return e.share_url(case['network'])
     value=case['achievement'];language=case.get('language','en')
     if case['op']=='public':
         labels,days,rows=e._public(value,language)

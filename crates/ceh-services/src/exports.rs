@@ -19,7 +19,7 @@ const COUNTS: &[&str] = &[
 ];
 const TITLE: &str = "Extranjería — Cita";
 const EN: [&str; 14] = [
-    "Sita obtained",
+    "Appointment booked",
     "days of searching",
     "Checks",
     "Active search",
@@ -291,7 +291,8 @@ fn credit(language: &str) -> &'static str {
         _ => "Obtained with Cita Extranjeria Helper",
     }
 }
-pub fn public_card(achievement: &Value, language: &str) -> Value {
+/// The public statistics of an achievement; fields the legacy import could not know stay unknown.
+fn public_stats(achievement: &Value) -> Value {
     let mut stats = snapshot(&achievement["statistics"]);
     if let Some(fields) = achievement["statistics_provenance"]["unknown_fields"].as_array() {
         for field in fields.iter().filter_map(Value::as_str) {
@@ -303,6 +304,10 @@ pub fn public_card(achievement: &Value, language: &str) -> Value {
             }
         }
     }
+    stats
+}
+pub fn public_card(achievement: &Value, language: &str) -> Value {
+    let stats = public_stats(achievement);
     let names = labels(language);
     let values = [
         stats["checks"].clone(),
@@ -334,6 +339,47 @@ pub fn public_card(achievement: &Value, language: &str) -> Value {
         .collect::<Vec<_>>();
     json!({"title":names[0],"duration":public_duration(achievement,language),"rows":rows,"credit":credit(language),"width":1200,"height":900,"top_strip_height":7})
 }
+/// (statistics key, Russian source label, icon) for the detailed post, in Python 0.3.6 order.
+const POST_METRICS: [(&str, &str, &str); 17] = [
+    ("checks", "Проверок сит", "🔎"),
+    ("active_seconds", "Активный поиск", "⏱"),
+    ("days", "Дни с поиском", "🗓"),
+    ("offices_seen", "Появлений офисов", "🏢"),
+    ("unique_offices", "Разных офисов", "📍"),
+    ("booking_screens", "Появления выбора даты", "📅"),
+    ("banners", "«Сит нет» до запроса", "📋"),
+    ("no_slots", "Ответы «Сит нет» на запрос записи", "💬"),
+    ("server_errors", "Ошибок сервера", "🔧"),
+    ("rate_limited", "Ограничений HTTP 429", "🚦"),
+    ("blocked", "Ограничения доступа", "🛡"),
+    ("flow_passes", "Повторные проходы", "🔄"),
+    ("cod_oper_count", "Ответы «Сит нет» с cod. oper", "⚠"),
+    ("actions_performed", "Действий выполнено", "🖱"),
+    ("pages_processed", "Страниц обработано", "📄"),
+    ("first_office_seconds", "Первый офис", "🕒"),
+    ("first_booking_seconds", "Первый выбор даты", "📆"),
+];
+fn post_value(stats: &Value, key: &str, language: &str) -> String {
+    let value = &stats[key];
+    if value.is_null() {
+        return "—".into();
+    }
+    if !key.ends_with("_seconds") {
+        return value.to_string();
+    }
+    let seconds = value.as_f64().unwrap_or(0.0);
+    let text = if seconds < 60.0 {
+        format!("{} {}", seconds as i64, crate::notifications::tr("с", language))
+    } else {
+        duration(value, language)
+    };
+    let quality = format!("{}_active_quality", key.trim_end_matches("_seconds"));
+    if stats[quality.as_str()] == "minimum" {
+        format!("≥ {text}")
+    } else {
+        text
+    }
+}
 pub fn public_post(achievement: &Value, language: &str, detailed: bool) -> String {
     let card = public_card(achievement, language);
     let mut lines = vec![format!("🎉 {}!", text(&card, "title"))];
@@ -342,16 +388,12 @@ pub fn public_post(achievement: &Value, language: &str, detailed: bool) -> Strin
         lines.push(format!("{duration}."));
     }
     if detailed {
-        for (icon, row) in [
-            "🔎", "⏱", "🏢", "📍", "📅", "⌛", "🔧", "🚦", "🛡", "🔄", "🖱", "📄",
-        ]
-        .iter()
-        .zip(card["rows"].as_array().unwrap())
-        {
+        let stats = public_stats(achievement);
+        for (key, label, icon) in POST_METRICS {
             lines.push(format!(
                 "{icon} {}: {}",
-                row[0].as_str().unwrap(),
-                row[1].as_str().unwrap()
+                crate::notifications::tr(label, language),
+                post_value(&stats, key, language)
             ));
         }
     }
@@ -364,6 +406,7 @@ pub fn share_url(network: &str) -> Option<&'static str> {
         "x" => Some("https://x.com/"),
         "facebook" => Some("https://www.facebook.com/"),
         "instagram" => Some("https://www.instagram.com/"),
+        "reddit" => Some("https://www.reddit.com/submit"),
         _ => None,
     }
 }

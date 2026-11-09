@@ -56,6 +56,7 @@ fn check_exports_against_python(op: &str) {
             "public" => {
                 json!({"post":public_post(value,language,input["detailed"].as_bool().unwrap_or(true)),"duration":public_duration(value,language),"card":public_card(value,language)})
             }
+            "share" => json!(ceh_services::exports::share_url(input["network"].as_str().unwrap())),
             "calendar" => match calendar(value, now) {
                 Ok(calendar) => {
                     json!({"calendar":calendar,"google":google_calendar_url(value).unwrap()})
@@ -76,6 +77,10 @@ fn snapshots_match_python() {
 #[test]
 fn public_models_and_posts_match_python() {
     check_exports_against_python("public");
+}
+#[test]
+fn share_urls_match_python() {
+    check_exports_against_python("share");
 }
 #[test]
 fn calendars_match_python() {
@@ -141,4 +146,18 @@ fn achievement_retains_unknown_legacy_quality_in_private_and_public_views() {
         updated["statistics_provenance"],
         record["statistics_provenance"]
     );
+}
+
+#[test]
+fn detailed_post_never_leaks_private_appointment_fields() {
+    let value = json!({
+        "id":"synthetic-id","recorded_at":"2026-10-14T12:00:00+00:00",
+        "statistics":{"checks":5,"started_at":"2026-09-27T12:00:00+00:00","name":"PRIVATE PERSON","confirmation":"PRIVATE CODE","captcha":"PRIVATE CAPTCHA"},
+        "appointment":{"date":"2026-10-22","time":"10:30","office":"PRIVATE OFFICE","address":"PRIVATE ADDRESS","confirmation":"PRIVATE CONFIRMATION","notes":"PRIVATE NOTE"}
+    });
+    for language in ["ru", "en", "es"] {
+        let post = public_post(&value, language, true);
+        assert!(!post.contains("PRIVATE") && !post.contains("2026-10-22") && !post.contains("10:30"), "{language}: {post}");
+        assert_eq!(post.lines().filter(|line| line.contains(": ")).count(), 17, "{language}: one line per metric");
+    }
 }

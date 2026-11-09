@@ -636,7 +636,7 @@ static TRANSLATIONS: LazyLock<Value> = LazyLock::new(|| {
     ))
     .expect("shipped translation catalog")
 });
-fn tr(text: &str, language: &str) -> String {
+pub(crate) fn tr(text: &str, language: &str) -> String {
     TRANSLATIONS[language][text]
         .as_str()
         .unwrap_or(text)

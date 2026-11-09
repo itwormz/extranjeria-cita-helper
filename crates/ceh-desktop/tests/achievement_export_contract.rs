@@ -74,3 +74,14 @@ fn png_validator_accepts_only_bounded_achievement_card_dimensions() {
         }
     }
 }
+
+#[test]
+fn reddit_is_an_accepted_share_network_and_unknown_networks_are_not() {
+    use ceh_desktop::achievement_exports::ExportAction;
+    for network in ["telegram", "x", "facebook", "instagram", "reddit"] {
+        let action: Result<ExportAction, _> = serde_json::from_value(serde_json::json!({"action":"prepare_text","network":network,"text":"hello"}));
+        assert!(action.is_ok(), "{network}");
+    }
+    let unknown: Result<ExportAction, _> = serde_json::from_value(serde_json::json!({"action":"prepare_text","network":"mastodon","text":"hello"}));
+    assert!(unknown.is_err());
+}

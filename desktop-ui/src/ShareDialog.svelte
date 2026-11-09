@@ -2,7 +2,7 @@
 import {onMount} from 'svelte';import {exportFeedback} from './export-feedback';import Icon from './Icon.svelte';import {loadPublicAchievement,achievementExport,type PublicAchievement} from './bridge';import {renderCard,pngBytes} from './achievement-card';
 let {profile,achievement,network,t,language,dark,onclose}:{profile:string;achievement:string;network:string;t:(key:string)=>string;language:string;dark:boolean;onclose:()=>void}=$props();
 let dialog:HTMLDialogElement;let mode=$state('text');let text=$state('');let model=$state<PublicAchievement|null>(null);let card=$state<HTMLCanvasElement|null>(null);let preview=$state<HTMLCanvasElement>();let failed=$state(false);let busy=$state(false);let result=$state('');
-const names:Record<string,string>={telegram:'Telegram',x:'X',facebook:'Facebook',instagram:'Instagram'};
+const names:Record<string,string>={telegram:'Telegram',x:'X',facebook:'Facebook',instagram:'Instagram',reddit:'Reddit'};
 onMount(()=>{dialog.showModal();let current=true;loadPublicAchievement(profile,achievement,language).then(async value=>{const image=await renderCard(value.card,dark);if(current){model=value;text=value.post;card=image;}}).catch(()=>{if(current)failed=true;});return()=>{current=false;dialog.close();};});
 $effect(()=>{if(mode==='card'&&preview&&card){preview.width=1200;preview.height=900;preview.getContext('2d')?.drawImage(card,0,0);}});
 async function prepare(){if(!model||busy)return;busy=true;failed=false;try{const request=mode==='text'?{action:'prepare_text',network,text}:{action:'prepare_image',network,png:await pngBytes(card!)};const value=await achievementExport(profile,achievement,language,request);result=exportFeedback(value);}catch{failed=true;}finally{busy=false;}}
