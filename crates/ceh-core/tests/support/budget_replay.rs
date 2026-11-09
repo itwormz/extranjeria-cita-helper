@@ -1,5 +1,5 @@
 //! Replays scenarios recorded from Python 0.3.6 (tests/contracts/budget_reference.py).
-use ceh_core::appointment_budget::{AppointmentBudget, AppointmentPolicy};
+use ceh_core::appointment_budget::{AppointmentBudget, AppointmentPolicy, BudgetError};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
@@ -104,6 +104,45 @@ pub fn run_scenario(scenario: &Value) -> Result<(), String> {
             "next_submission" => {
                 let hot = step["hot"].as_bool().unwrap();
                 Some(serde_json::to_value(budget.next_submission(at, &policy, hot)).unwrap())
+            }
+            "refresh" => {
+                budget.refresh(at, &policy);
+                None
+            }
+            "try_now" => {
+                budget.try_now(at, &policy);
+                None
+            }
+            "recalculate_restriction" => {
+                budget.recalculate_restriction(&policy);
+                None
+            }
+            "restriction_until" => Some(serde_json::to_value(budget.restriction_until()).unwrap()),
+            "set_daily_target" => {
+                // JSON values that are not a u32 (negative, bool) cannot be represented in Rust and count as rejected.
+                let target = &step["target"];
+                let result = if target.is_null() {
+                    budget.set_daily_target(None, at, &policy)
+                } else {
+                    match target.as_u64().and_then(|v| u32::try_from(v).ok()) {
+                        Some(v) => budget.set_daily_target(Some(v), at, &policy),
+                        None => Err(BudgetError::InvalidTarget),
+                    }
+                };
+                let expect_error = step.get("expect_error").and_then(Value::as_bool).unwrap_or(false);
+                match (result.is_err(), expect_error) {
+                    (true, false) => return Err(format!("{label}: unexpected {result:?}")),
+                    (false, true) => return Err(format!("{label}: expected rejection of {target}")),
+                    _ => None,
+                }
+            }
+            "set_distribution" => {
+                budget.set_distribution(step["disabled"].as_bool().unwrap(), at, &policy);
+                None
+            }
+            "summary" => {
+                let hot = step["hot"].as_bool().unwrap();
+                Some(serde_json::to_value(budget.summary(at, &policy, hot)).unwrap())
             }
             other => return Err(format!("{label}: unsupported op: {other}")),
         };
