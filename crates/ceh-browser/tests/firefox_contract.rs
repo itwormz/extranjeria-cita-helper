@@ -94,3 +94,21 @@ fn cancellation_and_symlinked_preferences_do_not_start_or_write_outside_owned_pr
         assert_eq!(std::fs::read_to_string(personal).unwrap(), "unchanged");
     }
 }
+
+/// Launches the installed Firefox (headless, temporary profile): run with `-- --ignored`.
+#[test]
+#[ignore = "launches the installed Firefox"]
+fn resume_needs_a_handed_off_live_browser_and_returns_ownership() {
+    use ceh_browser::firefox::OwnedFirefox;
+    use std::sync::atomic::AtomicBool;
+    let Ok(installation) = FirefoxInstallation::discover() else { return };
+    let runtime = tempfile::tempdir().unwrap();
+    let lease = ProfileLease::temporary(runtime.path()).unwrap();
+    let mut browser = OwnedFirefox::start(&installation, lease, true, &AtomicBool::new(false)).unwrap();
+    assert_eq!(browser.resume_automation(), Err(FirefoxError::Unavailable), "nothing was handed off");
+    browser.handoff();
+    assert_eq!(browser.stop(), Err(FirefoxError::ManualOwnership), "a handed-off browser is never closed by the app");
+    browser.resume_automation().unwrap();
+    assert_eq!(browser.resume_automation(), Err(FirefoxError::Unavailable), "a second resume has nothing to take back");
+    browser.stop().unwrap();
+}

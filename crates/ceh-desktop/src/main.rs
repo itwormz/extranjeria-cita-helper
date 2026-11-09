@@ -444,6 +444,14 @@ fn appointment_try_now(
         .budget_command(ceh_core::budget_commands::BudgetCommand::TryNow)
 }
 #[tauri::command]
+fn search_resume(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+) -> Result<(), &'static str> {
+    authorize(&window)?;
+    runtime.search.resume_search()
+}
+#[tauri::command]
 fn search_show(
     window: WebviewWindow,
     runtime: State<'_, DesktopRuntime>,
@@ -547,6 +555,7 @@ fn main() {
             search_snapshot,
             search_start,
             search_control,
+            search_resume,
             appointment_daily_target,
             appointment_distribution,
             appointment_try_now,

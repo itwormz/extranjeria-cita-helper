@@ -51,6 +51,8 @@ enum LiveCommand {
     Budget(BudgetCommand),
     /// Start a new pass from the entry page in the same session (Try now).
     FreshPass,
+    /// The person asked to continue searching after the booking handoff.
+    Resume,
     Timings(ceh_core::timings::AssistTimings),
 }
 struct Message {
@@ -116,6 +118,13 @@ impl SearchController {
             self.send_live(LiveCommand::FreshPass)?;
         }
         Ok(())
+    }
+    /// Continue searching after the date-selection handoff: only while the person owns the browser.
+    pub fn resume_search(&self) -> Result<(), &'static str> {
+        if !self.snapshot()?.manual {
+            return Err("search_not_manual");
+        }
+        self.send_live(LiveCommand::Resume)
     }
     /// Re-read the active profile's saved timings and appointment policy and apply them to the run.
     pub fn refresh_settings(&self, root: &Path) -> Result<(), &'static str> {
@@ -420,7 +429,7 @@ fn run_owned(
     let mut appointment_policy = appointment_policy.clone();
     let session =
         SessionId::new(uuid::Uuid::new_v4().to_string()).map_err(|_| "search_unavailable")?;
-    let gate = DispatchGate::new(session.clone());
+    let mut gate = DispatchGate::new(session.clone());
     *shared_gate.lock().map_err(|_| "search_unavailable")? = Some(gate.clone());
     let mut driver = SessionDriver::with_samples(
         browser.context(),
@@ -530,6 +539,54 @@ fn run_owned(
                         let now = crate::current_time()?;
                         if apply_budget_command(&mut budget, &mut appointment_policy, command, now).is_ok() {
                             budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+                        }
+                    }
+                    LiveCommand::Resume => {
+                        // Take the same browser back with a new control session; cookies and the site session stay.
+                        // A second request finds `manual` already false and is dropped.
+                        if manual && browser.resume_automation().is_ok() {
+                            let next = SessionId::new(uuid::Uuid::new_v4().to_string()).map_err(|_| "search_unavailable")?;
+                            gate = DispatchGate::new(next.clone());
+                            *shared_gate.lock().map_err(|_| "search_unavailable")? = Some(gate.clone());
+                            driver = SessionDriver::with_samples(
+                                &context,
+                                next.clone(),
+                                profile.clone(),
+                                timings.clone(),
+                                gate.clone(),
+                                ceh_browser::session_driver::SessionSamples {
+                                    first_bootstrap: unit_sample(),
+                                    second_bootstrap: unit_sample(),
+                                    reload: unit_sample(),
+                                    contact_typing: unit_sample(),
+                                },
+                            )
+                            .map_err(|_| "profile_invalid")?;
+                            presenter = crate::session_presentation::SessionPresentation::new(next, 3000);
+                            browser
+                                .connection()
+                                .call(
+                                    "browsingContext.navigate",
+                                    json!({"context": context, "url": "https://icp.administracionelectronica.gob.es/icpplus/index.html", "wait": "none"}),
+                                )
+                                .map_err(|_| "browser_resume_failed")?;
+                            manual = false;
+                            wait = false;
+                            read_failures = 0;
+                            retry_at = Instant::now();
+                            observer = ceh_core::budget_observer::BudgetObserver::default();
+                            update(state, |s| {
+                                s.manual = false;
+                                s.attention = false;
+                                s.page = None;
+                                s.deadline = None;
+                            })?;
+                            stats
+                                .set_phase(&mut db, "working", wall()?, mono())
+                                .map_err(|_| "statistics_unavailable")?;
+                            journal
+                                .event(JournalEvent::Resume, None, None, true, wall()?)
+                                .map_err(|_| "search_unavailable")?;
                         }
                     }
                     LiveCommand::FreshPass => {
@@ -1074,6 +1131,18 @@ mod live_command_tests {
         assert!(matches!(commands.try_recv(), Ok(LiveCommand::Budget(BudgetCommand::TryNow))));
         assert!(matches!(commands.try_recv(), Ok(LiveCommand::FreshPass)));
         assert!(commands.try_recv().is_err());
+    }
+
+    #[test]
+    fn resume_is_refused_unless_the_person_owns_the_browser() {
+        let (controller, commands, _messages) = running(false);
+        assert_eq!(controller.resume_search(), Err("search_not_manual"));
+        assert!(commands.try_recv().is_err());
+        let (controller, commands, _messages) = running(true);
+        assert_eq!(controller.resume_search(), Ok(()));
+        assert!(matches!(commands.try_recv(), Ok(LiveCommand::Resume)));
+        let idle = SearchController::default();
+        assert_eq!(idle.resume_search(), Err("search_not_manual"));
     }
 
     #[test]

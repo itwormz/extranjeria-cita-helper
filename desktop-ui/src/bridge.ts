@@ -62,5 +62,6 @@ export async function controlSearch(command:'pause'|'resume'|'stop'):Promise<voi
 export async function setDailyTarget(target:number|null):Promise<void>{return invoke('appointment_daily_target',{target});}
 export async function setDistributionToday(disabled:boolean):Promise<void>{return invoke('appointment_distribution',{disabled});}
 export async function tryAppointmentNow():Promise<void>{return invoke('appointment_try_now');}
+export async function resumeSearch():Promise<void>{return invoke('search_resume');}
 export async function showSearchBrowser():Promise<void>{return invoke('search_show');}
 export async function copySearchJournal():Promise<void>{return invoke('search_copy');}

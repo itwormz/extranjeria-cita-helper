@@ -5,6 +5,7 @@ fn main() {
             "search_snapshot",
             "search_start",
             "search_control",
+            "search_resume",
             "appointment_daily_target",
             "appointment_distribution",
             "appointment_try_now",

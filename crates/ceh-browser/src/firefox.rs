@@ -398,6 +398,16 @@ impl OwnedFirefox {
     pub fn handoff(&mut self) {
         self.manual = true;
     }
+    /// Take the browser back after a handoff, only on the person's explicit command ("continue searching").
+    /// The browser keeps its session; it must still be running and reachable.
+    pub fn resume_automation(&mut self) -> Result<(), FirefoxError> {
+        let reachable = self.connection.as_ref().is_some_and(BidiConnection::available);
+        if !self.manual || !reachable || self.child.is_none() {
+            return Err(FirefoxError::Unavailable);
+        }
+        self.manual = false;
+        Ok(())
+    }
     pub fn stop(&mut self) -> Result<(), FirefoxError> {
         if self.manual {
             return Err(FirefoxError::ManualOwnership);
