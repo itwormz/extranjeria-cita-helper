@@ -218,13 +218,16 @@ pub fn profile_statistics_at(
     if !profiles.profiles.iter().any(|profile| profile.id == id) {
         return Err("profile_not_found");
     }
-    // Notices seen before the database knew their session (journals of an earlier app) are matched now.
-    // Best effort: only an existing, migrated database is written; failures never block the dashboard.
-    let _ = ceh_store::notices::restore_applicant_notices_file(
-        &root.join("data/profile-statistics.sqlite3"),
-        id,
-        &root.join("diagnostics"),
-    );
+    // Notices seen before the database knew their session are matched now. Journals live in the Python
+    // debug folder (`<runtime>/debug`) or in this app's diagnostics folder. Best effort: only an existing,
+    // migrated database is written, and a failure never blocks the dashboard.
+    for journals in [root.join("debug"), root.join("data/diagnostics")] {
+        let _ = ceh_store::notices::restore_applicant_notices_file(
+            &root.join("data/profile-statistics.sqlite3"),
+            id,
+            &journals,
+        );
+    }
     let mut data = ceh_store::statistics::dashboard_file(
         &root.join("data/profile-statistics.sqlite3"),
         id,

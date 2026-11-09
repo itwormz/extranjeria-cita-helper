@@ -45,6 +45,7 @@ tempfile = "=3.27.0"
 tauri-build = { version = "=2.7.4", optional = true , features = [] }
 
 [dev-dependencies]
+rusqlite.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = {version="=0.6.5",optional=true}

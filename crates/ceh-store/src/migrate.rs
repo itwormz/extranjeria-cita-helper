@@ -530,6 +530,8 @@ fn migrate_connection(
             return Err(StoreError::UnsupportedSchema);
         }
         validate_schema(db, true)?;
+        // Additive tables introduced after a database was marked ready (idempotent CREATE IF NOT EXISTS).
+        db.execute_batch(include_str!("schema.sql"))?;
         return Ok(MigrationResult {
             already_ready: true,
             backup: None,

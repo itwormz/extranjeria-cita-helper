@@ -278,3 +278,22 @@ fn migration_adds_notice_tables_to_an_existing_database_without_touching_rows() 
     let events: i64 = db.query_row("SELECT COUNT(*) FROM events", [], |r| r.get(0)).unwrap();
     assert_eq!(events, 1);
 }
+
+#[test]
+fn already_ready_database_gets_the_notice_tables_added() {
+    let scratch = Scratch::new();
+    let options = scratch.options();
+    migrate_paths(&options, 1793275200000).unwrap();
+    let db = Connection::open(&options.database).unwrap();
+    db.execute_batch("DROP TABLE applicant_notices;DROP TABLE pending_applicant_notices;").unwrap();
+    let marker: String = db.query_row("SELECT value FROM metadata WHERE key='rust_core_ready_v1'", [], |r| r.get(0)).unwrap();
+    assert_eq!(marker, "1", "the database is already marked ready by an earlier build");
+    drop(db);
+    let again = migrate_paths(&options, 1793275200000).unwrap();
+    assert!(again.already_ready);
+    let db = Connection::open(&options.database).unwrap();
+    for table in ["applicant_notices", "pending_applicant_notices"] {
+        let found: i64 = db.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1", [table], |r| r.get(0)).unwrap();
+        assert_eq!(found, 1, "{table}");
+    }
+}

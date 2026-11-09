@@ -108,6 +108,12 @@ pub fn restore_applicant_notices(db: &mut Connection, profile: &str, root: &Path
         .map_err(|_| StoreError::Unavailable)?;
         tx.commit().map_err(|_| StoreError::Unavailable)?;
     }
+    let queued: i64 = db
+        .query_row("SELECT COUNT(*) FROM pending_applicant_notices WHERE profile=?1", [profile], |r| r.get(0))
+        .map_err(|_| StoreError::Unavailable)?;
+    if queued == 0 {
+        return Ok(0);
+    }
     let tx = db
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(|_| StoreError::Unavailable)?;
@@ -153,11 +159,15 @@ pub fn restore_applicant_notices(db: &mut Connection, profile: &str, root: &Path
 /// notice tables is left untouched (reads never create or migrate storage).
 pub fn restore_applicant_notices_file(database: &Path, profile: &str, root: &Path) -> Result<usize, StoreError> {
     use rusqlite::OpenFlags;
-    if !database.is_file() {
+    // Only a regular file: never follow a link into someone else's data.
+    if !std::fs::symlink_metadata(database).is_ok_and(|meta| meta.file_type().is_file()) {
         return Ok(0);
     }
     let mut db = Connection::open_with_flags(database, OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX)
         .map_err(|_| StoreError::Unavailable)?;
+    // A dashboard refresh must not stall behind a running search.
+    db.busy_timeout(std::time::Duration::from_millis(100)).map_err(|_| StoreError::Unavailable)?;
+    // Written only after this app migrated the file (ready marker) and the notice tables exist.
     let ready: bool = db
         .query_row(
             "SELECT COUNT(*) = 3 FROM sqlite_master WHERE type='table' AND name IN ('applicant_notices','pending_applicant_notices','sessions')",
@@ -165,7 +175,11 @@ pub fn restore_applicant_notices_file(database: &Path, profile: &str, root: &Pat
             |r| r.get(0),
         )
         .map_err(|_| StoreError::Unavailable)?;
-    if !ready {
+    let marked: bool = ready
+        && db
+            .query_row("SELECT EXISTS(SELECT 1 FROM metadata WHERE key='rust_core_ready_v1' AND value='1')", [], |r| r.get(0))
+            .map_err(|_| StoreError::Unavailable)?;
+    if !marked {
         return Ok(0);
     }
     restore_applicant_notices(&mut db, profile, root)

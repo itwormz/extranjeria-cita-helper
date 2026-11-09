@@ -145,6 +145,10 @@ fn file_restore_needs_an_existing_migrated_database_and_never_creates_one() {
     let db = database_at(&path);
     session(&db, "s1", "2026-10-30T09:00:00+00:00", None);
     drop(db);
+    assert_eq!(restore_applicant_notices_file(&path, "fixture", root.path()), Ok(0), "a database without the ready marker is not written");
+    let db = Connection::open(&path).unwrap();
+    db.execute("INSERT INTO metadata VALUES ('rust_core_ready_v1','1')", []).unwrap();
+    drop(db);
     assert_eq!(restore_applicant_notices_file(&path, "fixture", root.path()), Ok(1));
 }
 
@@ -152,4 +156,29 @@ fn database_at(path: &Path) -> Connection {
     let db = Connection::open(path).unwrap();
     db.execute_batch(include_str!("../src/schema.sql")).unwrap();
     db
+}
+
+#[cfg(unix)]
+#[test]
+fn a_linked_database_file_is_never_written() {
+    use ceh_store::notices::restore_applicant_notices_file;
+    let root = tempfile::tempdir().unwrap();
+    fs::write(journal(root.path(), "fixture-a"), visit("doc-a", "2026-10-30T10:00:00+00:00")).unwrap();
+    let real = root.path().join("real.sqlite3");
+    let db = database_at(&real);
+    session(&db, "s1", "2026-10-30T09:00:00+00:00", None);
+    db.execute("INSERT INTO metadata VALUES ('rust_core_ready_v1','1')", []).unwrap();
+    drop(db);
+    let link = root.path().join("link.sqlite3");
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    assert_eq!(restore_applicant_notices_file(&link, "fixture", root.path()), Ok(0));
+}
+
+#[test]
+fn journal_time_with_local_offset_and_milliseconds_is_stored_in_utc() {
+    let (mut db, root) = (database(), tempfile::tempdir().unwrap());
+    session(&db, "s1", "2026-10-30T09:00:00+00:00", None);
+    fs::write(journal(root.path(), "fixture-a"), visit("doc-a", "2026-10-30T11:00:00.123+01:00")).unwrap();
+    assert_eq!(restore_applicant_notices(&mut db, "fixture", root.path()).unwrap(), 1);
+    assert_eq!(notices(&db)[0].2, "2026-10-30T10:00:00.123000+00:00");
 }

@@ -414,3 +414,19 @@ fn appointment_offices_keep_last_observed_and_legacy_default_without_creating_db
         .unwrap();
     assert_eq!(data.1, "Legacy office");
 }
+
+#[test]
+fn reader_tolerates_a_database_without_the_notice_table_and_evidence_column() {
+    let old_schema: String = include_str!("../src/schema.sql")
+        .lines()
+        .filter(|line| !line.contains("applicant_notices"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let db = Connection::open_in_memory().unwrap();
+    db.execute_batch(&old_schema).unwrap();
+    db.execute_batch("INSERT INTO episodes(profile,session,kind,stage,mode,document,start,last_seen) VALUES ('fixture','s','page','applicant_no_slots','','d1','2026-10-30T08:00:00+00:00','2026-10-30T08:00:00+00:00'),('fixture','s','page','request_no_slots','','d2','2026-10-30T08:10:00+00:00','2026-10-30T08:10:00+00:00');").unwrap();
+    let summary = StatisticsReader::new(&db).summary("fixture", Period::All, now()).unwrap();
+    assert_eq!((summary["banners"].as_i64(), summary["no_slots"].as_i64(), summary["cod_oper_count"].as_i64()), (Some(1), Some(1), Some(0)));
+    let tables: i64 = db.query_row("SELECT COUNT(*) FROM sqlite_master WHERE name LIKE '%notice%'", [], |r| r.get(0)).unwrap();
+    assert_eq!(tables, 0, "reading never creates tables");
+}
