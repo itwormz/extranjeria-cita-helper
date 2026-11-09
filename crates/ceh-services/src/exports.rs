@@ -5,6 +5,8 @@ use chrono::{
 };
 use chrono_tz::Tz;
 use serde_json::{Value, json};
+mod card;
+pub use card::card_layout;
 const COUNTS: &[&str] = &[
     "checks",
     "offices_seen",

@@ -29,7 +29,10 @@ fn exports_resolve_local_record_and_never_include_booking_secrets_in_public_mode
         assert!(!text.contains(private));
     }
     assert!(model["post"].as_str().unwrap().contains("48"));
-    assert_eq!(model["card"]["width"], 1200);
+    assert_eq!(model["layouts"]["dark"]["width"], 1200);
+    assert_eq!(model["layouts"]["dark"]["height"], 1240);
+    assert_ne!(model["layouts"]["dark"]["background"], model["layouts"]["light"]["background"]);
+    assert!(model.get("card").is_none());
     let calendar =
         ceh_desktop::achievement_exports::calendar_model(root.path(), "fixture", id).unwrap();
     assert!(
@@ -55,7 +58,7 @@ fn exports_resolve_local_record_and_never_include_booking_secrets_in_public_mode
 fn png_validator_accepts_only_bounded_achievement_card_dimensions() {
     assert!(ceh_desktop::achievement_exports::decode_card(b"not png").is_err());
     assert!(ceh_desktop::achievement_exports::decode_card(&vec![0; 8 * 1024 * 1024 + 1]).is_err());
-    for (w, h, ok) in [(1200, 900, true), (12, 9, false)] {
+    for (w, h, ok) in [(1200, 1240, true), (1200, 900, false), (12, 9, false)] {
         let mut bytes = Vec::new();
         {
             let mut encoder = png::Encoder::new(&mut bytes, w, h);
@@ -70,7 +73,7 @@ fn png_validator_accepts_only_bounded_achievement_card_dimensions() {
         let result = ceh_desktop::achievement_exports::decode_card(&bytes);
         assert_eq!(result.is_ok(), ok);
         if let Ok(rgba) = result {
-            assert_eq!(rgba.len(), 1200 * 900 * 4);
+            assert_eq!(rgba.len(), 1200 * 1240 * 4);
         }
     }
 }

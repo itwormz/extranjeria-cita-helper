@@ -161,3 +161,29 @@ fn detailed_post_never_leaks_private_appointment_fields() {
         assert_eq!(post.lines().filter(|line| line.contains(": ")).count(), 17, "{language}: one line per metric");
     }
 }
+
+#[test]
+fn card_layout_matches_python_draw_calls() {
+    let data: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/contracts/fixtures/achievement-card-0.3.6.json"
+    ))
+    .unwrap();
+    let cases = data["cases"].as_array().unwrap();
+    assert!(cases.len() >= 10);
+    for case in cases {
+        let achievement = json!({"statistics": case["statistics"], "recorded_at": "2026-10-14T12:00:00+00:00"});
+        let layout = ceh_services::exports::card_layout(
+            &achievement,
+            case["language"].as_str().unwrap(),
+            case["dark"].as_bool().unwrap(),
+        );
+        assert_eq!(layout["width"], case["size"][0], "{}", case["id"]);
+        assert_eq!(layout["height"], case["size"][1], "{}", case["id"]);
+        assert_eq!(layout["background"], case["background"], "{}", case["id"]);
+        let (actual, expected) = (layout["ops"].as_array().unwrap(), case["ops"].as_array().unwrap());
+        assert_eq!(actual.len(), expected.len(), "{} op count", case["id"]);
+        for (index, (actual, expected)) in actual.iter().zip(expected).enumerate() {
+            assert_eq!(actual, expected, "{} op {index}", case["id"]);
+        }
+    }
+}

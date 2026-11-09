@@ -47,8 +47,15 @@ export async function loadAppointmentContext(id:string):Promise<AppointmentConte
 export async function saveAppointment(id:string,achievementId:string|null,draft:AppointmentDraft):Promise<Achievement>{if(!isTauri())throw new Error('native_required');return invoke('save_appointment',{id,achievementId,draft});}
 export async function copyAppointmentField(id:string,achievementId:string,field:'office'|'address'|'confirmation'):Promise<void>{if(!isTauri())throw new Error('native_required');await invoke('copy_appointment_field',{id,achievementId,field});}
 
-export interface PublicCard {title:string;duration:string;rows:[string,string][];credit:string;width:number;height:number;top_strip_height:number}
-export interface PublicAchievement {card:PublicCard;post:string}
+export interface CardBox {op:'box';x:number;y:number;w:number;h:number;color:string;border:string|null;radius:number}
+export interface CardTextOp {op:'text';x:number;y:number;w:number;h:number;value:string;size:number;color:string;bold:boolean;right:boolean;wrap:boolean}
+export type CardOp=CardBox|CardTextOp
+ |{op:'line';x:number;y:number;w:number;color:string}
+ |{op:'stroke';color:string;width:number;x1:number;y1:number;x2:number;y2:number}
+ |{op:'icon';name:string;x:number;y:number;size:number;color:string}
+ |{op:'save'}|{op:'restore'}|{op:'translate';x:number;y:number}|{op:'rotate';angle:number};
+export interface CardLayout {width:number;height:number;background:string;ops:CardOp[]}
+export interface PublicAchievement {layouts:{dark:CardLayout;light:CardLayout};post:string}
 export interface CalendarPreview {date:string;time:string;office:string;address:string;google_url:string}
 export async function loadPublicAchievement(id:string,achievementId:string,language:string):Promise<PublicAchievement>{if(!isTauri())throw new Error('native_required');return invoke('achievement_public',{id,achievementId,language});}
 export async function loadCalendar(id:string,achievementId:string):Promise<CalendarPreview>{if(!isTauri())throw new Error('native_required');return invoke('achievement_calendar',{id,achievementId});}

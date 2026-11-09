@@ -12,7 +12,7 @@ pub fn public_model(root: &Path, id: &str, key: &str, lang: &str) -> Result<Valu
     language(lang)?;
     let record = crate::appointment::achievement(root, id, key)?;
     Ok(
-        json!({"card":ceh_services::exports::public_card(&record,lang),"post":ceh_services::exports::public_post(&record,lang,true)}),
+        json!({"layouts":{"dark":ceh_services::exports::card_layout(&record,lang,true),"light":ceh_services::exports::card_layout(&record,lang,false)},"post":ceh_services::exports::public_post(&record,lang,true)}),
     )
 }
 pub fn calendar_model(root: &Path, id: &str, key: &str) -> Result<Value, &'static str> {
@@ -42,7 +42,7 @@ pub fn decode_card(bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
     let mut reader = decoder.read_info().map_err(|_| "image_invalid")?;
     let info = reader.info();
     if info.width != 1200
-        || info.height != 900
+        || info.height != 1240
         || info.bit_depth != png::BitDepth::Eight
         || !matches!(info.color_type, png::ColorType::Rgb | png::ColorType::Rgba)
     {
@@ -95,7 +95,7 @@ pub fn copy_image(bytes: &[u8]) -> Result<(), &'static str> {
         .ok_or("clipboard_unavailable")?
         .set_image(arboard::ImageData {
             width: 1200,
-            height: 900,
+            height: 1240,
             bytes: std::borrow::Cow::Owned(rgba),
         })
         .map_err(|_| "clipboard_unavailable")
@@ -262,7 +262,7 @@ pub fn clean_png(bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
     let pixels = decode_card(bytes)?;
     let mut result = Vec::new();
     {
-        let mut encoder = png::Encoder::new(&mut result, 1200, 900);
+        let mut encoder = png::Encoder::new(&mut result, 1200, 1240);
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_depth(png::BitDepth::Eight);
         encoder
