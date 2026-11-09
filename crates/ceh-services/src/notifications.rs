@@ -58,7 +58,13 @@ pub fn settings(raw: &Value) -> Value {
     }
     value
 }
+const TRANSIENT_SCREEN: &str = "Проверяем страницу";
 pub fn state_event(state: &Value) -> Option<&'static str> {
+    state_event_with(state, false)
+}
+/// Python 0.3.6 `state_event`: with `include_transient` the brief "inspecting the same office page"
+/// state of a working/waiting search still counts as the office screen.
+pub fn state_event_with(state: &Value, include_transient: bool) -> Option<&'static str> {
     if yes(state, "failed") {
         return Some("error");
     }
@@ -72,7 +78,15 @@ pub fn state_event(state: &Value) -> Option<&'static str> {
     if yes(state, "booking_handoff") {
         return Some("booking");
     }
-    if state["mode"] != "manual" {
+    if include_transient
+        && state["screen"] == TRANSIENT_SCREEN
+        && state["stage"] == "office"
+        && state["document"].as_str().is_some_and(|document| !document.is_empty())
+        && matches!(state["mode"].as_str(), Some("manual" | "working" | "waiting"))
+    {
+        return Some("office");
+    }
+    if state["mode"] != "manual" && !(include_transient && state["mode"] == "working") {
         return None;
     }
     match state["screen"].as_str() {
@@ -84,9 +98,10 @@ pub fn state_event(state: &Value) -> Option<&'static str> {
         _ => None,
     }
 }
+type RouterKey = (Value, Value, &'static str);
 #[derive(Default)]
 pub struct EventRouter {
-    last: Option<(Value, &'static str)>,
+    last: Option<RouterKey>,
 }
 impl EventRouter {
     pub fn observe(&mut self, state: &Value) -> Option<&'static str> {
@@ -94,10 +109,22 @@ impl EventRouter {
             return None;
         }
         let event = state_event(state);
-        let next = event.map(|kind| (state["run_id"].clone(), kind));
-        let changed = next != self.last;
-        self.last = next;
-        if changed { event } else { None }
+        let active = state_event_with(state, true);
+        let document = if active == Some("office") { state["document"].clone() } else { Value::Null };
+        let identity = (state["run_id"].clone(), document);
+        // The runner briefly publishes working mode while inspecting the same attention screen;
+        // an alert that was already queued must not be re-armed.
+        if event.is_none()
+            && let (Some((run, doc, last_kind)), Some(active)) = (&self.last, active)
+            && *run == identity.0
+            && *doc == identity.1
+            && *last_kind == active
+        {
+            return None;
+        }
+        let key = event.map(|kind| (identity.0, identity.1, kind));
+        let previous = std::mem::replace(&mut self.last, key.clone());
+        if key.is_some() && key != previous { event } else { None }
     }
 }
 #[derive(Clone)]
@@ -143,7 +170,7 @@ pub struct NotificationPlanner {
     router: EventRouter,
     telegram_router: EventRouter,
     profile: Option<String>,
-    kind: Option<&'static str>,
+    visit: Option<Value>,
     cancellation: Cancellation,
     closed: bool,
 }
@@ -153,7 +180,7 @@ impl Default for NotificationPlanner {
             router: EventRouter::default(),
             telegram_router: EventRouter::default(),
             profile: None,
-            kind: None,
+            visit: None,
             cancellation: Cancellation::new(),
             closed: false,
         }
@@ -168,7 +195,7 @@ impl NotificationPlanner {
         self.invalidate();
         self.router = EventRouter::default();
         self.telegram_router = EventRouter::default();
-        self.kind = None;
+        self.visit = None;
     }
     pub fn stop(&mut self) {
         self.reset();
@@ -193,9 +220,22 @@ impl NotificationPlanner {
         }
         let event = self.router.observe(state);
         let kind = state_event(state);
-        if kind != self.kind {
+        // A different attention visit (another office page, another run) cancels pending deliveries.
+        let mut active = state_event_with(state, true);
+        if active.is_none() && (yes(state, "paused") || yes(state, "connection_lost")) {
+            // Keep the retained office visit through an interruption.
+            let mut resumed = state.clone();
+            resumed["paused"] = json!(false);
+            resumed["connection_lost"] = json!(false);
+            if state_event_with(&resumed, true) == Some("office") {
+                active = Some("office");
+            }
+        }
+        let document = if active == Some("office") { state["document"].clone() } else { Value::Null };
+        let visit = json!([profile, state["run_id"], document, active]);
+        if self.visit.as_ref() != Some(&visit) {
             self.invalidate();
-            self.kind = kind;
+            self.visit = Some(visit);
         }
         let telegram_event = if kind == Some("booking") && yes(state, "booking_details_pending") {
             None
@@ -221,7 +261,7 @@ impl NotificationPlanner {
                 continue;
             }
             let message = if channel == "telegram" {
-                telegram_message(&payload, language, &state["booking_details"])
+                telegram_message(&payload, language, &state["booking_details"], &state["available_offices"])
             } else {
                 text(&payload, "message", "").into()
             };
@@ -561,7 +601,41 @@ pub fn make_event_with_metadata(
         json!({"schema_version":1,"event_id":event_id,"event":kind,"timestamp":timestamp,"profile":profile,"province":province,"action_required":kind!="test","message":format!("{}\n\n{}: {profile}\n{}: {province}\n\n{}\n\nCita Extranjeria Helper",tr(title,language),tr("Профиль",language),tr("Провинция",language),tr(action,language))}),
     )
 }
-pub fn telegram_message(event: &Value, language: &str, details: &Value) -> String {
+const MAX_OFFICE_ROWS: usize = 10;
+fn office_names(offices: &Value) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+    for name in offices.as_array().into_iter().flatten().filter_map(Value::as_str) {
+        let name: String = name.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(240).collect();
+        if !name.is_empty() && !names.contains(&name) {
+            names.push(name);
+        }
+    }
+    names
+}
+/// Telegram text only; the webhook payload keeps the plain event message.
+/// `offices` is the list of offered office names (or null) for `office` events.
+pub fn telegram_message(event: &Value, language: &str, details: &Value, offices: &Value) -> String {
+    if event["event"] == "office" && offices.is_array() {
+        let names = office_names(offices);
+        if names.is_empty() {
+            return text(event, "message", "").into();
+        }
+        let mut rows: Vec<String> = names.iter().take(MAX_OFFICE_ROWS).map(|name| format!("• {name}")).collect();
+        if names.len() > MAX_OFFICE_ROWS {
+            rows.push(tr("Ещё офисов: {count}", language).replace("{count}", &(names.len() - MAX_OFFICE_ROWS).to_string()));
+        }
+        return format!(
+            "🏢 {}\n\n{}: {}\n{}: {}\n\n{}:\n{}\n\n{}\n\nCita Extranjeria Helper",
+            tr("Требуется выбрать офис", language),
+            tr("Профиль", language),
+            text(event, "profile", ""),
+            tr("Провинция", language),
+            text(event, "province", ""),
+            tr("Доступные офисы", language),
+            rows.join("\n"),
+            tr("Выбрать офис в Camoufox.", language)
+        );
+    }
     if event["event"] != "booking" || !details.is_object() {
         return text(event, "message", "").into();
     }

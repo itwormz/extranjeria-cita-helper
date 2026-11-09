@@ -74,7 +74,7 @@ fn notification_payloads_match_python_in_three_languages() {
         .unwrap();
         let actual = match op {
             "message" => {
-                json!({"text":telegram_message(&event,input["language"].as_str().unwrap_or("en"),&input["details"]),"event":event})
+                json!({"text":telegram_message(&event,input["language"].as_str().unwrap_or("en"),&input["details"],&json!(null)),"event":event})
             }
             "router" => {
                 let mut router = EventRouter::default();
