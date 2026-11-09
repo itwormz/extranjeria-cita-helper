@@ -288,3 +288,21 @@ fn per_profile_browser_defaults_to_firefox_roundtrips_and_rejects_unsupported_ch
     ));
     assert_eq!(std::fs::read(&path).unwrap(), before);
 }
+
+#[test]
+fn distribute_attempts_survives_save_and_reload() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("tasks.yml");
+    let source = source().replace(
+        "    access_mode: certificate\n",
+        "    access_mode: certificate\n    appointment_protection:\n      distribute_attempts: true\n",
+    );
+    assert!(source.contains("distribute_attempts: true"));
+    std::fs::write(&path, &source).unwrap();
+    let revision = decode_profiles(source.as_bytes(), &catalog(), "ru").unwrap().revision().to_owned();
+    let mut edited = draft(&source);
+    edited.label = "Renamed".into();
+    save_profile(&path, Some("fixture"), edited, &revision, &catalog()).unwrap();
+    let reloaded = decode_profiles(&std::fs::read(&path).unwrap(), &catalog(), "ru").unwrap();
+    assert!(reloaded.profiles[0].appointment_policy.as_ref().unwrap().distribute_attempts);
+}

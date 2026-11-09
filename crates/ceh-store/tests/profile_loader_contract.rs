@@ -69,3 +69,41 @@ fn missing_file_is_a_clean_first_start_without_creating_it() {
     );
     assert!(!path.exists());
 }
+
+fn loaded_with_protection(protection: &str) -> LoadedProfile {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/contracts/fixtures/legacy-profiles.json"
+    ))
+    .unwrap();
+    let catalog: ProfileCatalog = serde_json::from_value(fixture["catalog"].clone()).unwrap();
+    let source = format!(
+        "tasks:\n- id: fixture\n  label: Fixture\n  request:\n    province: Fixture Province\n    procedure: POLICÍA-TOMA DE HUELLAS (EXPEDICIÓN DE TARJETA) INICIAL, RENOVACIÓN, DUPLICADO Y LEY 14/2013\n    access_mode: certificate\n{protection}  applicant:\n    document_type: NIE\n    document_number: X0000000T\n    full_name: FICTITIOUS PERSON\n    nationality: FIXTURE NATIONALITY\n    contact:\n      phone: '600000000'\n      email: fixture@example.test\n"
+    );
+    decode_profiles(source.as_bytes(), &catalog, "en")
+        .unwrap()
+        .profiles
+        .into_iter()
+        .next()
+        .unwrap()
+}
+
+#[test]
+fn existing_profile_without_distribute_attempts_defaults_to_false() {
+    let loaded = loaded_with_protection("");
+    assert!(!loaded.appointment_policy.unwrap().distribute_attempts);
+    let loaded = loaded_with_protection("    appointment_protection:\n      daily_target: 5\n");
+    assert!(!loaded.appointment_policy.unwrap().distribute_attempts);
+}
+
+#[test]
+fn distribute_attempts_true_is_read() {
+    let loaded = loaded_with_protection("    appointment_protection:\n      distribute_attempts: true\n");
+    assert!(loaded.appointment_policy.unwrap().distribute_attempts);
+}
+
+#[test]
+fn non_boolean_distribute_attempts_is_rejected() {
+    let loaded = loaded_with_protection("    appointment_protection:\n      distribute_attempts: 'yes'\n");
+    assert!(loaded.appointment_policy.is_none());
+    assert!(loaded.validation.errors.iter().any(|e| e == "Invalid appointment protection settings"));
+}
