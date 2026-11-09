@@ -6,7 +6,7 @@ onMount(()=>{dialog.showModal();return()=>dialog.close();});
 </script>
 <dialog class="budget-history" bind:this={dialog} oncancel={e=>{e.preventDefault();onclose();}}>
 <h2>{t('История возможных ограничений')}</h2>
-<div class="lines" tabindex="0">{#if lines.length}{#each lines as line}<p>{line||' '}</p>{/each}{:else}<p class="muted">{t('Эпизодов пока нет')}</p>{/if}</div>
+<div class="lines" tabindex="0" role="region" aria-label={t('История возможных ограничений')}>{#if lines.length}{#each lines as line}<p>{line||' '}</p>{/each}{:else}<p class="muted">{t('Эпизодов пока нет')}</p>{/if}</div>
 <div class="actions"><button type="button" onclick={onclose}>{t('Закрыть')}</button></div>
 </dialog>
 <style>
