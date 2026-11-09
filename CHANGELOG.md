@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.3.6 — Windows folder fixes and achievement card
+
+- Start the browser on Windows when the application or its data is in a folder with non-ASCII characters, such as a Cyrillic user name or `Загрузки`. The fingerprint model is now read through a Unicode-aware file handle, and the TLS intermediate cache loads the browser's NSS library through the folder's short Windows path. If the cache still cannot be opened, the browser starts anyway; HTTPS validation stays strict.
+
+- Update the README workflow diagrams in all three languages and both themes: refresh the applicant form while the no-appointments message is visible, restart from sign-in when it disappears, and submit only after a pass without that message.
+
+- Add Reddit to achievement sharing and include the full current statistics in prepared text posts as well as PNG cards.
+
+- Refresh the shareable booking achievement card with a celebratory header, application icons and the full current search statistics in all three languages and both themes. New achievements preserve no-appointment counters, cod. oper responses, search days and first-event durations; unavailable fields in older snapshots remain unknown.
+
+- Keep translated donation buttons and the achievement header inside narrow windows. Size the Camoufox action to its label and preserve button content space when focused.
+
 ## 0.3.5 — Submission pacing and Telegram alerts
 
 - Include available office names and addresses in Telegram office-selection alerts. Repeated checks of the same office-selection page no longer send the alert again.

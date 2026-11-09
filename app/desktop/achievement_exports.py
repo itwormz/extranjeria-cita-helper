@@ -8,7 +8,7 @@ from .achievements import snapshot
 CALENDAR_TITLE = 'Extranjería — Cita'
 
 _LABELS = {
-'en': ('Sita obtained', 'days of searching', 'Checks', 'Active search', 'Office appearances', 'Unique offices', 'Booking screens', 'First availability', 'Server errors', 'HTTP 429 responses', 'Blocked responses', 'Passes from the start', 'Actions performed', 'Pages processed'),
+'en': ('Appointment booked', 'days of searching', 'Checks', 'Active search', 'Office appearances', 'Unique offices', 'Booking screens', 'First availability', 'Server errors', 'HTTP 429 responses', 'Blocked responses', 'Passes from the start', 'Actions performed', 'Pages processed'),
 'es': ('Cita conseguida', 'días de búsqueda', 'Comprobaciones', 'Búsqueda activa', 'Apariciones de oficinas', 'Oficinas distintas', 'Pantallas de cita', 'Primera disponibilidad', 'Errores del servidor', 'Respuestas HTTP 429', 'Bloqueos', 'Recorridos desde el inicio', 'Acciones realizadas', 'Páginas procesadas'),
 'ru': ('Сита получена', 'дней поиска', 'Проверки', 'Активный поиск', 'Появления офисов', 'Разные офисы', 'Экраны записи', 'Первая доступность', 'Ошибки сервера', 'Ответы HTTP 429', 'Блокировки', 'Проходы с начала', 'Действий выполнено', 'Страниц обработано'),
 }
@@ -64,8 +64,28 @@ def public_post(achievement, language='en', detailed=False):
     search_duration=public_duration(achievement,language)
     if search_duration!='—':lines.append(search_duration+'.')
     if detailed:
-        icons=('🔎','⏱','🏢','📍','📅','⌛','🔧','🚦','🛡','🔄','🖱','📄')
-        lines.extend(f'{icon} {label}: {value}' for icon,(label,value) in zip(icons,rows))
+        from .i18n import translate
+        stats = snapshot(achievement.get('statistics', {}))
+        metrics = (
+            ('checks','Проверок сит','🔎'), ('active_seconds','Активный поиск','⏱'),
+            ('days','Дни с поиском','🗓'), ('offices_seen','Появлений офисов','🏢'),
+            ('unique_offices','Разных офисов','📍'), ('booking_screens','Появления выбора даты','📅'),
+            ('banners','«Сит нет» до запроса','📋'),
+            ('no_slots','Ответы «Сит нет» на запрос записи','💬'),
+            ('server_errors','Ошибок сервера','🔧'), ('rate_limited','Ограничений HTTP 429','🚦'),
+            ('blocked','Ограничения доступа','🛡'), ('flow_passes','Повторные проходы','🔄'),
+            ('cod_oper_count','Ответы «Сит нет» с cod. oper','⚠'),
+            ('actions_performed','Действий выполнено','🖱'), ('pages_processed','Страниц обработано','📄'),
+            ('first_office_seconds','Первый офис','🕒'), ('first_booking_seconds','Первый выбор даты','📆'))
+        for key, label, icon in metrics:
+            value = stats.get(key)
+            if value is None:
+                value = '—'
+            elif key.endswith('_seconds'):
+                value = f'{int(value)} {translate("с",language)}' if value < 60 else _duration(value,language)
+                if stats.get(key.removesuffix('_seconds') + '_active_quality') == 'minimum':
+                    value = '≥ ' + value
+            lines.append(f'{icon} {translate(label,language)}: {value}')
     lines.append(_credit(language))
     return '\n'.join(lines)
 
@@ -75,7 +95,7 @@ def _credit(language):
 
 
 def share_url(network, text=''):
-    return {'telegram':'https://web.telegram.org/','x':'https://x.com/','facebook':'https://www.facebook.com/','instagram':'https://www.instagram.com/'}.get(network)
+    return {'telegram':'https://web.telegram.org/','x':'https://x.com/','facebook':'https://www.facebook.com/','instagram':'https://www.instagram.com/','reddit':'https://www.reddit.com/submit'}.get(network)
 
 
 def _ics_escape(value):
@@ -137,38 +157,5 @@ def write_calendar(achievement, path):
 
 
 def render_card(achievement, language='en', dark=True):
-    from PySide6.QtCore import QRect, Qt
-    from PySide6.QtGui import QColor, QFont, QImage, QPainter
-    labels, days, rows = _public(achievement, language)
-    image = QImage(1200, 900, QImage.Format.Format_ARGB32)
-    from .theme import theme_colors
-    colors=theme_colors(dark)
-    image.fill(QColor(colors['surface']))
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    text = QColor(colors['text'])
-    muted = QColor(colors['muted'])
-    green = QColor(colors['success'])
-    painter.fillRect(0, 0, 1200, 7, green)
-    def draw(rect, value, size, color, bold=False):
-        font = QFont('Arial', size)
-        font.setBold(bold)
-        from PySide6.QtGui import QFontMetrics
-        while size > 10 and QFontMetrics(font).horizontalAdvance(value) > rect.width():
-            size -= 1
-            font.setPointSize(size)
-        painter.setFont(font)
-        painter.setPen(color)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, value)
-    draw(QRect(64, 42, 1072, 80), '✓  ' + labels[0], 36, green, True)
-    draw(QRect(64, 148, 1072, 75), public_duration(achievement, language), 27, text, True)
-    for index, (label, value) in enumerate(rows):
-        column, row = index % 2, index // 2
-        x, y = 64 + column * 564, 270 + row * 82
-        painter.setPen(QColor(colors['line']))
-        painter.drawLine(x, y + 79, x + 508, y + 79)
-        draw(QRect(x, y, 390, 74), label, 19, muted)
-        draw(QRect(x + 390, y, 118, 74), value, 22, text, True)
-    draw(QRect(64, 808, 1072, 45), _credit(language), 16, muted)
-    painter.end()
-    return image
+    from .achievement_card import render_achievement_card
+    return render_achievement_card(achievement, language, dark)

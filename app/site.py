@@ -422,7 +422,7 @@ class IcpPlusChecker:
         return context
 
     async def _launch_camoufox(self, playwright, task: TaskConfig, *, headless: bool):
-        from .desktop.certificates import prepare_intermediate_cache
+        from .desktop.certificates import CertificateCacheError, prepare_intermediate_cache
         from camoufox.async_api import AsyncNewBrowser
         from camoufox.fingerprints import generate_fingerprint
 
@@ -465,12 +465,15 @@ class IcpPlusChecker:
                     runtime_root() / 'data' / 'certificate-cache',
                 )
                 log_event(log, logging.INFO, 'tls_intermediates_ready', count=imported)
-            except (TimeoutError,ConnectionError,OSError) as exc:
+            except (TimeoutError,ConnectionError,OSError,CertificateCacheError) as exc:
                 # Optional intermediate discovery must not prevent the browser
-                # opening during a site outage. Browser HTTPS validation stays strict.
+                # opening during a site outage or when NSS rejects the profile
+                # path. Browser HTTPS validation stays strict.
                 log_event(log,logging.WARNING,'tls_preparation_deferred',error_type=type(exc).__name__)
 
             options.update(persistent_context=True, user_data_dir=str(profile), ignore_https_errors=False)
+            from .browser_model import prepare_browser_model
+            prepare_browser_model()
             try:
                 context = await AsyncNewBrowser(playwright, **options)
             except Exception as exc:

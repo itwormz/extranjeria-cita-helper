@@ -102,3 +102,48 @@ def test_linux_import_uses_smime_decoder(tmp_path, monkeypatch, chain):
     assert loaded == ['libnss3.so', 'libsmime3.so']
     smime.CERT_DecodeCertFromPackage.assert_called_once()
     nss.PK11_ImportCert.assert_called_once()
+
+
+def test_windows_nss_folder_outside_ansi_uses_short_alias(monkeypatch, tmp_path):
+    # NSS finds its softoken through the ANSI code page; a Cyrillic install folder breaks it.
+    folder = tmp_path / 'Загрузки' / 'camoufox'
+    alias = Path('C:/Users/user/ZAGRUZ~1/camoufox')
+    monkeypatch.setattr(certificates.sys, 'platform', 'win32')
+    monkeypatch.setattr(certificates, '_ansi_encodable', lambda text: text.isascii())
+    monkeypatch.setattr(certificates, '_short_path', lambda path: alias if path == folder else None)
+    assert certificates.nss_folder(folder) == alias
+
+
+def test_windows_ansi_folder_and_missing_alias_keep_original_path(monkeypatch, tmp_path):
+    monkeypatch.setattr(certificates.sys, 'platform', 'win32')
+    monkeypatch.setattr(certificates, '_ansi_encodable', lambda text: text.isascii())
+    calls = []
+    monkeypatch.setattr(certificates, '_short_path', lambda path: calls.append(path))
+    assert certificates.nss_folder(tmp_path / 'camoufox') == tmp_path / 'camoufox'
+    assert calls == []
+    # Without 8.3 names NSS may still fail; the launch handles CertificateCacheError.
+    assert certificates.nss_folder(tmp_path / 'Загрузки') == tmp_path / 'Загрузки'
+    assert calls == [tmp_path / 'Загрузки']
+
+
+def test_other_platforms_load_nss_from_original_folder(monkeypatch, tmp_path):
+    monkeypatch.setattr(certificates.sys, 'platform', 'darwin')
+    monkeypatch.setattr(certificates, '_short_path', lambda path: pytest.fail('no 8.3 alias outside Windows'))
+    assert certificates.nss_folder(tmp_path / 'Загрузки') == tmp_path / 'Загрузки'
+
+
+def test_windows_import_loads_nss_from_short_alias(monkeypatch, tmp_path, chain):
+    folder = tmp_path / 'Загрузки' / 'camoufox'
+    alias = tmp_path / 'ZAGRUZ~1' / 'camoufox'
+    loaded, directories = [], []
+    def load(path, **kwargs):
+        loaded.append(Path(path))
+        raise OSError('stop after loading')
+    monkeypatch.setattr(certificates.sys, 'platform', 'win32')
+    monkeypatch.setattr(certificates, 'nss_folder', lambda path: alias if path == folder else path)
+    monkeypatch.setattr(certificates.os, 'add_dll_directory', lambda path: directories.append(Path(path)) or type('D', (), {'close': lambda self: None})(), raising=False)
+    monkeypatch.setattr(certificates.ctypes, 'CDLL', load)
+    with pytest.raises(OSError, match='stop after loading'):
+        certificates.import_intermediates(tmp_path / 'profile', folder / 'camoufox.exe', [chain[1]])
+    assert directories == [alias]
+    assert loaded == [alias / 'nss3.dll']

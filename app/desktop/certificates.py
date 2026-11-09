@@ -24,6 +24,10 @@ ICP_HOST = 'icp.administracionelectronica.gob.es'
 MAX_CERT_BYTES = 1024 * 1024
 
 
+class CertificateCacheError(RuntimeError):
+    """NSS rejected the optional intermediate cache, for example its profile path."""
+
+
 def trusted_roots():
     return x509.load_pem_x509_certificates(Path(certifi.where()).read_bytes())
 
@@ -122,11 +126,41 @@ def resolve_intermediates(directory, host=ICP_HOST):
     return verified
 
 
+def _ansi_encodable(text):
+    try:
+        text.encode('mbcs')
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
+def _short_path(path):
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = ctypes.windll.kernel32.GetShortPathNameW(str(path), buffer, len(buffer))
+    if not length or length >= len(buffer) or not _ansi_encodable(buffer.value):
+        return None
+    return Path(buffer.value)
+
+
+def nss_folder(folder):
+    """NSS locates its softoken through the Windows ANSI code page.
+
+    A browser folder outside that code page (for example Cyrillic on a
+    cp1252 system) makes NSS_Init fail, so load NSS through the folder's
+    8.3 alias. Without such an alias the original path is kept and the
+    failure stays a CertificateCacheError.
+    """
+    folder = Path(folder)
+    if sys.platform != 'win32' or _ansi_encodable(str(folder)):
+        return folder
+    return _short_path(folder) or folder
+
+
 def import_intermediates(profile, executable, certificates):
     """Import with no trust flags using the NSS library shipped with Camoufox."""
     if not certificates:
         return 0
-    folder = Path(executable).parent
+    folder = nss_folder(Path(executable).parent)
     library = folder / {'win32':'nss3.dll', 'darwin':'libnss3.dylib'}.get(sys.platform, 'libnss3.so')
     dll_directory = os.add_dll_directory(str(folder)) if sys.platform == 'win32' else None
     try:
@@ -152,21 +186,21 @@ def import_intermediates(profile, executable, certificates):
         profile = Path(profile)
         profile.mkdir(parents=True, exist_ok=True)
         if init(os.fsencode('sql:' + str(profile))) != 0:
-            raise RuntimeError('Could not open Camoufox certificate cache')
+            raise CertificateCacheError('Could not open Camoufox certificate cache')
         slot = None
         try:
             slot = slot_get()
             if not slot:
-                raise RuntimeError('Could not open NSS certificate slot')
+                raise CertificateCacheError('Could not open NSS certificate slot')
             for certificate in certificates:
                 data = certificate.public_bytes(Encoding.DER)
                 decoded = decode(data, len(data))
                 if not decoded:
-                    raise RuntimeError('NSS could not decode intermediate certificate')
+                    raise CertificateCacheError('NSS could not decode intermediate certificate')
                 try:
                     nickname = ('cita-intermediate-' + hashlib.sha256(data).hexdigest()).encode()
                     if add(slot, decoded, 0, nickname, 0) != 0:
-                        raise RuntimeError('NSS could not cache intermediate certificate')
+                        raise CertificateCacheError('NSS could not cache intermediate certificate')
                 finally:
                     destroy(decoded)
         finally:

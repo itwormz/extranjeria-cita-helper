@@ -63,8 +63,9 @@ def test_calendar_rejects_invalid_fields(tmp_path, key, value):
 
 def test_share_urls_open_same_manual_flow_without_transmitting_text():
     from urllib.parse import urlparse
-    for network in ('x','telegram','facebook','instagram'):
+    for network in ('x','telegram','facebook','instagram','reddit'):
         assert urlparse(share_url(network,'PRIVATE TEXT')).query==''
+    assert urlparse(share_url('reddit')).hostname=='www.reddit.com'
     assert share_url('unknown') is None
 
 
@@ -77,7 +78,7 @@ def test_card_renders_all_locales_and_themes(tmp_path):
         for dark in (False, True):
             card = render_card(example(), language, dark)
             assert not card.isNull()
-            assert card.width() == 1200 and card.height() == 900
+            assert card.width() == 1200 and card.height() == 1240
             assert card.pixelColor(10, 2) != card.pixelColor(10, 20)
             assert card.save(str(tmp_path / f'{language}-{dark}.png'))
 
@@ -145,3 +146,101 @@ def test_effort_statistics_preserve_unknown_old_snapshots():
     assert old['pages_processed'] is None and old['actions_performed'] is None
     text=public_post({'statistics':{'pages_processed':100,'actions_performed':250}},'en',True)
     assert '100' in text and '250' in text
+
+
+@pytest.mark.parametrize('key', ['days','banners','no_slots','cod_oper_count','first_office_seconds','first_booking_seconds'])
+def test_current_achievement_metrics_preserve_known_and_unknown_values(key):
+    from app.desktop.achievements import snapshot
+    assert snapshot({}).get(key) is None
+    assert key in snapshot({})
+    data={key:7,'first_office_active_quality':'exact','first_booking_active_quality':'minimum'}
+    assert snapshot(data)[key]==7
+    data[key]=0
+    assert snapshot(data)[key]==0
+    data[key]=float('nan')
+    assert snapshot(data)[key] is None
+
+
+def test_snapshot_keeps_first_event_quality_and_legacy_uncertainty(tmp_path):
+    store=AchievementStore(tmp_path/'achievements.json')
+    stats=dict(banners=22,no_slots=5,cod_oper_count=2,days=2,
+               first_office_seconds=900,first_office_active_quality='minimum',
+               first_booking_seconds=1200,first_booking_active_quality='unknown',
+               legacy_unknown_fields=['banners'],name='PRIVATE PERSON')
+    record=store.record('demo',stats,{})
+    saved=store.list('demo')[0]['statistics']
+    assert saved['banners'] is None
+    assert saved['no_slots']==5 and saved['cod_oper_count']==2 and saved['days']==2
+    assert saved['first_office_active_quality']=='minimum'
+    assert saved['first_office_seconds']==900
+    assert saved['first_booking_seconds'] is None
+    stats['no_slots']=999
+    assert store.list('demo')[0]['statistics']==saved
+    assert 'PRIVATE' not in str(saved)
+
+
+def test_public_card_does_not_depend_on_private_appointment_or_profile_data(qt_app):
+    import copy
+    original=example();other=copy.deepcopy(original)
+    other['appointment']={key:'OTHER PRIVATE VALUE' for key in original['appointment']}
+    other['statistics']['name']='OTHER PRIVATE PERSON'
+    assert render_card(original,'ru',True)==render_card(other,'ru',True)
+
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+@pytest.mark.parametrize('dark',[True,False])
+def test_card_text_fits_with_current_metrics_and_large_counts(qt_app,monkeypatch,language,dark):
+    from PySide6.QtCore import QRectF,Qt
+    from PySide6.QtGui import QFontMetricsF
+    from app.desktop import achievement_card
+    drawn=[]
+    original=achievement_card._Card.text
+    def record(self,x,y,w,h,value,size=24,color=None,bold=False,right=False,wrap=False):
+        original(self,x,y,w,h,value,size,color,bold,right,wrap)
+        flags=(Qt.AlignmentFlag.AlignRight if right else Qt.AlignmentFlag.AlignLeft)|Qt.AlignmentFlag.AlignVCenter
+        if wrap:flags|=Qt.TextFlag.TextWordWrap
+        bounds=QFontMetricsF(self.painter.font()).boundingRect(QRectF(x,y,w,h),flags,value)
+        assert bounds.width()<=w+0.01,(value,bounds.width(),w)
+        assert bounds.height()<=h+0.01,(value,bounds.height(),h)
+        assert x>=0 and y>=0 and x+w<=1200 and y+h<=1240
+        drawn.append(value)
+    monkeypatch.setattr(achievement_card._Card,'text',record)
+    data=example()
+    data['statistics'].update(days=2,banners=121,no_slots=131,cod_oper_count=141,
+        checks=1234567890,flow_passes=1234567890,first_office_seconds=301,
+        first_office_active_quality='minimum',first_booking_seconds=901,
+        first_booking_active_quality='exact')
+    render_card(data,language,dark)
+    assert all(value in drawn for value in ['121','131','141','1234567890'])
+    assert any(value.startswith('≥ ') for value in drawn)
+    assert not any('PRIVATE' in value for value in drawn)
+    drawn.clear()
+    render_card(example(),language,dark)
+    assert drawn.count('—')>=6
+
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_detailed_post_includes_full_current_snapshot(language):
+    from app.desktop.i18n import translate
+    data=example()
+    counts={'checks':101,'days':102,'offices_seen':103,'unique_offices':104,
+            'booking_screens':105,'banners':106,'no_slots':107,'cod_oper_count':108,
+            'server_errors':109,'rate_limited':110,'blocked':111,'flow_passes':112,
+            'actions_performed':113,'pages_processed':114}
+    data['statistics'].update(counts,first_office_seconds=61,first_office_active_quality='minimum',
+        first_booking_seconds=121,first_booking_active_quality='exact')
+    text=public_post(data,language,True)
+    for number in counts.values():assert str(number) in text
+    assert translate('Первый офис',language) in text
+    assert translate('Первый выбор даты',language) in text
+    assert '≥ ' in text
+    assert 'PRIVATE' not in text
+
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_detailed_post_keeps_unknown_new_counters_and_durations(language):
+    from app.desktop.i18n import translate
+    text=public_post(example(),language,True)
+    for label in ['Дни с поиском','«Сит нет» до запроса','Ответы «Сит нет» на запрос записи',
+                  'Ответы «Сит нет» с cod. oper','Первый офис','Первый выбор даты']:
+        assert translate(label,language)+': —' in text
