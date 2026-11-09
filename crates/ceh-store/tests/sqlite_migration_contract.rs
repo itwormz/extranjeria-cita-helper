@@ -255,3 +255,26 @@ fn conflicting_legacy_backup_rolls_back_all_schema_changes() {
     );
     assert_eq!(std::fs::read(backup).unwrap(), b"old distinct backup");
 }
+
+#[test]
+fn migration_adds_notice_tables_to_an_existing_database_without_touching_rows() {
+    let scratch = Scratch::new();
+    let options = scratch.options();
+    let old_schema: String = include_str!("../src/schema.sql")
+        .lines()
+        .filter(|line| !line.contains("applicant_notices"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let db = Connection::open(&options.database).unwrap();
+    db.execute_batch(&old_schema).unwrap();
+    db.execute_batch("INSERT INTO events(profile,identity,kind,time,session,counted,offices) VALUES ('fixture','one','check','2026-10-29T10:00:00+00:00','session',1,'[]');").unwrap();
+    drop(db);
+    migrate_paths(&options, 1793275200000).unwrap();
+    let db = Connection::open(&options.database).unwrap();
+    for table in ["applicant_notices", "pending_applicant_notices"] {
+        let found: i64 = db.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1", [table], |r| r.get(0)).unwrap();
+        assert_eq!(found, 1, "{table}");
+    }
+    let events: i64 = db.query_row("SELECT COUNT(*) FROM events", [], |r| r.get(0)).unwrap();
+    assert_eq!(events, 1);
+}

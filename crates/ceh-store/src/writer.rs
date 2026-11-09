@@ -527,6 +527,13 @@ impl<'a> StatisticsWriter<'a> {
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if kind == "page" && stage == "applicant_no_slots" {
+            // One banner per (session, document), counted at its earliest observation (Python 0.3.x).
+            tx.execute(
+                "INSERT INTO applicant_notices VALUES (?1,?2,?3,?4) ON CONFLICT(profile,session,document) DO UPDATE SET start=MIN(start,excluded.start)",
+                params![scope.profile.as_str(), scope.session.as_str(), document, timestamp],
+            )?;
+        }
         type Current = (i64, String, String, String, String, String, String);
         let current:Option<Current>=tx.query_row("SELECT id,stage,mode,last_seen,recognition,evidence,variant FROM episodes WHERE profile=?1 AND session=?2 AND kind=?3 AND end IS NULL ORDER BY id DESC LIMIT 1",params![scope.profile.as_str(),scope.session.as_str(),kind],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?))).optional()?;
         if let Some((_, old_stage, _, _, _, _, _)) = &current

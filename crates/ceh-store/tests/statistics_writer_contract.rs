@@ -226,3 +226,53 @@ fn heartbeat_does_not_bridge_gap_over_35_seconds_by_rounding() {
         .unwrap();
     assert_eq!(last, "2026-10-30T12:00:00.100000+00:00");
 }
+
+fn notice_db() -> rusqlite::Connection {
+    let db = rusqlite::Connection::open_in_memory().unwrap();
+    db.execute_batch(include_str!("../src/schema.sql")).unwrap();
+    db.execute_batch("ALTER TABLE episodes ADD COLUMN recognition TEXT DEFAULT 'known';ALTER TABLE episodes ADD COLUMN evidence TEXT DEFAULT '[]';ALTER TABLE episodes ADD COLUMN variant TEXT DEFAULT ''").unwrap();
+    db
+}
+fn observed(document: &str, kind: PageKind) -> Observation {
+    Observation {
+        document: DocumentId::new(document).unwrap(),
+        kind,
+        method: RequestMethod::Get,
+        operation_code: false,
+        variant: String::new(),
+    }
+}
+fn notices(db: &rusqlite::Connection) -> Vec<(String, String, String)> {
+    let mut statement = db.prepare("SELECT session,document,start FROM applicant_notices ORDER BY session,document").unwrap();
+    statement.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap().map(Result::unwrap).collect()
+}
+
+#[test]
+fn applicant_notice_is_recorded_once_per_session_and_document_keeping_the_earliest_time() {
+    let mut db = notice_db();
+    let other = EventScope { profile: ProfileId::new("fixture").unwrap(), session: SessionId::new("other").unwrap() };
+    {
+        let mut writer = StatisticsWriter::new(&mut db);
+        writer.page(&scope(), &observed("doc-a", PageKind::ApplicantNoSlots), 1793361600000).unwrap();
+        writer.page(&scope(), &observed("doc-a", PageKind::ApplicantNoSlots), 1793361660000).unwrap();
+        writer.page(&scope(), &observed("doc-a", PageKind::ApplicantNoSlots), 1793361000000).unwrap();
+        writer.page(&scope(), &observed("doc-b", PageKind::ApplicantNoSlots), 1793361700000).unwrap();
+        writer.page(&other, &observed("doc-a", PageKind::ApplicantNoSlots), 1793361800000).unwrap();
+    }
+    let rows = notices(&db);
+    assert_eq!(rows.len(), 3, "{rows:?}");
+    let first = rows.iter().find(|r| r.0 == "session" && r.1.len() == 64 && r.2 == "2026-10-30T11:50:00+00:00");
+    assert!(first.is_some(), "the earliest observation of doc-a wins: {rows:?}");
+    assert!(rows.iter().all(|r| r.1.chars().all(|c| c.is_ascii_hexdigit())), "documents are stored only as digests");
+}
+
+#[test]
+fn other_stages_do_not_create_notices() {
+    let mut db = notice_db();
+    {
+        let mut writer = StatisticsWriter::new(&mut db);
+        writer.page(&scope(), &observed("doc-a", PageKind::Applicant), 1793361600000).unwrap();
+        writer.page(&scope(), &observed("doc-b", PageKind::RequestNoSlots), 1793361660000).unwrap();
+    }
+    assert!(notices(&db).is_empty());
+}

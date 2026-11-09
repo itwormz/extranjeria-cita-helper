@@ -15,3 +15,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS active_identity ON active(profile,session,star
 CREATE TABLE IF NOT EXISTS activity_days(profile TEXT,day TEXT,PRIMARY KEY(profile,day));
 CREATE INDEX IF NOT EXISTS episodes_profile_range ON episodes(profile,start,last_seen);
 CREATE INDEX IF NOT EXISTS episodes_open ON episodes(profile,session,kind,end);
+CREATE TABLE IF NOT EXISTS applicant_notices (profile TEXT,session TEXT,document TEXT,start TEXT,PRIMARY KEY(profile,session,document));
+CREATE INDEX IF NOT EXISTS applicant_notices_profile_time ON applicant_notices(profile,start);
+CREATE TABLE IF NOT EXISTS pending_applicant_notices (profile TEXT,document TEXT,start TEXT,PRIMARY KEY(profile,document,start));
