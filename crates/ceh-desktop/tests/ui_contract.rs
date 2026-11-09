@@ -255,3 +255,27 @@ fn preview_runtime_selects_only_explicit_owned_legacy_copies() {
         assert!(ceh_desktop::preview_runtime_root(root.path(), Some("historical")).is_err());
     }
 }
+
+#[test]
+fn statistics_today_budget_uses_python_summary_keys() {
+    let directory = tempfile::tempdir().unwrap();
+    std::fs::write(
+        directory.path().join("tasks.yml"),
+        "tasks:\n  - id: fixture\n    label: Fixture\n",
+    )
+    .unwrap();
+    let budgets = directory.path().join("data/appointment-budget");
+    std::fs::create_dir_all(&budgets).unwrap();
+    let key = "a".repeat(64);
+    std::fs::write(budgets.join("profile-fixture.json"), format!(r#"{{"key":"{key}"}}"#)).unwrap();
+    std::fs::write(budgets.join(format!("{key}.json")), r#"{"day":"2026-10-25","sent":2,"banners":1}"#).unwrap();
+    let now = chrono::DateTime::parse_from_rfc3339("2026-10-25T12:00:00Z").unwrap().to_utc();
+    let result = ceh_desktop::profile_statistics_at(directory.path(), "fixture", now).unwrap().unwrap();
+    let budget = &result.today["appointment_budget"];
+    for key in ["target_source", "episode_history", "wait_reason", "remaining", "ready", "banners", "restricted"] {
+        assert!(budget.get(key).is_some(), "missing {key}");
+    }
+    assert!(budget.get("history").is_none());
+    assert_eq!(budget["sent"], 2);
+    assert_eq!(budget["target"], 5);
+}

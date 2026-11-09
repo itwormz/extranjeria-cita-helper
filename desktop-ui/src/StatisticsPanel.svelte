@@ -9,7 +9,7 @@ let {profiles,selected,onselect,t,language,dark,revision=0}:{profiles:ProfileSum
 let data=$state<StatisticsDashboard|null>(null);let loading=$state(false);let failed=$state(false);let period=$state('all');
 let heading:HTMLDivElement;let refresh=$state(0);let context=$state<AppointmentContext|null>(null);let item=$state<Achievement|null>(null);let showForm=$state(false);let editing=$state(false);let actionBusy=$state(false);let actionError=$state(false);let view=$state('stats');
 type BudgetEpisode = {first:string;last:string;recovered:string;offices:{at:string;names:string[];result:string|null}[]};
-type BudgetSummary = {sent:number;target:number;remaining:number;banners:number;no_slots:number;ready:string;restricted:boolean;history:BudgetEpisode[]};
+type BudgetSummary = {sent:number;target:number;remaining:number;banners:number;no_slots:number;ready:string;restricted:boolean;episode_history:BudgetEpisode[]};
 let budget=$derived(data?.today.appointment_budget as BudgetSummary|undefined);
 function budgetTime(value:string){return new Intl.DateTimeFormat(language,{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}).format(new Date(value));}
 let values=$derived(data?.[period==='today'?'today':'all']??{});
@@ -43,9 +43,9 @@ function display(key:string){const value=metricValue(values,key);return key==='a
     <div class="statistics-row"><span>{t('Ответов без сит')}</span><strong>{budget.no_slots}</strong></div>
   </div>
   {#if budget.restricted}<p class="muted">{t('Возможное ограничение · Cod. Oper.')}</p>{/if}
-  {#if budget.history.length}
+  {#if budget.episode_history.length}
     <details><summary>{t('История возможных ограничений')}</summary>
-      {#each [...budget.history].reverse() as episode}
+      {#each [...budget.episode_history].reverse() as episode}
         <div class="statistics-row"><span>{budgetTime(episode.first)} — {budgetTime(episode.recovered)}</span><strong>{episode.offices.length}</strong></div>
         {#each episode.offices as office}<div class="muted">{budgetTime(office.at)} · {office.names.join(' · ')}</div>{/each}
       {/each}

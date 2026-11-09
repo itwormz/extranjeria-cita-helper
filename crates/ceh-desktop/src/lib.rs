@@ -236,12 +236,7 @@ pub fn profile_statistics_at(
         .ok().flatten().and_then(|mut budget| {
             let loaded = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), catalog(), "ru").ok()?;
             let policy = loaded.profiles.into_iter().find(|p| p.validation.normalized.id == id)?.appointment_policy?;
-            let ready = budget.next_submission(now, &policy, false);
-            Some(serde_json::json!({
-                "sent": budget.sent(), "target": budget.target(&policy), "remaining": budget.remaining(&policy),
-                "banners": budget.banners, "no_slots": budget.no_slots, "ready": ready,
-                "restricted": budget.restricted(), "history": budget.episode_history,
-            }))
+            serde_json::to_value(budget.summary(now, &policy, false)).ok()
         });
     if data.is_none() && records.is_empty() && appointment_budget.is_none() {
         return Ok(None);
