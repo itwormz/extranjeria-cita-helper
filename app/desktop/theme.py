@@ -7,11 +7,11 @@ def theme_colors(dark):
     return (dict(history_search='#777B86',history_cod='#7074EF',history_selection='#F1C65A',history_anomaly='#DC8A50',history_restart='#DC8A50',history_recovery='#D6A44A',history_gap='#393B42',history_manual='#575B66',history_office='#55B5D4',history_available='#64B991',history_fatal='#E46767',bg='#1D1E22', surface='#26272C', text='#E8E8E8', muted='#9A9B9F',
         line='#3A3B40', line_strong='#767780', accent='#5E6AD2', accent_text='#8A93F5',
         attention='#E9B44C', danger='#E4685D', success='#6BCF8E', selection='#33354D',
-        attention_soft='#38301C', danger_soft='#3A2422', bitcoin='#F7931A', on_brand='#FFFFFF') if dark else
+        attention_soft='#38301C', danger_soft='#3A2422', bitcoin='#F7931A', celebration_gold='#E9B44C', on_brand='#FFFFFF') if dark else
         dict(history_search='#9A9DA6',history_cod='#5E63D6',history_selection='#A56C00',history_anomaly='#B55A19',history_restart='#B55A19',history_recovery='#BF8C29',history_gap='#E6E6E6',history_manual='#BABDC6',history_office='#197E9E',history_available='#26805B',history_fatal='#B03A2E',bg='#FFFFFF', surface='#F7F6F5', text='#282A30', muted='#6F6F6F',
         line='#E6E6E6', line_strong='#8A8A8A', accent='#5E6AD2', accent_text='#5E6AD2',
         attention='#8A5A00', danger='#B03A2E', success='#1B7A5A', selection='#E6E8F6',
-        attention_soft='#FFF0D0', danger_soft='#FBE4E0', bitcoin='#F7931A', on_brand='#FFFFFF'))
+        attention_soft='#FFF0D0', danger_soft='#FBE4E0', bitcoin='#F7931A', celebration_gold='#A56C00', on_brand='#FFFFFF'))
 
 
 def load_fonts(app):
@@ -92,6 +92,7 @@ def apply_theme(app, *, dark):
         QToolButton#social_telegram {{ background:#229ED9; border:1px solid #229ED9; color:white; }}
         QToolButton#social_x {{ background:#121212; border:1px solid {c['line_strong']}; color:white; }}
         QToolButton#social_facebook {{ background:#1877F2; border:1px solid #1877F2; color:white; }}
+        QToolButton#social_reddit {{ background:#FF4500; border:1px solid #FF4500; color:white; }}
         QToolButton#social_instagram {{ background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #7438BB,stop:0.5 #BF2B78,stop:1 #D95539); border:1px solid #B34787; color:white; }}
         QWidget#stateCard {{ background:{c['surface']}; border:1px solid {c['line']}; border-radius:8px; }}
         QWidget#stateRail {{ background:{c['muted']}; }}
@@ -111,7 +112,8 @@ def apply_theme(app, *, dark):
         QPushButton[primary="true"] {{ background:{c['accent']}; color:#FFFFFF; border-color:{c['accent']}; }}
         QPushButton[reportCopied="true"] {{ background:{c['surface']}; color:{c['success']}; border-color:{c['success']}; }}
         QPushButton:disabled, QPushButton[primary="true"]:disabled {{ color:{c['muted']}; background:{c['bg']}; border:1px solid {c['line']}; }}
-        QPushButton:focus, QToolButton:focus, QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {{ border:2px solid {c['accent']}; }}
+        QPushButton:focus, QToolButton:focus {{ border-color:{c['accent']}; }}
+        QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {{ border:2px solid {c['accent']}; }}
         QToolButton {{ color:{c['text']}; padding:0; border:1px solid {c['line_strong']}; border-radius:6px; background:{c['surface']}; }}
         QToolButton:disabled {{ color:{c['muted']}; border-color:{c['line']}; background:{c['bg']}; }}
         QToolButton[toolbarAction="true"], QPushButton[toolbarAction="true"] {{ border:1px solid transparent; background:transparent; }}

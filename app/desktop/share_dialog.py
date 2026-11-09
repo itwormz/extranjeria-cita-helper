@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QPushButton,QLabe
 from .theme import theme_colors
 from .achievement_exports import public_post,render_card,share_url
 
-NETWORK_NAMES={'telegram':'Telegram','x':'X','facebook':'Facebook','instagram':'Instagram'}
+NETWORK_NAMES={'telegram':'Telegram','x':'X','facebook':'Facebook','instagram':'Instagram','reddit':'Reddit'}
 
 
 class ShareDialog(QDialog):

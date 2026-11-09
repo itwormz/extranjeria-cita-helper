@@ -1475,3 +1475,67 @@ def test_viewing_stopped_budget_consumes_next_day_estimate_once(window, task_map
     assert store.load().next_target is None
     current = RealDateTime(2026, 11, 4, 12, tzinfo=MADRID)
     assert window.current_daily_budget(profile_id)['target'] == 50
+
+
+@pytest.mark.parametrize('dark',[False,True])
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_achievement_buttons_fit_translations_at_supported_widths(window,language,dark):
+    from types import SimpleNamespace
+    from PySide6.QtWidgets import QLabel,QScrollArea
+    from PySide6.QtCore import QPoint
+    from app.desktop.theme import apply_theme
+    window.preferences.update(language=language,dark=dark)
+    apply_theme(QApplication.instance(),dark=dark)
+    window.retranslate()
+    panel=window.statistics_panel
+    panel.set_profiles([SimpleNamespace(id='demo',label='Demo',province='Barcelona')],'demo')
+    panel.achievements.record('demo',{'checks':5},{'date':'2026-12-10','time':'10:30','office':'Demo office'})
+    window.tabs.setCurrentIndex(1)
+    panel.show_achievement()
+    for width in (640,820,1120,640):
+        window.resize(width,850)
+        for _ in range(5):QApplication.processEvents()
+        scroll=panel.parentWidget().parentWidget()
+        assert isinstance(scroll,QScrollArea)
+        assert scroll.horizontalScrollBar().maximum()==0
+        for button in [panel.back_button,panel.title,panel.profile_combo,*panel.social_buttons.values(),*panel._payment_buttons]:
+            point=button.mapTo(scroll.viewport(),QPoint())
+            assert point.x()>=0
+            assert point.x()+button.width()<=scroll.viewport().width()
+        for button in panel._payment_buttons:
+            for label in button.findChildren(QLabel):
+                if not label.text():continue
+                assert label.width()>=label.fontMetrics().horizontalAdvance(label.text())
+                assert label.height()>=label.fontMetrics().height()
+
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_monitor_browser_button_fits_label_and_icon(window,language):
+    window.preferences['language']=language
+    window.retranslate()
+    QApplication.processEvents()
+    assert window.browser_button.width()>=window.browser_button.sizeHint().width()
+
+
+@pytest.mark.parametrize('language',['ru','en','es'])
+def test_translated_dialog_buttons_keep_content_space_on_focus(window,language):
+    from PySide6.QtWidgets import QPushButton,QStyleOptionButton,QStyle
+    from app.desktop.notification_widgets import RecipientDialog
+    window.preferences['language']=language
+    window.retranslate()
+    window.show_about()
+    about=window.about_dialog
+    recipient=RecipientDialog(window,'123456789:'+35*'A')
+    recipient.show()
+    try:
+        for button in [about.findChild(QPushButton,'checkUpdates'),recipient.method_buttons['telegram']]:
+            button.window().activateWindow();button.setFocus()
+            QApplication.processEvents()
+            option=QStyleOptionButton();button.initStyleOption(option)
+            contents=button.style().subElementRect(QStyle.SubElement.SE_PushButtonContents,option,button)
+            needed=button.fontMetrics().horizontalAdvance(button.text())
+            if not button.icon().isNull():needed+=button.iconSize().width()+4
+            assert contents.width()>=needed
+            assert contents.height()>=button.fontMetrics().height()
+    finally:
+        recipient.close();recipient.deleteLater();about.close()

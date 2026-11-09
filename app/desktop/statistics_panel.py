@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QDate, QTime, QTimer, QUrl, QSize, Signal, QEventLoop, QRunnable, QThreadPool
 from PySide6.QtGui import QDesktopServices, QPainter, QColor, QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (QWidget, QLabel, QPushButton, QToolButton, QComboBox,
-    QVBoxLayout, QHBoxLayout, QGridLayout, QStackedWidget, QFrame, QDialog,
+    QVBoxLayout, QHBoxLayout, QFormLayout, QGridLayout, QStackedWidget, QFrame, QDialog,
     QDialogButtonBox, QScrollArea, QSizePolicy, QDateEdit, QTimeEdit, QAbstractSpinBox, QLineEdit, QFileDialog, QApplication, QMenu, QLayout)
 from .theme import theme_colors
 from .page_stack import CurrentPageStack
@@ -87,11 +87,12 @@ class StatisticsPanel(QWidget):
         self.achievements=AchievementStore(data/'achievements.json')
         self._text_bindings=[];self._icon_bindings=[];self._payment_buttons=[]
         layout=QVBoxLayout(self);layout.setContentsMargins(24,24,24,24);layout.setSpacing(24)
-        header=QHBoxLayout();self.heading_icon=self.icon_label('statistics');header.addWidget(self.heading_icon);self.title=QLabel();self.title.setObjectName('statisticsTitle');header.addWidget(self.title,1);self.back_button=self.button('К статистике','back',self.show_statistics);header.insertWidget(0,self.back_button)
-        self.profile_combo=QComboBox();self.profile_combo.setMinimumWidth(180);self.profile_combo.setAccessibleName('Профиль для статистики');self.profile_combo.currentIndexChanged.connect(self.profile_selected);header.addWidget(self.icon_label('user'));header.addWidget(self.profile_combo)
+        heading=QWidget();header=QHBoxLayout(heading);header.setContentsMargins(0,0,0,0);self.heading_icon=self.icon_label('statistics');header.addWidget(self.heading_icon);self.title=QLabel();self.title.setObjectName('statisticsTitle');header.addWidget(self.title,1);self.back_button=self.button('К статистике','back',self.show_statistics);header.insertWidget(0,self.back_button)
+        selector=QWidget();profile_row=QHBoxLayout(selector);profile_row.setContentsMargins(0,0,0,0)
+        self.profile_combo=QComboBox();self.profile_combo.setMinimumWidth(180);self.profile_combo.setAccessibleName('Профиль для статистики');self.profile_combo.currentIndexChanged.connect(self.profile_selected);profile_row.addWidget(self.icon_label('user'));profile_row.addWidget(self.profile_combo)
         self.more=QToolButton();self.more.setText('⋯');self.more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        menu=QMenu(self.more);self.edit_action=menu.addAction('Исправить данные записи');self.edit_action.triggered.connect(self.edit_appointment);self.manual_success_action=menu.addAction('Подтвердить запись вручную');self.manual_success_action.triggered.connect(self.confirm_success);self.more.setMenu(menu);header.addWidget(self.more)
-        layout.addLayout(header);self.stack=CurrentPageStack();self.stack.layout().setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint);self.stack.currentChanged.connect(self.fit_current_page);layout.addWidget(self.stack)
+        menu=QMenu(self.more);self.edit_action=menu.addAction('Исправить данные записи');self.edit_action.triggered.connect(self.edit_appointment);self.manual_success_action=menu.addAction('Подтвердить запись вручную');self.manual_success_action.triggered.connect(self.confirm_success);self.more.setMenu(menu);profile_row.addWidget(self.more)
+        layout.addLayout(self.wrapping_row(heading,selector));self.stack=CurrentPageStack();self.stack.layout().setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint);self.stack.currentChanged.connect(self.fit_current_page);layout.addWidget(self.stack)
         self.stats_page=QWidget();self.stats_layout=QVBoxLayout(self.stats_page);self.stats_layout.setContentsMargins(0,0,0,0);self.stats_layout.setSpacing(16)
         self.stats_hint=QLabel();self.stats_hint.setProperty('muted',True);self.stats_layout.addWidget(self.stats_hint);self.stats_hint.hide()
         period_row=QHBoxLayout();self.today_button=self.button('Сегодня',None,lambda:self.set_period('today'));self.all_button=self.button('За всё время',None,lambda:self.set_period('all'));self.period='all'
@@ -157,13 +158,14 @@ class StatisticsPanel(QWidget):
         body.addWidget(self.note('Эти данные хранятся только локально. При добавлении события они попадут в выбранный календарь.','lock'))
         self.separator(body);body.addWidget(self.section_heading('Поделиться достижением','share'))
         social=QHBoxLayout();social.setSpacing(8);self.social_buttons={}
-        for network,caption in [('telegram','Telegram'),('x','X'),('facebook','Facebook'),('instagram','Instagram')]:
+        for network,caption in [('telegram','Telegram'),('x','X'),('facebook','Facebook'),('instagram','Instagram'),('reddit','Reddit')]:
             button=QToolButton();button.setFixedSize(36,36);button.setIconSize(QSize(22,22));button.setObjectName('social_'+network);button.setAccessibleName(caption);button.setToolTip(caption);button.clicked.connect(lambda checked=False,n=network:self.prepare_post(n));self.social_buttons[network]=button;social.addWidget(button)
         divider=QFrame();divider.setObjectName('socialDivider');divider.setFixedSize(1,26);social.addWidget(divider);social.addSpacing(4);social.addWidget(self.button('Сохранить PNG','download',self.export_png));social.addWidget(self.button('Копировать PNG','copy',self.copy_png));social.addStretch();body.addLayout(social)
         body.addWidget(self.note('Только статистика поиска — без даты, времени, офиса и номера подтверждения.','shield'));self.separator(body)
-        donation=QHBoxLayout();donation.setSpacing(12);donation.addWidget(FoodSticker());words=QVBoxLayout();words.setSpacing(4);words.addWidget(self.section_heading('Поддержать автора',None));words.addWidget(self.text('Код работает. Автор — за еду.',muted=True));donation.addLayout(words,1)
-        card_button=self.payment_button('Картой','GitHub Sponsors','credit_card','https://github.com/sponsors/itwormz');card_button.setToolTip('GitHub Sponsors');donation.addWidget(card_button)
-        crypto_button=self.payment_button('Криптовалютой','NOWPayments','bitcoin','https://nowpayments.io/donation/itworm');crypto_button.setToolTip('NOWPayments');donation.addWidget(crypto_button);body.addLayout(donation)
+        intro=QWidget();donation=QHBoxLayout(intro);donation.setContentsMargins(0,0,0,0);donation.setSpacing(12);donation.addWidget(FoodSticker());words=QVBoxLayout();words.setSpacing(4);words.addWidget(self.section_heading('Поддержать автора',None));description=self.text('Код работает. Автор — за еду.',muted=True);description.setWordWrap(False);words.addWidget(description);donation.addLayout(words,1)
+        payments=QWidget();payment_row=QHBoxLayout(payments);payment_row.setContentsMargins(0,0,0,0);payment_row.setSpacing(12);payment_row.addStretch()
+        card_button=self.payment_button('Картой','GitHub Sponsors','credit_card','https://github.com/sponsors/itwormz');card_button.setToolTip('GitHub Sponsors');payment_row.addWidget(card_button)
+        crypto_button=self.payment_button('Криптовалютой','NOWPayments','bitcoin','https://nowpayments.io/donation/itworm');crypto_button.setToolTip('NOWPayments');payment_row.addWidget(crypto_button);body.addLayout(self.wrapping_row(intro,payments))
         body.addStretch();self.stack.addWidget(self.achievement_page)
         self.empty_page=QWidget();empty=QVBoxLayout(self.empty_page);empty.setContentsMargins(0,24,0,24);empty.addWidget(self.section_heading('Пока нет отмеченных сит','calendar'));empty.addWidget(self.text('После оформления записи на сайте нажмите «Подтвердить запись». Здесь появятся карточка достижения и данные для календаря.',muted=True));empty.addWidget(self.button('Подтвердить запись','plus',self.confirm_success),0,Qt.AlignmentFlag.AlignLeft);empty.addStretch();self.stack.addWidget(self.empty_page)
         self.message=QLabel();self.message.setProperty('muted',True);self.message.setWordWrap(True);layout.addWidget(self.message)
@@ -304,10 +306,21 @@ class StatisticsPanel(QWidget):
     def note(self,title,icon):
         frame=QWidget();row=QHBoxLayout(frame);row.setContentsMargins(0,0,0,0);row.setSpacing(7);row.addWidget(self.icon_label(icon));row.addWidget(self.text(title,muted=True),1);return frame
 
+    @staticmethod
+    def wrapping_row(leading,trailing):
+        # Native height-for-width support keeps translated controls inside the viewport.
+        row=QFormLayout();row.setContentsMargins(0,0,0,0);row.setSpacing(12)
+        row.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        row.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        row.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        row.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        row.addRow(leading,trailing);return row
+
     def payment_button(self,title,service,icon,url):
         button=QPushButton();button.setObjectName('donationPayment');button.setCursor(Qt.CursorShape.PointingHandCursor);button.setAccessibleName(service);button.clicked.connect(lambda:self.open_url(url))
         row=QHBoxLayout(button);row.setContentsMargins(12,8,12,8);row.setSpacing(9);image=self.icon_label(icon);image.setFixedSize(23,23);row.addWidget(image)
         words=QVBoxLayout();words.setSpacing(2);label=self.text(title);words.addWidget(label);words.addWidget(self.text(service,muted=True));row.addLayout(words)
+        for label in button.findChildren(QLabel):label.setWordWrap(False)
         for child in button.findChildren(QWidget):child.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self._payment_buttons.append(button);return button
 
@@ -501,7 +514,7 @@ class StatisticsPanel(QWidget):
         for network,button in self.social_buttons.items():
             asset=Path(__file__).parent/'assets'/'social'/f'{network}.svg'
             if asset.exists():button.setIcon(QIcon(str(asset)))
-            else:button.setText({'telegram':'↗','x':'𝕏','facebook':'f','instagram':'◎'}[network])
+            else:button.setText({'telegram':'↗','x':'𝕏','facebook':'f','instagram':'◎','reddit':'r/'}[network])
         self.today_button.setChecked(self.period=='today');self.all_button.setChecked(self.period=='all')
         warning=bool(getattr(self.host,'state',{}).get('statistics_error'));self.statistics_warning.setVisible(warning)
         profile_id=self.profile_combo.currentData();self.success_button.setEnabled(bool(profile_id));self.success_button.hide()

@@ -7,7 +7,7 @@ from app.desktop.share_dialog import ShareDialog
 
 
 @pytest.mark.parametrize('language',['ru','en','es'])
-@pytest.mark.parametrize('network',['telegram','x','facebook','instagram'])
+@pytest.mark.parametrize('network',['telegram','x','facebook','instagram','reddit'])
 def test_share_modes_prepare_locally_for_all_networks(tmp_path,qt_app,monkeypatch,language,network):
     from PySide6.QtGui import QDesktopServices
     calls=[];monkeypatch.setattr(QDesktopServices,'openUrl',lambda url:calls.append(url.toString()) or True)

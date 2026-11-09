@@ -10,7 +10,9 @@ from pathlib import Path
 from ..locking import locked_file
 
 COUNT_KEYS = ('checks', 'offices_seen', 'unique_offices', 'server_errors', 'rate_limited', 'blocked', 'booking_screens', 'flow_passes', 'actions_performed', 'pages_processed')
-STAT_KEYS = COUNT_KEYS + ('active_seconds', 'started_at', 'first_available_at', 'first_available_seconds')
+PUBLIC_COUNT_KEYS = ('days', 'banners', 'no_slots', 'cod_oper_count')
+FIRST_EVENT_KEYS = ('first_office', 'first_booking')
+STAT_KEYS = COUNT_KEYS + PUBLIC_COUNT_KEYS + ('active_seconds', 'started_at', 'first_available_at', 'first_available_seconds') + tuple(prefix + suffix for prefix in FIRST_EVENT_KEYS for suffix in ('_seconds', '_active_quality'))
 APPOINTMENT_KEYS = ('date', 'time', 'office', 'address', 'confirmation', 'timezone')
 
 
@@ -29,6 +31,19 @@ def snapshot(statistics):
             result[key] = datetime.fromisoformat(value).isoformat() if isinstance(value, str) else None
         except ValueError:
             result[key] = None
+    for key in PUBLIC_COUNT_KEYS:
+        value = statistics.get(key)
+        unknown = key in statistics.get('legacy_unknown_fields', [])
+        if key == 'days' and not value and any(statistics.get(k) for k in ('checks', 'active_seconds', 'offices_seen', 'booking_screens')):
+            unknown = True
+        result[key] = value if not unknown and type(value) in (int, float) and math.isfinite(value) and value >= 0 else None
+    for prefix in FIRST_EVENT_KEYS:
+        value = statistics.get(prefix + '_seconds')
+        quality = statistics.get(prefix + '_active_quality', 'unknown')
+        if quality not in ('exact', 'minimum'):
+            quality = 'unknown'
+        result[prefix + '_active_quality'] = quality
+        result[prefix + '_seconds'] = value if quality != 'unknown' and type(value) in (int, float) and math.isfinite(value) and value >= 0 else None
     return result
 
 
