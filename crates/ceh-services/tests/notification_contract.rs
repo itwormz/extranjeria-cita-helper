@@ -50,7 +50,7 @@ fn pairing_matches_code_type_and_expires() {
         "2"
     );
     assert_eq!(pair.offset(), Some(3));
-    assert!(pair.match_updates(&updates, false, 130_001).is_none());
+    assert!(pair.match_updates(&updates, false, 310_001).is_none());
 }
 
 #[test]
@@ -129,4 +129,44 @@ fn channel_planning_keeps_webhook_immediate_and_telegram_details_deferred() {
         .observe("other", "Other", "Barcelona", &state, "en", &config)
         .unwrap();
     assert!(!token.current());
+}
+
+#[test]
+fn pairing_expires_at_exactly_300_seconds_and_not_before() {
+    let pairing = Pairing::with_code("fixture_bot", "FIXTURE_CODE", 1_000).unwrap();
+    assert!(!pairing.expired(1_000 + 299_999));
+    assert!(pairing.expired(1_000 + 300_000));
+    assert_eq!(ceh_services::notifications::PAIRING_LIFETIME_SECONDS, 300);
+}
+
+#[test]
+fn event_text_uses_the_selected_browser_name_in_all_languages() {
+    use ceh_services::notifications::{make_event_with_browser, make_event_with_metadata};
+    for language in ["ru", "en", "es"] {
+        for kind in ["auth", "office", "booking"] {
+            let python = make_event_with_metadata(kind, "Demo", "Madrid", language, "id", "ts").unwrap();
+            assert!(python["message"].as_str().unwrap().contains("Camoufox"), "{kind} {language}");
+            let event = make_event_with_browser(kind, "Demo", "Madrid", language, "Firefox").unwrap();
+            let message = event["message"].as_str().unwrap();
+            assert!(message.contains("Firefox") && !message.contains("Camoufox"), "{kind} {language}: {message}");
+        }
+    }
+}
+
+#[test]
+fn planner_uses_the_browser_name_from_state_for_telegram_and_webhook() {
+    use ceh_services::notifications::NotificationPlanner;
+    let mut planner = NotificationPlanner::default();
+    let config = json!({"telegram":{"enabled":true,"events":["office"],"recipients":[{"id":"1"}],"secret_ref":"a"},
+                        "webhook":{"enabled":true,"events":["office"],"secret_ref":"b"}});
+    let state = json!({"run_id":"r","document":"d","mode":"manual","screen":"Выбор офиса","stage":"office",
+                       "available_offices":["Oficina A"],"browser":"Firefox"});
+    let intents = planner.observe("profile", "Demo", "Madrid", &state, "en", &config).unwrap();
+    assert_eq!(intents.len(), 2);
+    for intent in &intents {
+        assert!(intent.message().contains("Firefox") && !intent.message().contains("Camoufox"), "{}: {}", intent.channel(), intent.message());
+    }
+    let hostile = json!({"run_id":"r2","document":"d","mode":"manual","screen":"Выбор офиса","stage":"office","browser":"Fire\nfox"});
+    let intents = planner.observe("profile", "Demo", "Madrid", &hostile, "en", &config).unwrap();
+    assert!(intents.iter().all(|intent| intent.message().contains("Camoufox")), "an invalid browser name is ignored");
 }

@@ -36,11 +36,25 @@ fn pairing_is_exclusive_per_bot_expired_and_cancelled_sessions_are_not_polled() 
         "https://t.me/fixture_bot?startgroup=GROUP_CODE"
     );
     assert!(matches!(
-        registry.poll(&ticket.id, 122001, |_, _, _, _| panic!(
+        registry.poll(&ticket.id, 302001, |_, _, _, _| panic!(
             "expired must not reach transport"
         )),
         Err(PairError::Expired)
     ));
+}
+#[test]
+fn desktop_pairing_ticket_reports_the_300_second_lifetime_and_polls_until_then() {
+    let mut registry = PairRegistry::default();
+    let ticket = registry
+        .start("123456:FIXTURE", false, 2000, |_, now| Pairing::with_code("fixture_bot", "CODE", now))
+        .unwrap();
+    assert_eq!(ticket.expires_in_seconds, 300);
+    let mut polled = false;
+    let _ = registry.poll(&ticket.id, 2000 + 299_999, |_, _, _, _| {
+        polled = true;
+        Err(NotificationError::Network)
+    });
+    assert!(polled, "a link younger than 300 s still reaches transport");
 }
 #[test]
 fn failed_begin_releases_bot_and_successful_recipient_ends_polling() {

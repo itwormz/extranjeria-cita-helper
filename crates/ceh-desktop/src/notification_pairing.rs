@@ -64,7 +64,7 @@ impl PairRegistry {
         Ok(PairTicket {
             id,
             link,
-            expires_in_seconds: 120,
+            expires_in_seconds: ceh_services::notifications::PAIRING_LIFETIME_SECONDS as u32,
         })
     }
     pub fn cancel(&mut self, id: &str) {

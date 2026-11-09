@@ -58,6 +58,8 @@ pub fn settings(raw: &Value) -> Value {
     }
     value
 }
+/// A Telegram connection link stays valid this long (Python 0.3.3+).
+pub const PAIRING_LIFETIME_SECONDS: u64 = 300;
 const TRANSIENT_SCREEN: &str = "Проверяем страницу";
 pub fn state_event(state: &Value) -> Option<&'static str> {
     state_event_with(state, false)
@@ -245,7 +247,11 @@ impl NotificationPlanner {
         let Some(kind) = event.or(telegram_event) else {
             return Ok(Vec::new());
         };
-        let payload = make_event(kind, label, province, language)?;
+        let browser = browser_label(&state["browser"]);
+        let payload = match browser {
+            Some(browser) => make_event_with_browser(kind, label, province, language, browser)?,
+            None => make_event(kind, label, province, language)?,
+        };
         let config = settings(raw_config);
         let mut result = Vec::new();
         for (channel, event) in [("telegram", telegram_event), ("webhook", event)] {
@@ -261,7 +267,11 @@ impl NotificationPlanner {
                 continue;
             }
             let message = if channel == "telegram" {
-                telegram_message(&payload, language, &state["booking_details"], &state["available_offices"])
+                let message = telegram_message(&payload, language, &state["booking_details"], &state["available_offices"]);
+                match browser {
+                    Some(browser) => with_browser_name(&message, browser),
+                    None => message,
+                }
             } else {
                 text(&payload, "message", "").into()
             };
@@ -513,7 +523,7 @@ impl Pairing {
         self.offset
     }
     pub fn expired(&self, now: u64) -> bool {
-        now.saturating_sub(self.created) > 120_000
+        now.saturating_sub(self.created) >= PAIRING_LIFETIME_SECONDS * 1000
     }
     pub fn match_updates(&mut self, updates: &Value, group: bool, now: u64) -> Option<Value> {
         if self.expired(now) {
@@ -600,6 +610,28 @@ pub fn make_event_with_metadata(
     Ok(
         json!({"schema_version":1,"event_id":event_id,"event":kind,"timestamp":timestamp,"profile":profile,"province":province,"action_required":kind!="test","message":format!("{}\n\n{}: {profile}\n{}: {province}\n\n{}\n\nCita Extranjeria Helper",tr(title,language),tr("Профиль",language),tr("Провинция",language),tr(action,language))}),
     )
+}
+/// The browser name shown in user-facing texts; anything unusual is ignored (the text keeps "Camoufox").
+fn browser_label(raw: &Value) -> Option<&str> {
+    raw.as_str().filter(|name| {
+        !name.is_empty() && name.chars().count() <= 40 && !name.chars().any(char::is_control)
+    })
+}
+/// Replace the shipped "Camoufox" wording with the selected browser, after translation.
+pub fn with_browser_name(text: &str, browser: &str) -> String {
+    text.replace("Camoufox", browser)
+}
+pub fn make_event_with_browser(
+    kind: &str,
+    profile: &str,
+    province: &str,
+    language: &str,
+    browser: &str,
+) -> Result<Value, NotificationError> {
+    let mut event = make_event(kind, profile, province, language)?;
+    let message = with_browser_name(text(&event, "message", ""), browser);
+    event["message"] = json!(message);
+    Ok(event)
 }
 const MAX_OFFICE_ROWS: usize = 10;
 fn office_names(offices: &Value) -> Vec<String> {
