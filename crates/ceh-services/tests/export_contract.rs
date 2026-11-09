@@ -36,8 +36,7 @@ fn calendar_escapes_folds_and_omits_confirmation() {
     assert!(url.contains("20261022T083000Z"));
 }
 
-#[test]
-fn public_models_and_calendar_match_python_snapshots() {
+fn check_exports_against_python(op: &str) {
     use ceh_services::exports::public_card;
     let data: serde_json::Value = serde_json::from_str(include_str!(
         "../../../tests/contracts/fixtures/exports.json"
@@ -46,7 +45,9 @@ fn public_models_and_calendar_match_python_snapshots() {
     let now = chrono::DateTime::parse_from_rfc3339("2026-10-30T12:00:00Z")
         .unwrap()
         .with_timezone(&chrono::Utc);
-    for case in data["cases"].as_array().unwrap() {
+    let mut checked = 0;
+    for case in data["cases"].as_array().unwrap().iter().filter(|case| case["input"]["op"] == op) {
+        checked += 1;
         let input = &case["input"];
         let value = &input["achievement"];
         let language = input["language"].as_str().unwrap_or("en");
@@ -65,6 +66,20 @@ fn public_models_and_calendar_match_python_snapshots() {
         };
         assert_eq!(actual, case["expected"], "{}", case["id"]);
     }
+    assert!(checked > 0, "no {op} cases");
+}
+
+#[test]
+fn snapshots_match_python() {
+    check_exports_against_python("snapshot");
+}
+#[test]
+fn public_models_and_posts_match_python() {
+    check_exports_against_python("public");
+}
+#[test]
+fn calendars_match_python() {
+    check_exports_against_python("calendar");
 }
 
 #[test]

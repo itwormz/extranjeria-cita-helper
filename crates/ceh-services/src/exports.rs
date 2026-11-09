@@ -157,7 +157,46 @@ pub fn snapshot(statistics: &Value) -> Value {
     for key in ["started_at", "first_available_at"] {
         result.insert(key.into(), json!(normalized_time(&statistics[key])));
     }
+    // Public counters (Python 0.3.x): unknown legacy values stay null instead of becoming 0.
+    let unknown_fields = statistics["legacy_unknown_fields"].as_array();
+    let any_activity = ["checks", "active_seconds", "offices_seen", "booking_screens"]
+        .iter()
+        .any(|key| truthy(&statistics[*key]));
+    for key in ["days", "banners", "no_slots", "cod_oper_count"] {
+        let value = &statistics[key];
+        let unknown = unknown_fields.is_some_and(|fields| fields.iter().any(|f| f == key))
+            || (key == "days" && !truthy(value) && any_activity);
+        result.insert(key.into(), if !unknown && non_negative_number(value) { value.clone() } else { Value::Null });
+    }
+    // First office / first booking: seconds count only with an `exact` or `minimum` quality.
+    for prefix in ["first_office", "first_booking"] {
+        let quality = match statistics[format!("{prefix}_active_quality")].as_str() {
+            Some(quality @ ("exact" | "minimum")) => quality,
+            _ => "unknown",
+        };
+        let seconds = &statistics[format!("{prefix}_seconds")];
+        result.insert(format!("{prefix}_active_quality"), json!(quality));
+        result.insert(
+            format!("{prefix}_seconds"),
+            if quality != "unknown" && non_negative_number(seconds) { seconds.clone() } else { Value::Null },
+        );
+    }
     Value::Object(result)
+}
+/// Python truthiness of a JSON value.
+fn truthy(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Bool(flag) => *flag,
+        Value::Number(number) => number.as_f64().is_some_and(|v| v != 0.0),
+        Value::String(text) => !text.is_empty(),
+        Value::Array(items) => !items.is_empty(),
+        Value::Object(map) => !map.is_empty(),
+    }
+}
+/// A finite number >= 0 that is not a boolean (Python `type(value) in (int, float)`).
+fn non_negative_number(value: &Value) -> bool {
+    value.as_f64().is_some_and(|v| v.is_finite() && v >= 0.0)
 }
 pub fn appointment_data(value: &Value) -> Value {
     let mut result = serde_json::Map::new();

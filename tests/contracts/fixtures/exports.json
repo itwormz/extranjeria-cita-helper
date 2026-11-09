@@ -2901,6 +2901,298 @@
         "first_booking_active_quality": "unknown",
         "first_booking_seconds": null
       }
+    },
+    {
+      "id": "snapshot_public_counts_follow_unknown_legacy_fields",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "checks": 10,
+          "days": 5,
+          "banners": 3,
+          "no_slots": 2,
+          "cod_oper_count": 1,
+          "legacy_unknown_fields": [
+            "banners",
+            "cod_oper_count"
+          ]
+        }
+      },
+      "expected": {
+        "checks": 10,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": 5,
+        "banners": null,
+        "no_slots": 2,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
+      }
+    },
+    {
+      "id": "snapshot_public_counts_known",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "checks": 10,
+          "days": 5,
+          "banners": 3,
+          "no_slots": 2,
+          "cod_oper_count": 1
+        }
+      },
+      "expected": {
+        "checks": 10,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": 5,
+        "banners": 3,
+        "no_slots": 2,
+        "cod_oper_count": 1,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
+      }
+    },
+    {
+      "id": "snapshot_days_zero_with_activity_is_unknown",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "checks": 10,
+          "days": 0,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0
+        }
+      },
+      "expected": {
+        "checks": 10,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": null,
+        "banners": 0,
+        "no_slots": 0,
+        "cod_oper_count": 0,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
+      }
+    },
+    {
+      "id": "snapshot_days_zero_without_activity_stays_zero",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "days": 0
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": 0,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
+      }
+    },
+    {
+      "id": "snapshot_public_counts_reject_booleans_negatives_and_strings",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "days": true,
+          "banners": -1,
+          "no_slots": "5",
+          "cod_oper_count": null
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
+      }
+    },
+    {
+      "id": "snapshot_first_event_quality_hides_unknown_seconds",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "first_office_seconds": 120,
+          "first_office_active_quality": "minimum",
+          "first_booking_seconds": 300,
+          "first_booking_active_quality": "unknown"
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "minimum",
+        "first_office_seconds": 120,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
+      }
+    },
+    {
+      "id": "snapshot_first_event_invalid_quality_and_negative_seconds",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "first_office_seconds": -5,
+          "first_office_active_quality": "exact",
+          "first_booking_seconds": 60,
+          "first_booking_active_quality": "weird"
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "exact",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
+      }
+    },
+    {
+      "id": "snapshot_first_event_exact",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "first_office_seconds": 59.5,
+          "first_office_active_quality": "exact",
+          "first_booking_seconds": 3600,
+          "first_booking_active_quality": "exact"
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "exact",
+        "first_office_seconds": 59.5,
+        "first_booking_active_quality": "exact",
+        "first_booking_seconds": 3600
+      }
     }
   ]
 }
