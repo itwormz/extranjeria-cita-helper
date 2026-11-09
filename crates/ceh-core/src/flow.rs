@@ -60,6 +60,8 @@ pub enum FlowError {
     InvalidDelay,
     StaleCompletion,
     UnexpectedCompletion,
+    /// No page has been observed yet.
+    NoCurrent,
 }
 #[derive(Clone)]
 enum Phase {
@@ -154,6 +156,7 @@ pub struct FlowEngine {
     reload_delay: f64,
     applicant_reload_penalty: f64,
     last_rate_limit_document: Option<DocumentId>,
+    fresh_pass_document: Option<DocumentId>,
     recovery_jitter: f64,
     timings: AssistTimings,
     recovery_attempts: Vec<((PageKind, bool), usize)>,
@@ -181,6 +184,7 @@ impl FlowEngine {
             reload_delay: AssistTimings::default().reload_seconds()[0],
             applicant_reload_penalty: 0.0,
             last_rate_limit_document: None,
+            fresh_pass_document: None,
             timings: AssistTimings::default(),
             recovery_jitter: AssistTimings::default().recovery_jitter_seconds()[0],
             recovery_attempts: vec![],
@@ -337,6 +341,24 @@ impl FlowEngine {
         }
         self.last_tick = Some(now);
         Ok(())
+    }
+    /// Start a new pass from the entry page in the same browser session (Python "Try now", 0.3.5).
+    /// Only while the engine owns the browser; submitted actions are never forgotten, so the old
+    /// document cannot be filled or submitted again. Until a different page is observed a second call
+    /// returns nothing (exactly one new pass).
+    pub fn fresh_pass(&mut self, _now: u64) -> Result<Vec<FlowEffect>, FlowError> {
+        if self.authority.mode() != ControlMode::Automatic || self.manual {
+            return Err(FlowError::ControlDenied);
+        }
+        let current = self.current.clone().ok_or(FlowError::NoCurrent)?;
+        if self.fresh_pass_document.as_ref() == Some(&current.document) {
+            return Ok(Vec::new());
+        }
+        self.fresh_pass_document = Some(current.document.clone());
+        self.round_saw_banner = false;
+        self.phase = Some(Phase::Dispatched);
+        let guard = self.guard(&current);
+        Ok(vec![FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }])
     }
     /// Seconds added to the applicant-form refresh interval after HTTP 429 responses (Python 0.3.1+).
     pub fn applicant_reload_penalty(&self) -> f64 {
@@ -661,6 +683,9 @@ impl FlowEngine {
             );
         if !same {
             self.phase = None;
+        }
+        if self.fresh_pass_document.as_ref().is_some_and(|document| document != &observed.document) {
+            self.fresh_pass_document = None;
         }
         self.current = Some(observed.clone());
         if observed.kind == PageKind::RateLimited

@@ -49,6 +49,8 @@ pub enum Control {
 /// Changes applied to a running search at the next tick.
 enum LiveCommand {
     Budget(BudgetCommand),
+    /// Start a new pass from the entry page in the same session (Try now).
+    FreshPass,
     Timings(ceh_core::timings::AssistTimings),
 }
 struct Message {
@@ -108,7 +110,12 @@ impl SearchController {
             BudgetCommand::TryNow if self.snapshot()?.manual => return Err("search_manual"),
             _ => {}
         }
-        self.send_live(LiveCommand::Budget(command))
+        let try_now = command == BudgetCommand::TryNow;
+        self.send_live(LiveCommand::Budget(command))?;
+        if try_now {
+            self.send_live(LiveCommand::FreshPass)?;
+        }
+        Ok(())
     }
     /// Re-read the active profile's saved timings and appointment policy and apply them to the run.
     pub fn refresh_settings(&self, root: &Path) -> Result<(), &'static str> {
@@ -523,6 +530,11 @@ fn run_owned(
                         let now = crate::current_time()?;
                         if apply_budget_command(&mut budget, &mut appointment_policy, command, now).is_ok() {
                             budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+                        }
+                    }
+                    LiveCommand::FreshPass => {
+                        if !manual {
+                            driver.request_fresh_pass();
                         }
                     }
                     LiveCommand::Timings(next) => {
@@ -1053,6 +1065,15 @@ mod live_command_tests {
         assert!(commands.try_recv().is_err());
         assert_eq!(controller.budget_command(BudgetCommand::SetDailyTarget(Some(i32::MAX as u32))), Ok(()));
         assert!(commands.try_recv().is_ok());
+    }
+
+    #[test]
+    fn try_now_also_requests_a_fresh_pass_after_the_budget_command() {
+        let (controller, commands, _messages) = running(false);
+        assert_eq!(controller.budget_command(BudgetCommand::TryNow), Ok(()));
+        assert!(matches!(commands.try_recv(), Ok(LiveCommand::Budget(BudgetCommand::TryNow))));
+        assert!(matches!(commands.try_recv(), Ok(LiveCommand::FreshPass)));
+        assert!(commands.try_recv().is_err());
     }
 
     #[test]

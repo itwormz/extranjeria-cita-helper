@@ -1055,3 +1055,53 @@ fn no_slots_result_with_an_active_budget_starts_a_new_pass_in_reload_mode_and_wh
         );
     }
 }
+
+fn applicant_prepared_and_submitted(e: &mut FlowEngine, o: &Observation) {
+    let effects = e.observe(o.clone(), 0).unwrap();
+    let FlowEffect::Prepare { guard, action } = &effects[0] else { panic!("missing preparation") };
+    e.complete_preparation(guard, *action, PreparationOutcome::Completed).unwrap();
+    assert!(matches!(&e.observe(o.clone(), 1).unwrap()[0], FlowEffect::Activate { action: ActionKind::Applicant, .. }));
+}
+
+#[test]
+fn fresh_pass_requests_get_entry_once() {
+    let mut e = engine();
+    e.observe(observation(PageKind::ApplicantNoSlots), 0).unwrap();
+    let effects = e.fresh_pass(10).unwrap();
+    assert!(matches!(effects.as_slice(), [FlowEffect::Recover { action: ceh_core::recovery::RecoveryAction::GetEntry, .. }]), "{effects:?}");
+    assert!(e.fresh_pass(11).unwrap().is_empty(), "exactly one new pass until a new page is observed");
+    // A new page re-arms it.
+    let mut next = observation(PageKind::Province);
+    next.document = DocumentId::new("entry").unwrap();
+    e.observe(next, 12).unwrap();
+    assert!(!e.fresh_pass(13).unwrap().is_empty());
+}
+
+#[test]
+fn fresh_pass_is_denied_during_manual_ownership_and_while_paused() {
+    let mut booking = engine();
+    booking.observe(observation(PageKind::Booking), 0).unwrap();
+    assert_eq!(booking.fresh_pass(1), Err(FlowError::ControlDenied));
+    let mut paused = engine();
+    paused.observe(observation(PageKind::Applicant), 0).unwrap();
+    paused.pause(1).unwrap();
+    assert_eq!(paused.fresh_pass(2), Err(FlowError::ControlDenied));
+}
+
+#[test]
+fn fresh_pass_without_a_current_page_is_an_error() {
+    assert_eq!(engine().fresh_pass(0), Err(FlowError::NoCurrent));
+}
+
+#[test]
+fn fresh_pass_never_lets_a_submitted_action_replay_on_the_same_document() {
+    let mut e = engine();
+    let o = observation(PageKind::Applicant);
+    applicant_prepared_and_submitted(&mut e, &o);
+    assert!(!e.fresh_pass(2).unwrap().is_empty());
+    let effects = e.observe(o, 3).unwrap();
+    assert!(
+        !effects.iter().any(|effect| matches!(effect, FlowEffect::Prepare { .. } | FlowEffect::Activate { .. })),
+        "the already submitted document must not be filled or submitted again: {effects:?}"
+    );
+}

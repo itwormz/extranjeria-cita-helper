@@ -96,6 +96,7 @@ pub struct SessionDriver {
     contact_typing_ms:f64,
     appointment_ready_at: Option<u64>,
     confirm_appointment_round: bool,
+    fresh_pass_requested: bool,
 }
 impl SessionDriver {
     pub fn new(
@@ -146,6 +147,7 @@ impl SessionDriver {
             contact_typing_ms,
             appointment_ready_at: None,
             confirm_appointment_round: false,
+            fresh_pass_requested: false,
         })
     }
     pub fn ingest(&mut self, event: &serde_json::Value) -> Result<(), BrowserError> {
@@ -220,6 +222,11 @@ impl SessionDriver {
         self.contact_typing_ms = contact_typing_ms;
         self.timings = timings;
         Ok(())
+    }
+    /// Ask for a new pass from the entry page (Try now). It replaces the next planned step, only while
+    /// automation owns the browser; otherwise the request is dropped.
+    pub fn request_fresh_pass(&mut self) {
+        self.fresh_pass_requested = true;
     }
     pub fn set_appointment_schedule(&mut self, deadline: u64, confirm_round: bool) {
         self.appointment_ready_at = Some(deadline);
@@ -334,7 +341,13 @@ impl SessionDriver {
                 })?,
             )?;
         }
-        let effects = self.accept_observation(page.observation.clone(), facts, now)?;
+        let mut effects = self.accept_observation(page.observation.clone(), facts, now)?;
+        if self.fresh_pass_requested {
+            self.fresh_pass_requested = false;
+            if self.flow.control().mode() == ControlMode::Automatic {
+                effects = self.flow.fresh_pass(now).map_err(|_| BrowserError::InvalidControl)?;
+            }
+        }
         let update = DriverUpdate {
             preparing:false,
             observation: page.observation.clone(),
