@@ -230,7 +230,23 @@
     "Распределять попытки": "Schedule attempts",
     "Распределять бюджет по времени дня. Вне окна чистый проход ждёт; «Попробовать сейчас» открывает ближайшее окно раньше.": "Spread the budget across the day. A clean pass waits outside its window; “Try now” opens the next opportunity earlier.",
     "Защита от бана": "Submission pacing",
-    "Проверить значения защиты от бана": "Check the ban-protection values"
+    "Проверить значения защиты от бана": "Check the ban-protection values",
+    "На сегодня {target}": "Today: {target}",
+    "Остаток {remaining}": "Remaining {remaining}",
+    "Первый cod oper: {first} · Последний: {last}": "First cod oper: {first} · Last: {last}",
+    "Восстановление между {last} и {recovered}": "Recovered between {last} and {recovered}",
+    "Сит нет · cod oper": "No appointments · cod oper",
+    "Показан выбор даты": "Booking options shown",
+    "Исход неизвестен": "Result unknown",
+    "Подтвердить запись вручную": "Confirm booking manually",
+    "Включить распределение на сегодня": "Enable scheduling for today",
+    "Отключить распределение на сегодня": "Pause scheduling for today",
+    "Распределение отключено": "Scheduling paused",
+    "Эпизодов пока нет": "No episodes yet",
+    "Закрыть": "Close",
+    "«Сит нет» до запроса": "“No appointments” before requesting",
+    "Ответы «Сит нет» на запрос записи": "No-appointments replies to booking requests",
+    "Ответы «Сит нет» с cod. oper": "No-appointments replies with cod. oper"
   },
   "es": {
     "Всего": "Total",
@@ -463,6 +479,22 @@
     "Распределять попытки": "Distribuir intentos",
     "Распределять бюджет по времени дня. Вне окна чистый проход ждёт; «Попробовать сейчас» открывает ближайшее окно раньше.": "Distribuye el presupuesto a lo largo del día. Un recorrido limpio espera fuera de su ventana; «Intentar ahora» adelanta la siguiente oportunidad.",
     "Защита от бана": "Control de envíos",
-    "Проверить значения защиты от бана": "Compruebe los valores de la protección contra bloqueos"
+    "Проверить значения защиты от бана": "Compruebe los valores de la protección contra bloqueos",
+    "На сегодня {target}": "Para hoy: {target}",
+    "Остаток {remaining}": "Restantes {remaining}",
+    "Первый cod oper: {first} · Последний: {last}": "Primer cod oper: {first} · Último: {last}",
+    "Восстановление между {last} и {recovered}": "Recuperación entre {last} y {recovered}",
+    "Сит нет · cod oper": "Sin citas · cod oper",
+    "Показан выбор даты": "Opciones de cita mostradas",
+    "Исход неизвестен": "Resultado desconocido",
+    "Подтвердить запись вручную": "Confirmar cita manualmente",
+    "Включить распределение на сегодня": "Activar la distribución hoy",
+    "Отключить распределение на сегодня": "Pausar la distribución hoy",
+    "Распределение отключено": "Distribución en pausa",
+    "Эпизодов пока нет": "Aún no hay episodios",
+    "Закрыть": "Cerrar",
+    "«Сит нет» до запроса": "«No hay citas» antes de solicitar",
+    "Ответы «Сит нет» на запрос записи": "Respuestas sin citas a solicitudes de cita",
+    "Ответы «Сит нет» с cod. oper": "Respuestas sin citas con cod. oper"
   }
 }

@@ -23,6 +23,8 @@ function parts(value:string){
  return {date:`${get('year')}-${get('month')}-${get('day')}`,time:`${get('hour')}:${get('minute')}`};
 }
 const clock=(value:string)=>parts(value).time;
+/** `HH:MM` in Madrid. */
+export const madridClock=clock;
 const stamp=(value:string)=>{const p=parts(value);return `${p.date} ${p.time}`;};
 
 export function budgetLine(b:BudgetSummary,t:Translate):string{

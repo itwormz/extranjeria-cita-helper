@@ -1,16 +1,22 @@
 <script lang="ts">
 import {tick,untrack} from 'svelte';import Icon from './Icon.svelte';
-import {metricValue,formatDuration,firstEvent,metricHint} from './statistics';
+import {metricValue,formatDuration,firstEvent,metricHint,statisticGroups} from './statistics';
+import {fmt,madridClock,showTryNowButton,type BudgetSummary} from './budget';import DailyBudgetDialog from './DailyBudgetDialog.svelte';import BudgetHistoryDialog from './BudgetHistoryDialog.svelte';
 import Choice from './Choice.svelte';
 import StatisticsHistory from './StatisticsHistory.svelte';
 import AppointmentDialog from './AppointmentDialog.svelte';import AchievementPanel from './AchievementPanel.svelte';
-import {loadStatistics,loadAppointmentContext,type Achievement,type AppointmentContext,type ProfileSummary,type StatisticsDashboard} from './bridge';
-let {profiles,selected,onselect,t,language,dark,revision=0}:{profiles:ProfileSummary[];selected:string|null;onselect:(id:string)=>void;t:(key:string)=>string;language:string;dark:boolean;revision?:number}=$props();
+import {loadStatistics,loadAppointmentContext,loadBudget,setDailyTarget,setDistributionToday,tryAppointmentNow,type Achievement,type AppointmentContext,type ProfileSummary,type StatisticsDashboard} from './bridge';
+let {profiles,selected,onselect,t,language,dark,revision=0,live=null,confirmRequest=0}:{profiles:ProfileSummary[];selected:string|null;onselect:(id:string)=>void;t:(key:string)=>string;language:string;dark:boolean;revision?:number;live?:{active:boolean;manual:boolean;budget:BudgetSummary|null}|null;confirmRequest?:number}=$props();
 let data=$state<StatisticsDashboard|null>(null);let loading=$state(false);let failed=$state(false);let period=$state('all');
 let heading:HTMLDivElement;let refresh=$state(0);let context=$state<AppointmentContext|null>(null);let item=$state<Achievement|null>(null);let showForm=$state(false);let editing=$state(false);let actionBusy=$state(false);let actionError=$state(false);let view=$state('stats');
-type BudgetEpisode = {first:string;last:string;recovered:string;offices:{at:string;names:string[];result:string|null}[]};
-type BudgetSummary = {sent:number;target:number;remaining:number;banners:number;no_slots:number;ready:string;restricted:boolean;episode_history:BudgetEpisode[]};
-let budget=$derived(data?.today.appointment_budget as BudgetSummary|undefined);
+let idleBudget=$state<BudgetSummary|null>(null);let budgetDialog=$state(false);let historyDialog=$state(false);let budgetMessage=$state('');
+let running=$derived(Boolean(live?.active&&live.budget));
+let budget=$derived(running?live!.budget:idleBudget);
+$effect(()=>{const id=selected;revision;refresh;const active=live?.active;let current=true;if(id&&!active)loadBudget(id).then(value=>{if(current)idleBudget=value;}).catch(()=>{if(current)idleBudget=null;});return()=>{current=false;};});
+let confirmed=0;$effect(()=>{if(confirmRequest>confirmed){confirmed=confirmRequest;void openAppointment();}});
+async function saveBudget(target:number|null){try{await setDailyTarget(target,selected);budgetDialog=false;budgetMessage=running?'Бюджет применится со следующего действия':'';refresh++;}catch(e){throw new Error(String(e)==='budget_in_use'?'Этот бюджет используется другим поиском':'Не удалось сохранить бюджет на сегодня');}}
+async function toggleDistribution(){if(!budget)return;try{await setDistributionToday(!budget.disabled);budgetMessage='Бюджет применится со следующего действия';}catch{budgetMessage='Не удалось изменить состояние поиска';}}
+async function tryNow(){try{await tryAppointmentNow();budgetMessage='Ближайшая попытка разрешена; остальные тайминги сохранены';}catch{budgetMessage='Не удалось изменить состояние поиска';}}
 function budgetTime(value:string){return new Intl.DateTimeFormat(language,{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}).format(new Date(value));}
 let values=$derived(data?.[period==='today'?'today':'all']??{});
 $effect(()=>{const id=selected;refresh;let current=true;data=null;failed=false;loading=Boolean(id);if(id)loadStatistics(id).then(value=>{if(current)data=value;}).catch(()=>{if(current)failed=true;}).finally(()=>{if(current)loading=false;});return()=>{current=false;};});
@@ -21,7 +27,7 @@ async function showAchievement(){if(!selected||actionBusy)return;const id=select
 function saved(value:Achievement){item=value;showForm=false;view='achievement';refresh++;}
 $effect(()=>{view;void tick().then(()=>heading?.scrollIntoView({block:'start'}));});
 const overview=[['checks','Проверок сит','search'],['active_seconds','Активный поиск','clock'],['days','Дни с поиском','calendar_days']];
-const groups=[{title:'Доступность',icon:'eye',rows:[['offices_seen','Появлений офисов','office'],['unique_offices','Разных офисов','pin'],['booking_screens','Появления выбора даты','calendar_days'],['successes','Получено сит','calendar']]},{title:'Ошибки и восстановление',icon:'wrench',rows:[['server_errors','Ошибок сервера','server'],['rate_limited','Ограничений HTTP 429','clock'],['blocked','Ограничения доступа','shield'],['flow_passes','Повторные проходы','restart']]}];
+const groups=statisticGroups;
 function display(key:string){const value=metricValue(values,key);return key==='active_seconds'?formatDuration(value,language):value===null?'—':new Intl.NumberFormat(language).format(value);}
 
 </script>
@@ -34,27 +40,22 @@ function display(key:string){const value=metricValue(values,key);return key==='a
 <div class="statistics-groups">{#each groups as group}<section><h2><Icon name={group.icon}/>{t(group.title)}</h2>{#each group.rows as [key,label,icon]}<div class="statistics-row"><Icon name={icon}/><span>{t(label)}</span><strong title={metricHint(values,key,language,t)}>{display(key)}</strong></div>{/each}</section>{/each}</div>
 <section class="statistics-effort"><h2><Icon name="settings"/>{t('Автоматизация')}</h2><div class="statistics-pairs">{#each [['actions_performed','Действий выполнено','pointer'],['pages_processed','Страниц обработано','file_text']] as [key,label,icon]}<div class="statistics-row"><Icon name={icon}/><span>{t(label)}</span><strong title={metricHint(values,key,language,t)}>{display(key)}</strong></div>{/each}</div></section>
 {#if budget}
-<section class="statistics-effort">
-  <h2><Icon name="clock"/>{t('Попытки сегодня')}</h2>
-  <div class="statistics-pairs">
-    <div class="statistics-row"><span>{t('Отправлено / цель')}</span><strong>{budget.sent} / {budget.target}</strong></div>
-    <div class="statistics-row"><span>{t('Следующая попытка')}</span><strong>{budgetTime(budget.ready)}</strong></div>
-    <div class="statistics-row"><span>{t('Плашек на форме')}</span><strong>{budget.banners}</strong></div>
-    <div class="statistics-row"><span>{t('Ответов без сит')}</span><strong>{budget.no_slots}</strong></div>
+<section class="statistics-effort budget-block">
+  <h2><Icon name="shield"/>{t('Защита от бана')}</h2>
+  <p class="budget-summary">{#if budget.disabled}{t('Распределение отключено')}{:else}{fmt(t('На сегодня {target}'),{target:budget.target})} · {fmt(t('Остаток {remaining}'),{remaining:budget.remaining})}{/if}</p>
+  {#if budget.restricted}<button class="flat-action" onclick={()=>historyDialog=true}>⚠ {fmt(t('Возможное ограничение · Проба с {time}'),{time:madridClock(budget.ready)})}</button>{/if}
+  <div class="budget-actions">
+   <button class="flat" onclick={()=>budgetDialog=true}><Icon name="pencil" size={16}/>{t('Изменить на сегодня')}</button>
+   <button class="flat" disabled={!running||Boolean(live?.manual)} onclick={()=>void toggleDistribution()}>{t(budget.disabled?'Включить распределение на сегодня':'Отключить распределение на сегодня')}</button>
+   <button class="flat" disabled={!showTryNowButton(live?{active:live.active,manual:live.manual}:null,budget)&&!(running&&!live?.manual)} onclick={()=>void tryNow()}>{t('Попробовать сейчас')}</button>
+   <button class="flat" onclick={()=>historyDialog=true}>{t('История возможных ограничений')}</button>
   </div>
-  {#if budget.restricted}<p class="muted">{t('Возможное ограничение · Cod. Oper.')}</p>{/if}
-  {#if budget.episode_history.length}
-    <details><summary>{t('История возможных ограничений')}</summary>
-      {#each [...budget.episode_history].reverse() as episode}
-        <div class="statistics-row"><span>{budgetTime(episode.first)} — {budgetTime(episode.recovered)}</span><strong>{episode.offices.length}</strong></div>
-        {#each episode.offices as office}<div class="muted">{budgetTime(office.at)} · {office.names.join(' · ')}</div>{/each}
-      {/each}
-    </details>
-  {/if}
+  {#if budgetMessage}<p class="muted" role="status">{t(budgetMessage)}</p>{/if}
 </section>
 {/if}
 <div class="statistics-first">{#each [['first_office','clock'],['first_booking','calendar_days']] as [prefix,icon]}{@const fact=firstEvent(values,prefix,period,language,t)}<div title={fact.hint}><Icon name={icon}/><span>{fact.caption}</span><strong>{fact.value}</strong></div>{/each}</div>
 {/if}
+{#if budgetDialog&&budget}<DailyBudgetDialog {budget} {t} onclose={()=>budgetDialog=false} onsave={saveBudget}/>{/if}{#if historyDialog&&budget}<BudgetHistoryDialog {budget} {t} onclose={()=>historyDialog=false}/>{/if}
 {#if selected}<div class="statistics-actions"><button class="primary" disabled={actionBusy} onclick={()=>void openAppointment()}><Icon name="check"/>{t('Подтвердить запись')}</button>{#if Number(data?.all.successes??0)>0}<button disabled={actionBusy} onclick={()=>void showAchievement()}><Icon name="award"/>{t('Достижения профиля')}</button>{/if}</div><p class="statistics-purpose muted">{t('После оформления ситы можно сохранить данные записи, добавить её в календарь и поделиться статистикой поиска.')}</p><StatisticsHistory {revision} profile={selected} {period} {language} {t}/>{/if}
 {:else if item&&selected}<AchievementPanel profile={selected} {item} {t} {language} {dark} onback={()=>view='stats'} onedit={()=>void openAppointment(true)}/>
 {:else}<div class="achievement-empty"><button class="flat-action" onclick={()=>view='stats'}><Icon name="back"/>{t('К статистике')}</button><p class="muted">{t('Пока нет отмеченных сит')}</p><button class="primary" disabled={actionBusy} onclick={()=>void openAppointment()}><Icon name="check"/>{t('Сита получена')}</button></div>{/if}
