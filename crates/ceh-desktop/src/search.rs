@@ -153,6 +153,7 @@ impl SearchController {
         let bundle =
             ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru")
                 .map_err(|_| "profiles_unavailable")?;
+        let language = bundle.preferences.language.clone();
         let loaded = bundle
             .profiles
             .into_iter()
@@ -168,6 +169,24 @@ impl SearchController {
         let profile = loaded.validation.normalized;
         let timings = loaded.timings.ok_or("profile_invalid")?;
         let appointment_policy = loaded.appointment_policy.ok_or("profile_invalid")?;
+        // Secrets of enabled channels are read now, before any browser opens; unreadable ones stop the start.
+        let vault = ceh_services::secrets::Vault::new(ceh_services::secrets::native::NativeBackend::new());
+        let (notification_config, prepared) = crate::notification_worker::prepare_for_start(root, id, &vault)?;
+        let http = ceh_services::notifications::HttpDelivery::new().map_err(|_| "notification_transport_unavailable")?;
+        let mut notifications = crate::notification_worker::LiveNotifications::start(
+            crate::notification_worker::LiveSettings {
+                profile_id: id.to_owned(),
+                label: profile.label.clone(),
+                province: profile.province.clone(),
+                language,
+                config: notification_config,
+                browser: "Firefox".into(),
+                run_id: uuid::Uuid::new_v4().to_string(),
+            },
+            prepared,
+            move |intent, prepared| ceh_services::notifications::deliver_intent_prepared(intent, prepared, &http),
+            |_, _| {},
+        );
         let (sender, receiver) = mpsc::sync_channel(32);
         let (live, live_receiver) = mpsc::channel();
         let gate = Arc::new(Mutex::new(None));
@@ -193,6 +212,7 @@ impl SearchController {
                     appointment_policy,
                     &receiver,
                     &live_receiver,
+                    &mut notifications,
                     &worker_gate,
                     &stop,
                     &state,
@@ -200,6 +220,12 @@ impl SearchController {
                     &sound,
                 );
                 let requested_stop = stop.load(Ordering::Acquire);
+                if result.is_err() && !requested_stop {
+                    notifications.observe(ceh_services::notifications::NotificationStateInput {
+                        failed: true,
+                        ..Default::default()
+                    });
+                }
                 let enabled = ceh_store::profiles::read_profiles(
                     &root.join("tasks.yml"),
                     crate::catalog(),
@@ -326,6 +352,7 @@ fn run(
     appointment_policy: ceh_core::appointment_budget::AppointmentPolicy,
     receiver: &mpsc::Receiver<Message>,
     live: &mpsc::Receiver<LiveCommand>,
+    notifications: &mut crate::notification_worker::LiveNotifications,
     shared_gate: &Mutex<Option<DispatchGate>>,
     cancelled: &AtomicBool,
     state: &Mutex<SearchSnapshot>,
@@ -351,6 +378,7 @@ fn run(
         &appointment_policy,
         receiver,
         live,
+        notifications,
         shared_gate,
         cancelled,
         state,
@@ -372,6 +400,7 @@ fn run_owned(
     appointment_policy: &ceh_core::appointment_budget::AppointmentPolicy,
     receiver: &mpsc::Receiver<Message>,
     live: &mpsc::Receiver<LiveCommand>,
+    notifications: &mut crate::notification_worker::LiveNotifications,
     shared_gate: &Mutex<Option<DispatchGate>>,
     cancelled: &AtomicBool,
     state: &Mutex<SearchSnapshot>,
@@ -642,6 +671,17 @@ fn run_owned(
                         s.deadline = None;
                     }
                 })?;
+                // Telegram's booking text waits for the public details (read right after the handoff below).
+                notifications.observe(ceh_services::notifications::NotificationStateInput {
+                    document: Some(before.observation.document.as_str().to_owned()),
+                    page: before.observation.kind,
+                    attention,
+                    booking_handoff: manual,
+                    paused,
+                    offices: before.offices.clone(),
+                    booking_details_pending: manual,
+                    ..Default::default()
+                });
                 // UI/store/handoff already published before actions or optional public enrichment.
                 if effects.iter().any(|e| {
                     matches!(
@@ -742,6 +782,15 @@ fn run_owned(
                         .enrich_booking(&mut db, &after.observation.document, &details)
                         .map_err(|_| "statistics_unavailable")?;
                     journal.booking(&after.observation.document, &details);
+                    notifications.observe(ceh_services::notifications::NotificationStateInput {
+                        document: Some(after.observation.document.as_str().to_owned()),
+                        page: after.observation.kind,
+                        attention: true,
+                        booking_handoff: true,
+                        booking_details: Some(details.clone()),
+                        booking_details_pending: false,
+                        ..Default::default()
+                    });
                     stats
                         .set_phase(&mut db, "booking_handoff", wall()?, mono())
                         .map_err(|_| "statistics_unavailable")?;

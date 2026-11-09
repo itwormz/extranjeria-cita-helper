@@ -211,6 +211,13 @@ fn from_secrets(
         },
     })
 }
+/// Channel settings (references, events, recipients) of a saved profile for a starting search; no secrets.
+pub fn runtime_config(root: &Path, id: &str) -> Result<Value, EditError> {
+    let bundle = read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru")
+        .map_err(|_| ProfileWriteError::Read)?;
+    let metadata = metadata(root, Some(id), bundle.revision())?;
+    serde_json::to_value(&metadata).map_err(|_| EditError::Invalid)
+}
 pub fn editor<B: Backend>(
     root: &Path,
     id: Option<&str>,

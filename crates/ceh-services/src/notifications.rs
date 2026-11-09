@@ -58,6 +58,82 @@ pub fn settings(raw: &Value) -> Value {
     }
     value
 }
+/// What the live search knows about the current page, as the notification planner needs it.
+#[derive(Clone, Debug)]
+pub struct NotificationStateInput {
+    pub run_id: String,
+    pub document: Option<String>,
+    pub page: ceh_core::model::PageKind,
+    /// The person must act (office choice, authentication, captcha, date selection).
+    pub attention: bool,
+    pub booking_handoff: bool,
+    pub paused: bool,
+    pub connection_lost: bool,
+    pub failed: bool,
+    pub finished: bool,
+    pub offices: Vec<String>,
+    pub booking_details: Option<Value>,
+    pub booking_details_pending: bool,
+    pub browser: Option<String>,
+}
+impl Default for NotificationStateInput {
+    fn default() -> Self {
+        Self {
+            run_id: String::new(),
+            document: None,
+            page: ceh_core::model::PageKind::Unknown,
+            attention: false,
+            booking_handoff: false,
+            paused: false,
+            connection_lost: false,
+            failed: false,
+            finished: false,
+            offices: Vec::new(),
+            booking_details: None,
+            booking_details_pending: false,
+            browser: None,
+        }
+    }
+}
+/// The state dictionary Python's runner publishes (`screen`, `stage`, `mode`, ...), built from typed facts.
+pub fn notification_state(input: &NotificationStateInput) -> Value {
+    use ceh_core::model::PageKind;
+    let screen = if input.attention {
+        match input.page {
+            PageKind::Office => "Выбор офиса",
+            PageKind::Booking => "Выбор ситы",
+            PageKind::Captcha => "Капча",
+            PageKind::Auth | PageKind::AuthWait => "Авторизация",
+            _ => "",
+        }
+    } else if input.page == PageKind::Office {
+        TRANSIENT_SCREEN
+    } else {
+        ""
+    };
+    let office = input.page == PageKind::Office;
+    let mut state = json!({
+        "run_id": input.run_id,
+        "document": input.document,
+        "mode": if input.attention || input.booking_handoff { "manual" } else { "working" },
+        "screen": screen,
+        "stage": if office { "office" } else { "" },
+        "paused": input.paused,
+        "connection_lost": input.connection_lost,
+        "booking_handoff": input.booking_handoff,
+        "failed": input.failed,
+        "finished": input.finished,
+        "available_offices": if office { json!(input.offices) } else { json!([]) },
+        "booking_details_pending": input.booking_details_pending,
+    });
+    if let Some(details) = &input.booking_details {
+        state["booking_details"] = details.clone();
+    }
+    if let Some(browser) = &input.browser {
+        state["browser"] = json!(browser);
+    }
+    state
+}
 /// A Telegram connection link stays valid this long (Python 0.3.3+).
 pub const PAIRING_LIFETIME_SECONDS: u64 = 300;
 const TRANSIENT_SCREEN: &str = "Проверяем страницу";

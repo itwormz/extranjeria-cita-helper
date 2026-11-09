@@ -238,13 +238,6 @@ impl Run<'_> {
         let Some(observed) = &self.current else {
             return Ok(());
         };
-        let screen = match observed.kind {
-            PageKind::Office => "Выбор офиса",
-            PageKind::Booking => "Выбор ситы",
-            PageKind::Captcha => "Капча",
-            PageKind::AuthWait => "Авторизация",
-            _ => "",
-        };
         let details = self
             .booking_doc
             .as_ref()
@@ -256,7 +249,18 @@ impl Run<'_> {
             })
             .map(|event| serde_json::to_value(&event.booking_details).expect("public details"))
             .unwrap_or(json!({}));
-        let state = json!({"mode":if self.mode()==ControlMode::Manual{"manual"}else{"working"},"screen":screen,"run_id":self.scope.session,"paused":self.flow.control().mode()==ControlMode::Paused,"booking_handoff":self.flow.control().mode()==ControlMode::Manual,"booking_details_pending":self.details_pending,"booking_details":details});
+        let manual = self.flow.control().mode() == ControlMode::Manual;
+        let state = ceh_services::notifications::notification_state(&ceh_services::notifications::NotificationStateInput {
+            run_id: self.scope.session.as_str().to_owned(),
+            document: Some(observed.document.as_str().to_owned()),
+            page: observed.kind,
+            attention: manual,
+            booking_handoff: manual,
+            paused: self.flow.control().mode() == ControlMode::Paused,
+            booking_details: Some(details),
+            booking_details_pending: self.details_pending,
+            ..Default::default()
+        });
         let config = json!({"telegram":{"enabled":self.notify},"webhook":{"enabled":self.notify}});
         let intents = self
             .planner

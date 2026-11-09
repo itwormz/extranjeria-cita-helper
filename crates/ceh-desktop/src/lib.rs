@@ -2,6 +2,7 @@
 pub mod achievement_exports;
 pub mod appointment;
 pub mod history;
+pub mod notification_worker;
 pub mod presentation;
 pub mod session_presentation;
 pub mod sound;
