@@ -441,10 +441,10 @@ fn run_owned(
     let mut budget_store = ceh_store::appointment_budget::BudgetStore::open(&root.join("data"), profile)
         .map_err(|_| "appointment_budget_unavailable")?;
     let mut budget = budget_store.load().map_err(|_| "appointment_budget_unavailable")?;
-    let mut budget_document = None;
     let mut copied_budget_identity = None;
     let mut initial_budget_store = None;
-    let mut awaiting_appointment_result = false;
+    // Round state of the budget: banners, offices, awaited request result and the one-time hot retry.
+    let mut observer = ceh_core::budget_observer::BudgetObserver::default();
     let clock = Instant::now();
     let mono = || clock.elapsed().as_millis().min(u64::MAX as u128) as u64;
     let mut stats = LiveStatistics::start(
@@ -552,7 +552,7 @@ fn run_owned(
             }
             if !paused && !manual {
                 let budget_now = crate::current_time()?;
-                let ready = budget.next_submission(budget_now, &appointment_policy, false);
+                let ready = budget.next_submission(budget_now, &appointment_policy, observer.hot_retry());
                 let delay = (ready - budget_now).num_milliseconds().max(0) as u64;
                 driver.set_appointment_schedule(mono().saturating_add(delay), appointment_policy.confirm_new_round);
                 let step = match driver.plan(browser.connection(), mono()) {
@@ -593,33 +593,21 @@ fn run_owned(
                         at,
                     )
                     .map_err(|_| "search_unavailable")?;
-                if budget_document.as_ref() != Some(&before.observation.document)
-                    && matches!(before.observation.kind, PageKind::ApplicantNoSlots | PageKind::RequestNoSlots | PageKind::RequestNoSlotsRestart | PageKind::PostContactNoSlots | PageKind::Office | PageKind::Booking)
                 {
-                    budget_document = Some(before.observation.document.clone());
-                    if before.observation.kind == PageKind::ApplicantNoSlots {
-                        budget.banners = budget.banners.saturating_add(1);
-                    } else if before.observation.operation_code {
-                        budget.cod_oper(budget_now, &appointment_policy);
-                        awaiting_appointment_result = false;
-                    } else if awaiting_appointment_result {
-                        match before.observation.kind {
-                            PageKind::Office if budget.restricted() => {
-                                budget.office_during_restriction(budget_now, before.offices.clone());
-                            }
-                            PageKind::RequestNoSlots | PageKind::RequestNoSlotsRestart | PageKind::PostContactNoSlots => {
-                                budget.no_slots = budget.no_slots.saturating_add(1);
-                                budget.ordinary_result(budget_now);
-                                awaiting_appointment_result = false;
-                            }
-                            PageKind::Booking => {
-                                budget.ordinary_result(budget_now);
-                                awaiting_appointment_result = false;
-                            }
-                            _ => {}
-                        }
+                    let page = ceh_core::budget_observer::ObservedPage {
+                        kind: before.observation.kind,
+                        operation_code: before.observation.operation_code,
+                    };
+                    let mut changed = observer.observe(&page, &mut budget, budget_now, &appointment_policy);
+                    if before.observation.kind == PageKind::Office {
+                        changed |= observer.offices_seen(&mut budget, budget_now, before.offices.clone());
                     }
-                    budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+                    if before.observation.kind == PageKind::Province {
+                        observer.on_province();
+                    }
+                    if changed {
+                        budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+                    }
                 }
                 if !before.offices.is_empty() {
                     journal.offices(before.offices.clone(), None);
@@ -713,8 +701,8 @@ fn run_owned(
                 let entering_auth = effects.iter().any(|effect| matches!(effect, FlowEffect::EnterAuthentication { .. }));
                 let submits_appointment = effects.iter().any(|effect| matches!(effect, FlowEffect::Activate { action: ActionKind::Request, .. }));
                 let prior_budget = if submits_appointment {
-                    let prior = budget.clone();
-                    budget.submitted(crate::current_time()?, &appointment_policy);
+                    let prior = (budget.clone(), observer.clone());
+                    observer.request_sent(&mut budget, crate::current_time()?, &appointment_policy);
                     budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
                     Some(prior)
                 } else {
@@ -760,11 +748,11 @@ fn run_owned(
                         copied_budget_identity = Some(identity);
                     }
                 }
-                if let Some(prior) = prior_budget {
-                    if after.receipts.iter().any(|receipt| receipt.action == ActionKind::Request && receipt.outcome != DispatchOutcome::NotDispatched) {
-                        awaiting_appointment_result = true;
-                    } else {
-                        budget = prior;
+                if let Some((prior_budget, prior_observer)) = prior_budget {
+                    // The request was counted before it was sent; an undelivered click gives the attempt back.
+                    if !after.receipts.iter().any(|receipt| receipt.action == ActionKind::Request && receipt.outcome != DispatchOutcome::NotDispatched) {
+                        budget = prior_budget;
+                        observer = prior_observer;
                         budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
                     }
                 }

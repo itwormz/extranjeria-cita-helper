@@ -91,3 +91,29 @@ fn saved_file_keeps_exactly_the_python_field_names() {
     rust_keys.sort();
     assert_eq!(rust_keys, python_keys);
 }
+
+#[test]
+fn copied_document_budget_is_locked_against_another_profile_and_never_stores_the_document() {
+    let cases: serde_json::Value = serde_json::from_str(include_str!("../../../tests/contracts/fixtures/profile-validation.json")).unwrap();
+    let mut profile: ProfileDraft = serde_json::from_value(cases["cases"][0]["expected"]["normalized"].clone()).unwrap();
+    profile.fill_mode = "copy".into();
+    profile.id = "copy-a".into();
+    let data = tempfile::tempdir().unwrap();
+    let first = BudgetStore::open_for_document(data.path(), &profile, Some(("X1234567L", "NIE"))).unwrap();
+    let mut budget = first.load().unwrap();
+    budget.submitted("2026-11-04T11:00:00Z".parse().unwrap(), &AppointmentPolicy::default());
+    first.save(&budget).unwrap();
+    profile.id = "copy-b".into();
+    assert!(
+        BudgetStore::open_for_document(data.path(), &profile, Some(("x1234567l", "nie"))).is_err(),
+        "the same document (any case) is in use by another profile"
+    );
+    drop(first);
+    let reopened = BudgetStore::open_for_document(data.path(), &profile, Some(("X1234567L", "NIE"))).unwrap();
+    assert_eq!(reopened.load().unwrap().sent(), 1);
+    for entry in std::fs::read_dir(data.path().join("appointment-budget")).unwrap().flatten() {
+        if entry.path().extension().is_some_and(|e| e == "json") {
+            assert!(!std::fs::read_to_string(entry.path()).unwrap().to_uppercase().contains("X1234567L"));
+        }
+    }
+}

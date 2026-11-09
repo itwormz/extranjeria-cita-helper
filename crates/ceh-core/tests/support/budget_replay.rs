@@ -30,7 +30,7 @@ fn policy(scenario: &Value, step: &Value) -> AppointmentPolicy {
 }
 
 /// Datetimes compare within one millisecond (Python rounds timedelta division to microseconds).
-fn same(expected: &Value, actual: &Value, path: &str) -> Result<(), String> {
+pub fn same(expected: &Value, actual: &Value, path: &str) -> Result<(), String> {
     if let (Some(a), Some(b)) = (expected.as_str(), actual.as_str())
         && let (Ok(a), Ok(b)) = (a.parse::<DateTime<Utc>>(), b.parse::<DateTime<Utc>>())
     {

@@ -1039,3 +1039,19 @@ fn rate_limit_penalty_stops_applying_when_the_flag_is_switched_off_mid_run() {
         .unwrap();
     assert_eq!(effects, vec![FlowEffect::WaitUntil(1_000 + 30_000)], "Python adds the penalty only while the flag is on");
 }
+
+#[test]
+fn no_slots_result_with_an_active_budget_starts_a_new_pass_in_reload_mode_and_when_salir_is_missing() {
+    for mode in [NoSlotsMode::Reload, NoSlotsMode::Salir] {
+        let mut e = FlowEngine::new(SessionId::new("s").unwrap(), SearchOptions { no_slots_mode: mode, ..Default::default() });
+        let mut facts = PageFacts { appointment_ready_at: Some(0), ..Default::default() };
+        facts.recovery.official_site = true; // no own Salir control on the page
+        let page = observation(PageKind::RequestNoSlots);
+        assert_eq!(e.observe_with_facts(page.clone(), facts, 0).unwrap(), vec![FlowEffect::WaitUntil(30_000)], "{mode:?}");
+        let effects = e.observe_with_facts(page, facts, 30_000).unwrap();
+        assert!(
+            matches!(effects.as_slice(), [FlowEffect::Recover { action: ceh_core::recovery::RecoveryAction::GetEntry, .. }]),
+            "{mode:?}: {effects:?}"
+        );
+    }
+}
