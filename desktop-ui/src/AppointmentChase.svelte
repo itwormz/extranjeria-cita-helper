@@ -1,0 +1,20 @@
+<script lang="ts">
+import {onMount,tick} from 'svelte';import Icon from './Icon.svelte';import {escapePoint,proverb} from './easter-egg';
+let {language,t,onback}:{language:string;t:(key:string)=>string;onback:()=>void}=$props();
+let board:HTMLDivElement;let ticket=$state<HTMLButtonElement>();let backButton:HTMLButtonElement;let pos=$state({x:0,y:0});let caught=$state(false);let saying=$state('');let lastEscape=0;let reduced=false;let celebrate=$state(false);
+const colors=['#5E6AD2','#E9B44C','#6BCF8E','#E4685D','#8A93F5'];
+const particles=Array.from({length:100},()=>({left:Math.random()*100,delay:Math.random()*.5,color:colors[Math.floor(Math.random()*colors.length)],rotation:Math.random()*360}));
+onMount(()=>{reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;const resize=()=>{const r=board.getBoundingClientRect();pos={x:Math.max(0,(r.width-56)/2),y:Math.max(0,(r.height-56)/2)};};resize();const observer=new ResizeObserver(resize);observer.observe(board);ticket?.focus({preventScroll:true});return()=>observer.disconnect();});
+function evade(e:PointerEvent){if(caught||reduced||e.pointerType!=='mouse')return;const now=performance.now();if(now-lastEscape<180)return;const r=board.getBoundingClientRect();const cursor={x:e.clientX-r.left,y:e.clientY-r.top};if(Math.abs(pos.x+28-cursor.x)+Math.abs(pos.y+28-cursor.y)<110){pos=escapePoint(r.width,r.height,cursor);lastEscape=now;}}
+async function catchTicket(){caught=true;saying=proverb(language);celebrate=!reduced;await tick();backButton?.focus({preventScroll:true});}
+</script>
+<section class="chase"><div class="chase-heading"><h2>{t('Последняя сита')}</h2><button type="button" class="flat-action" bind:this={backButton} onclick={onback}><Icon name="back"/>{t('Назад')}</button></div>
+<p class="muted instruction" class:invisible={caught}>{t('Поймать ситу')}</p>
+<div class="chase-board" bind:this={board} onpointermove={evade} role="presentation">
+{#if caught}<div class="victory" role="status"><Icon name="calendar" size={48}/><h3>{t('Сита поймана!')}</h3><p>{saying}</p></div>
+{:else}<button type="button" class="ticket" bind:this={ticket} style:left={pos.x+'px'} style:top={pos.y+'px'} aria-label={t('Сита!')} onclick={catchTicket}><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="8" width="40" height="36" rx="7" fill="#5E6AD2"/><path d="M14 5v9M34 5v9M11 20h26m-22 8h5m8 0h5m-18 7h5" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/></svg></button>{/if}
+{#if celebrate}<div class="confetti" aria-hidden="true">{#each particles as p}<i style:left={p.left+'%'} style:background={p.color} style:animation-delay={p.delay+'s'} style:rotate={p.rotation+'deg'}></i>{/each}</div>{/if}
+</div></section>
+<style>
+.chase{user-select:none;-webkit-user-select:none;height:100%;display:flex;flex-direction:column}.chase-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:44px;flex:none}.chase h2{font-size:21px;line-height:1.3;margin:0}.flat-action{background:none;border:0;padding:6px;min-height:32px;line-height:20px;white-space:nowrap;align-self:center}.instruction{text-align:center;font-size:13px;height:20px;line-height:20px;flex:none;margin:12px 0 0}.instruction.invisible{visibility:hidden}.chase-board{flex:1;min-height:120px;position:relative;overflow:hidden}.ticket{position:absolute;width:56px;height:56px;border:0;background:transparent;padding:4px;min-height:0}.ticket svg{width:48px;height:48px}.ticket:hover{background:transparent}.victory{position:absolute;inset:0;display:grid;grid-template-rows:56px 42px 78px;place-items:center;align-content:center;gap:12px;text-align:center;padding:16px}.victory h3{font-size:26px;margin:0}.victory p{font-size:16px;line-height:1.6;margin:0;max-width:440px}.victory :global(svg){color:var(--accent-text)}.confetti{pointer-events:none;position:absolute;inset:0;overflow:hidden}.confetti i{position:absolute;top:-15px;width:6px;height:10px;border-radius:1px;animation:fall 2.8s ease-in forwards}@keyframes fall{to{transform:translate(25px,380px) rotate(360deg);opacity:0}}@media(prefers-reduced-motion:reduce){.confetti{display:none}}
+</style>

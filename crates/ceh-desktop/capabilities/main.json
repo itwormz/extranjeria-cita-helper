@@ -1,0 +1,34 @@
+{
+  "identifier": "main",
+  "description": "Local preview main UI only, no remote website capabilities.",
+  "local": true,
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "allow-search-snapshot",
+    "allow-search-start",
+    "allow-search-control",
+    "allow-search-show",
+    "allow-search-copy",
+    "allow-desktop-bootstrap",
+    "allow-validate-profile",
+    "allow-profile-editor",
+    "allow-save-profile",
+    "allow-save-preferences",
+    "allow-select-profile",
+    "allow-load-notification-editor",
+    "allow-notification-action",
+    "allow-open-diagnostics",
+    "allow-profile-statistics",
+    "allow-profile-history",
+    "allow-profile-selection",
+    "allow-appointment-context",
+    "allow-save-appointment",
+    "allow-copy-appointment-field",
+    "allow-achievement-public",
+    "allow-achievement-calendar",
+    "allow-achievement-export",
+    "allow-open-public-link"
+  ]
+}

@@ -1,0 +1,1034 @@
+{
+  "cases": [
+    {
+      "id": "normal",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "page",
+            "at": 0,
+            "stage": "province"
+          },
+          {
+            "op": "page",
+            "at": 10,
+            "stage": "procedure"
+          },
+          {
+            "op": "page",
+            "at": 20,
+            "stage": "auth"
+          },
+          {
+            "op": "page",
+            "at": 30,
+            "stage": "applicant"
+          },
+          {
+            "op": "page",
+            "at": 40,
+            "stage": "request_menu"
+          },
+          {
+            "op": "page",
+            "at": 50,
+            "stage": "request_no_slots"
+          },
+          {
+            "op": "page",
+            "at": 80,
+            "stage": "request_no_slots"
+          },
+          {
+            "op": "end",
+            "at": 100
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "province",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:00:10+00:00",
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 2,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "procedure",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:10+00:00",
+            "end": "2026-10-30T12:00:20+00:00",
+            "last_seen": "2026-10-30T12:00:10+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 3,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "auth",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:20+00:00",
+            "end": "2026-10-30T12:00:30+00:00",
+            "last_seen": "2026-10-30T12:00:20+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 4,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "applicant",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:30+00:00",
+            "end": "2026-10-30T12:00:40+00:00",
+            "last_seen": "2026-10-30T12:00:30+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 5,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "request_menu",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:40+00:00",
+            "end": "2026-10-30T12:00:50+00:00",
+            "last_seen": "2026-10-30T12:00:40+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 6,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "request_no_slots",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:50+00:00",
+            "end": "2026-10-30T12:01:20+00:00",
+            "last_seen": "2026-10-30T12:01:20+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          }
+        ],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:01:40+00:00",
+            "last_seen": "2026-10-30T12:01:40+00:00",
+            "reason": "stopped",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": []
+      }
+    },
+    {
+      "id": "long_wait",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "page",
+            "at": 0,
+            "stage": "request_no_slots_restart",
+            "operation_code": true
+          },
+          {
+            "op": "phase",
+            "at": 0,
+            "mode": "waiting"
+          },
+          {
+            "op": "heartbeat",
+            "at": 30
+          },
+          {
+            "op": "heartbeat",
+            "at": 60
+          },
+          {
+            "op": "heartbeat",
+            "at": 90
+          },
+          {
+            "op": "heartbeat",
+            "at": 120
+          },
+          {
+            "op": "heartbeat",
+            "at": 150
+          },
+          {
+            "op": "heartbeat",
+            "at": 180
+          },
+          {
+            "op": "page",
+            "at": 180,
+            "stage": "request_no_slots_restart",
+            "operation_code": true
+          },
+          {
+            "op": "end",
+            "at": 200
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "request_no_slots_restart",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:03:00+00:00",
+            "last_seen": "2026-10-30T12:03:00+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [
+              "operation_code"
+            ],
+            "variant": ""
+          },
+          {
+            "id": 2,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "phase",
+            "stage": "",
+            "mode": "waiting",
+            "document": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:03:00+00:00",
+            "last_seen": "2026-10-30T12:03:00+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          }
+        ],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:03:20+00:00",
+            "last_seen": "2026-10-30T12:03:20+00:00",
+            "reason": "stopped",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": []
+      }
+    },
+    {
+      "id": "loading_error",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "page",
+            "at": 0,
+            "stage": "server_error"
+          },
+          {
+            "op": "page",
+            "at": 10,
+            "stage": "loading"
+          },
+          {
+            "op": "page",
+            "at": 20,
+            "stage": "server_error",
+            "document": "new-doc"
+          },
+          {
+            "op": "page",
+            "at": 30,
+            "stage": "province"
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "server_error",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:00:30+00:00",
+            "last_seen": "2026-10-30T12:00:20+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 2,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "province",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:30+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:30+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          }
+        ],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "reason": "",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": []
+      }
+    },
+    {
+      "id": "unsupported_gap",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "page",
+            "at": 0,
+            "stage": "province"
+          },
+          {
+            "op": "page",
+            "at": 50,
+            "stage": "province"
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "province",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:00:00+00:00",
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 2,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "province",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:50+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:50+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          }
+        ],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "reason": "",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": []
+      }
+    },
+    {
+      "id": "explicit_gap",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "page",
+            "at": 0,
+            "stage": "province"
+          },
+          {
+            "op": "phase",
+            "at": 5,
+            "mode": "working"
+          },
+          {
+            "op": "phase",
+            "at": 50,
+            "mode": "unobserved"
+          },
+          {
+            "op": "page",
+            "at": 70,
+            "stage": "province"
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "province",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:00:00+00:00",
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 2,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "phase",
+            "stage": "",
+            "mode": "working",
+            "document": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "start": "2026-10-30T12:00:05+00:00",
+            "end": "2026-10-30T12:00:05+00:00",
+            "last_seen": "2026-10-30T12:00:05+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 3,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "phase",
+            "stage": "",
+            "mode": "unobserved",
+            "document": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "start": "2026-10-30T12:00:50+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:50+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 4,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "province",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:01:10+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:01:10+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          }
+        ],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "reason": "",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": []
+      }
+    },
+    {
+      "id": "clock_back",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "page",
+            "at": 20,
+            "stage": "province"
+          },
+          {
+            "op": "page",
+            "at": 10,
+            "stage": "server_error"
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "province",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:20+00:00",
+            "end": "2026-10-30T12:00:10+00:00",
+            "last_seen": "2026-10-30T12:00:20+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 2,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "server_error",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:10+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:10+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          }
+        ],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "reason": "",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": []
+      }
+    },
+    {
+      "id": "manual",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "page",
+            "at": 0,
+            "stage": "office"
+          },
+          {
+            "op": "phase",
+            "at": 10,
+            "mode": "manual"
+          },
+          {
+            "op": "page",
+            "at": 20,
+            "stage": "contact"
+          },
+          {
+            "op": "page",
+            "at": 30,
+            "stage": "booking"
+          },
+          {
+            "op": "phase",
+            "at": 31,
+            "mode": "booking_handoff"
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "office",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": "2026-10-30T12:00:20+00:00",
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 2,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "phase",
+            "stage": "",
+            "mode": "manual",
+            "document": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "start": "2026-10-30T12:00:10+00:00",
+            "end": "2026-10-30T12:00:31+00:00",
+            "last_seen": "2026-10-30T12:00:31+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 3,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "contact",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:20+00:00",
+            "end": "2026-10-30T12:00:30+00:00",
+            "last_seen": "2026-10-30T12:00:20+00:00",
+            "confirmed": 1,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 4,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "page",
+            "stage": "booking",
+            "mode": "",
+            "document": "139d544b821b13ebea14f1b0fe18577222e415c2966e3a3511c4196055232202",
+            "start": "2026-10-30T12:00:30+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:30+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          },
+          {
+            "id": 5,
+            "profile": "fixture",
+            "session": "session",
+            "kind": "phase",
+            "stage": "",
+            "mode": "booking_handoff",
+            "document": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "start": "2026-10-30T12:00:31+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:31+00:00",
+            "confirmed": 0,
+            "recognition": "known",
+            "evidence": [],
+            "variant": ""
+          }
+        ],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "reason": "",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": []
+      }
+    },
+    {
+      "id": "active",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "active",
+            "at": 10,
+            "seconds": 2.5
+          },
+          {
+            "op": "active",
+            "at": 10,
+            "seconds": 2.5
+          },
+          {
+            "op": "active",
+            "at": 20,
+            "seconds": 0
+          }
+        ]
+      },
+      "expected": {
+        "events": [],
+        "episodes": [],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "reason": "",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:07.500000+00:00",
+            "end": "2026-10-30T12:00:10+00:00",
+            "seconds": 2.5
+          }
+        ],
+        "activity_days": [
+          {
+            "profile": "fixture",
+            "day": "2026-10-30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "booking_enrichment",
+      "input": {
+        "steps": [
+          {
+            "op": "start",
+            "at": 0,
+            "context": {
+              "province": "Barcelona",
+              "procedure": "regreso",
+              "authentication": "certificate",
+              "app_version": "0.0.0-dev.1",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "phone": "PRIVATE"
+            }
+          },
+          {
+            "op": "counter",
+            "at": 1,
+            "kind": "booking",
+            "document": "booking-doc"
+          },
+          {
+            "op": "counter",
+            "at": 2,
+            "kind": "booking",
+            "document": "booking-doc"
+          },
+          {
+            "op": "enrich",
+            "at": 5,
+            "document": "booking-doc",
+            "details": {
+              "office": "Office A",
+              "confirmation": "PRIVATE",
+              "offers": [
+                {
+                  "date": "2026-11-12",
+                  "time": "09:30"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "id": 1,
+            "profile": "fixture",
+            "identity": "a767d3746640d2da858227b3af267ff6a721f59d4fd7db79d80a05a7758430e2",
+            "kind": "booking",
+            "time": "2026-10-30T12:00:01+00:00",
+            "session": "session",
+            "stage": "",
+            "mode": "",
+            "counted": 1,
+            "offices": [],
+            "evidence": {
+              "codes": [],
+              "http_status": null,
+              "booking_details": {
+                "office": "Office A",
+                "offers": [
+                  {
+                    "date": "2026-11-12",
+                    "time": "09:30"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "episodes": [],
+        "sessions": [
+          {
+            "profile": "fixture",
+            "session": "session",
+            "start": "2026-10-30T12:00:00+00:00",
+            "end": null,
+            "last_seen": "2026-10-30T12:00:00+00:00",
+            "reason": "",
+            "context": {
+              "authentication": "certificate",
+              "os": "Darwin",
+              "architecture": "arm64",
+              "procedure": "regreso",
+              "province": "Barcelona",
+              "app_version": "0.0.0-dev.1"
+            }
+          }
+        ],
+        "active": [],
+        "activity_days": [
+          {
+            "profile": "fixture",
+            "day": "2026-10-30"
+          }
+        ]
+      }
+    }
+  ]
+}

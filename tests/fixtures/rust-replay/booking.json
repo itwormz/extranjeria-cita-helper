@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "profile": "fixture",
+  "session": "offline-example",
+  "wall_start_millis": 1793361600000,
+  "notifications": true,
+  "steps": [
+    {
+      "event": "observe",
+      "at_ms": 0,
+      "observation": {
+        "document": "menu",
+        "kind": "request_menu"
+      }
+    },
+    {
+      "event": "availability_request",
+      "at_ms": 100,
+      "operation": "request-1"
+    },
+    {
+      "event": "observe",
+      "at_ms": 200,
+      "observation": {
+        "document": "booking",
+        "kind": "booking"
+      },
+      "details_pending": true
+    },
+    {
+      "event": "booking_details",
+      "at_ms": 210,
+      "document": "booking",
+      "details": {
+        "office": "Example office",
+        "offers": [
+          {
+            "date": "2026-11-12",
+            "time": "09:30"
+          }
+        ]
+      }
+    },
+    {
+      "event": "heartbeat",
+      "at_ms": 1000
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+[package]
+name = "ceh-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file = "../../LICENSE"
+publish.workspace = true
+
+[dependencies]
+ceh-core = { path = "../ceh-core" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+regex.workspace = true
+chrono.workspace = true
+yaml-rust2.workspace = true
+num-bigint.workspace = true
+rusqlite.workspace = true
+chrono-tz.workspace = true
+tempfile = "=3.27.0"
+fs2 = "=0.4.3"
+uuid = { version = "=1.29.0", features = ["v4"] }
+hmac = "=0.13.0"
+sha2-budget = { package = "sha2", version = "=0.11.1" }

@@ -1,0 +1,1096 @@
+{
+  "schema_version": 1,
+  "scope": "PageJournal stable facts; localized template text and URLs intentionally excluded",
+  "cases": [
+    {
+      "id": "sent_is_not_passed",
+      "steps": [
+        {
+          "observe": {
+            "stage": "province",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "action",
+            "stage": "province",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "action_completed",
+            "stage": "province",
+            "document": "doc"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "province",
+          "document": "doc",
+          "status": "processing",
+          "destination": "",
+          "submitted": true,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "confirmed_transition",
+      "steps": [
+        {
+          "observe": {
+            "stage": "province",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "action_completed",
+            "stage": "province",
+            "document": "doc"
+          }
+        },
+        {
+          "observe": {
+            "stage": "procedure",
+            "document": "new"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454402000,
+          "event": "visit",
+          "stage": "province",
+          "document": "doc",
+          "status": "passed",
+          "destination": "procedure",
+          "submitted": true,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454402000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "procedure",
+          "document": "new",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "no_slots_reload",
+      "steps": [
+        {
+          "observe": {
+            "stage": "request_no_slots",
+            "document": "doc"
+          }
+        },
+        {
+          "phase": {
+            "mode": "waiting",
+            "remaining": 45
+          }
+        },
+        {
+          "event": {
+            "event": "check",
+            "document": "doc",
+            "stage": "request_no_slots"
+          }
+        },
+        {
+          "observe": {
+            "stage": "request_no_slots",
+            "document": "new"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454403000,
+          "event": "visit",
+          "stage": "request_no_slots",
+          "document": "doc",
+          "status": "checked",
+          "destination": "request_no_slots",
+          "submitted": true,
+          "checked": true,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454403000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "request_no_slots",
+          "document": "new",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "auth_redirects_merge",
+      "steps": [
+        {
+          "observe": {
+            "stage": "auth_wait",
+            "document": "doc"
+          }
+        },
+        {
+          "observe": {
+            "stage": "auth_wait",
+            "document": "qr2"
+          }
+        },
+        {
+          "phase": {
+            "mode": "manual"
+          }
+        },
+        {
+          "observe": {
+            "stage": "auth_wait",
+            "document": "qr3"
+          }
+        },
+        {
+          "phase": {
+            "mode": "manual"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "auth_wait",
+          "document": "qr3",
+          "status": "login_required",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "embedded_expiry",
+      "steps": [
+        {
+          "observe": {
+            "stage": "applicant",
+            "document": "doc"
+          }
+        },
+        {
+          "observe": {
+            "stage": "expired",
+            "document": "doc"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454401000,
+          "event": "visit",
+          "stage": "applicant",
+          "document": "doc",
+          "status": "interrupted",
+          "destination": "expired",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454401000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "expired",
+          "document": "doc",
+          "status": "recovering",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "repeated_429",
+      "steps": [
+        {
+          "observe": {
+            "stage": "rate_limited",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "recovery",
+            "document": "doc",
+            "stage": "rate_limited"
+          }
+        },
+        {
+          "observe": {
+            "stage": "rate_limited",
+            "document": "next"
+          }
+        },
+        {
+          "observe": {
+            "stage": "province",
+            "document": "normal"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454402000,
+          "event": "visit",
+          "stage": "rate_limited",
+          "document": "doc",
+          "status": "waiting",
+          "destination": "rate_limited",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454402000,
+          "ended_at": 1792454403000,
+          "event": "visit",
+          "stage": "rate_limited",
+          "document": "next",
+          "status": "passed",
+          "destination": "province",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 3,
+          "time": 1792454403000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "province",
+          "document": "normal",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "office_selection",
+      "steps": [
+        {
+          "observe": {
+            "stage": "office",
+            "document": "doc"
+          }
+        },
+        {
+          "offices": {
+            "options": [
+              {
+                "text": "CNP TEST",
+                "value": "1"
+              }
+            ],
+            "selected": "CNP TEST"
+          }
+        },
+        {
+          "event": {
+            "event": "office_submitted",
+            "document": "doc",
+            "stage": "office"
+          }
+        },
+        {
+          "observe": {
+            "stage": "contact",
+            "document": "next"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454403000,
+          "event": "visit",
+          "stage": "office",
+          "document": "doc",
+          "status": "offices_found",
+          "destination": "contact",
+          "submitted": true,
+          "checked": false,
+          "offices": [
+            "CNP TEST"
+          ],
+          "selected_office": "CNP TEST",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454403000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "contact",
+          "document": "next",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "office_manual",
+      "steps": [
+        {
+          "observe": {
+            "stage": "office",
+            "document": "doc"
+          }
+        },
+        {
+          "offices": {
+            "options": [
+              {
+                "text": "CNP A"
+              },
+              {
+                "text": "CNP B"
+              }
+            ]
+          }
+        },
+        {
+          "phase": {
+            "mode": "manual"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "office",
+          "document": "doc",
+          "status": "choice_required",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [
+            "CNP A",
+            "CNP B"
+          ],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "pause_resume_stop",
+      "steps": [
+        {
+          "observe": {
+            "stage": "applicant",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "pause"
+          }
+        },
+        {
+          "event": {
+            "event": "resume"
+          }
+        },
+        {
+          "event": {
+            "event": "finish",
+            "user_requested": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454403000,
+          "event": "visit",
+          "stage": "applicant",
+          "document": "doc",
+          "status": "cancelled",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454401000,
+          "ended_at": 1792454401000,
+          "event": "pause",
+          "stage": "",
+          "document": "",
+          "status": "paused",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 3,
+          "time": 1792454402000,
+          "ended_at": 1792454402000,
+          "event": "resume",
+          "stage": "",
+          "document": "",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 4,
+          "time": 1792454403000,
+          "ended_at": 1792454403000,
+          "event": "finish",
+          "stage": "",
+          "document": "",
+          "status": "passed",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "fatal_then_finish",
+      "steps": [
+        {
+          "observe": {
+            "stage": "applicant",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "fatal_error"
+          }
+        },
+        {
+          "event": {
+            "event": "finish"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454401000,
+          "event": "visit",
+          "stage": "applicant",
+          "document": "doc",
+          "status": "failed",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454402000,
+          "ended_at": 1792454402000,
+          "event": "finish",
+          "stage": "",
+          "document": "",
+          "status": "passed",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "late_completion",
+      "steps": [
+        {
+          "observe": {
+            "stage": "province",
+            "document": "doc"
+          }
+        },
+        {
+          "observe": {
+            "stage": "procedure",
+            "document": "next"
+          }
+        },
+        {
+          "event": {
+            "event": "action_completed",
+            "stage": "province",
+            "document": "doc"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454401000,
+          "event": "visit",
+          "stage": "province",
+          "document": "doc",
+          "status": "passed",
+          "destination": "procedure",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454401000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "procedure",
+          "document": "next",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "unknown_after_send",
+      "steps": [
+        {
+          "observe": {
+            "stage": "applicant",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "action_completed",
+            "stage": "applicant",
+            "document": "doc"
+          }
+        },
+        {
+          "observe": {
+            "stage": "unknown",
+            "document": "new"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454402000,
+          "event": "visit",
+          "stage": "applicant",
+          "document": "doc",
+          "status": "unconfirmed",
+          "destination": "unknown",
+          "submitted": true,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454402000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "unknown",
+          "document": "new",
+          "status": "review_required",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "booking_enrichment",
+      "steps": [
+        {
+          "observe": {
+            "stage": "booking",
+            "document": "doc"
+          }
+        },
+        {
+          "booking": {
+            "document": "doc",
+            "details": {
+              "office": "CNP TEST",
+              "offers": [
+                {
+                  "date": "2026-10-28",
+                  "time": "12:30"
+                }
+              ],
+              "token": "NOT_PUBLIC"
+            }
+          }
+        },
+        {
+          "phase": {
+            "mode": "manual"
+          }
+        },
+        {
+          "event": {
+            "event": "finish",
+            "user_requested": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454403000,
+          "event": "visit",
+          "stage": "booking",
+          "document": "doc",
+          "status": "date_available",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {
+            "office": "CNP TEST",
+            "offers": [
+              {
+                "date": "2026-10-28",
+                "time": "12:30"
+              }
+            ]
+          }
+        },
+        {
+          "id": 2,
+          "time": 1792454403000,
+          "ended_at": 1792454403000,
+          "event": "finish",
+          "stage": "",
+          "document": "",
+          "status": "passed",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "warning_continue",
+      "steps": [
+        {
+          "observe": {
+            "stage": "applicant_no_slots",
+            "document": "doc",
+            "applicant_continue": true
+          }
+        },
+        {
+          "event": {
+            "event": "action_completed",
+            "stage": "applicant_no_slots",
+            "document": "doc"
+          }
+        },
+        {
+          "observe": {
+            "stage": "request_menu",
+            "document": "next"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454402000,
+          "event": "visit",
+          "stage": "applicant_no_slots",
+          "document": "doc",
+          "status": "passed",
+          "destination": "request_menu",
+          "submitted": true,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": true,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454402000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "request_menu",
+          "document": "next",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "warning_wait",
+      "steps": [
+        {
+          "observe": {
+            "stage": "applicant_no_slots",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "action",
+            "stage": "applicant_no_slots",
+            "document": "doc"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "applicant_no_slots",
+          "document": "doc",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "pass_marker_dedup",
+      "steps": [
+        {
+          "observe": {
+            "stage": "expired",
+            "document": "doc"
+          }
+        },
+        {
+          "event": {
+            "event": "flow_restart"
+          }
+        },
+        {
+          "observe": {
+            "stage": "province",
+            "document": "next"
+          }
+        },
+        {
+          "event": {
+            "event": "flow_restart",
+            "document": "next",
+            "stage": "province"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454401000,
+          "event": "visit",
+          "stage": "expired",
+          "document": "doc",
+          "status": "interrupted",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454401000,
+          "ended_at": 1792454401000,
+          "event": "flow_restart",
+          "stage": "",
+          "document": "",
+          "status": "new_pass",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 3,
+          "time": 1792454402000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "province",
+          "document": "next",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "loading_is_not_visit",
+      "steps": [
+        {
+          "observe": {
+            "stage": "province",
+            "document": "doc"
+          }
+        },
+        {
+          "observe": {
+            "stage": "loading",
+            "document": "loading"
+          }
+        },
+        {
+          "observe": {
+            "stage": "procedure",
+            "document": "next"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454402000,
+          "event": "visit",
+          "stage": "province",
+          "document": "doc",
+          "status": "passed",
+          "destination": "procedure",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454402000,
+          "ended_at": null,
+          "event": "visit",
+          "stage": "procedure",
+          "document": "next",
+          "status": "processing",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    },
+    {
+      "id": "startup_failure",
+      "steps": [
+        {
+          "event": {
+            "event": "fatal_error"
+          }
+        },
+        {
+          "event": {
+            "event": "finish"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": 1,
+          "time": 1792454400000,
+          "ended_at": 1792454400000,
+          "event": "fatal_error",
+          "stage": "",
+          "document": "",
+          "status": "failed",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        },
+        {
+          "id": 2,
+          "time": 1792454401000,
+          "ended_at": 1792454401000,
+          "event": "finish",
+          "stage": "",
+          "document": "",
+          "status": "passed",
+          "destination": "",
+          "submitted": false,
+          "checked": false,
+          "offices": [],
+          "selected_office": "",
+          "applicant_continue": false,
+          "booking_details": {}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+import {mount} from 'svelte';import Preview from './StatisticsPreview.svelte';import '../src/theme.css';mount(Preview,{target:document.getElementById('app')!});

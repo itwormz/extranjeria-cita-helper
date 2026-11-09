@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "CEH Rust Preview",
+  "version": "0.0.0-dev.1",
+  "identifier": "com.itwormz.ceh.rust-preview",
+  "build": {
+    "frontendDist": "../../.local/builds/work/rust-ui-dist",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": {
+      "script": "node scripts/build.mjs",
+      "cwd": "../../desktop-ui"
+    }
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'self'",
+      "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost ws://127.0.0.1:1420; object-src 'none'; frame-src 'none'; base-uri 'self'",
+      "capabilities": [
+        "main"
+      ]
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "../../.local/builds/work/rust-ui-icons/256x256.png"
+    ],
+    "macOS": {
+      "signingIdentity": "-"
+    }
+  }
+}

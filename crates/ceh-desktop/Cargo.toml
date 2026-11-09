@@ -1,0 +1,63 @@
+[package]
+name = "ceh-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file = "../../LICENSE"
+publish.workspace = true
+
+[lib]
+name = "ceh_desktop"
+
+[[bin]]
+name = "ceh-desktop"
+path = "src/main.rs"
+required-features = ["shell"]
+
+[features]
+default = []
+shell = ["dep:ceh-browser", "dep:rusqlite", "dep:tauri", "dep:tauri-build", "ceh-services/native-vault", "dep:rfd", "dep:arboard", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-foundation"]
+custom-protocol = ["tauri?/custom-protocol"]
+
+[dependencies]
+ceh-browser = { path = "../ceh-browser", optional = true, features = ["bidi"] }
+rusqlite = { workspace = true, optional = true }
+ceh-core = { path = "../ceh-core" }
+ceh-store = { path = "../ceh-store" }
+ceh-services = { path = "../ceh-services" }
+regex.workspace = true
+zeroize = "=1.8.2"
+uuid = { version = "=1.29.0", features = ["v4"] }
+serde.workspace = true
+serde_json.workspace = true
+chrono-tz.workspace = true
+chrono.workspace = true
+url = "=2.5.8"
+tauri = { version = "=2.12.5", optional = true, default-features = false, features = ["wry", "compression"] }
+
+rfd = { version = "=0.17.2", optional = true }
+arboard = { version = "=3.7.0", optional = true }
+png = "=0.18.1"
+tempfile = "=3.27.0"
+
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", optional = true , features = [] }
+
+[dev-dependencies]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = {version="=0.6.5",optional=true}
+objc2-app-kit = {version="=0.3.2",optional=true,default-features=false,features= ["libc", "NSRunningApplication", "NSApplication", "NSImage", "NSAppearance", "NSWindow", "NSResponder"] }
+objc2-foundation = {version="=0.3.2",optional=true,default-features=false,features= ["NSData"] }
+
+[[example]]
+name = "presentation_probe"
+required-features = ["shell", "custom-protocol"]
+
+[[example]]
+name = "window_theme_probe"
+required-features = ["shell", "custom-protocol"]
+
+[target.'cfg(target_os = "macos")'.dependencies.core-foundation]
+version = "=0.10.1"

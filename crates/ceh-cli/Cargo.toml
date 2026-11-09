@@ -1,0 +1,34 @@
+[package]
+name = "ceh-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file = "../../LICENSE"
+publish.workspace = true
+
+[dependencies]
+ceh-core = { path = "../ceh-core" }
+ceh-browser = { path = "../ceh-browser", features = ["bidi"] }
+ceh-store = { path = "../ceh-store" }
+ceh-services = { path = "../ceh-services" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+rusqlite.workspace = true
+tempfile = "=3.27.0"
+tokio = { version = "1", features = ["rt", "time", "sync"] }
+
+[dev-dependencies]
+tungstenite = { version = "=0.30.0", default-features = false, features = ["handshake"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["blocking", "json"] }
+
+[features]
+webview-spike = ["dep:wry", "dep:tao"]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+wry = { version = "=0.57.1", optional = true }
+tao = { version = "=0.37.2", optional = true }
+
+[[example]]
+name = "webview_spike"
+required-features = ["webview-spike"]

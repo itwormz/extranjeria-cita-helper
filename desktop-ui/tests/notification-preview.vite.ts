@@ -1,0 +1,2 @@
+import {mergeConfig} from 'vite';import base from '../vite.config';import {fileURLToPath} from 'node:url';
+export default mergeConfig(base,{resolve:{alias:[{find:/^\.\/bridge$/,replacement:fileURLToPath(new URL('./notification-preview-bridge.ts',import.meta.url))}]},cacheDir:fileURLToPath(new URL('../../.local/builds/work/rust-notification-fixture-cache',import.meta.url)),server:{port:1421,cors:{origin:'http://127.0.0.1:1421'}}});

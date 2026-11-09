@@ -1,0 +1,2858 @@
+{
+  "cases": [
+    {
+      "id": "public_ru_False",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru",
+        "detailed": false
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n17 дней поиска.\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "17 дней поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "17 дней поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "public_ru_True",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru",
+        "detailed": true
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n17 дней поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "17 дней поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "17 дней поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_ru_0",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-01T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru"
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n<1 дня поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "<1 дня поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "<1 дня поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_ru_1",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-02T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru"
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n1 день поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "1 день поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "1 день поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_ru_2",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-03T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru"
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n2 дня поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "2 дня поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "2 дня поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_ru_11",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-12T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru"
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n11 дней поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "11 дней поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "11 дней поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_ru_21",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-22T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru"
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n21 день поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "21 день поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "21 день поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_ru_112",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-04-23T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru"
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n112 дней поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "112 дней поиска",
+        "card": {
+          "title": "Сита получена",
+          "duration": "112 дней поиска",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "unknown_ru",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": null,
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "ru"
+      },
+      "expected": {
+        "post": "🎉 Сита получена!\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "duration": "—",
+        "card": {
+          "title": "Сита получена",
+          "duration": "—",
+          "rows": [
+            [
+              "Проверки",
+              "3645"
+            ],
+            [
+              "Активный поиск",
+              "48 ч 32 мин"
+            ],
+            [
+              "Появления офисов",
+              "0"
+            ],
+            [
+              "Разные офисы",
+              "0"
+            ],
+            [
+              "Экраны записи",
+              "0"
+            ],
+            [
+              "Первая доступность",
+              "2 ч 14 мин"
+            ],
+            [
+              "Ошибки сервера",
+              "0"
+            ],
+            [
+              "Ответы HTTP 429",
+              "0"
+            ],
+            [
+              "Блокировки",
+              "0"
+            ],
+            [
+              "Проходы с начала",
+              "0"
+            ],
+            [
+              "Действий выполнено",
+              "—"
+            ],
+            [
+              "Страниц обработано",
+              "—"
+            ]
+          ],
+          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "public_en_False",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en",
+        "detailed": false
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n17 days of searching.\nObtained with Cita Extranjeria Helper",
+        "duration": "17 days of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "17 days of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "public_en_True",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en",
+        "detailed": true
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n17 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "17 days of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "17 days of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_en_0",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-01T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en"
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n<1 day of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "<1 day of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "<1 day of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_en_1",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-02T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en"
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n1 day of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "1 day of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "1 day of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_en_2",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-03T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en"
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n2 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "2 days of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "2 days of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_en_11",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-12T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en"
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n11 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "11 days of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "11 days of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_en_21",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-22T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en"
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n21 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "21 days of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "21 days of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_en_112",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-04-23T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en"
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n112 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "112 days of searching",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "112 days of searching",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "unknown_en",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": null,
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "en"
+      },
+      "expected": {
+        "post": "🎉 Sita obtained!\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "duration": "—",
+        "card": {
+          "title": "Sita obtained",
+          "duration": "—",
+          "rows": [
+            [
+              "Checks",
+              "3645"
+            ],
+            [
+              "Active search",
+              "48 h 32 min"
+            ],
+            [
+              "Office appearances",
+              "0"
+            ],
+            [
+              "Unique offices",
+              "0"
+            ],
+            [
+              "Booking screens",
+              "0"
+            ],
+            [
+              "First availability",
+              "2 h 14 min"
+            ],
+            [
+              "Server errors",
+              "0"
+            ],
+            [
+              "HTTP 429 responses",
+              "0"
+            ],
+            [
+              "Blocked responses",
+              "0"
+            ],
+            [
+              "Passes from the start",
+              "0"
+            ],
+            [
+              "Actions performed",
+              "—"
+            ],
+            [
+              "Pages processed",
+              "—"
+            ]
+          ],
+          "credit": "Obtained with Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "public_es_False",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es",
+        "detailed": false
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\nConseguido con Cita Extranjeria Helper",
+        "duration": "17 días de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "17 días de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "public_es_True",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es",
+        "detailed": true
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "17 días de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "17 días de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_es_0",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-01T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es"
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n<1 día de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "<1 día de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "<1 día de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_es_1",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-02T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es"
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n1 día de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "1 día de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "1 día de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_es_2",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-03T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es"
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n2 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "2 días de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "2 días de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_es_11",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-12T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es"
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n11 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "11 días de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "11 días de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_es_21",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-01-22T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es"
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n21 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "21 días de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "21 días de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "duration_es_112",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-04-23T00:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-01-01T00:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es"
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n112 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "112 días de búsqueda",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "112 días de búsqueda",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "unknown_es",
+      "input": {
+        "op": "public",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": null,
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "language": "es"
+      },
+      "expected": {
+        "post": "🎉 Cita conseguida!\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "duration": "—",
+        "card": {
+          "title": "Cita conseguida",
+          "duration": "—",
+          "rows": [
+            [
+              "Comprobaciones",
+              "3645"
+            ],
+            [
+              "Búsqueda activa",
+              "48 h 32 min"
+            ],
+            [
+              "Apariciones de oficinas",
+              "0"
+            ],
+            [
+              "Oficinas distintas",
+              "0"
+            ],
+            [
+              "Pantallas de cita",
+              "0"
+            ],
+            [
+              "Primera disponibilidad",
+              "2 h 14 min"
+            ],
+            [
+              "Errores del servidor",
+              "0"
+            ],
+            [
+              "Respuestas HTTP 429",
+              "0"
+            ],
+            [
+              "Bloqueos",
+              "0"
+            ],
+            [
+              "Recorridos desde el inicio",
+              "0"
+            ],
+            [
+              "Acciones realizadas",
+              "—"
+            ],
+            [
+              "Páginas procesadas",
+              "—"
+            ]
+          ],
+          "credit": "Conseguido con Cita Extranjeria Helper",
+          "width": 1200,
+          "height": 900,
+          "top_strip_height": 7
+        }
+      }
+    },
+    {
+      "id": "calendar_Europe_Madrid_ordinary",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T083000Z%2F20261022T083000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
+      }
+    },
+    {
+      "id": "calendar_Europe_Madrid_spring",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-03-29",
+            "time": "02:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20260329T023000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20260329T013000Z%2F20260329T013000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
+      }
+    },
+    {
+      "id": "calendar_Europe_Madrid_autumn",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-25",
+            "time": "02:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261025T023000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261025T003000Z%2F20261025T003000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
+      }
+    },
+    {
+      "id": "calendar_Europe_Madrid_escape",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "a,b;c\\d\r\nEND:VEVENT\nBEGIN:VEVENTяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, a\\,b\\;c\\\\d\\nEND:VEVENT\\nBEGIN:VEVENTяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяя\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T083000Z%2F20261022T083000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+a%2Cb%3Bc%5Cd%0D%0AEND%3AVEVENT%0ABEGIN%3AVEVENT%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F"
+      }
+    },
+    {
+      "id": "calendar_Atlantic_Canary_ordinary",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Atlantic/Canary"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T093000Z%2F20261022T093000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
+      }
+    },
+    {
+      "id": "calendar_Atlantic_Canary_spring",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-03-29",
+            "time": "01:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Atlantic/Canary"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20260329T013000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20260329T013000Z%2F20260329T013000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
+      }
+    },
+    {
+      "id": "calendar_Atlantic_Canary_autumn",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-25",
+            "time": "01:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Atlantic/Canary"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261025T013000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261025T003000Z%2F20261025T003000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
+      }
+    },
+    {
+      "id": "calendar_Atlantic_Canary_escape",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "a,b;c\\d\r\nEND:VEVENT\nBEGIN:VEVENTяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Atlantic/Canary"
+          }
+        }
+      },
+      "expected": {
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, a\\,b\\;c\\\\d\\nEND:VEVENT\\nBEGIN:VEVENTяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяя\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T093000Z%2F20261022T093000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+a%2Cb%3Bc%5Cd%0D%0AEND%3AVEVENT%0ABEGIN%3AVEVENT%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F"
+      }
+    },
+    {
+      "id": "invalid_0",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-02-30",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        }
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "invalid_1",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "25:00",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "Europe/Madrid"
+          }
+        }
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "invalid_2",
+      "input": {
+        "op": "calendar",
+        "achievement": {
+          "id": "synthetic-id",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "statistics": {
+            "checks": 3645,
+            "started_at": "2026-09-27T12:00:00+00:00",
+            "active_seconds": 174720,
+            "first_available_seconds": 8040,
+            "name": "PRIVATE PERSON"
+          },
+          "appointment": {
+            "date": "2026-10-22",
+            "time": "10:30",
+            "office": "PRIVATE OFFICE",
+            "address": "PRIVATE ADDRESS",
+            "confirmation": "PRIVATE CONFIRMATION",
+            "timezone": "UTC\nBEGIN:VEVENT"
+          }
+        }
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "snapshot_0",
+      "input": {
+        "op": "snapshot",
+        "statistics": {}
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null
+      }
+    },
+    {
+      "id": "snapshot_1",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "checks": true,
+          "active_seconds": -1,
+          "name": "PRIVATE"
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null
+      }
+    },
+    {
+      "id": "snapshot_2",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "checks": 42,
+          "actions_performed": 250,
+          "pages_processed": 100
+        }
+      },
+      "expected": {
+        "checks": 42,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": 250,
+        "pages_processed": 100,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null
+      }
+    },
+    {
+      "id": "snapshot_3",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "actions_performed": 10,
+          "pages_processed": 20,
+          "effort_started_at": null
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null
+      }
+    },
+    {
+      "id": "snapshot_4",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "started_at": "bad-date",
+          "first_available_seconds": null
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": null,
+        "first_available_at": null
+      }
+    },
+    {
+      "id": "snapshot_5",
+      "input": {
+        "op": "snapshot",
+        "statistics": {
+          "started_at": "2026-10-30",
+          "first_available_at": "2026-10-30T12:00:00.12+00:00"
+        }
+      },
+      "expected": {
+        "checks": 0,
+        "offices_seen": 0,
+        "unique_offices": 0,
+        "server_errors": 0,
+        "rate_limited": 0,
+        "blocked": 0,
+        "booking_screens": 0,
+        "flow_passes": 0,
+        "actions_performed": null,
+        "pages_processed": null,
+        "active_seconds": 0,
+        "first_available_seconds": null,
+        "started_at": "2026-10-30T00:00:00",
+        "first_available_at": "2026-10-30T12:00:00.120000+00:00"
+      }
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {exportFeedback} from '../src/export-feedback.ts';
+test('calendar open success may have no payload and must preserve the saved event feedback',()=>{assert.equal(exportFeedback(null,'calendar_saved'),'calendar_saved');assert.equal(exportFeedback({result:'cancelled'},'calendar_saved'),'calendar_saved');assert.equal(exportFeedback({result:'google_opened'},'calendar_saved'),'google_opened');assert.equal(exportFeedback(undefined),'');});

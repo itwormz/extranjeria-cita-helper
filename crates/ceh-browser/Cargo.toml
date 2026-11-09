@@ -1,0 +1,97 @@
+[package]
+name = "ceh-browser"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file = "../../LICENSE"
+publish.workspace = true
+
+[dependencies]
+ceh-core = { path = "../ceh-core" }
+serde_json.workspace = true
+url = { workspace = true, optional = true }
+
+[features]
+bidi = ["dep:tungstenite", "dep:url", "dep:base64", "dep:tempfile", "dep:libloading"]
+
+[dependencies.tungstenite]
+version = "=0.30.0"
+default-features = false
+features = ["handshake"]
+optional = true
+
+[[test]]
+name = "bidi_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "dom_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "observer_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "selection_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "applicant_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "request_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "contact_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "exit_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "passive_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "refresh_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "auth_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "public_details_contract"
+required-features = ["bidi"]
+
+[dependencies.base64]
+version = "=0.22.1"
+optional = true
+
+[[test]]
+name = "recovery_facts_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "launch_config_contract"
+required-features = ["bidi"]
+
+[dependencies.tempfile]
+version = "=3.27.0"
+optional = true
+
+[[test]]
+name = "firefox_contract"
+required-features = ["bidi"]
+
+[[test]]
+name = "session_driver_contract"
+required-features = ["bidi"]
+
+[dependencies.libloading]
+version = "=0.8.9"
+optional = true
