@@ -220,7 +220,7 @@ async fn save_profile(
         errors: vec![],
     })?;
     let path = runtime.root.join("tasks.yml");
-    tauri::async_runtime::spawn_blocking(move || {
+    let saved = tauri::async_runtime::spawn_blocking(move || {
         ceh_desktop::notification_editor::save(
             path.parent().expect("runtime root"),
             id.as_deref(),
@@ -236,7 +236,10 @@ async fn save_profile(
         code: "save_failed",
         errors: vec![],
     })?
-    .map_err(edit_failure)
+    .map_err(edit_failure)?;
+    // A running search applies saved timings and protection to itself; with no search this is a no-op.
+    let _ = runtime.search.refresh_settings(&runtime.root);
+    Ok(saved)
 }
 fn edit_failure(error: ceh_desktop::notification_editor::EditError) -> SaveFailure {
     use ceh_desktop::notification_editor::EditError;
@@ -409,6 +412,38 @@ fn search_control(
     result
 }
 #[tauri::command]
+fn appointment_daily_target(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+    target: Option<u32>,
+) -> Result<(), &'static str> {
+    authorize(&window)?;
+    runtime
+        .search
+        .budget_command(ceh_core::budget_commands::BudgetCommand::SetDailyTarget(target))
+}
+#[tauri::command]
+fn appointment_distribution(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+    disabled: bool,
+) -> Result<(), &'static str> {
+    authorize(&window)?;
+    runtime
+        .search
+        .budget_command(ceh_core::budget_commands::BudgetCommand::SetDistribution { disabled })
+}
+#[tauri::command]
+fn appointment_try_now(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+) -> Result<(), &'static str> {
+    authorize(&window)?;
+    runtime
+        .search
+        .budget_command(ceh_core::budget_commands::BudgetCommand::TryNow)
+}
+#[tauri::command]
 fn search_show(
     window: WebviewWindow,
     runtime: State<'_, DesktopRuntime>,
@@ -512,6 +547,9 @@ fn main() {
             search_snapshot,
             search_start,
             search_control,
+            appointment_daily_target,
+            appointment_distribution,
+            appointment_try_now,
             search_show,
             search_copy,
             desktop_bootstrap,

@@ -59,5 +59,8 @@ export interface SearchSnapshot {profile:string|null;active:boolean;paused:boole
 export async function searchSnapshot():Promise<SearchSnapshot>{return invoke('search_snapshot');}
 export async function startSearch(id:string):Promise<void>{return invoke('search_start',{id});}
 export async function controlSearch(command:'pause'|'resume'|'stop'):Promise<void>{return invoke('search_control',{command});}
+export async function setDailyTarget(target:number|null):Promise<void>{return invoke('appointment_daily_target',{target});}
+export async function setDistributionToday(disabled:boolean):Promise<void>{return invoke('appointment_distribution',{disabled});}
+export async function tryAppointmentNow():Promise<void>{return invoke('appointment_try_now');}
 export async function showSearchBrowser():Promise<void>{return invoke('search_show');}
 export async function copySearchJournal():Promise<void>{return invoke('search_copy');}

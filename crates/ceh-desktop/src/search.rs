@@ -5,6 +5,7 @@ use ceh_browser::{
     session_driver::SessionDriver,
 };
 use ceh_core::{
+    budget_commands::{BudgetCommand, apply_budget_command},
     control::ControlMode,
     flow::FlowEffect,
     journal::{JournalEvent, JournalMode, JournalRow, PageJournal},
@@ -45,12 +46,18 @@ pub enum Control {
     Resume,
     Stop,
 }
+/// Changes applied to a running search at the next tick.
+enum LiveCommand {
+    Budget(BudgetCommand),
+    Timings(ceh_core::timings::AssistTimings),
+}
 struct Message {
     command: Control,
     generation: u64,
 }
 struct Handle {
     sender: mpsc::SyncSender<Message>,
+    live: mpsc::Sender<LiveCommand>,
     gate: Arc<Mutex<Option<DispatchGate>>>,
     cancelled: Arc<AtomicBool>,
 }
@@ -91,6 +98,39 @@ impl SearchController {
             })
             .map_err(|_| "search_busy")
     }
+    /// Budget commands act on the running search only; an idle controller refuses them.
+    pub fn budget_command(&self, command: BudgetCommand) -> Result<(), &'static str> {
+        self.send_live(LiveCommand::Budget(command))
+    }
+    /// Re-read the active profile's saved timings and appointment policy and apply them to the run.
+    pub fn refresh_settings(&self, root: &Path) -> Result<(), &'static str> {
+        let id = self.snapshot()?.profile.ok_or("search_not_running")?;
+        if !self.snapshot()?.active {
+            return Err("search_not_running");
+        }
+        let bundle = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru")
+            .map_err(|_| "profiles_unavailable")?;
+        let loaded = bundle
+            .profiles
+            .into_iter()
+            .find(|p| p.validation.normalized.id == id)
+            .ok_or("profile_missing")?;
+        if !loaded.validation.errors.is_empty() {
+            return Err("profile_invalid");
+        }
+        let timings = loaded.timings.ok_or("profile_invalid")?;
+        let policy = loaded.appointment_policy.ok_or("profile_invalid")?;
+        self.send_live(LiveCommand::Timings(timings))?;
+        self.send_live(LiveCommand::Budget(BudgetCommand::ApplyPolicy(policy)))
+    }
+    fn send_live(&self, command: LiveCommand) -> Result<(), &'static str> {
+        let handle = self.handle.lock().map_err(|_| "search_unavailable")?;
+        let h = handle.as_ref().ok_or("search_not_running")?;
+        if !self.snapshot()?.active {
+            return Err("search_not_running");
+        }
+        h.live.send(command).map_err(|_| "search_not_running")
+    }
     pub fn start(
         &self,
         root: &Path,
@@ -121,6 +161,7 @@ impl SearchController {
         let timings = loaded.timings.ok_or("profile_invalid")?;
         let appointment_policy = loaded.appointment_policy.ok_or("profile_invalid")?;
         let (sender, receiver) = mpsc::sync_channel(32);
+        let (live, live_receiver) = mpsc::channel();
         let gate = Arc::new(Mutex::new(None));
         let cancelled = Arc::new(AtomicBool::new(false));
         let revision = self.snapshot()?.revision.wrapping_add(1);
@@ -143,6 +184,7 @@ impl SearchController {
                     timings,
                     appointment_policy,
                     &receiver,
+                    &live_receiver,
                     &worker_gate,
                     &stop,
                     &state,
@@ -180,6 +222,7 @@ impl SearchController {
             .map_err(|_| "search_unavailable")?;
         *handle = Some(Handle {
             sender,
+            live,
             gate,
             cancelled,
         });
@@ -274,6 +317,7 @@ fn run(
     timings: ceh_core::timings::AssistTimings,
     appointment_policy: ceh_core::appointment_budget::AppointmentPolicy,
     receiver: &mpsc::Receiver<Message>,
+    live: &mpsc::Receiver<LiveCommand>,
     shared_gate: &Mutex<Option<DispatchGate>>,
     cancelled: &AtomicBool,
     state: &Mutex<SearchSnapshot>,
@@ -298,6 +342,7 @@ fn run(
         &timings,
         &appointment_policy,
         receiver,
+        live,
         shared_gate,
         cancelled,
         state,
@@ -318,6 +363,7 @@ fn run_owned(
     timings: &ceh_core::timings::AssistTimings,
     appointment_policy: &ceh_core::appointment_budget::AppointmentPolicy,
     receiver: &mpsc::Receiver<Message>,
+    live: &mpsc::Receiver<LiveCommand>,
     shared_gate: &Mutex<Option<DispatchGate>>,
     cancelled: &AtomicBool,
     state: &Mutex<SearchSnapshot>,
@@ -325,6 +371,9 @@ fn run_owned(
     sound: &Mutex<crate::sound::SoundPlayback>,
     browser: &mut OwnedFirefox,
 ) -> Result<(), &'static str> {
+    // Saved profile changes and budget commands replace these during the run.
+    let mut timings = timings.clone();
+    let mut appointment_policy = appointment_policy.clone();
     let session =
         SessionId::new(uuid::Uuid::new_v4().to_string()).map_err(|_| "search_unavailable")?;
     let gate = DispatchGate::new(session.clone());
@@ -427,6 +476,31 @@ fn run_owned(
                     }
                 }
             }
+            while let Ok(command) = live.try_recv() {
+                match command {
+                    LiveCommand::Budget(command) => {
+                        // Try now is refused while the person owns the browser (booking handoff).
+                        if manual && command == BudgetCommand::TryNow {
+                            continue;
+                        }
+                        let now = crate::current_time()?;
+                        if apply_budget_command(&mut budget, &mut appointment_policy, command, now).is_ok() {
+                            budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+                        }
+                    }
+                    LiveCommand::Timings(next) => {
+                        let samples = ceh_browser::session_driver::SessionSamples {
+                            first_bootstrap: unit_sample(),
+                            second_bootstrap: unit_sample(),
+                            reload: unit_sample(),
+                            contact_typing: unit_sample(),
+                        };
+                        if driver.apply_timings(next.clone(), samples).is_ok() {
+                            timings = next;
+                        }
+                    }
+                }
+            }
             if cancelled.load(Ordering::Acquire) {
                 return Ok(());
             }
@@ -441,7 +515,7 @@ fn run_owned(
             }
             if !paused && !manual {
                 let budget_now = crate::current_time()?;
-                let ready = budget.next_submission(budget_now, appointment_policy, false);
+                let ready = budget.next_submission(budget_now, &appointment_policy, false);
                 let delay = (ready - budget_now).num_milliseconds().max(0) as u64;
                 driver.set_appointment_schedule(mono().saturating_add(delay), appointment_policy.confirm_new_round);
                 let step = match driver.plan(browser.connection(), mono()) {
@@ -489,7 +563,7 @@ fn run_owned(
                     if before.observation.kind == PageKind::ApplicantNoSlots {
                         budget.banners = budget.banners.saturating_add(1);
                     } else if before.observation.operation_code {
-                        budget.cod_oper(budget_now, appointment_policy);
+                        budget.cod_oper(budget_now, &appointment_policy);
                         awaiting_appointment_result = false;
                     } else if awaiting_appointment_result {
                         match before.observation.kind {
@@ -592,7 +666,7 @@ fn run_owned(
                 let submits_appointment = effects.iter().any(|effect| matches!(effect, FlowEffect::Activate { action: ActionKind::Request, .. }));
                 let prior_budget = if submits_appointment {
                     let prior = budget.clone();
-                    budget.submitted(crate::current_time()?, appointment_policy);
+                    budget.submitted(crate::current_time()?, &appointment_policy);
                     budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
                     Some(prior)
                 } else {
