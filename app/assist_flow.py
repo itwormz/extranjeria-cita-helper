@@ -6,6 +6,8 @@ import re
 import time
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 from dataclasses import dataclass
+from datetime import datetime
+from .appointment_schedule import MADRID
 from contextlib import suppress
 
 from .assist import BOOKING_SELECTORS, CAPTCHA_SELECTORS, _document_key
@@ -110,12 +112,26 @@ class AssistRunner:
         self.guard_document = None
         self.guard_kind = None
         self.timeout_retries = {}
+        self.budget = getattr(control, "appointment_budget", None)
+        self.protection = (getattr(control, "effective_appointment_protection", None)
+                           or getattr(task, "appointment_protection", None))
+        self.last_rate_limit_document = None
+        self.restart_reason = None
+        self.round_saw_banner = False
+        self.banner_visible = False
+        self.awaiting_budget_result = False
+        self.round_saw_office = False
+        self.hot_retry = self.control.hot_retry = False
+        self.used_hot_retry = False
+        self.budget_office_recorded = False
+        self.budget_copied_document = None
         self._listeners = []
         if hasattr(page, "on"):
             for event, handler in (("request", self._requested), ("response", self._responded)):
                 page.on(event, handler)
                 self._listeners.append((event, handler))
         checker._assist_guard = self.action_guard
+        checker._assist_before_dispatch = self.check_fresh_pass
         checker._assist_action = control.automation_action
 
     @property
@@ -200,6 +216,14 @@ class AssistRunner:
             if request.method == 'POST' and _flow_endpoint(request.url)=='acValidarEntrada':
                 self.record('applicant_submitted',self.last_observed,'Отправлена форма заявителя — значения не сохраняются',page_url=request.url)
             if request.method == "POST" and _flow_endpoint(request.url) == "acCitar":
+                if self.budget is not None:
+                    self.budget.submitted(datetime.now(MADRID), self.protection)
+                    self.control.save_appointment_budget(self.budget)
+                    self.awaiting_budget_result = True
+                    self.round_saw_office = False
+                    self.used_hot_retry = self.hot_retry
+                    self.hot_retry = self.control.hot_retry = False
+                    self.budget_office_recorded = False
                 self.control.availability_checked()
                 self.record("check", self.last_observed, f"Проверка сит: отправлен Solicitar cita — в сессии {self.control.snapshot()['checks']}, для профиля {self.control.snapshot()['profile_checks']}", page_url=request.url)
             if (self.pending_action == "request" and not self.pending_counted
@@ -374,7 +398,7 @@ class AssistRunner:
                            "blocked": "Возврат после блокировки доступа",
                            "request_no_slots_restart": "Нет сит: сайт предлагает завершить проход через Aceptar",
                            "post_contact_no_slots": "Перезапуск после отсутствия сит на этапе контактов"}
-                reason = reasons.get(self.previous_stage,
+                reason = self.restart_reason or reasons.get(self.previous_stage,
                     "Сайт вернул начальную форму — отдельное сообщение о причине не распознано")
                 detail = f"Проход №{self.pass_number}: {previous} → Выбор провинции. {reason}"
                 if self.last_action_detail:
@@ -382,6 +406,7 @@ class AssistRunner:
                 response_url, status = self.http_statuses.get(getattr(self.page, "main_frame", None), (None, None))
                 if response_url == self.page.url and status is not None:
                     detail += f". Ответ: HTTP {status}"
+                self.restart_reason = None
                 self.record("flow_restart", observed, detail)
         parts = urlsplit(self.page.url)
         path = "/".join(segment.split(";", 1)[0] for segment in parts.path.split("/"))
@@ -402,6 +427,15 @@ class AssistRunner:
         if transition != self.timeline_state:
             self.record("screen", observed, observed.evidence)
             self.timeline_state = transition
+        if (mode=='working' and observed.kind in {'applicant','request_menu'}
+                and not self.control.appointment_budget_is_temporary
+                and not (self.round_saw_banner and (self.protection.confirm_new_round
+                         or (self.budget is not None and self.budget.immediate_attempt)))
+                and (getattr(self.task,'applicant_fill_mode','manual')!='copy'
+                     or self.budget_copied_document==observed.document)):
+            wait=self.budget_wait_state()
+            if wait:
+                mode,next_action,remaining=wait['mode'],wait['next_action'],wait['remaining']
         self.control.publish(screen=title, evidence=observed.evidence, next_action=next_action or action,
                              mode=mode, remaining_seconds=remaining)
 
@@ -452,7 +486,9 @@ class AssistRunner:
 
     async def action_guard(self, _page=None):
         await self.wait_unpaused()
+        self.check_fresh_pass()
         observed = await self.observe()
+        self.check_fresh_pass()
         self.publish(observed)
         if observed.kind in {"expired", "server_error", "blocked", "rate_limited"}:
             raise SiteCheckError({"expired": "SESSION_EXPIRED", "server_error": "SITE_TEMPORARY_ERROR",
@@ -462,8 +498,18 @@ class AssistRunner:
 
     async def guard(self, observed):
         await self.wait_unpaused()
+        self.check_fresh_pass()
         current = await self.observe()
+        self.check_fresh_pass()
         return current.signature == observed.signature and current.kind == observed.kind
+
+    def check_fresh_pass(self):
+        if self.control.pending_attempt_fresh_pass and not self.control.booking_handoff:
+            from .assist_runtime import AssistRestartRequested
+            # Keep the flag until the runtime accepts the restart: site helpers
+            # may catch Exception while trying alternative controls.
+            raise AssistRestartRequested('Попробовать сейчас — начинаем свежий чистый проход',
+                                         delay_seconds=0,user_requested=True)
 
     async def countdown(self, observed, delay, next_action):
         self.record("wait", observed, f"{next_action}; {delay:.1f} секунд")
@@ -578,6 +624,14 @@ class AssistRunner:
 
     async def recover(self, observed):
         if observed.kind == 'rate_limited':
+            if (self.timings.adaptive_reload_on_429
+                    and _flow_endpoint(self.page.url) == 'acEntrada'
+                    and self.last_method == 'GET'
+                    and self.last_rate_limit_document != observed.document):
+                self.last_rate_limit_document = observed.document
+                self.control.applicant_reload_penalty += 30
+                self.record('recovery', observed,
+                            f'HTTP 429: интервал обновления формы увеличен на {self.control.applicant_reload_penalty} с')
             from .config import DEFAULT_START_URL
             await self.silence()
             await self.save(observed, 'HTTP_RATE_LIMITED')
@@ -680,7 +734,7 @@ class AssistRunner:
         if self.last_method == "GET":
             await self.page.reload(wait_until="domcontentloaded")
             self.control.automation_action()
-        elif observed.kind != "blocked" and _flow_endpoint(self.page.url) == "acCitar" and (self.pending_action or self.last_action) == "request":
+        elif self.budget is None and observed.kind != "blocked" and _flow_endpoint(self.page.url) == "acCitar" and (self.pending_action or self.last_action) == "request":
             self.pending_action = "request"
             self.pending_counted = False
             self.record("recovery", observed, "Повторить поиск сит после серверной ошибки")
@@ -721,12 +775,71 @@ class AssistRunner:
 
     async def step(self):
         self.control.touch()
+        timings = getattr(self.control, 'pending_profile_timings', None)
+        if timings is not None:
+            self.control.pending_profile_timings = None
+            from dataclasses import replace
+            from .assist import reuse_policy_from_settings
+            settings = self.checker.settings = replace(
+                self.checker.settings, assist_timings=timings,
+                browser_action_delay_seconds=timings.action_delay_seconds,
+                browser_bootstrap_wait_seconds=timings.bootstrap_seconds,
+                navigation_timeout_seconds=timings.navigation_seconds)
+            self.control.effective_profile_settings = settings
+            self.policy = reuse_policy_from_settings(settings)
+            self.page.set_default_timeout(timings.navigation_seconds * 1000)
+            self.alerter.repeat_seconds = timings.alert_seconds
+        protection = getattr(self.control, 'pending_appointment_protection', None)
+        if protection is not None:
+            self.control.pending_appointment_protection = None
+            if self.budget is not None and self.protection != protection:
+                self.budget.windows = ()
+                self.budget.recalculate_restriction(protection)
+                if self.protection and self.protection.adaptive_target and not protection.adaptive_target:
+                    self.budget.manual_target = None
+                    self.control.daily_target_choice = (datetime.now(MADRID).date(), None)
+                if self.protection.distribute_attempts!=protection.distribute_attempts:
+                    self.budget.distribution_disabled=False
+                    self.budget.distribution_enabled_today=False
+                    self.control.daily_distribution_choice=None
+                self.control.save_appointment_budget(self.budget)
+            self.protection = self.control.effective_appointment_protection = protection
+        if getattr(self.control, 'daily_target_pending', False) and self.budget is not None:
+            now = datetime.now(MADRID)
+            self.budget.set_daily_target(self.control.pending_daily_target, now, self.protection)
+            self.control.daily_target_choice = (now.date(), self.control.pending_daily_target)
+            self.control.daily_target_pending = False
+            self.control.save_appointment_budget(self.budget)
+        if self.control.pending_attempt_now:
+            now = datetime.now(MADRID)
+            if self.control.pending_attempt_now_day != now.date():
+                self.control.pending_attempt_now = False
+                self.control.pending_attempt_now_day = None
+                self.control.pending_attempt_fresh_pass = False
+                self.record('action', None, 'Запрос «Попробовать сейчас» истёк в полночь — действуют обычные паузы')
+            elif self.budget is not None and not self.control.appointment_budget_is_temporary:
+                self.control.pending_attempt_now = False
+                self.control.pending_attempt_now_day = None
+                self.budget.try_now(now, self.protection)
+                self.control.save_appointment_budget(self.budget)
+                self.record('action', None, 'Ручная ближайшая попытка: ожидание cod. oper и бюджетного окна пропущено; остальные тайминги сохранены')
+        if self.control.pending_attempt_fresh_pass and not self.control.booking_handoff:
+            from .assist_runtime import AssistRestartRequested
+            self.control.pending_attempt_fresh_pass=False
+            self.control._history_manual_restart=True
+            raise AssistRestartRequested('Попробовать сейчас — начинаем свежий чистый проход',
+                                         delay_seconds=0,user_requested=True)
+        if self.control.resume_search_requested and self.control.booking_handoff:
+            from .assist_runtime import AssistRestartRequested
+            raise AssistRestartRequested('продолжить поиск по команде пользователя',
+                                         delay_seconds=0, user_requested=True)
         if self.control.booking_handoff and self.handoff_observed is not None:
             # Ownership stays with the user even after navigation or an error.
             # Only explicit session restart can start another automatic pass.
             await self.booking_attention(self.handoff_observed)
             return
         observed = await self.observe()
+        self.observe_appointment_budget(observed)
         self.action_phase = ""
         if observed.kind!="loading":self.loading_started=None;self.loading_document=None
         if observed.signature == self.manual_signature:
@@ -795,9 +908,64 @@ class AssistRunner:
         finally:
             self.guard_document = self.guard_kind = None
 
+    def observe_appointment_budget(self, observed):
+        if self.budget is None:
+            return
+        now = datetime.now(MADRID)
+        self.budget.refresh(now, self.protection)
+        if observed.kind == "applicant_no_slots":
+            self.round_saw_banner = True
+            if not self.banner_visible:
+                self.budget.banners += 1
+                self.control.save_appointment_budget(self.budget)
+            self.banner_visible = True
+        elif observed.kind not in {"loading", "unknown"}:
+            self.banner_visible = False
+        if not self.awaiting_budget_result:
+            return
+        if observed.kind == "office" and not self.round_saw_office:
+            self.round_saw_office = True
+
+        if observed.kind not in {"request_no_slots", "request_no_slots_restart", "post_contact_no_slots", "booking"}:
+            return
+        self.awaiting_budget_result = False
+        if self.budget_office_recorded and self.budget.episode_offices:
+            self.budget.episode_offices[-1]['result'] = (
+                'cod_oper' if observed.operation_code else observed.kind
+            )
+        if observed.operation_code:
+            self.budget.cod_oper(datetime.now(MADRID), self.protection)
+        else:
+            if observed.kind != "booking":
+                self.budget.no_slots += 1
+            self.budget.ordinary_result(now)
+            self.hot_retry = self.control.hot_retry = self.protection.retry_after_office and self.round_saw_office and not self.used_hot_retry and observed.kind != "booking"
+        self.control.save_appointment_budget(self.budget)
+
+    def budget_wait_state(self):
+        if self.budget is None:
+            return None
+        now = datetime.now(MADRID)
+        summary=self.budget.summary(now,self.protection,hot=self.hot_retry)
+        ready = datetime.fromisoformat(summary['ready'])
+        if ready <= now:
+            return None
+        action={'window':'Ждём окно распределения','minimum_pause':'Пауза между попытками',
+                'cod_oper':'Пауза после cod. oper'}[summary['wait_reason']]
+        return dict(mode='waiting',next_action=action,remaining=(ready-now).total_seconds())
+
+    async def wait_for_budget(self, observed):
+        wait=self.budget_wait_state()
+        if wait is None:
+            return False
+        self.publish(observed,**wait)
+        await self.page.wait_for_timeout(500)
+        return True
+
     async def act(self, observed):
         kind = observed.kind
         if kind == "province":
+            self.round_saw_banner = False
             self.last_action = None
             self.pending_action = None
             self.record("action", observed, "Выбрать провинцию")
@@ -833,13 +1001,49 @@ class AssistRunner:
                 self.record("action", observed, "Войти с электронным сертификатом")
                 await self.checker._enter_with_certificate(self.page, self.task, self.run_id, on_attention=attention)
             await self.silence()
-        elif kind == "applicant" or (kind == "applicant_no_slots" and getattr(self.task, "applicant_no_slots_mode", "wait") == "continue"):
+        elif kind == "applicant" or (
+            kind == "applicant_no_slots"
+            and getattr(self.task, "applicant_no_slots_mode", "wait") == "continue"
+            and not (self.budget is not None and (self.protection.confirm_new_round
+                     or self.budget.immediate_attempt or self.control.pending_attempt_now))
+        ):
+            if self.budget is not None and (self.protection.confirm_new_round
+                    or self.budget.immediate_attempt or self.control.pending_attempt_now) and self.round_saw_banner:
+                from .config import DEFAULT_START_URL
+                self.restart_reason = "Плашка «Сит нет» исчезла — проверяем чистый проход без отправки данных"
+                self.record("action", observed, self.restart_reason)
+                await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+                self.control.automation_action()
+                return
+            if (getattr(self.control, 'bind_copied_appointment_budget', None) is None
+                    and await self.wait_for_budget(observed)):
+                return
             if (observed.document, "applicant") in self.attempted:
                 await self.hold(observed, "Форма уже отправлялась. Проверить ответ и данные")
+                return
+            if self.budget_copied_document == observed.document:
+                if await self.wait_for_budget(observed):
+                    return
+                self.attempted.add((observed.document, "applicant"))
+                await self.click(observed, "#btnEnviar", action="applicant")
                 return
             if getattr(self.task, 'applicant_fill_mode', 'manual') == 'copy':
                 self.record("action", observed, "Скопировать документ и имя из авторизации" if getattr(self.task,'procedure',None)==REGRESO_PROCEDURE else "Скопировать NIE и имя из авторизации")
                 await self.checker._fill_applicant_with_clave(self.page, self.task, self.run_id)
+                bind_budget = getattr(self.control, 'bind_copied_appointment_budget', None)
+                if bind_budget is not None:
+                    current = await self.observe()
+                    if current.document != observed.document or current.kind != kind:
+                        return
+                    number = await self.page.locator('#txtIdCitado').input_value(timeout=5000)
+                    document_type = getattr(self.task, 'document_type', '') or 'NIE'
+                    if not number.strip() or not bind_budget(number, document_type):
+                        await self.hold(current, "Не удалось открыть бюджет документа. Проверьте, не используется ли он другим профилем")
+                        return
+                    self.budget = self.control.appointment_budget
+                    self.budget_copied_document = current.document
+                    if await self.wait_for_budget(current):
+                        return
             else:
                 self.record("action", observed, "Ввести документ и имя из профиля" if getattr(self.task,'procedure',None)==REGRESO_PROCEDURE else "Ввести NIE и имя из профиля")
                 await self.checker._fill_applicant_manual(self.page, self.task, self.run_id)
@@ -849,6 +1053,8 @@ class AssistRunner:
             self.attempted.add((observed.document, "applicant"))
             await self.click(current, "#btnEnviar", action="applicant")
         elif kind == "request_menu":
+            if await self.wait_for_budget(observed):
+                return
             if (observed.document, kind) in self.attempted:
                 await self.hold(observed, "Запрос уже отправлен. Проверить ответ сайта")
                 return
@@ -877,17 +1083,33 @@ class AssistRunner:
                 return
             self.empty_streak += 1
             delay = self.policy.next_delay(recent_activity=False, empty_streak=self.empty_streak)
-            via_salir=not applicant_wait and getattr(self.task,'no_slots_mode','salir')=='salir'
+            if applicant_wait and self.timings.adaptive_reload_on_429:
+                delay += self.control.applicant_reload_penalty
+            via_salir = not applicant_wait and getattr(self.task, 'no_slots_mode', 'salir') == 'salir'
+            fresh_round = not applicant_wait and not via_salir and self.budget is not None
             next_action = ("Обновить форму без ввода данных" if applicant_wait else
                            "Нажать Salir и продолжить по сайту" if via_salir else
+                           "Начать новый круг" if fresh_round else
                            "Обновить результат запроса в текущей сессии")
             if not await self.countdown(observed, delay, next_action):
                 return
             await self.save(observed, "STEP_BEFORE_ACTION")
             if not await self.guard(observed):
                 return
+            if fresh_round:
+                from .config import DEFAULT_START_URL
+                self.restart_reason = "Нет сит после отправки — начинаем новый проход"
+                await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+                self.control.automation_action()
+                return
             if via_salir:
                 button=await self.continuation(observed.source,r"salir")
+                if button is None and self.budget is not None:
+                    from .config import DEFAULT_START_URL
+                    self.restart_reason = "Нет сит после отправки; кнопка Salir недоступна"
+                    await self.page.goto(DEFAULT_START_URL, wait_until="domcontentloaded")
+                    self.control.automation_action()
+                    return
                 if button is None:
                     await self.hold(observed,"Не найдена единственная кнопка Salir. Проверить страницу")
                     return
@@ -983,6 +1205,13 @@ class AssistRunner:
             self.office_selection_key = None
             if offices:
                 self.log_availability("offices_seen", observed)
+                if (self.budget is not None and self.budget.first_cod_oper is not None
+                        and self.awaiting_budget_result and not self.budget_office_recorded):
+                    self.budget.office_during_restriction(
+                        datetime.now(MADRID), [office['text'] for office in offices],
+                    )
+                    self.budget_office_recorded = True
+                    self.control.save_appointment_budget(self.budget)
         selected_value = snapshot['value']
         self.office_selected(observed, selected_value)
         if len(offices) != 1:

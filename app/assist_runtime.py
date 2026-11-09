@@ -11,6 +11,7 @@ from .assist_control import AssistControl
 from .browser_visibility import show_browser
 from .assist_flow import AssistRunner
 from .diagnostics import PageTrace
+from .icp_network_journal import IcpNetworkJournal
 from .logging_utils import log_event
 from .site import SiteCheckError
 
@@ -70,10 +71,12 @@ async def run_assist(task, settings, *, max_cycles=None, control=None, open_pane
     control = control or AssistControl()
     if control.diagnostics_enabled is None:
         control.set_diagnostics(settings.diagnostics_enabled)
+    network_journal = IcpNetworkJournal()
     try:
         while not control.stop_requested:
+            settings = control.effective_profile_settings or settings
             try:
-                return await _run_session(task, settings, control, max_cycles=max_cycles)
+                return await _run_session(task, settings, control, max_cycles=max_cycles, network_journal=network_journal)
             except AssistRestartRequested as restart:
                 from .site import reset_browser_profile
                 control.record('flow_restart', detail=f'Новая сессия: {restart.reason}')
@@ -105,7 +108,8 @@ async def open_initial_page(checker,page,task,run_id,runner):
                   task_id=task.id,run_id=run_id,error_type=type(exc).__name__)
 
 
-async def _run_session(task, settings, control, *, max_cycles=None):
+async def _run_session(task, settings, control, *, max_cycles=None, network_journal=None):
+    network_journal = network_journal or IcpNetworkJournal()
     from playwright.async_api import async_playwright
     from .alerts import Alerter
     from .site import IcpPlusChecker, _configure_browser_path
@@ -155,6 +159,10 @@ async def _run_session(task, settings, control, *, max_cycles=None):
     try:
         playwright = await async_playwright().start()
         context = await checker.launch_context(playwright, task, force_headed=True)
+        network_journal.install(
+            context, checker._debug_directory(task.id, run_id) / "icp-network.jsonl",
+            enabled=lambda: control.diagnostics_enabled,
+        )
         page = await checker.page_for_context(context)
         control.browser_session_started()
         page.set_default_timeout(settings.navigation_timeout_seconds * 1000)
@@ -175,7 +183,7 @@ async def _run_session(task, settings, control, *, max_cycles=None):
             return await runner.run(max_cycles=max_cycles)
         while not control.stop_requested:
             runner = AssistRunner(page, context, checker, task, run_id, control,
-                                  alerter, reuse_policy_from_settings(settings))
+                                  alerter, reuse_policy_from_settings(checker.settings))
             operation = asyncio.create_task(operate())
             try:
                 return await operation
@@ -183,8 +191,18 @@ async def _run_session(task, settings, control, *, max_cycles=None):
                 if restart.clear_profile or restart.reopen_browser:
                     raise
                 await alerter.stop()
+                if control.restart_requested and not control.stop_requested:
+                    raise AssistRestartRequested('ручной перезапуск', clear_profile=True,
+                                                 delay_seconds=0, user_requested=True)
                 runner = None
                 operation = asyncio.current_task()
+                if control.pending_attempt_fresh_pass:
+                    control.pending_attempt_fresh_pass=False
+                    control._history_manual_restart=True
+                if control.resume_search_requested:
+                    control.resume_search_requested = False
+                    control.booking_handoff = False
+                    control.set_booking_details({})
                 control.clear_restart()
                 control.record('flow_restart', detail=f'Новый проход: {restart.reason} — окно и профиль сохранены')
                 if not await wait_restart(control, restart.delay_seconds, reuse_browser=True):

@@ -74,7 +74,17 @@ def description(row, translate=lambda text: text, title=lambda stage: stage):
                   selected_office=row.get('selected_office', ''),
                   button=row.get('button',''),
                   deadline=(row.get('deadline') or '')[11:19])
-    text=translate(row.get('message', '')).format_map(values)
+    text = translate(row.get('message', ''))
+    try:
+        from string import Formatter
+        fields = [(name, spec, conversion) for _, name, spec, conversion in Formatter().parse(text)
+                  if name is not None]
+        if fields and all(name in values and not spec and conversion is None
+                          for name, spec, conversion in fields):
+            text = text.format_map(values)
+    except ValueError:
+        # Saved diagnostics may contain unmatched braces. Show the original text.
+        pass
     if row.get('stage')=='booking':
         from .booking_details import booking_lines
         lines=booking_lines(row.get('booking_details'))
@@ -250,7 +260,9 @@ class PageJournal:
                         'browser_shown':'Camoufox показан', 'browser_show_failed':'Не удалось показать Camoufox'}
             if event == 'flow_restart':
                 reason = detail.casefold()
-                message = ('Новый проход после истечения сессии' if any(t in reason for t in ('истёк','истек','session_expired')) else
+                message = ('Плашка «Сит нет» исчезла — проверяем чистый проход без отправки данных'
+                           if 'проверяем чистый проход' in reason else
+                           'Новый проход после истечения сессии' if any(t in reason for t in ('истёк','истек','session_expired')) else
                            'Новый проход после блокировки' if 'блокиров' in reason else
                            'Новый проход после ошибки сайта' if 'ошиб' in reason else
                            'Новый проход после таймаута действия' if 'таймаут' in reason else

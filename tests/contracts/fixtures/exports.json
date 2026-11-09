@@ -116,7 +116,7 @@
         "detailed": true
       },
       "expected": {
-        "post": "🎉 Сита получена!\n17 дней поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n17 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "17 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -204,7 +204,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n<1 дня поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n<1 дня поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "<1 дня поиска",
         "card": {
           "title": "Сита получена",
@@ -292,7 +292,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n1 день поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n1 день поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "1 день поиска",
         "card": {
           "title": "Сита получена",
@@ -380,7 +380,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n2 дня поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n2 дня поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "2 дня поиска",
         "card": {
           "title": "Сита получена",
@@ -468,7 +468,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n11 дней поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n11 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "11 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -556,7 +556,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n21 день поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n21 день поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "21 день поиска",
         "card": {
           "title": "Сита получена",
@@ -644,7 +644,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n112 дней поиска.\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n112 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "112 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -732,7 +732,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n🔎 Проверки: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🏢 Появления офисов: 0\n📍 Разные офисы: 0\n📅 Экраны записи: 0\n⌛ Первая доступность: 2 ч 14 мин\n🔧 Ошибки сервера: 0\n🚦 Ответы HTTP 429: 0\n🛡 Блокировки: 0\n🔄 Проходы с начала: 0\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
         "duration": "—",
         "card": {
           "title": "Сита получена",
@@ -821,10 +821,10 @@
         "detailed": false
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n17 days of searching.\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n17 days of searching.\nObtained with Cita Extranjeria Helper",
         "duration": "17 days of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "17 days of searching",
           "rows": [
             [
@@ -910,10 +910,10 @@
         "detailed": true
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n17 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n17 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "17 days of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "17 days of searching",
           "rows": [
             [
@@ -998,10 +998,10 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n<1 day of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n<1 day of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "<1 day of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "<1 day of searching",
           "rows": [
             [
@@ -1086,10 +1086,10 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n1 day of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n1 day of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "1 day of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "1 day of searching",
           "rows": [
             [
@@ -1174,10 +1174,10 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n2 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n2 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "2 days of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "2 days of searching",
           "rows": [
             [
@@ -1262,10 +1262,10 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n11 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n11 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "11 days of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "11 days of searching",
           "rows": [
             [
@@ -1350,10 +1350,10 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n21 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n21 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "21 days of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "21 days of searching",
           "rows": [
             [
@@ -1438,10 +1438,10 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n112 days of searching.\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n112 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "112 days of searching",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "112 days of searching",
           "rows": [
             [
@@ -1526,10 +1526,10 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Sita obtained!\n🔎 Checks: 3645\n⏱ Active search: 48 h 32 min\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Booking screens: 0\n⌛ First availability: 2 h 14 min\n🔧 Server errors: 0\n🚦 HTTP 429 responses: 0\n🛡 Blocked responses: 0\n🔄 Passes from the start: 0\n🖱 Actions performed: —\n📄 Pages processed: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
         "duration": "—",
         "card": {
-          "title": "Sita obtained",
+          "title": "Appointment booked",
           "duration": "—",
           "rows": [
             [
@@ -1704,7 +1704,7 @@
         "detailed": true
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "17 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -1792,7 +1792,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n<1 día de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n<1 día de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "<1 día de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -1880,7 +1880,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n1 día de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n1 día de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "1 día de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -1968,7 +1968,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n2 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n2 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "2 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2056,7 +2056,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n11 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n11 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "11 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2144,7 +2144,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n21 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n21 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "21 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2232,7 +2232,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n112 días de búsqueda.\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n112 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "112 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2320,7 +2320,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n🔎 Comprobaciones: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Pantallas de cita: 0\n⌛ Primera disponibilidad: 2 h 14 min\n🔧 Errores del servidor: 0\n🚦 Respuestas HTTP 429: 0\n🛡 Bloqueos: 0\n🔄 Recorridos desde el inicio: 0\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
         "duration": "—",
         "card": {
           "title": "Cita conseguida",
@@ -2718,7 +2718,15 @@
         "active_seconds": 0,
         "first_available_seconds": null,
         "started_at": null,
-        "first_available_at": null
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
       }
     },
     {
@@ -2745,7 +2753,15 @@
         "active_seconds": 0,
         "first_available_seconds": null,
         "started_at": null,
-        "first_available_at": null
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
       }
     },
     {
@@ -2772,7 +2788,15 @@
         "active_seconds": 0,
         "first_available_seconds": null,
         "started_at": null,
-        "first_available_at": null
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
       }
     },
     {
@@ -2799,7 +2823,15 @@
         "active_seconds": 0,
         "first_available_seconds": null,
         "started_at": null,
-        "first_available_at": null
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
       }
     },
     {
@@ -2825,7 +2857,15 @@
         "active_seconds": 0,
         "first_available_seconds": null,
         "started_at": null,
-        "first_available_at": null
+        "first_available_at": null,
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
       }
     },
     {
@@ -2851,7 +2891,15 @@
         "active_seconds": 0,
         "first_available_seconds": null,
         "started_at": "2026-10-30T00:00:00",
-        "first_available_at": "2026-10-30T12:00:00.120000+00:00"
+        "first_available_at": "2026-10-30T12:00:00.120000+00:00",
+        "days": null,
+        "banners": null,
+        "no_slots": null,
+        "cod_oper_count": null,
+        "first_office_active_quality": "unknown",
+        "first_office_seconds": null,
+        "first_booking_active_quality": "unknown",
+        "first_booking_seconds": null
       }
     }
   ]

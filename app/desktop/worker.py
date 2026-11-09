@@ -1,12 +1,16 @@
 """One task's browser owner; no Qt and no user-interface event loop."""
 import asyncio
+import sqlite3
 import os
 import signal
 import sys
 from contextlib import suppress
+from datetime import datetime
 
 from ..assist_control import AssistControl
+from ..config import AppointmentProtection
 from ..assist_runtime import run_assist
+from ..appointment_schedule import MADRID
 from ..logging_utils import register_sensitive
 from .profiles import ProfileStore
 from .protocol import JsonLinesDecoder, encode_message, validate_command
@@ -25,12 +29,73 @@ def apply_command(control, message):
         control.request_stop()
     elif command == 'restart':
         control.request_restart()
+    elif command == 'resume_search':
+        control.request_resume_search()
     elif command == 'show_browser':
         control.show_browser_requested = True
+    elif command == 'appointment_daily_target':
+        control.pending_daily_target = message['target']
+        control.daily_target_pending = True
+    elif command == 'appointment_try_now':
+        if control.booking_handoff or control.browser_retained:
+            return False
+        control.pending_attempt_now = True
+        control.pending_attempt_fresh_pass = True
+        control.pending_attempt_now_day = datetime.now(MADRID).date()
+    elif command == 'appointment_distribution':
+        budget = getattr(control, 'appointment_budget', None)
+        now=datetime.now(MADRID)
+        control.daily_distribution_choice=(now.date(),message['disabled'])
+        if budget is not None and isinstance(message.get('disabled'), bool):
+            policy=control.effective_appointment_protection or AppointmentProtection()
+            budget.set_distribution(message['disabled'],now,policy)
+            control.save_appointment_budget(budget)
+    elif command == 'profile_timings':
+        from ..timings import parse_timings
+        try:
+            timings = parse_timings(message['timings'])
+        except (ValueError, TypeError):
+            return False
+        if 'protection' in message:
+            errors = []
+            protection = AppointmentProtection.parse(message['protection'], errors)
+            if errors:
+                return False
+            previous = (control.pending_appointment_protection
+                        or control.effective_appointment_protection or AppointmentProtection())
+            if previous.adaptive_target and not protection.adaptive_target:
+                # A later switch to the base budget supersedes an earlier queued override.
+                control.pending_daily_target = None
+                control.daily_target_pending = False
+            control.pending_appointment_protection = protection
+        control.pending_profile_timings = timings
     elif command == 'preferences':
         control.set_diagnostics(message['diagnostics'])
         control.set_sound(message['sound'])
     return True
+
+
+def load_bound_budget(control, store, policy, *, transfer_manual=False):
+    """Keep today's user choice when a copied document gets its own budget."""
+    from datetime import datetime
+    from ..appointment_schedule import MADRID
+
+    budget = store.load()
+    now = datetime.now(MADRID)
+    choice = control.daily_target_choice
+    previous = getattr(control, 'appointment_budget', None)
+    if (choice is None and transfer_manual and previous is not None
+            and previous.day == now.date() and previous.manual_target is not None):
+        choice = (previous.day, previous.manual_target)
+    if choice is not None and choice[0] == now.date():
+        budget.set_daily_target(choice[1], now, policy)
+        store.save(budget)
+        control.daily_target_choice = choice
+    distribution=getattr(control,'daily_distribution_choice',None)
+    if distribution is not None and distribution[0]==now.date():
+        budget.set_distribution(distribution[1],now,policy)
+        store.save(budget)
+    return budget
 
 
 async def consume_commands(stream, control, emit):
@@ -137,6 +202,11 @@ async def run_worker(task_id):
     except (ValueError, StopIteration):
         emit({'type':'error', 'message':'Не удалось загрузить выбранный профиль.'})
         return 2
+    control.effective_appointment_protection = task.appointment_protection
+    from ..appointment_budget_store import BudgetStore
+    from dataclasses import replace
+    budget_identity = replace(task, document_number='') if task.applicant_fill_mode == 'copy' else task
+    budget_store = BudgetStore(profiles.path.parent / 'data' / 'appointment-budget', budget_identity)
     register_sensitive([task.document_number, task.full_name, task.contact_phone, task.contact_email])
     loop = asyncio.get_running_loop()
     signals = []
@@ -145,10 +215,28 @@ async def run_worker(task_id):
             loop.add_signal_handler(signum, control.request_stop)
             signals.append(signum)
 
+    statistics = None
+
     async def states():
         while True:
             control.statistics_tick()
-            emit({'type':'state', 'state':control.snapshot()})
+            state = control.snapshot()
+            if statistics is not None:
+                try:
+                    state['profile_checks_today'] = statistics.total(task.id, 'today')
+                except (OSError, ValueError, sqlite3.Error):
+                    pass
+            budget = getattr(control, 'appointment_budget', None)
+            if budget is not None:
+                from datetime import datetime
+                from ..appointment_schedule import MADRID
+                now = datetime.now(MADRID)
+                policy = control.effective_appointment_protection or task.appointment_protection
+                previous_day = budget.day
+                state['appointment_budget'] = budget.summary(now, policy, hot=getattr(control, 'hot_retry', False))
+                if previous_day is not None and budget.day != previous_day:
+                    control.save_appointment_budget(budget)
+            emit({'type':'state', 'state':state})
             await asyncio.sleep(0.5)
 
     statistics_session = None
@@ -156,10 +244,44 @@ async def run_worker(task_id):
     incoming = asyncio.create_task(consume_commands(sys.stdin.buffer, control, emit))
     outgoing = asyncio.create_task(states())
     try:
-        with StateStore(state_path).task_lock(task_id) as acquired:
-            if not acquired:
+        from contextlib import ExitStack
+        from dataclasses import replace
+
+        state_store = StateStore(state_path)
+        with ExitStack() as locks:
+            if not locks.enter_context(state_store.task_lock(task_id)):
                 emit({'type':'error','message':'Этот профиль уже используется другим процессом.'})
                 return 1
+            bound_key = None
+
+            def bind_budget(store):
+                nonlocal bound_key
+                if store.key == bound_key:
+                    return True
+                if not locks.enter_context(state_store.task_lock('budget-' + store.key)):
+                    return False
+                control.appointment_budget = load_bound_budget(
+                    control, store, task.appointment_protection,
+                    transfer_manual=(bound_key == budget_store.key
+                                     and BudgetStore._profile_key(budget_store.root, task.id) in (None, budget_store.key)))
+                control.save_appointment_budget = store.save
+                control.appointment_budget_is_temporary = (
+                    task.applicant_fill_mode == 'copy' and store is budget_store)
+                if task.applicant_fill_mode != "copy" or store is not budget_store:
+                    store.remember_profile(task.id)
+                bound_key = store.key
+                return True
+
+            if not bind_budget(budget_store):
+                emit({'type':'error','message':'Этот документ уже используется другим процессом.'})
+                return 1
+
+            if task.applicant_fill_mode == 'copy':
+                def bind_copied_budget(number, document_type):
+                    copied = replace(task, document_number=number, document_type=document_type)
+                    return bind_budget(BudgetStore(budget_store.root, copied))
+
+                control.bind_copied_appointment_budget = bind_copied_budget
             from .statistics import ProfileStatistics
             statistics = ProfileStatistics(profiles.path.parent / 'data' / 'profile-statistics.json')
             from .statistics_session import StatisticsSession

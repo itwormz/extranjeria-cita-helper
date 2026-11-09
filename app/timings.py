@@ -11,6 +11,7 @@ class AssistTimings:
     typing_ms: tuple[float, float] = (70, 140)
     contact_typing_ms: tuple[float, float] = (35, 70)
     reload_seconds: tuple[float, float] = (30, 60)
+    adaptive_reload_on_429: bool = True
     navigation_seconds: float = 45
     clave_error_seconds: float = 180
     rate_limit_seconds: float = 180
@@ -80,4 +81,7 @@ def parse_timings(raw):
         if multiple and key not in SEQUENCE_KEYS and (len(numbers) != 2 or numbers[0] > numbers[1]):
             raise ValueError(title + ': minimum must not exceed maximum')
         result[key] = numbers if multiple else numbers[0]
-    return AssistTimings(**result)
+    adaptive = raw.get('adaptive_reload_on_429', defaults.adaptive_reload_on_429)
+    if not isinstance(adaptive, bool):
+        raise ValueError('adaptive_reload_on_429 must be true or false')
+    return AssistTimings(**result, adaptive_reload_on_429=adaptive)

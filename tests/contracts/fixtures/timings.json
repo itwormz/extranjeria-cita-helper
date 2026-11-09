@@ -138,6 +138,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -209,6 +210,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -285,6 +287,7 @@
             40.0,
             50.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -362,6 +365,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -439,6 +443,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -516,6 +521,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -590,6 +596,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -745,6 +752,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -818,6 +826,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -894,6 +903,7 @@
             40.0,
             50.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -967,6 +977,7 @@
             30.0,
             60.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -1061,6 +1072,7 @@
             40.0,
             50.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,
@@ -1137,6 +1149,7 @@
             40.0,
             50.0
           ],
+          "adaptive_reload_on_429": true,
           "navigation_seconds": 45.0,
           "clave_error_seconds": 180.0,
           "rate_limit_seconds": 180.0,

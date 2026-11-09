@@ -60,7 +60,8 @@ def select_release(data,current,target,arch,*,portable=False):
     extension={'windows':'msi','macos':'dmg','linux':'AppImage'}.get(target)
     if not extension or (target,arch) not in {('windows','x64'),('linux','x64'),('macos','arm64'),('macos','x64')}:
         raise ValueError('Unsupported update target')
-    name=f'extranjeria-cita-helper-{version}-{target}-{arch}.{extension}'
+    name=(f'Cita_Extranjeria_Helper-{version}-x86_64.AppImage' if target=='linux'
+          else f'extranjeria-cita-helper-{version}-{target}-{arch}.{extension}')
     if portable:
         if target!='windows':raise ValueError('Portable updates require Windows')
         name=f'extranjeria-cita-helper-{version}-windows-{arch}-portable.zip'
@@ -71,6 +72,15 @@ def select_release(data,current,target,arch,*,portable=False):
             raise ValueError('Missing or untrusted release asset')
         return found[0]
     if data.get('immutable') is not True:raise AttestationError('Update release is not immutable')
+    if target == 'macos':
+        chip = {'arm64': 'Apple-Silicon', 'x64': 'Intel'}[arch]
+        renamed = f'SantaCita-{version}-macOS-{chip}.dmg'
+    elif target == 'linux':
+        renamed = f'SantaCita-{version}-x86_64.AppImage'
+    else:
+        renamed = name.replace('extranjeria-cita-helper-', 'SantaCita-', 1)
+    if any(item.get('name') == renamed for item in data.get('assets', [])):
+        name = renamed
     package=asset(name);sums=asset('SHA256SUMS')
     try:proof=asset(name+'.sigstore.json')
     except ValueError as exc:raise AttestationError('Update provenance is missing') from exc

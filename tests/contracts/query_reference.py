@@ -11,6 +11,13 @@ def replay(case,path):
             db.execute('INSERT INTO baseline_provenance VALUES (?,?,?)',('fixture',json.dumps(case['provenance']),case['migrated_at']))
         for interval in case.get('observed',[]):
             db.execute('INSERT INTO observed_active VALUES (?,?,?,?)',('fixture','observed',interval['start'],interval['end']))
+        for episode in case.get('episodes',[]):
+            db.execute('INSERT INTO episodes(profile,session,kind,stage,mode,document,start,last_seen,evidence) VALUES (?,?,?,?,?,?,?,?,?)',
+                ('fixture',episode.get('session','session'),episode.get('kind','page'),episode['stage'],episode.get('mode','working'),episode.get('document',''),episode['start'],episode.get('last_seen',episode['start']),json.dumps(episode.get('evidence',[]))))
+        for notice in case.get('applicant_notices',[]):
+            db.execute('INSERT INTO applicant_notices VALUES (?,?,?,?)',('fixture',notice.get('session','session'),notice['document'],notice['start']))
+        for session in case.get('sessions',[]):
+            db.execute('INSERT INTO sessions(profile,session,start,end) VALUES (?,?,?,?)',('fixture',session['session'],session['start'],session.get('end')))
         for i,event in enumerate(case.get('events',[])):
             db.execute('INSERT INTO events(profile,identity,kind,time,session,counted,offices) VALUES (?,?,?,?,?,?,?)',
                 (event.get('profile','fixture'),str(i),event['kind'],event['time'],event.get('session','session'),event.get('counted',1),json.dumps(event.get('offices',[]))))

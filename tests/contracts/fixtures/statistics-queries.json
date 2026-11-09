@@ -62,6 +62,10 @@
           "unique_offices": 3,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [
@@ -200,6 +204,10 @@
           "unique_offices": 2,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -316,6 +324,10 @@
           "unique_offices": 0,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -372,6 +384,10 @@
           "unique_offices": 1,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [
@@ -447,6 +463,10 @@
           "unique_offices": 0,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -512,6 +532,10 @@
           "unique_offices": 3,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [
@@ -646,6 +670,10 @@
           "unique_offices": 0,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -731,6 +759,10 @@
           "unique_offices": 0,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -796,6 +828,10 @@
           "unique_offices": 1,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -875,6 +911,10 @@
           "unique_offices": 1,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -960,6 +1000,10 @@
           "unique_offices": 1,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -1054,6 +1098,10 @@
           "unique_offices": 1,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": "2026-10-29T20:00:00+00:00",
           "legacy_first_available_elapsed_seconds": 50,
           "legacy_unknown_fields": [
@@ -1164,6 +1212,10 @@
           "unique_offices": 1,
           "days": 0,
           "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
           "legacy_first_available_at": "2026-10-29T20:00:00+00:00",
           "legacy_first_available_elapsed_seconds": 50,
           "legacy_unknown_fields": [
@@ -1296,6 +1348,10 @@
           "unique_offices": 1,
           "days": 0,
           "effort_started_at": "2026-10-30T01:00:00+00:00",
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": true,
           "legacy_first_available_at": null,
           "legacy_first_available_elapsed_seconds": null,
           "legacy_unknown_fields": [],
@@ -1327,6 +1383,647 @@
           "Office A"
         ],
         "last": "Office A",
+        "bounds": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "banners_counted_once_per_session_document",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "all",
+        "episodes": [
+          {
+            "stage": "applicant_no_slots",
+            "document": "d1",
+            "start": "2026-10-30T08:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "d1",
+            "start": "2026-10-30T08:05:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "d1",
+            "start": "2026-10-30T08:10:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "d2",
+            "start": "2026-10-30T09:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "d1",
+            "start": "2026-10-30T07:00:00+00:00",
+            "evidence": [],
+            "session": "s2"
+          }
+        ],
+        "applicant_notices": [
+          {
+            "session": "s1",
+            "document": "d1",
+            "start": "2026-10-30T07:30:00+00:00"
+          },
+          {
+            "session": "s1",
+            "document": "d3",
+            "start": "2026-10-30T10:00:00+00:00"
+          }
+        ]
+      },
+      "expected": {
+        "summary": {
+          "checks": 0,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 0,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": null,
+          "first_available_seconds": null,
+          "first_available_at": null,
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 4,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "not_seen",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": null,
+          "first_booking_seconds": null,
+          "first_booking_status": "not_seen",
+          "first_booking_active_quality": "unknown",
+          "legacy_baseline": false
+        },
+        "total": 0,
+        "offices": [],
+        "known": [],
+        "last": "",
+        "bounds": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "banner_without_document_counts_per_episode",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "all",
+        "episodes": [
+          {
+            "stage": "applicant_no_slots",
+            "document": "",
+            "start": "2026-10-30T08:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "",
+            "start": "2026-10-30T08:01:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "",
+            "start": "2026-10-30T08:02:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          }
+        ]
+      },
+      "expected": {
+        "summary": {
+          "checks": 0,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 0,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": null,
+          "first_available_seconds": null,
+          "first_available_at": null,
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 3,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "not_seen",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": null,
+          "first_booking_seconds": null,
+          "first_booking_status": "not_seen",
+          "first_booking_active_quality": "unknown",
+          "legacy_baseline": false
+        },
+        "total": 0,
+        "offices": [],
+        "known": [],
+        "last": "",
+        "bounds": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "no_slots_and_cod_oper_split_by_operation_code",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "all",
+        "episodes": [
+          {
+            "stage": "request_no_slots",
+            "document": "d1",
+            "start": "2026-10-30T08:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "post_contact_no_slots",
+            "document": "d2",
+            "start": "2026-10-30T08:10:00+00:00",
+            "evidence": [
+              "operation_code"
+            ],
+            "session": "s1"
+          },
+          {
+            "stage": "request_no_slots_restart",
+            "document": "d3",
+            "start": "2026-10-30T08:20:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "request_no_slots_restart",
+            "document": "d3",
+            "start": "2026-10-30T08:21:00+00:00",
+            "evidence": [
+              "operation_code"
+            ],
+            "session": "s1"
+          },
+          {
+            "stage": "request_no_slots",
+            "document": "",
+            "start": "2026-10-30T08:30:00+00:00",
+            "evidence": [
+              "operation_code"
+            ],
+            "session": "s1"
+          },
+          {
+            "stage": "request_no_slots",
+            "document": "",
+            "start": "2026-10-30T08:31:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "office",
+            "document": "d9",
+            "start": "2026-10-30T08:40:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          }
+        ]
+      },
+      "expected": {
+        "summary": {
+          "checks": 0,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 0,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": null,
+          "first_available_seconds": null,
+          "first_available_at": null,
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 2,
+          "cod_oper_count": 3,
+          "has_booking_screen": false,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "not_seen",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": null,
+          "first_booking_seconds": null,
+          "first_booking_status": "not_seen",
+          "first_booking_active_quality": "unknown",
+          "legacy_baseline": false
+        },
+        "total": 0,
+        "offices": [],
+        "known": [],
+        "last": "",
+        "bounds": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "availability_counts_follow_the_period_of_first_observation",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "today",
+        "episodes": [
+          {
+            "stage": "request_no_slots",
+            "document": "early",
+            "start": "2026-10-29T22:59:59+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "request_no_slots",
+            "document": "early",
+            "start": "2026-10-29T23:30:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "request_no_slots",
+            "document": "edge",
+            "start": "2026-10-29T23:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "old",
+            "start": "2026-10-29T21:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "old",
+            "start": "2026-10-30T09:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          },
+          {
+            "stage": "applicant_no_slots",
+            "document": "new",
+            "start": "2026-10-30T09:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          }
+        ]
+      },
+      "expected": {
+        "summary": {
+          "checks": 0,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 0,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": null,
+          "first_available_seconds": null,
+          "first_available_at": null,
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 1,
+          "no_slots": 1,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "not_seen",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": null,
+          "first_booking_seconds": null,
+          "first_booking_status": "not_seen",
+          "first_booking_active_quality": "unknown",
+          "legacy_baseline": false
+        },
+        "total": 0,
+        "offices": [],
+        "known": [],
+        "last": "",
+        "bounds": [
+          "2026-10-29T23:00:00+00:00",
+          "2026-10-30T23:00:00+00:00"
+        ]
+      }
+    },
+    {
+      "id": "has_booking_screen_from_event",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "all",
+        "events": [
+          {
+            "kind": "booking",
+            "time": "2026-10-30T08:00:00+00:00"
+          }
+        ]
+      },
+      "expected": {
+        "summary": {
+          "checks": 0,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 1,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": "2026-10-30T08:00:00+00:00",
+          "first_available_seconds": 0,
+          "first_available_at": "2026-10-30T08:00:00+00:00",
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": true,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "not_seen",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": "2026-10-30T08:00:00+00:00",
+          "first_booking_seconds": 0,
+          "first_booking_status": "known",
+          "first_booking_active_quality": "exact",
+          "legacy_baseline": false
+        },
+        "total": 0,
+        "offices": [],
+        "known": [],
+        "last": "",
+        "bounds": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "has_booking_screen_from_episode",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "all",
+        "episodes": [
+          {
+            "stage": "booking",
+            "document": "d1",
+            "start": "2026-10-30T08:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          }
+        ]
+      },
+      "expected": {
+        "summary": {
+          "checks": 0,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 0,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": null,
+          "first_available_seconds": null,
+          "first_available_at": null,
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": true,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "not_seen",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": null,
+          "first_booking_seconds": null,
+          "first_booking_status": "not_seen",
+          "first_booking_active_quality": "unknown",
+          "legacy_baseline": false
+        },
+        "total": 0,
+        "offices": [],
+        "known": [],
+        "last": "",
+        "bounds": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "has_booking_screen_from_baseline",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "all",
+        "baseline": {
+          "checks": 0,
+          "booking_screens": 1,
+          "_offices": [],
+          "_last_office": null
+        }
+      },
+      "expected": {
+        "summary": {
+          "checks": 0,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 1,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": null,
+          "first_available_seconds": null,
+          "first_available_at": null,
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": true,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [
+            "checks",
+            "offices_seen",
+            "server_errors",
+            "rate_limited",
+            "blocked",
+            "booking_screens",
+            "expired_sessions",
+            "flow_passes",
+            "actions_performed",
+            "pages_processed",
+            "active_seconds",
+            "started_at",
+            "first_available_at",
+            "first_available_seconds",
+            "unique_offices"
+          ],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "unknown",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": null,
+          "first_booking_seconds": null,
+          "first_booking_status": "unknown",
+          "first_booking_active_quality": "unknown",
+          "legacy_baseline": true
+        },
+        "total": 0,
+        "offices": [],
+        "known": [],
+        "last": null,
+        "bounds": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "has_booking_screen_absent",
+      "input": {
+        "now": "2026-10-30T12:00:00+00:00",
+        "period": "all",
+        "events": [
+          {
+            "kind": "check",
+            "time": "2026-10-30T08:00:00+00:00"
+          }
+        ],
+        "episodes": [
+          {
+            "stage": "office",
+            "document": "d1",
+            "start": "2026-10-30T08:00:00+00:00",
+            "evidence": [],
+            "session": "s1"
+          }
+        ]
+      },
+      "expected": {
+        "summary": {
+          "checks": 1,
+          "offices_seen": 0,
+          "server_errors": 0,
+          "rate_limited": 0,
+          "blocked": 0,
+          "booking_screens": 0,
+          "expired_sessions": 0,
+          "flow_passes": 0,
+          "actions_performed": 0,
+          "pages_processed": 0,
+          "active_seconds": 0,
+          "started_at": "2026-10-30T08:00:00+00:00",
+          "first_available_seconds": null,
+          "first_available_at": null,
+          "unique_offices": 0,
+          "days": 0,
+          "effort_started_at": null,
+          "banners": 0,
+          "no_slots": 0,
+          "cod_oper_count": 0,
+          "has_booking_screen": false,
+          "legacy_first_available_at": null,
+          "legacy_first_available_elapsed_seconds": null,
+          "legacy_unknown_fields": [],
+          "first_office_at": null,
+          "first_office_seconds": null,
+          "first_office_status": "not_seen",
+          "first_office_active_quality": "unknown",
+          "first_booking_at": null,
+          "first_booking_seconds": null,
+          "first_booking_status": "not_seen",
+          "first_booking_active_quality": "unknown",
+          "legacy_baseline": false
+        },
+        "total": 1,
+        "offices": [],
+        "known": [],
+        "last": "",
         "bounds": [
           null,
           null

@@ -196,6 +196,25 @@ def _regular_chrome_user_agent(browser_version: str, system: str | None = None) 
     )
 
 
+def _background_browser_prefs():
+    """Keep a covered Camoufox window able to take the search's input.
+
+    Windows occlusion tracking suspends a Firefox window once another window
+    covers it, including this helper. The search then waits on input that the
+    browser is no longer processing.
+    """
+    prefs = {
+        "security.enterprise_roots.enabled": True,
+        "security.osclientcerts.autoload": True,
+        "dom.disable_window_flip": True,
+        "browser.tabs.loadDivertedInBackground": True,
+    }
+    if platform.system() == "Windows":
+        prefs["widget.windows.window_occlusion_tracking.enabled"] = False
+        prefs["widget.windows.window_occlusion_tracking_peek.enabled"] = False
+    return prefs
+
+
 def _browser_profile_location(settings: Settings, task_id: str) -> Path:
     root = Path(settings.browser_profile_directory)
     if not root.is_absolute():
@@ -306,6 +325,9 @@ class IcpPlusChecker:
         await asyncio.sleep(0)
         try:
             try:
+                before_dispatch=getattr(self,'_assist_before_dispatch',None)
+                if before_dispatch is not None:
+                    before_dispatch()
                 if keyboard:
                     await locator.press("Enter", **({"timeout":timeout} if timeout is not None else {}))
                 else:
@@ -400,8 +422,9 @@ class IcpPlusChecker:
         return context
 
     async def _launch_camoufox(self, playwright, task: TaskConfig, *, headless: bool):
-        from .desktop.certificates import prepare_intermediate_cache
+        from .desktop.certificates import CertificateCacheError, prepare_intermediate_cache
         from camoufox.async_api import AsyncNewBrowser
+        from camoufox.fingerprints import generate_fingerprint
 
         options: dict = {
             "headless": headless,
@@ -414,12 +437,7 @@ class IcpPlusChecker:
             # Dispatch form events in the real DOM without the sandbox's
             # automatic focus side effects.
             "main_world_eval": True,
-            "firefox_user_prefs": {
-                "security.enterprise_roots.enabled": True,
-                "security.osclientcerts.autoload": True,
-                "dom.disable_window_flip": True,
-                "browser.tabs.loadDivertedInBackground": True,
-            },
+            "firefox_user_prefs": _background_browser_prefs(),
         }
         packaged_browser = bundled_browser()
         if packaged_browser:
@@ -447,13 +465,26 @@ class IcpPlusChecker:
                     runtime_root() / 'data' / 'certificate-cache',
                 )
                 log_event(log, logging.INFO, 'tls_intermediates_ready', count=imported)
-            except (TimeoutError,ConnectionError,OSError) as exc:
+            except (TimeoutError,ConnectionError,OSError,CertificateCacheError) as exc:
                 # Optional intermediate discovery must not prevent the browser
-                # opening during a site outage. Browser HTTPS validation stays strict.
+                # opening during a site outage or when NSS rejects the profile
+                # path. Browser HTTPS validation stays strict.
                 log_event(log,logging.WARNING,'tls_preparation_deferred',error_type=type(exc).__name__)
 
             options.update(persistent_context=True, user_data_dir=str(profile), ignore_https_errors=False)
-            context = await AsyncNewBrowser(playwright, **options)
+            from .browser_model import prepare_browser_model
+            prepare_browser_model()
+            try:
+                context = await AsyncNewBrowser(playwright, **options)
+            except Exception as exc:
+                if (headless or options['os'] != 'macos'
+                        or (type(exc).__module__, type(exc).__name__)
+                        != ('fpgen.exceptions', 'RestrictiveConstraints')):
+                    raise
+                # Generate separately so launch_options still clamps to the display.
+                log_event(log, logging.WARNING, 'camoufox_screen_constraints_relaxed')
+                fingerprint = generate_fingerprint(os=options['os'])
+                context = await AsyncNewBrowser(playwright, **options, fingerprint=fingerprint)
         except Exception:
             if temporary_profile:
                 temporary_profile.cleanup()
@@ -508,6 +539,8 @@ class IcpPlusChecker:
         return page
 
     async def _accept_cookies(self, page) -> bool:
+        from .assist_runtime import AssistRestartRequested
+
         button = page.locator("#cookie-law-info-bar #cookie_action_close_header").first
         try:
             if not await button.count() or not await button.is_visible():
@@ -516,7 +549,7 @@ class IcpPlusChecker:
             await self._activate_control(button, timeout=2000)
             await button.wait_for(state="hidden", timeout=2000)
             return True
-        except SiteCheckError:
+        except (SiteCheckError, AssistRestartRequested):
             raise
         except Exception:
             return False
@@ -781,6 +814,8 @@ class IcpPlusChecker:
 
     async def _enter_with_clave(self, page, task: TaskConfig, run_id: str) -> None:
         """Follow Cl@ve SSO and stop safely when interactive authentication is needed."""
+        from .assist_runtime import AssistRestartRequested
+
         await self._pace(page)
         button = page.locator("#btnAccesoClave")
         if not await button.count() or not await button.first.is_visible():
@@ -837,7 +872,7 @@ class IcpPlusChecker:
                         return
                 elif _flow_endpoint(current_url) not in {"acInfo", "procesarRespuestaClave"}:
                     await self._assert_no_challenge(page, "auth.clave")
-            except SiteCheckError:
+            except (SiteCheckError, AssistRestartRequested):
                 raise
             except Exception:
                 # Navigation replaces the execution context several times in
@@ -935,6 +970,8 @@ class IcpPlusChecker:
         needs the "Acceso DNIe / Certificado electrónico" button plus a manual
         Keychain approval.
         """
+        from .assist_runtime import AssistRestartRequested
+
         await self._pace(page)
         button = page.locator("#btnAccesoClave")
         if not await button.count() or not await button.first.is_visible():
@@ -1003,7 +1040,7 @@ class IcpPlusChecker:
                         return mode
                 elif _flow_endpoint(current_url) not in {"acInfo", "procesarRespuestaClave"}:
                     await self._assert_no_challenge(page, "auth.certificate")
-            except SiteCheckError:
+            except (SiteCheckError, AssistRestartRequested):
                 raise
             except Exception:
                 pass
@@ -1128,6 +1165,8 @@ class IcpPlusChecker:
         return found
 
     async def _type_no_paste(self, locator, value: str) -> bool:
+        from .assist_runtime import AssistRestartRequested
+
         try:
             guard = getattr(self, "_assist_guard", None)
             if guard is not None:
@@ -1139,6 +1178,8 @@ class IcpPlusChecker:
             await locator.press_sequentially(value, delay=round(random.uniform(*self.settings.assist_timings.contact_typing_ms)), timeout=20_000)
             self._completed_action()
             return True
+        except AssistRestartRequested:
+            raise
         except Exception:
             return False
 

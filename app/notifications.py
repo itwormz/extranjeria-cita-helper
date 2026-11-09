@@ -36,12 +36,15 @@ def settings(raw):
     return result
 
 
-def state_event(state):
+def state_event(state,*,include_transient=False):
     if state.get('failed'):return 'error'
     if state.get('finished') or state.get('mode')=='finished':return None
     if state.get('connection_lost') or state.get('paused'):return None
     if state.get('booking_handoff'):return 'booking'
-    if state.get('mode')!='manual':return None
+    if (include_transient and state.get('screen')=='Проверяем страницу'
+            and state.get('stage')=='office' and state.get('document')
+            and state.get('mode') in {'manual','working','waiting'}):return 'office'
+    if state.get('mode')!='manual' and not (include_transient and state.get('mode')=='working'):return None
     screen=state.get('screen','')
     if screen=='Выбор офиса':return 'office'
     if screen in {'Выбор ситы','Капча'}:return 'booking'
@@ -55,7 +58,13 @@ class EventRouter:
     def observe(self,state):
         if not state.get('failed') and (state.get('connection_lost') or state.get('paused')):return None
         event=state_event(state)
-        key=(state.get('run_id'),event) if event else None
+        active=state_event(state,include_transient=True)
+        identity=(state.get('run_id'),state.get('document') if active=='office' else None)
+        # The runner briefly publishes working mode when inspecting the same
+        # attention screen. Do not re-arm an alert that was already queued.
+        if not event and self.last==(*identity,active):
+            return None
+        key=(*identity,event) if event else None
         previous=self.last;self.last=key
         return event if key and key!=previous else None
 
@@ -75,8 +84,22 @@ def make_event(kind,profile,province,language):
                 action_required=kind!='test',message=f'{t(title)}\n\n{t("Профиль")}: {profile}\n{t("Провинция")}: {province}\n\n{t(action)}\n\nCita Extranjeria Helper')
 
 
-def telegram_message(event,language,details=None):
+def telegram_message(event,language,details=None,*,offices=None):
     """Enrich Telegram only; webhook schema/message remains unchanged."""
+    if event.get('event')=='office' and isinstance(offices,list):
+        from .desktop.i18n import translate
+        t=lambda text:translate(text,language)
+        names=[]
+        for name in offices:
+            if not isinstance(name,str):continue
+            name=' '.join(name.split())[:240]
+            if name and name not in names:names.append(name)
+        if not names:return event['message']
+        rows=['• '+name for name in names[:10]]
+        if len(names)>10:rows.append(t('Ещё офисов: {count}').format(count=len(names)-10))
+        return (f'🏢 {t("Требуется выбрать офис")}\n\n{t("Профиль")}: {event["profile"]}\n'
+                f'{t("Провинция")}: {event["province"]}\n\n{t("Доступные офисы")}:\n'+
+                '\n'.join(rows)+f'\n\n{t("Выбрать офис в Camoufox.")}\n\nCita Extranjeria Helper')
     if event.get('event')!='booking' or not isinstance(details,dict):return event['message']
     from .desktop.i18n import translate
     from .booking_details import MAX_OFFERS
@@ -212,6 +235,9 @@ def recipient_from_chat(chat):
                 type=chat.get('type','private'),username=chat.get('username',''))
 
 
+PAIRING_LIFETIME_SECONDS = 300
+
+
 class Pairing:
     def __init__(self,username,*,now=None):
         self.username=username;self.code=secrets.token_urlsafe(18)
@@ -221,7 +247,7 @@ class Pairing:
     def link(self,kind):return f'https://t.me/{self.username}?{"startgroup" if kind=="group" else "start"}={self.code}'
 
     def match(self,updates,kind,*,now=None):
-        if (time.monotonic() if now is None else now)-self.created>120:return None
+        if (time.monotonic() if now is None else now)-self.created>=PAIRING_LIFETIME_SECONDS:return None
         for update in updates:
             self.offset=max(self.offset or 0,int(update.get('update_id',0))+1)
             message=update.get('message',{});text=message.get('text','');chat=message.get('chat',{})
@@ -251,7 +277,7 @@ class Telegram:
         return Pairing(self.check()['username'])
 
     def poll(self,pair,kind):
-        if time.monotonic()-pair.created>120:raise NotificationError('Ссылка подключения истекла. Открыть бота заново.')
+        if time.monotonic()-pair.created>=PAIRING_LIFETIME_SECONDS:raise NotificationError('Ссылка подключения истекла. Открыть бота заново.')
         data={'timeout':0,'limit':100}
         if pair.offset is not None:data['offset']=pair.offset
         return pair.match(self.call('getUpdates',data),kind)

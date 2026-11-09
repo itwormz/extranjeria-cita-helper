@@ -84,6 +84,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -384,6 +418,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -453,6 +513,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",
@@ -595,6 +660,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -895,6 +994,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -964,6 +1089,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",
@@ -1107,6 +1237,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -1407,6 +1571,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -1476,6 +1666,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",
@@ -1629,6 +1824,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -1929,6 +2158,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -1998,6 +2253,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",
@@ -2143,6 +2403,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -2443,6 +2737,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -2512,6 +2832,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",
@@ -2658,6 +2983,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -2958,6 +3317,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -3027,6 +3412,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",
@@ -3172,6 +3562,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -3472,6 +3896,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -3541,6 +3991,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",
@@ -3712,6 +4167,40 @@
               2
             ]
           ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
           "baseline": [
             [
               0,
@@ -4012,6 +4501,32 @@
               0
             ]
           ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
           "sessions": [
             [
               0,
@@ -4081,6 +4596,11 @@
             "active_profile_range",
             "active",
             "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
           ],
           [
             "episodes_open",

@@ -19,9 +19,7 @@ fn timing_validation_matches_python_defaults_bounds_and_legacy_upgrade() {
     for case in corpus["cases"].as_array().unwrap() {
         let result = parse_timings(&case["input"]);
         if case["expected"]["valid"] == true {
-            // The recorded corpus comes from Python 0.2.3; `adaptive_reload_on_429` is 0.3.1+ and has its own test.
-            let mut actual = serde_json::to_value(result.unwrap()).unwrap();
-            assert_eq!(actual.as_object_mut().unwrap().remove("adaptive_reload_on_429"), Some(Value::Bool(true)));
+            let actual = serde_json::to_value(result.unwrap()).unwrap();
             assert_eq!(
                 floats(actual),
                 floats(case["expected"]["value"].clone()),

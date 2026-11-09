@@ -3,6 +3,7 @@ import copy
 import json
 import html
 import time
+import sys
 from PySide6.QtCore import Qt, QSize, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import (QWidget,QDialog,QVBoxLayout,QHBoxLayout,QGridLayout,QLabel,QLineEdit,
@@ -11,7 +12,7 @@ from .profile_widgets import ProfileField
 from .notification_jobs import NotificationJobs
 from .notification_store import NotificationVault
 from ..notifications import (EVENTS,EVENT_LABELS,NotificationError,defaults,settings,Telegram,
-    make_event,validate_webhook,webhook_request,send_request)
+    make_event,validate_webhook,webhook_request,send_request,PAIRING_LIFETIME_SECONDS)
 
 
 def text(owner,value,muted=False):
@@ -172,6 +173,9 @@ class NotificationPanel(QWidget):
         self.token_box=ActionField(owner,'Токен бота',self.token,'key',[self.eye])
         token_row=QHBoxLayout();token_row.setSpacing(10);token_row.addWidget(self.token_box,1)
         self.check_bot=button(owner,'Проверить','check');self.check_bot.setFixedHeight(48);self.check_bot.clicked.connect(self.verify_bot);token_row.addWidget(self.check_bot);tg.addLayout(token_row)
+        self.keychain_hint = text(owner, 'Токен хранится в Связке ключей. При запуске поиска macOS может запросить пароль.', True)
+        self.keychain_hint.setVisible(sys.platform == 'darwin')
+        tg.addWidget(self.keychain_hint)
         self.bot_status=text(owner,'',True);self.bot_status.setProperty('notificationData',True);help_row=QHBoxLayout()
         help_button=TextDisclosure(owner,'Как получить токен');help_button.toggled.connect(lambda value:self.token_help.setVisible(value))
         help_row.addWidget(help_button);help_row.addStretch();help_row.addWidget(self.bot_status);tg.addLayout(help_row)
@@ -211,14 +215,14 @@ class NotificationPanel(QWidget):
         if not self.secrets_loaded:self.load(self.config)
 
     def load(self,raw,*,defer_secrets=False):
-        self.generation+=1;self.config=settings(raw);self.loaded_secrets={};self.load_error=''
+        self.generation+=1;self.config=settings(raw);self.loaded_secrets={};self.load_errors={}
         self.secrets_loaded=not defer_secrets
         for channel in ('telegram','webhook'):
             if defer_secrets:
                 self.loaded_secrets[channel]={}
                 continue
             try:self.loaded_secrets[channel]=self.vault.get(self.config[channel].get('secret_ref',''))
-            except NotificationError as exc:self.loaded_secrets[channel]={};self.load_error=str(exc)
+            except NotificationError as exc:self.loaded_secrets[channel]={};self.load_errors[channel]=str(exc)
         self.token.setText(self.loaded_secrets['telegram'].get('token',''));self.token.setEchoMode(QLineEdit.EchoMode.Password)
         self.webhook=copy.deepcopy(self.loaded_secrets['webhook']);self.url.setText(self.webhook.get('url',''));self.method.setCurrentText(self.webhook.get('method','POST'))
         self.recipients=copy.deepcopy(self.config['telegram'].get('recipients',[]));self.render_recipients()
@@ -226,8 +230,9 @@ class NotificationPanel(QWidget):
             getattr(self,name+'_toggle').setChecked(bool(self.config[name]['enabled']))
             getattr(self,name+'_body').setVisible(bool(self.config[name]['enabled']))
             getattr(self,name+'_events').load(self.config[name].get('events',list(EVENTS)))
-            getattr(self,name+'_status').setText(self.owner.t(self.load_error))
-            getattr(self,name+'_status').setVisible(bool(self.load_error))
+            error = self.load_errors.get(name, '')
+            getattr(self,name+'_status').setText(self.owner.t(error))
+            getattr(self,name+'_status').setVisible(bool(error))
 
     def render_recipients(self):
         while self.recipient_list.count():
@@ -294,9 +299,12 @@ class NotificationPanel(QWidget):
         """Create fresh entries before YAML replace; caller commits or rolls back refs."""
         config=copy.deepcopy(self.config);created=[];old=[]
         if not self.secrets_loaded:return config,created,old
-        if self.load_error:raise NotificationError(self.load_error)
         try:
             token=self.token.text().strip();hook=self.hook_config()
+            for channel,replacement in (('telegram',token),('webhook',hook.get('url'))):
+                if (channel in self.load_errors and getattr(self,channel+'_toggle').isChecked()
+                        and not replacement):
+                    raise NotificationError(self.load_errors[channel])
             if self.telegram_toggle.isChecked():
                 Telegram(token)
                 if not self.recipients:raise NotificationError('Добавить получателя кнопкой «+».')
@@ -304,6 +312,9 @@ class NotificationPanel(QWidget):
             for channel,secret in [('telegram',{'token':token} if token else {}),('webhook',hook if hook.get('url') else {})]:
                 entry=config[channel];entry['enabled']=getattr(self,channel+'_toggle').isChecked();entry['events']=getattr(self,channel+'_events').value()
                 if channel=='telegram':entry['recipients']=copy.deepcopy(self.recipients)
+                if channel in self.load_errors and not entry['enabled']:
+                    # Disabling must work offline and must not erase an unreadable secret.
+                    continue
                 if secret!=self.loaded_secrets.get(channel,{}):
                     reference=self.vault.put(secret) if secret else ''
                     if reference:created.append(reference)
@@ -460,7 +471,7 @@ class RecipientDialog(QDialog):
         self.pairing_actions=QWidget();actions=QHBoxLayout(self.pairing_actions);actions.setContentsMargins(0,0,0,0)
         self.open_button=button(owner,'Открыть бота','external');self.open_button.clicked.connect(lambda:self.start_pairing(False));actions.addWidget(self.open_button)
         self.link_button=button(owner,'Скопировать ссылку','copy');self.link_button.clicked.connect(lambda:self.start_pairing(True));actions.addWidget(self.link_button);actions.addStretch();auto.addWidget(self.pairing_actions)
-        self.link_hint=text(owner,'Для другого получателя — отправить ему ссылку. Она действует 2 минуты.',True);auto.addWidget(self.link_hint);layout.addWidget(self.auto)
+        self.link_hint=text(owner,'Для другого получателя — отправить ему ссылку. Она действует 5 минут.',True);auto.addWidget(self.link_hint);layout.addWidget(self.auto)
         self.manual=QWidget();manual=QVBoxLayout(self.manual);manual.setContentsMargins(0,0,0,0);manual.setSpacing(10)
         manual.addWidget(text(owner,'Указать Chat ID. Для публичного канала — @имя_канала.',True))
         self.chat_id=QLineEdit();self.chat_id.setMaxLength(128);input_row=QHBoxLayout()
@@ -523,9 +534,19 @@ class RecipientDialog(QDialog):
 
     def start_pairing(self,copy_link):
         if self.busy:return
-        if self.pair and time.monotonic()-self.pair.created<120:self.open_link(copy_link);return
+        reuse = self.pair and time.monotonic()-self.pair.created < PAIRING_LIFETIME_SECONDS
+        if reuse and self.owns_poll and self.timer.isActive():
+            self.open_link(copy_link)
+            return
+        self.timer.stop()
+        self.release()
         if self.token in self._polling_tokens:self.status.setText(self.owner.t('Подключение этого бота уже открыто в другом окне.'));return
         self._polling_tokens.add(self.token);self.owns_poll=True
+        if reuse:
+            self.open_link(copy_link)
+            self.timer.start()
+            self.poll()
+            return
         def ready(pair):self.pair=pair;self.open_link(copy_link);self.timer.start();self.poll()
         self.status.setText(self.owner.t('Выполняется запрос…'));self.request(self.client.begin_pairing,ready)
 
