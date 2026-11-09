@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.6 — Windows folder fixes and achievement card
+
 - Start the browser on Windows when the application or its data is in a folder with non-ASCII characters, such as a Cyrillic user name or `Загрузки`. The fingerprint model is now read through a Unicode-aware file handle, and the TLS intermediate cache loads the browser's NSS library through the folder's short Windows path. If the cache still cannot be opened, the browser starts anyway; HTTPS validation stays strict.
 
 - Update the README workflow diagrams in all three languages and both themes: refresh the applicant form while the no-appointments message is visible, restart from sign-in when it disappears, and submit only after a pass without that message.
