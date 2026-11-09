@@ -9,7 +9,7 @@ use chrono_tz::Europe::Madrid;
 const ADAPTIVE_FLOOR: u32 = 5;
 const MAX_MANUAL_TARGET: u32 = i32::MAX as u32;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct AppointmentPolicy {
     pub confirm_new_round: bool,
@@ -222,6 +222,22 @@ impl AppointmentBudget {
             _ => (first, policy.first_cod_pause_minutes),
         };
         self.restriction_until = base.checked_add_signed(Duration::minutes(i64::from(minutes)));
+    }
+
+    /// Adjust state when the profile's policy changes during a search (Python 0.3.2+ `AssistRunner.step`).
+    pub fn policy_changed(&mut self, old: &AppointmentPolicy, new: &AppointmentPolicy) {
+        if old == new {
+            return;
+        }
+        self.windows.clear();
+        self.recalculate_restriction(new);
+        if old.adaptive_target && !new.adaptive_target {
+            self.manual_target = None;
+        }
+        if old.distribute_attempts != new.distribute_attempts {
+            self.distribution_disabled = false;
+            self.distribution_enabled_today = false;
+        }
     }
 
     pub fn restriction_until(&self) -> Option<DateTime<Utc>> {

@@ -1001,3 +1001,27 @@ fn rate_limit_penalty_is_not_applied_when_flag_is_disabled() {
     e.observe_with_facts(rate_limited("first", RequestMethod::Get), applicant_entry_facts(), 0).unwrap();
     assert_eq!(e.applicant_reload_penalty(), 0.0);
 }
+
+#[test]
+fn applied_timings_change_next_wait_and_keep_rate_limit_penalty() {
+    let mut e = engine();
+    e.observe_with_facts(rate_limited("first", RequestMethod::Get), applicant_entry_facts(), 0).unwrap();
+    let slower = ceh_core::timings::parse_timings(&serde_json::json!({"reload_seconds": [40, 40]})).unwrap();
+    e.apply_timings(slower, 40.0).unwrap();
+    assert_eq!(e.applicant_reload_penalty(), 30.0);
+    // The first observation after a pending recovery only cancels it; the next one schedules the wait.
+    assert!(e.observe_with_facts(observation(PageKind::ApplicantNoSlots), applicant_entry_facts(), 500).unwrap().is_empty());
+    let effects = e
+        .observe_with_facts(observation(PageKind::ApplicantNoSlots), applicant_entry_facts(), 1_000)
+        .unwrap();
+    assert_eq!(effects, vec![FlowEffect::WaitUntil(1_000 + 40_000 + 30_000)]);
+}
+
+#[test]
+fn applied_timings_reject_a_sample_outside_the_new_range_without_change() {
+    let mut e = engine();
+    let range = ceh_core::timings::parse_timings(&serde_json::json!({"reload_seconds": [40, 50]})).unwrap();
+    assert!(e.apply_timings(range, 30.0).is_err());
+    let effects = e.observe(observation(PageKind::ApplicantNoSlots), 0).unwrap();
+    assert_eq!(effects, vec![FlowEffect::WaitUntil(30_000)]);
+}

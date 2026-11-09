@@ -202,6 +202,18 @@ impl FlowEngine {
         engine.timings = timings;
         Ok(engine)
     }
+    /// Replace the profile timings of a running search (Python applies saved timings during the run).
+    /// The sample must lie in the new reload range; on error nothing changes.
+    pub fn apply_timings(&mut self, timings: AssistTimings, reload_sample: f64) -> Result<(), FlowError> {
+        let [min, max] = timings.reload_seconds();
+        if !reload_sample.is_finite() || reload_sample < min || reload_sample > max {
+            return Err(FlowError::InvalidDelay);
+        }
+        self.reload_delay = reload_sample;
+        self.recovery_jitter = timings.recovery_jitter_seconds()[0];
+        self.timings = timings;
+        Ok(())
+    }
     /// Supply a sampled delay explicitly; the deterministic core never samples randomness.
     pub fn with_recovery_jitter(mut self, sample: f64) -> Result<Self, FlowError> {
         self.timings

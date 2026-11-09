@@ -209,6 +209,18 @@ impl SessionDriver {
         let step = self.plan(connection, now)?;
         self.execute(connection, step)
     }
+    /// Apply saved profile timings to the running session. The one-time bootstrap pauses are not repeated.
+    pub fn apply_timings(&mut self, timings: AssistTimings, samples: SessionSamples) -> Result<(), BrowserError> {
+        let sampled = |kind, unit| timings.sample(kind, unit).map_err(|_| BrowserError::Unsupported);
+        let reload_sample = sampled(TimingKind::Reload, samples.reload)?;
+        let contact_typing_ms = sampled(TimingKind::ContactTyping, samples.contact_typing)?;
+        self.flow
+            .apply_timings(timings.clone(), reload_sample)
+            .map_err(|_| BrowserError::Unsupported)?;
+        self.contact_typing_ms = contact_typing_ms;
+        self.timings = timings;
+        Ok(())
+    }
     pub fn set_appointment_schedule(&mut self, deadline: u64, confirm_round: bool) {
         self.appointment_ready_at = Some(deadline);
         self.confirm_appointment_round = confirm_round;

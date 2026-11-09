@@ -18,3 +18,4 @@ pub mod input;
 
 pub mod appointment_budget;
 pub mod appointment_schedule;
+pub mod budget_commands;
