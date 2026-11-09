@@ -170,3 +170,102 @@ fn planner_uses_the_browser_name_from_state_for_telegram_and_webhook() {
     let intents = planner.observe("profile", "Demo", "Madrid", &hostile, "en", &config).unwrap();
     assert!(intents.iter().all(|intent| intent.message().contains("Camoufox")), "an invalid browser name is ignored");
 }
+
+mod prepared {
+    use ceh_services::notifications::{
+        NotificationError, NotificationPlanner, deliver_intent_prepared, prepare_notifications, HttpDelivery,
+    };
+    use ceh_services::secrets::{Backend, SecretData, Vault, VaultError};
+    use serde_json::{Value, json};
+    use std::{cell::{Cell, RefCell}, collections::{BTreeMap, BTreeSet}};
+
+    #[derive(Default)]
+    struct Memory {
+        values: RefCell<BTreeMap<String, String>>,
+        read_keys: RefCell<BTreeSet<String>>,
+        locked: Cell<bool>,
+    }
+    impl Backend for Memory {
+        fn get(&self, _: &str, key: &str) -> Result<Option<String>, VaultError> {
+            self.read_keys.borrow_mut().insert(key.into());
+            if self.locked.get() {
+                return Err(VaultError::Locked);
+            }
+            Ok(self.values.borrow().get(key).cloned())
+        }
+        fn set(&self, _: &str, key: &str, value: &str) -> Result<(), VaultError> {
+            self.values.borrow_mut().insert(key.into(), value.into());
+            Ok(())
+        }
+        fn delete(&self, _: &str, key: &str) -> Result<(), VaultError> {
+            self.values.borrow_mut().remove(key);
+            Ok(())
+        }
+    }
+    fn stored(vault: &Vault<Memory>, secret: Value) -> String {
+        vault.put(&SecretData::new(secret).unwrap()).unwrap()
+    }
+    fn config(telegram_ref: &str, webhook_ref: &str, webhook_enabled: bool, telegram_events: Value) -> Value {
+        json!({"telegram":{"enabled":true,"events":telegram_events,"recipients":[{"id":"1"}],"secret_ref":telegram_ref},
+               "webhook":{"enabled":webhook_enabled,"events":["error"],"secret_ref":webhook_ref}})
+    }
+
+    #[test]
+    fn prepare_reads_only_enabled_channels_with_events() {
+        let vault = Vault::new(Memory::default());
+        let telegram = stored(&vault, json!({"token":"TELEGRAM-TOKEN"}));
+        let webhook = stored(&vault, json!({"url":"https://example.test/hook"}));
+        vault.backend().read_keys.borrow_mut().clear();
+        let prepared = prepare_notifications("p", &config(&telegram, &webhook, false, json!(["office"])), &vault, None).unwrap();
+        let read = vault.backend().read_keys.borrow().clone();
+        assert!(read.iter().all(|key| key.starts_with(&telegram)), "only the telegram secret is read: {read:?}");
+        assert!(prepared.has_secret(&telegram) && !prepared.has_secret(&webhook));
+        vault.backend().read_keys.borrow_mut().clear();
+        prepare_notifications("p", &config(&telegram, &webhook, true, json!([])), &vault, None).unwrap();
+        let read = vault.backend().read_keys.borrow().clone();
+        assert!(read.iter().all(|key| key.starts_with(&webhook)), "a channel without events is not read: {read:?}");
+    }
+
+    #[test]
+    fn prepare_reports_the_failing_channel_without_secret_text() {
+        let vault = Vault::new(Memory::default());
+        let telegram = stored(&vault, json!({"token":"TELEGRAM-TOKEN"}));
+        let webhook = stored(&vault, json!({"url":"https://example.test/hook"}));
+        vault.backend().locked.set(true);
+        let failure = prepare_notifications("p", &config(&telegram, &webhook, true, json!(["office"])), &vault, None).err().unwrap();
+        assert_eq!(failure.channel, "telegram");
+        assert_eq!(failure.error, NotificationError::SecretStorage);
+        assert!(!format!("{failure:?}").contains("TELEGRAM-TOKEN"));
+    }
+
+    #[test]
+    fn prepare_reuses_previous_secret_for_the_same_reference() {
+        let vault = Vault::new(Memory::default());
+        let telegram = stored(&vault, json!({"token":"TELEGRAM-TOKEN"}));
+        let first = prepare_notifications("p", &config(&telegram, "", false, json!(["office"])), &vault, None).unwrap();
+        vault.backend().locked.set(true);
+        vault.backend().read_keys.borrow_mut().clear();
+        let second = prepare_notifications("p", &config(&telegram, "", false, json!(["office"])), &vault, Some(&first)).unwrap();
+        assert!(second.has_secret(&telegram));
+        assert!(vault.backend().read_keys.borrow().is_empty(), "a retained secret does not touch the vault again");
+        let other_profile = prepare_notifications("q", &config(&telegram, "", false, json!(["office"])), &vault, Some(&first));
+        assert!(other_profile.is_err(), "secrets are not reused across profiles");
+    }
+
+    #[test]
+    fn delivery_without_a_prepared_secret_fails_closed_and_skips_the_vault() {
+        let vault = Vault::new(Memory::default());
+        let telegram = stored(&vault, json!({"token":"TELEGRAM-TOKEN"}));
+        let cfg = config(&telegram, "", false, json!(["office"]));
+        let state = json!({"run_id":"r","document":"d","mode":"manual","screen":"Выбор офиса","stage":"office","available_offices":["A"]});
+        let mut planner = NotificationPlanner::default();
+        let intents = planner.observe("p", "Demo", "Madrid", &state, "en", &cfg).unwrap();
+        assert_eq!(intents.len(), 1);
+        vault.backend().locked.set(true);
+        let empty = prepare_notifications("p", &json!({}), &vault, None).unwrap();
+        vault.backend().read_keys.borrow_mut().clear();
+        let http = HttpDelivery::new().unwrap();
+        assert_eq!(deliver_intent_prepared(&intents[0], &empty, &http).err(), Some(NotificationError::SecretStorage));
+        assert!(vault.backend().read_keys.borrow().is_empty());
+    }
+}

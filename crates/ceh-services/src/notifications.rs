@@ -843,6 +843,77 @@ pub fn deliver_intent<B: crate::secrets::Backend>(
     if !intent.cancellation.current() {
         return Err(NotificationError::Stale);
     }
+    deliver_with(intent, &secret, http)
+}
+/// Secrets read before the search started (Python 0.3.3): sending never touches the native vault.
+pub struct PreparedNotifications {
+    profile: String,
+    secrets: std::collections::BTreeMap<String, crate::secrets::SecretData>,
+}
+impl PreparedNotifications {
+    pub fn profile(&self) -> &str {
+        &self.profile
+    }
+    pub fn has_secret(&self, reference: &str) -> bool {
+        self.secrets.contains_key(reference)
+    }
+}
+/// No secret text: only the failing channel and a coarse error.
+#[derive(Debug)]
+pub struct PrepareFailure {
+    pub channel: &'static str,
+    pub error: NotificationError,
+}
+/// Resolve the secrets of every enabled channel that has events. Channels that are disabled or have no
+/// events are not read. `previous` (same profile only) lets an unchanged reference keep its secret.
+pub fn prepare_notifications<B: crate::secrets::Backend>(
+    profile_id: &str,
+    raw_config: &Value,
+    vault: &crate::secrets::Vault<B>,
+    previous: Option<&PreparedNotifications>,
+) -> Result<PreparedNotifications, PrepareFailure> {
+    let config = settings(raw_config);
+    let previous = previous.filter(|prepared| prepared.profile == profile_id);
+    let mut secrets = std::collections::BTreeMap::new();
+    for channel in ["telegram", "webhook"] {
+        let connection = &config[channel];
+        if !yes(connection, "enabled") || connection["events"].as_array().is_none_or(|events| events.is_empty()) {
+            continue;
+        }
+        let reference = text(connection, "secret_ref", "").to_owned();
+        if secrets.contains_key(&reference) {
+            continue;
+        }
+        let secret = match previous.and_then(|prepared| prepared.secrets.get(&reference)) {
+            Some(kept) => crate::secrets::SecretData::new(kept.value().clone())
+                .map_err(|_| PrepareFailure { channel, error: NotificationError::SecretStorage })?,
+            None => vault
+                .get(&reference)
+                .map_err(|_| PrepareFailure { channel, error: NotificationError::SecretStorage })?,
+        };
+        secrets.insert(reference, secret);
+    }
+    Ok(PreparedNotifications { profile: profile_id.to_owned(), secrets })
+}
+pub fn deliver_intent_prepared(
+    intent: &DeliveryIntent,
+    prepared: &PreparedNotifications,
+    http: &HttpDelivery,
+) -> Result<DeliveryOutcome, NotificationError> {
+    if !intent.cancellation.current() {
+        return Err(NotificationError::Stale);
+    }
+    let secret = prepared
+        .secrets
+        .get(text(&intent.config, "secret_ref", ""))
+        .ok_or(NotificationError::SecretStorage)?;
+    deliver_with(intent, secret, http)
+}
+fn deliver_with(
+    intent: &DeliveryIntent,
+    secret: &crate::secrets::SecretData,
+    http: &HttpDelivery,
+) -> Result<DeliveryOutcome, NotificationError> {
     if intent.channel == "telegram" {
         let client = Telegram::new(text(secret.value(), "token", ""))?;
         let mut accepted = 0;

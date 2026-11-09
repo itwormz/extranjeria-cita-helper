@@ -331,37 +331,77 @@ pub fn save<B: Backend>(
     };
     validate(draft_notifications)?;
     let mut metadata = metadata(root, id, revision)?;
-    let tg = secret(vault, &metadata.telegram.channel.secret_ref)?;
-    let hook = secret(vault, &metadata.webhook.secret_ref)?;
-    let original = from_secrets(&metadata, tg.value(), hook.value())?;
+    let tg_secret = secret(vault, &metadata.telegram.channel.secret_ref);
+    let hook_secret = secret(vault, &metadata.webhook.secret_ref);
+    // Python 0.3.3: an unreadable channel can be disabled, or given replacement credentials, without
+    // erasing its stored secret; enabling it as it is stays an error.
+    let token = draft_notifications.telegram.token.trim().to_owned();
+    let hook_url_given = !draft_notifications.webhook.config.url.trim().is_empty();
+    if let Err(error) = &tg_secret
+        && draft_notifications.telegram.enabled
+        && token.is_empty()
+    {
+        return Err(match error {
+            EditError::Secret(vault_error) => EditError::Secret(*vault_error),
+            _ => EditError::Invalid,
+        });
+    }
+    if let Err(error) = &hook_secret
+        && draft_notifications.webhook.enabled
+        && !hook_url_given
+    {
+        return Err(match error {
+            EditError::Secret(vault_error) => EditError::Secret(*vault_error),
+            _ => EditError::Invalid,
+        });
+    }
     let mut prepared = Prepared {
         vault,
         created: vec![],
         committed: false,
     };
-    if draft_notifications.telegram.token != original.telegram.token {
-        let mut next = tg.value().clone();
-        if draft_notifications.telegram.token.trim().is_empty() {
-            next.as_object_mut()
-                .ok_or(EditError::Invalid)?
-                .remove("token");
-        } else {
-            next["token"] = json!(draft_notifications.telegram.token.trim());
+    match &tg_secret {
+        Ok(tg) => {
+            let original_token = tg.value().get("token").map_or(Ok(String::new()), |v| {
+                v.as_str().map(str::to_owned).ok_or(EditError::Invalid)
+            })?;
+            if draft_notifications.telegram.token != original_token {
+                let mut next = tg.value().clone();
+                if token.is_empty() {
+                    next.as_object_mut().ok_or(EditError::Invalid)?.remove("token");
+                } else {
+                    next["token"] = json!(token);
+                }
+                metadata.telegram.channel.secret_ref = prepared.put(next)?;
+            }
         }
-        metadata.telegram.channel.secret_ref = prepared.put(next)?;
+        Err(_) if draft_notifications.telegram.enabled => {
+            metadata.telegram.channel.secret_ref = prepared.put(json!({"token": token}))?;
+        }
+        Err(_) => {}
     }
-    if serde_json::to_value(&draft_notifications.webhook.config).map_err(|_| EditError::Invalid)?
-        != serde_json::to_value(&original.webhook.config).map_err(|_| EditError::Invalid)?
-    {
-        let mut next = hook.value().clone();
-        next.as_object_mut().ok_or(EditError::Invalid)?.extend(
-            serde_json::to_value(&draft_notifications.webhook.config)
-                .map_err(|_| EditError::Invalid)?
-                .as_object()
-                .ok_or(EditError::Invalid)?
-                .clone(),
-        );
-        metadata.webhook.secret_ref = prepared.put(next)?;
+    match &hook_secret {
+        Ok(hook) => {
+            let original_config = projected_config(hook.value())?;
+            if serde_json::to_value(&draft_notifications.webhook.config).map_err(|_| EditError::Invalid)?
+                != serde_json::to_value(&original_config).map_err(|_| EditError::Invalid)?
+            {
+                let mut next = hook.value().clone();
+                next.as_object_mut().ok_or(EditError::Invalid)?.extend(
+                    serde_json::to_value(&draft_notifications.webhook.config)
+                        .map_err(|_| EditError::Invalid)?
+                        .as_object()
+                        .ok_or(EditError::Invalid)?
+                        .clone(),
+                );
+                metadata.webhook.secret_ref = prepared.put(next)?;
+            }
+        }
+        Err(_) if draft_notifications.webhook.enabled => {
+            let next = serde_json::to_value(&draft_notifications.webhook.config).map_err(|_| EditError::Invalid)?;
+            metadata.webhook.secret_ref = prepared.put(next)?;
+        }
+        Err(_) => {}
     }
     metadata.telegram.channel.enabled = draft_notifications.telegram.enabled;
     metadata.telegram.channel.events = draft_notifications.telegram.events.clone();

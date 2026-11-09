@@ -223,6 +223,13 @@ fn locked_vault_does_not_clear_saved_credentials() {
     vault.backend().locked.set(true);
     assert!(editor(root.path(), Some(&created.id), &created.revision, &vault).is_err());
     let basic = ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap();
+    // Enabling an unreadable channel without replacement credentials must fail (Python 0.3.3);
+    // supplying credentials, or disabling, is allowed and covered by the tests below.
+    let without_credentials: NotificationDraft = serde_json::from_value(json!({
+        "telegram":{"enabled":true,"events":["booking"],"recipients":[{"id":"123456","label":"Fixture","type":"private","username":""}]},
+        "webhook":{"enabled":true,"events":["error"]}
+    }))
+    .unwrap();
     assert!(
         save(
             root.path(),
@@ -230,7 +237,7 @@ fn locked_vault_does_not_clear_saved_credentials() {
             basic.draft,
             &basic.revision,
             None,
-            Some(&enabled()),
+            Some(&without_credentials),
             &vault
         )
         .is_err()
@@ -432,4 +439,54 @@ fn unrelated_notification_edit_preserves_unknown_recipient_fields() {
         .sequence()
         .unwrap()[0];
     assert!(chat.get("future_chat_flag").is_some_and(|v| v.truthy()));
+}
+
+#[test]
+fn disabling_channels_with_a_locked_vault_keeps_their_secret_references() {
+    let root = tempfile::tempdir().unwrap();
+    let vault = Vault::new(Memory::default());
+    let (draft, revision) = profile(root.path());
+    let created = save(root.path(), None, draft, &revision, None, Some(&enabled()), &vault).unwrap();
+    let before = std::fs::read_to_string(root.path().join("tasks.yml")).unwrap();
+    let references: Vec<String> = before
+        .split("notifications-")
+        .skip(1)
+        .map(|rest| format!("notifications-{}", rest.chars().take_while(char::is_ascii_hexdigit).collect::<String>()))
+        .collect();
+    assert_eq!(references.len(), 2, "telegram and webhook secrets are referenced: {before}");
+    let entries = vault.backend().values.borrow().clone();
+    vault.backend().locked.set(true);
+    let basic = ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap();
+    let disabled: NotificationDraft = serde_json::from_value(json!({
+        "telegram":{"enabled":false,"events":["booking"],"recipients":[{"id":"123456","label":"Fixture","type":"private","username":""}]},
+        "webhook":{"enabled":false,"events":["error"]}
+    }))
+    .unwrap();
+    save(root.path(), Some(&created.id), basic.draft, &basic.revision, None, Some(&disabled), &vault)
+        .expect("disabling must not need the unreadable secrets");
+    let after = std::fs::read_to_string(root.path().join("tasks.yml")).unwrap();
+    for reference in &references {
+        assert!(after.contains(reference.as_str()), "reference {reference} survives: {after}");
+    }
+    assert_eq!(*vault.backend().values.borrow(), entries, "stored secrets are untouched");
+}
+
+#[test]
+fn replacement_credentials_for_an_unreadable_channel_get_a_new_reference_and_keep_the_old_secret() {
+    let root = tempfile::tempdir().unwrap();
+    let vault = Vault::new(Memory::default());
+    let (draft, revision) = profile(root.path());
+    let created = save(root.path(), None, draft, &revision, None, Some(&enabled()), &vault).unwrap();
+    let before = std::fs::read_to_string(root.path().join("tasks.yml")).unwrap();
+    let entries = vault.backend().values.borrow().clone();
+    vault.backend().locked.set(true);
+    let basic = ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap();
+    let mut replacement = enabled();
+    replacement.telegram.token = "123456:REPLACEMENT_TOKEN".into();
+    save(root.path(), Some(&created.id), basic.draft, &basic.revision, None, Some(&replacement), &vault)
+        .expect("replacement credentials do not need the unreadable old secret");
+    let after = std::fs::read_to_string(root.path().join("tasks.yml")).unwrap();
+    assert_ne!(after, before, "a new reference is written");
+    let kept = vault.backend().values.borrow();
+    assert!(entries.iter().all(|(key, value)| kept.get(key) == Some(value)), "the old secret entries stay in the vault");
 }
