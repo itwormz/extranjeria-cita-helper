@@ -224,6 +224,23 @@ impl AppointmentBudget {
         self.restriction_until = base.checked_add_signed(Duration::minutes(i64::from(minutes)));
     }
 
+    /// A copy-mode profile gets its own budget file once the document is known. Today's explicit
+    /// choices made before that (manual target, distribution) must survive the swap
+    /// (Python `load_bound_budget`). Choices from another Madrid day are ignored.
+    pub fn carry_today_choices_from(&mut self, previous: &AppointmentBudget, now: DateTime<Utc>, policy: &AppointmentPolicy) {
+        self.refresh(now, policy);
+        if previous.day != self.day {
+            return;
+        }
+        if let Some(target) = previous.manual_target {
+            // Already validated when it was first set.
+            let _ = self.set_daily_target(Some(target), now, policy);
+        }
+        if previous.distribution_disabled || previous.distribution_enabled_today {
+            self.set_distribution(previous.distribution_disabled, now, policy);
+        }
+    }
+
     /// Adjust state when the profile's policy changes during a search (Python 0.3.2+ `AssistRunner.step`).
     pub fn policy_changed(&mut self, old: &AppointmentPolicy, new: &AppointmentPolicy) {
         if old == new {

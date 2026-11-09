@@ -1010,7 +1010,9 @@ impl FlowEngine {
                 }
                 let delay = match observed.kind {
                     PageKind::RequestNoSlotsRestart => self.timings.no_slots_restart_seconds(),
-                    PageKind::ApplicantNoSlots => self.reload_delay + self.applicant_reload_penalty,
+                    PageKind::ApplicantNoSlots if self.timings.adaptive_reload_on_429() => {
+                        self.reload_delay + self.applicant_reload_penalty
+                    }
                     _ => self.reload_delay,
                 };
                 let deadline = deadline_millis(now, delay).map_err(|_| FlowError::ClockOverflow)?;

@@ -1025,3 +1025,17 @@ fn applied_timings_reject_a_sample_outside_the_new_range_without_change() {
     let effects = e.observe(observation(PageKind::ApplicantNoSlots), 0).unwrap();
     assert_eq!(effects, vec![FlowEffect::WaitUntil(30_000)]);
 }
+
+#[test]
+fn rate_limit_penalty_stops_applying_when_the_flag_is_switched_off_mid_run() {
+    let mut e = engine();
+    e.observe_with_facts(rate_limited("first", RequestMethod::Get), applicant_entry_facts(), 0).unwrap();
+    e.observe_with_facts(rate_limited("second", RequestMethod::Get), applicant_entry_facts(), 1).unwrap();
+    assert_eq!(e.applicant_reload_penalty(), 60.0);
+    let off = ceh_core::timings::parse_timings(&serde_json::json!({"adaptive_reload_on_429": false})).unwrap();
+    e.apply_timings(off, 30.0).unwrap();
+    let effects = e
+        .observe_with_facts(observation(PageKind::ApplicantNoSlots), applicant_entry_facts(), 1_000)
+        .unwrap();
+    assert_eq!(effects, vec![FlowEffect::WaitUntil(1_000 + 30_000)], "Python adds the penalty only while the flag is on");
+}

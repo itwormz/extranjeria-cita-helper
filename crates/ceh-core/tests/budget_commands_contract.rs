@@ -81,3 +81,30 @@ fn try_now_command_allows_an_immediate_attempt_keeping_minimum_pause() {
     apply_budget_command(&mut budget, &mut policy, BudgetCommand::TryNow, start + Duration::minutes(2)).unwrap();
     assert_eq!(budget.next_submission(start + Duration::minutes(2), &policy, false), start + Duration::minutes(15));
 }
+
+#[test]
+fn binding_a_copied_document_keeps_todays_manual_target_and_distribution_choice() {
+    let policy = AppointmentPolicy::default();
+    let now = utc("2026-11-03T11:00:00Z");
+    let mut before = AppointmentBudget::default();
+    before.set_daily_target(Some(12), now, &policy).unwrap();
+    before.set_distribution(false, now, &policy);
+    // The document's own saved budget has real usage but none of today's explicit choices.
+    let mut bound = AppointmentBudget::default();
+    bound.submitted(now - Duration::hours(1), &policy);
+    bound.carry_today_choices_from(&before, now, &policy);
+    let summary = bound.summary(now, &policy, false);
+    assert_eq!((summary.sent, summary.manual_target, summary.disabled), (1, Some(12), false));
+}
+
+#[test]
+fn choices_from_another_day_are_not_carried_to_a_bound_document() {
+    let policy = AppointmentPolicy::default();
+    let yesterday = utc("2026-11-02T11:00:00Z");
+    let now = utc("2026-11-03T11:00:00Z");
+    let mut before = AppointmentBudget::default();
+    before.set_daily_target(Some(12), yesterday, &policy).unwrap();
+    let mut bound = AppointmentBudget::default();
+    bound.carry_today_choices_from(&before, now, &policy);
+    assert_eq!(bound.summary(now, &policy, false).manual_target, None);
+}

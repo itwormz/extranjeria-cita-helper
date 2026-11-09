@@ -100,6 +100,14 @@ impl SearchController {
     }
     /// Budget commands act on the running search only; an idle controller refuses them.
     pub fn budget_command(&self, command: BudgetCommand) -> Result<(), &'static str> {
+        // Refuse here, where the caller can be told, instead of silently dropping it in the worker.
+        match &command {
+            BudgetCommand::SetDailyTarget(Some(target)) if *target == 0 || *target > i32::MAX as u32 => {
+                return Err("invalid_target");
+            }
+            BudgetCommand::TryNow if self.snapshot()?.manual => return Err("search_manual"),
+            _ => {}
+        }
         self.send_live(LiveCommand::Budget(command))
     }
     /// Re-read the active profile's saved timings and appointment policy and apply them to the run.
@@ -698,7 +706,13 @@ fn run_owned(
                         let next = ceh_store::appointment_budget::BudgetStore::open_for_document(
                             &root.join("data"), profile, Some((&identity.0, &identity.1)),
                         ).map_err(|_| "appointment_budget_unavailable")?;
-                        budget = next.load().map_err(|_| "appointment_budget_unavailable")?;
+                        let before = std::mem::replace(
+                            &mut budget,
+                            next.load().map_err(|_| "appointment_budget_unavailable")?,
+                        );
+                        let now = crate::current_time()?;
+                        budget.carry_today_choices_from(&before, now, &appointment_policy);
+                        next.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
                         let previous = std::mem::replace(&mut budget_store, next);
                         if initial_budget_store.is_none() {
                             initial_budget_store = Some(previous);
@@ -971,5 +985,46 @@ mod boundary_tests {
             terminal_change(false, true, false).sound,
             SoundCommand::Stop
         );
+    }
+}
+
+#[cfg(test)]
+mod live_command_tests {
+    use super::*;
+
+    fn running(manual: bool) -> (SearchController, mpsc::Receiver<LiveCommand>, mpsc::Receiver<Message>) {
+        let controller = SearchController::default();
+        controller.state.lock().unwrap().active = true;
+        controller.state.lock().unwrap().manual = manual;
+        let (sender, messages) = mpsc::sync_channel(1);
+        let (live, commands) = mpsc::channel();
+        *controller.handle.lock().unwrap() = Some(Handle {
+            sender,
+            live,
+            gate: Arc::new(Mutex::new(None)),
+            cancelled: Arc::new(AtomicBool::new(false)),
+        });
+        (controller, commands, messages)
+    }
+
+    #[test]
+    fn invalid_daily_targets_are_refused_before_they_reach_the_worker() {
+        let (controller, commands, _messages) = running(false);
+        for bad in [0, i32::MAX as u32 + 1, u32::MAX] {
+            assert_eq!(controller.budget_command(BudgetCommand::SetDailyTarget(Some(bad))), Err("invalid_target"));
+        }
+        assert!(commands.try_recv().is_err());
+        assert_eq!(controller.budget_command(BudgetCommand::SetDailyTarget(Some(i32::MAX as u32))), Ok(()));
+        assert!(commands.try_recv().is_ok());
+    }
+
+    #[test]
+    fn try_now_is_refused_while_the_person_owns_the_browser() {
+        let (controller, commands, _messages) = running(true);
+        assert_eq!(controller.budget_command(BudgetCommand::TryNow), Err("search_manual"));
+        assert!(commands.try_recv().is_err());
+        let (controller, commands, _messages) = running(false);
+        assert_eq!(controller.budget_command(BudgetCommand::TryNow), Ok(()));
+        assert!(commands.try_recv().is_ok());
     }
 }
