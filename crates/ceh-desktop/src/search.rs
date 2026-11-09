@@ -258,9 +258,9 @@ impl SearchController {
                         terminal_change(requested_stop, result.is_err(), enabled),
                     );
                 }
+                let _ = clear_budget(&state);
                 if let Ok(mut s) = state.lock() {
                     s.active = false;
-                    s.appointment_budget = None;
                     s.paused = false;
                     s.deadline = None;
                     if let Err(code) = result

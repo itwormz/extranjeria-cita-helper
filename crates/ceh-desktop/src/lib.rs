@@ -281,6 +281,68 @@ pub fn profile_statistics_at(
     Ok(Some(data.clone()))
 }
 
+fn budget_profile(
+    root: &Path,
+    id: &str,
+) -> Result<(ceh_core::profiles::ProfileDraft, Option<ceh_core::appointment_budget::AppointmentPolicy>), &'static str> {
+    let bundle = read_profiles(&root.join("tasks.yml"), catalog(), "ru").map_err(|_| "profiles_unavailable")?;
+    let loaded = bundle
+        .profiles
+        .into_iter()
+        .find(|p| p.validation.normalized.id == id)
+        .ok_or("profile_not_found")?;
+    Ok((loaded.validation.normalized, loaded.appointment_policy))
+}
+fn is_lock_contention(error: &std::io::Error) -> bool {
+    error.kind() == std::io::ErrorKind::WouldBlock
+}
+/// Today's budget of a profile while no search runs (Python `current_daily_budget`). A profile that never
+/// searched shows the base budget and nothing is written; a stored file whose day passed is saved reset.
+pub fn appointment_budget_view(
+    root: &Path,
+    id: &str,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Result<Option<ceh_core::appointment_budget::BudgetSummary>, &'static str> {
+    let (draft, policy) = budget_profile(root, id)?;
+    let Some(policy) = policy else { return Ok(None) };
+    let data = root.join("data");
+    let stored = ceh_store::appointment_budget::BudgetStore::load_profile(&data, id).map_err(|_| "appointment_budget_unavailable")?;
+    let existed = stored.is_some();
+    let mut budget = stored.unwrap_or_default();
+    let day = |budget: &ceh_core::appointment_budget::AppointmentBudget| serde_json::to_value(budget).ok().map(|v| v["day"].clone());
+    let before = day(&budget);
+    let summary = budget.summary(now, &policy, false);
+    if existed
+        && day(&budget) != before
+        && let Ok(store) = ceh_store::appointment_budget::BudgetStore::open_saved(&data, &draft)
+    {
+        let _ = store.save(&budget);
+    }
+    Ok(Some(summary))
+}
+/// Set (or clear with `None`) today's manual budget while no search runs.
+pub fn set_idle_daily_target(
+    root: &Path,
+    id: &str,
+    target: Option<u32>,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Result<ceh_core::appointment_budget::BudgetSummary, &'static str> {
+    if target.is_some_and(|value| value == 0 || value > i32::MAX as u32) {
+        return Err("invalid_target");
+    }
+    let (draft, policy) = budget_profile(root, id)?;
+    let policy = policy.ok_or("profile_invalid")?;
+    let data = root.join("data");
+    let store = ceh_store::appointment_budget::BudgetStore::open_saved(&data, &draft).map_err(|error| {
+        if is_lock_contention(&error) { "budget_in_use" } else { "appointment_budget_unavailable" }
+    })?;
+    let mut budget = store.load().map_err(|_| "appointment_budget_unavailable")?;
+    budget.set_daily_target(target, now, &policy).map_err(|_| "invalid_target")?;
+    store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
+    store.remember_profile(&data, id).map_err(|_| "appointment_budget_unavailable")?;
+    Ok(budget.summary(now, &policy, false))
+}
+
 pub fn current_time() -> Result<chrono::DateTime<chrono::Utc>, &'static str> {
     chrono::DateTime::from_timestamp_millis(
         std::time::SystemTime::now()

@@ -10,6 +10,7 @@
     "allow-search-start",
     "allow-search-control",
     "allow-search-resume",
+    "allow-appointment-budget",
     "allow-appointment-daily-target",
     "allow-appointment-distribution",
     "allow-appointment-try-now",

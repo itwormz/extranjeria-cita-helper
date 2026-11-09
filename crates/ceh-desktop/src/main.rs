@@ -412,15 +412,37 @@ fn search_control(
     result
 }
 #[tauri::command]
+fn appointment_budget(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+    id: String,
+) -> Result<Option<ceh_core::appointment_budget::BudgetSummary>, &'static str> {
+    authorize(&window)?;
+    let snapshot = runtime.search.snapshot()?;
+    if snapshot.active && snapshot.profile.as_deref() == Some(id.as_str()) {
+        return Ok(snapshot.appointment_budget);
+    }
+    ceh_desktop::appointment_budget_view(&runtime.root, &id, ceh_desktop::current_time()?)
+}
+/// Today's manual budget: a running search of this profile applies it at its next tick, otherwise the
+/// profile's stored budget is edited directly.
+#[tauri::command]
 fn appointment_daily_target(
     window: WebviewWindow,
     runtime: State<'_, DesktopRuntime>,
+    id: Option<String>,
     target: Option<u32>,
 ) -> Result<(), &'static str> {
     authorize(&window)?;
-    runtime
-        .search
-        .budget_command(ceh_core::budget_commands::BudgetCommand::SetDailyTarget(target))
+    let snapshot = runtime.search.snapshot()?;
+    match id {
+        Some(id) if !(snapshot.active && snapshot.profile.as_deref() == Some(id.as_str())) => {
+            ceh_desktop::set_idle_daily_target(&runtime.root, &id, target, ceh_desktop::current_time()?).map(|_| ())
+        }
+        _ => runtime
+            .search
+            .budget_command(ceh_core::budget_commands::BudgetCommand::SetDailyTarget(target)),
+    }
 }
 #[tauri::command]
 fn appointment_distribution(
@@ -556,6 +578,7 @@ fn main() {
             search_start,
             search_control,
             search_resume,
+            appointment_budget,
             appointment_daily_target,
             appointment_distribution,
             appointment_try_now,

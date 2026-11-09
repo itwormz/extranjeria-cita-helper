@@ -1,4 +1,4 @@
-use ceh_core::{appointment_budget::AppointmentPolicy, profiles::ProfileDraft};
+use ceh_core::{appointment_budget::{AppointmentBudget, AppointmentPolicy}, profiles::ProfileDraft};
 use ceh_store::appointment_budget::BudgetStore;
 use chrono::{DateTime, Utc};
 
@@ -116,4 +116,40 @@ fn copied_document_budget_is_locked_against_another_profile_and_never_stores_the
             assert!(!std::fs::read_to_string(entry.path()).unwrap().to_uppercase().contains("X1234567L"));
         }
     }
+}
+
+fn copy_profile(id: &str) -> ProfileDraft {
+    let cases: serde_json::Value = serde_json::from_str(include_str!("../../../tests/contracts/fixtures/profile-validation.json")).unwrap();
+    let mut profile: ProfileDraft = serde_json::from_value(cases["cases"][0]["expected"]["normalized"].clone()).unwrap();
+    profile.fill_mode = "copy".into();
+    profile.id = id.into();
+    profile
+}
+
+#[test]
+fn open_saved_uses_the_last_document_budget_of_a_copy_profile() {
+    let data = tempfile::tempdir().unwrap();
+    let profile = copy_profile("copy-saved");
+    let bound = BudgetStore::open_for_document(data.path(), &profile, Some(("X1234567L", "NIE"))).unwrap();
+    let mut budget = bound.load().unwrap();
+    for _ in 0..3 {
+        budget.submitted("2026-11-04T11:00:00Z".parse().unwrap(), &AppointmentPolicy::default());
+    }
+    bound.save(&budget).unwrap();
+    drop(bound);
+    let saved = BudgetStore::open_saved(data.path(), &profile).unwrap();
+    assert_eq!(saved.load().unwrap().sent(), 3, "the copy profile edits the budget of its last document");
+}
+
+#[test]
+fn open_saved_without_a_mapping_uses_the_profile_budget_and_remember_profile_binds_it() {
+    let data = tempfile::tempdir().unwrap();
+    let profile = copy_profile("copy-fresh");
+    let first = BudgetStore::open_saved(data.path(), &profile).unwrap();
+    assert!(!first.exists(), "nothing is created by opening");
+    assert!(BudgetStore::load_profile(data.path(), "copy-fresh").unwrap().is_none());
+    first.save(&AppointmentBudget::default()).unwrap();
+    first.remember_profile(data.path(), "copy-fresh").unwrap();
+    assert!(first.exists());
+    assert!(BudgetStore::load_profile(data.path(), "copy-fresh").unwrap().is_some());
 }

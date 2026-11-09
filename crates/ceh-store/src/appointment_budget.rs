@@ -55,6 +55,45 @@ impl BudgetStore {
         Ok(store)
     }
 
+    /// The budget a profile edits while no search runs: the last document's file for a copy profile that
+    /// was bound once, otherwise the profile's own budget. The file is locked until the store is dropped.
+    pub fn open_saved(data: &Path, profile: &ProfileDraft) -> io::Result<Self> {
+        if profile.fill_mode == "copy" {
+            let id = ProfileId::new(&profile.id).map_err(io::Error::other)?;
+            if let Some(key) = Self::profile_key(&data.join("appointment-budget"), id.as_str())? {
+                return Ok(Self {
+                    path: data.join("appointment-budget").join(format!("{key}.json")),
+                    _lock: lock(&data.join(format!(".budget-{key}.lock")))?,
+                });
+            }
+        }
+        Self::open(data, profile)
+    }
+
+    fn profile_key(root: &Path, id: &str) -> io::Result<Option<String>> {
+        let mapping: serde_json::Value = match fs::read(root.join(format!("profile-{id}.json"))) {
+            Ok(bytes) => serde_json::from_slice(&bytes)?,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        mapping["key"]
+            .as_str()
+            .filter(|key| key.len() == 64 && key.bytes().all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c)))
+            .map(|key| Some(key.to_owned()))
+            .ok_or_else(|| io::ErrorKind::InvalidData.into())
+    }
+
+    pub fn exists(&self) -> bool {
+        self.path.is_file()
+    }
+
+    /// Bind the profile to this budget file (what a finished search leaves behind for copy profiles).
+    pub fn remember_profile(&self, data: &Path, id: &str) -> io::Result<()> {
+        let id = ProfileId::new(id).map_err(io::Error::other)?;
+        let key = self.path.file_stem().and_then(|stem| stem.to_str()).ok_or(io::ErrorKind::InvalidData)?;
+        atomic_write(&data.join("appointment-budget").join(format!("profile-{}.json", id.as_str())), &serde_json::to_vec(&serde_json::json!({"key":key}))?)
+    }
+
     pub fn load_profile(data: &Path, id: &str) -> io::Result<Option<AppointmentBudget>> {
         let id = ProfileId::new(id).map_err(io::Error::other)?;
         let root = data.join("appointment-budget");
