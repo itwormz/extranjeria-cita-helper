@@ -3,6 +3,9 @@ use chrono::{DateTime, Duration, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Europe::Madrid;
 
 const WINDOW_RADIUS: Duration = Duration::minutes(30);
+/// Only near-term windows are needed (the plan is rebuilt after each submission or expiry);
+/// bounding the list keeps memory and time independent of a very large daily target.
+const MAX_WINDOWS: u32 = 24 * 60;
 
 /// Calculate the remaining windows for the Madrid day. The caller refreshes
 /// these on submission or when a window expires, rather than on every poll.
@@ -27,7 +30,7 @@ pub fn attempt_windows(
             .single()
             .map(|time| time.to_utc())
     };
-    (1..=remaining)
+    (1..=remaining.min(MAX_WINDOWS))
         .map(|index| {
             let center = start
                 + Duration::microseconds(

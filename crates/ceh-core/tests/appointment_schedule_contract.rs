@@ -50,8 +50,9 @@ fn cod_oper_cooldown_and_adaptive_target_cross_madrid_midnight() {
         budget.next_submission(tomorrow, &policy, true),
         now + Duration::minutes(32)
     );
-    assert_eq!(budget.target(&policy), 1);
-    assert_eq!(budget.remaining(&policy), 1);
+    // Python 0.3.x never estimates fewer than five attempts for the next day.
+    assert_eq!(budget.target(&policy), 5);
+    assert_eq!(budget.remaining(&policy), 5);
     let submitted = now + Duration::minutes(32);
     budget.submitted(submitted, &policy);
     assert_eq!(
@@ -63,4 +64,12 @@ fn cod_oper_cooldown_and_adaptive_target_cross_madrid_midnight() {
         budget.next_submission(submitted, &policy, true),
         submitted + Duration::minutes(15)
     );
+}
+
+#[test]
+fn huge_target_returns_bounded_windows_quickly() {
+    let started = std::time::Instant::now();
+    let windows = attempt_windows(utc("2026-11-04T08:00:00Z"), u32::MAX).unwrap();
+    assert!(!windows.is_empty() && windows.len() <= 24 * 60);
+    assert!(started.elapsed() < std::time::Duration::from_secs(1));
 }
