@@ -35,6 +35,8 @@ pub struct SearchSnapshot {
     pub deadline: Option<i64>,
     pub attention: bool,
     pub error: Option<&'static str>,
+    /// A non-fatal notice for the window (the search keeps running).
+    pub warning: Option<&'static str>,
     pub rows: Vec<JournalRow>,
     pub counters: Counters,
     /// Today's budget (Python `summary()` keys) while a search runs; the window shows it and its wait reason.
@@ -402,7 +404,11 @@ fn run(
                 "browser_start_failed"
             }
         })?;
-    update(state, |s| s.browser_pid = browser.process_id())?;
+    update(state, |s| {
+        s.browser_pid = browser.process_id();
+        s.warning = (browser.certificate_cache() == ceh_browser::firefox::CertificateCache::Deferred)
+            .then_some("browser_certificate_cache_deferred");
+    })?;
     // Any unexpected return preserves the current browser, including a possible booking.
     let result = run_owned(
         root,

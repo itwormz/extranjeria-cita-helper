@@ -112,3 +112,13 @@ fn resume_needs_a_handed_off_live_browser_and_returns_ownership() {
     assert_eq!(browser.resume_automation(), Err(FirefoxError::Unavailable), "a second resume has nothing to take back");
     browser.stop().unwrap();
 }
+
+#[test]
+fn a_certificate_cache_failure_defers_the_cache_and_never_blocks_the_browser() {
+    use ceh_browser::firefox::CertificateCache;
+    // Python 0.3.6: the optional intermediate cache must not stop the browser (HTTPS stays strict).
+    for error in [FirefoxError::CertificateCache, FirefoxError::Unavailable, FirefoxError::InvalidInstallation] {
+        assert_eq!(CertificateCache::from_result(Err(error)), CertificateCache::Deferred);
+    }
+    assert_eq!(CertificateCache::from_result(Ok(3)), CertificateCache::Ready(3));
+}

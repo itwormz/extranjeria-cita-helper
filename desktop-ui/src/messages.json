@@ -252,7 +252,8 @@
     "Работает": "Works",
     "Планируется": "Planned",
     "Не поддерживается": "Not supported",
-    "Подходящий браузер не найден": "No suitable browser found"
+    "Подходящий браузер не найден": "No suitable browser found",
+    "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "The site certificate chain was not prepared. The search started and HTTPS validation stays strict."
   },
   "es": {
     "Всего": "Total",
@@ -507,6 +508,7 @@
     "Работает": "Funciona",
     "Планируется": "Previsto",
     "Не поддерживается": "No compatible",
-    "Подходящий браузер не найден": "No se encontró ningún navegador compatible"
+    "Подходящий браузер не найден": "No se encontró ningún navegador compatible",
+    "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "No se preparó la cadena de certificados del sitio. La búsqueda se inició y la validación HTTPS sigue siendo estricta."
   }
 }

@@ -15,6 +15,18 @@ pub enum FirefoxError {
     Cancelled,
     ManualOwnership,
 }
+/// Outcome of preparing the TLS intermediate cache: optional, so a failure defers it instead of
+/// stopping the browser. Certificate validation stays strict either way.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CertificateCache {
+    Ready(usize),
+    Deferred,
+}
+impl CertificateCache {
+    pub fn from_result(result: Result<usize, FirefoxError>) -> Self {
+        result.map_or(Self::Deferred, Self::Ready)
+    }
+}
 /// No Debug: paths can contain account names and must not enter user reports verbatim.
 pub struct FirefoxInstallation {
     executable: PathBuf,
@@ -230,6 +242,7 @@ pub struct OwnedFirefox {
     context: String,
     endpoint: SocketAddr,
     manual: bool,
+    certificate_cache: CertificateCache,
 }
 impl OwnedFirefox {
     pub fn start(
@@ -253,8 +266,7 @@ impl OwnedFirefox {
         if fs::symlink_metadata(&user_js).is_ok_and(|m| m.file_type().is_symlink()) {
             return Err(FirefoxError::InvalidProfile);
         }
-        crate::firefox_certificates::prepare(&profile, installation)
-            .map_err(|_| FirefoxError::CertificateCache)?;
+        let certificate_cache = CertificateCache::from_result(crate::firefox_certificates::prepare(&profile, installation));
         let mut file = File::create(user_js).map_err(|_| FirefoxError::InvalidProfile)?;
         for (name, value) in prefs.as_object().ok_or(FirefoxError::Unavailable)? {
             writeln!(file, "user_pref({}, {});", json!(name), value)
@@ -320,6 +332,7 @@ impl OwnedFirefox {
             context: String::new(),
             endpoint: SocketAddr::from(([127, 0, 0, 1], 0)),
             manual: false,
+            certificate_cache,
         };
         let deadline = Instant::now() + Duration::from_secs(20);
         loop {
@@ -378,6 +391,10 @@ impl OwnedFirefox {
         }
         owned.connection = Some(connection);
         Ok(owned)
+    }
+    /// Whether the optional TLS intermediate cache is ready or was deferred (strict HTTPS either way).
+    pub fn certificate_cache(&self) -> CertificateCache {
+        self.certificate_cache
     }
     pub fn process_id(&self) -> Option<u32> {
         self.child.as_ref().map(Child::id)
