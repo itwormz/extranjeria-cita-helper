@@ -10,6 +10,12 @@ use serde::{Deserialize, Serialize};
 /// Each distinct HTTP 429 on the applicant form lengthens its refresh interval by this much.
 const RATE_LIMIT_RELOAD_PENALTY_SECONDS: f64 = 30.0;
 
+/// Recovery counters that outlive a browser session (`blocked_streak`, the 429 reload penalty).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct RecoveryCarry {
+    pub blocked_streak: usize,
+    pub applicant_reload_penalty: f64,
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
 pub enum FlowEffect {
@@ -359,6 +365,26 @@ impl FlowEngine {
         self.phase = Some(Phase::Dispatched);
         let guard = self.guard(&current);
         Ok(vec![FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }])
+    }
+    /// What Python keeps in its control object across new sessions of one search run.
+    pub fn recovery_carry(&self) -> RecoveryCarry {
+        RecoveryCarry {
+            blocked_streak: self
+                .recovery_attempts
+                .iter()
+                .filter(|((kind, _), _)| *kind == PageKind::Blocked)
+                .map(|(_, n)| *n)
+                .max()
+                .unwrap_or(0),
+            applicant_reload_penalty: self.applicant_reload_penalty,
+        }
+    }
+    pub fn apply_carry(&mut self, carry: RecoveryCarry) {
+        self.recovery_attempts.retain(|((kind, _), _)| *kind != PageKind::Blocked);
+        if carry.blocked_streak > 0 {
+            self.recovery_attempts.push(((PageKind::Blocked, false), carry.blocked_streak));
+        }
+        self.applicant_reload_penalty = carry.applicant_reload_penalty;
     }
     /// Seconds added to the applicant-form refresh interval after HTTP 429 responses (Python 0.3.1+).
     pub fn applicant_reload_penalty(&self) -> f64 {
