@@ -15,6 +15,23 @@ pub enum FirefoxError {
     Cancelled,
     ManualOwnership,
 }
+/// Preferences written to the app-owned Firefox profile. Windows occlusion tracking suspends a window that
+/// another window covers, and the search would then wait on input the browser no longer processes.
+pub fn startup_preferences(os: crate::launch::TargetOs) -> serde_json::Value {
+    let mut prefs = json!({
+     "security.enterprise_roots.enabled":true,"security.osclientcerts.autoload":true,
+     "dom.disable_window_flip":true,"browser.tabs.loadDivertedInBackground":true,
+     "intl.locale.requested":"es-ES","intl.accept_languages":"es-ES, es",
+     "browser.shell.checkDefaultBrowser":false,"browser.startup.homepage":"about:blank",
+     "browser.startup.homepage_override.mstone":"ignore","startup.homepage_welcome_url":"",
+     "datareporting.policy.dataSubmissionEnabled":false,"toolkit.telemetry.enabled":false
+    });
+    if os == crate::launch::TargetOs::Windows {
+        prefs["widget.windows.window_occlusion_tracking.enabled"] = json!(false);
+        prefs["widget.windows.window_occlusion_tracking_peek.enabled"] = json!(false);
+    }
+    prefs
+}
 /// Outcome of preparing the TLS intermediate cache: optional, so a failure defers it instead of
 /// stopping the browser. Certificate validation stays strict either way.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -254,14 +271,7 @@ impl OwnedFirefox {
         if cancelled.load(Ordering::Acquire) {
             return Err(FirefoxError::Cancelled);
         }
-        let prefs = json!({
-         "security.enterprise_roots.enabled":true,"security.osclientcerts.autoload":true,
-         "dom.disable_window_flip":true,"browser.tabs.loadDivertedInBackground":true,
-         "intl.locale.requested":"es-ES","intl.accept_languages":"es-ES, es",
-         "browser.shell.checkDefaultBrowser":false,"browser.startup.homepage":"about:blank",
-         "browser.startup.homepage_override.mstone":"ignore","startup.homepage_welcome_url":"",
-         "datareporting.policy.dataSubmissionEnabled":false,"toolkit.telemetry.enabled":false
-        });
+        let prefs = startup_preferences(crate::launch::TargetOs::current());
         let user_js = profile.path().join("user.js");
         if fs::symlink_metadata(&user_js).is_ok_and(|m| m.file_type().is_symlink()) {
             return Err(FirefoxError::InvalidProfile);

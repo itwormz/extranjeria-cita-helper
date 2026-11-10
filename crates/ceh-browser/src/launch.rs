@@ -9,6 +9,15 @@ pub enum TargetOs {
     Linux,
 }
 impl TargetOs {
+    pub fn current() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::Macos
+        } else if cfg!(target_os = "windows") {
+            Self::Windows
+        } else {
+            Self::Linux
+        }
+    }
     fn name(self) -> &'static str {
         match self {
             Self::Macos => "macos",

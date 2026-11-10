@@ -122,3 +122,27 @@ fn a_certificate_cache_failure_defers_the_cache_and_never_blocks_the_browser() {
     }
     assert_eq!(CertificateCache::from_result(Ok(3)), CertificateCache::Ready(3));
 }
+
+#[test]
+fn startup_preferences_add_the_windows_occlusion_switches_only_on_windows() {
+    use ceh_browser::firefox::startup_preferences;
+    use ceh_browser::launch::TargetOs;
+    // Python `_background_browser_prefs`: a covered Windows window must keep processing the search's input.
+    let windows = startup_preferences(TargetOs::Windows);
+    assert_eq!(windows["widget.windows.window_occlusion_tracking.enabled"], false);
+    assert_eq!(windows["widget.windows.window_occlusion_tracking_peek.enabled"], false);
+    for os in [TargetOs::Macos, TargetOs::Linux] {
+        let prefs = startup_preferences(os);
+        assert!(prefs.get("widget.windows.window_occlusion_tracking.enabled").is_none());
+        assert!(prefs.get("widget.windows.window_occlusion_tracking_peek.enabled").is_none());
+    }
+    for os in [TargetOs::Macos, TargetOs::Windows, TargetOs::Linux] {
+        let prefs = startup_preferences(os);
+        assert_eq!(prefs["security.enterprise_roots.enabled"], true);
+        assert_eq!(prefs["security.osclientcerts.autoload"], true);
+        assert_eq!(prefs["dom.disable_window_flip"], true);
+        assert_eq!(prefs["browser.tabs.loadDivertedInBackground"], true);
+        // HTTPS validation is never loosened.
+        assert!(prefs.as_object().unwrap().keys().all(|k| !k.contains("cert_pinning") && !k.contains("ignore_cert")));
+    }
+}
