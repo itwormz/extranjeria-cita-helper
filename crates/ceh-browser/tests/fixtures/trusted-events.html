@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>trusted events</title></head>
+<body>
+<form id="form" onsubmit="return false">
+  <input type="radio" name="rdbTipoDoc" id="rdbTipoDocNie"><label for="rdbTipoDocNie">NIE</label>
+  <input type="radio" name="rdbTipoDoc" id="rdbTipoDocPas"><label for="rdbTipoDocPas">Pasaporte</label>
+  <input type="text" id="txtIdCitado" maxlength="16">
+  <input type="text" id="txtDesCitado" maxlength="64">
+  <select id="txtPaisNac">
+    <option value="">Seleccione</option>
+    <option value="1">ALEMANIA</option>
+    <option value="2">ESPAÑA</option>
+    <option value="3">UCRANIA</option>
+    <option value="4">UCRANIA (EX)</option>
+  </select>
+  <button type="button" id="btnEnviar">Aceptar</button>
+</form>
+<script>
+  // Every event records whether the browser itself produced it.
+  window.__events = [];
+  for (const type of ['click','mousedown','mouseup','pointerdown','pointerup','input','change','keydown','keyup','focus','blur'])
+    document.addEventListener(type, e => window.__events.push({type, id: e.target && e.target.id || '', trusted: e.isTrusted, key: e.key || null}), true);
+</script>
+</body></html>

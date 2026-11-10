@@ -540,6 +540,7 @@ dependencies = [
  "base64 0.22.1",
  "ceh-core",
  "libloading",
+ "regex",
  "serde_json",
  "tempfile",
  "tungstenite",

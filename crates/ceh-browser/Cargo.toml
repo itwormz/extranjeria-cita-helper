@@ -95,3 +95,6 @@ required-features = ["bidi"]
 [dependencies.libloading]
 version = "=0.8.9"
 optional = true
+
+[dev-dependencies]
+regex.workspace = true
