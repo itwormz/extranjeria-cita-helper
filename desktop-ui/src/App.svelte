@@ -30,6 +30,7 @@ async function saveBudget(target:number|null){const running=Boolean(search?.acti
 let reportCopied=$state(false);
 async function copyReport(id:string|null|undefined){if(!id)return;try{await copyStartupReport(id);reportCopied=true;error='';setTimeout(()=>{reportCopied=false;},4000);}catch{error='Не удалось скопировать журнал';}}
 async function resetBrowserSession(){if(!selected||searchBusy)return;searchBusy=true;try{const done=await resetSession(selected);notice=done==='reset'?'Сессия сброшена. Можно запустить поиск.':'Новый проход начнётся с начальной страницы';error='';}catch(e){error=searchErrors[String(e)]??'Не удалось запустить поиск';}finally{searchBusy=false;}}
+async function reloadProfiles(){try{const result=await bootstrap();data=result.data;if(!selected||!data.profiles.some(p=>p.id===selected))selected=data.selected_profile;error='';}catch{error='Не удалось прочитать профили';}}
 async function showBrowser(){try{await showSearchBrowser();error='';}catch{error='Не удалось показать браузер';}}
 let currentPage=$derived(search?.page?pages[search.page]??'Неизвестная страница':'Браузер ещё не открыт');
 let searchStatus=$derived(search?.error?'Поиск остановлен с ошибкой':search?.manual?'Ручное управление':search?.paused?'Пауза':search?.attention?'Требуется участие':search?.active?(search.deadline?'Ожидание':'В работе'):'Готов к запуску');
@@ -102,7 +103,7 @@ function keyboard(event:KeyboardEvent){if(event.key==='Escape'){profileMenu=fals
  {:else if tab==='settings'}
  <div class="page-heading"><h1><Icon name="settings" size={24}/>{t('Настройки')}</h1></div>
  <section class="settings-profiles"><div class="profiles-heading"><h2><Icon name="user"/>{t('Профили')}</h2><button class="icon-button" title={t('Добавить профиль')} aria-label={t('Добавить профиль')} disabled={loadingEditor} onclick={()=>editProfile(null)}><Icon name="plus"/></button></div>{#if data?.profiles.length}<div class="profile-list">{#each data.profiles as item}<button class:chosen={selected===item.id} onclick={()=>editProfile(item.id)}><Icon name="user"/><span><strong>{item.label}</strong><small>{service(item.procedure)} · {item.province}</small></span><Icon name="pencil" size={16}/></button>{/each}</div>{:else}<div class="settings-empty"><Icon name="user" size={28}/><p>{t('Профилей пока нет')}</p></div>{/if}</section>
- <SettingsPreferences {preferences} {t} onchange={changePreference} onfolder={()=>void openFolder()}/>
+ <SettingsPreferences {preferences} {t} onchange={changePreference} onfolder={()=>void openFolder()} onimported={()=>void reloadProfiles()} busy={Boolean(search?.active)}/>
  {:else}
  <StatisticsPanel live={search?.active&&search.profile===(statisticsSelected??selected)?{active:true,manual:search.manual,budget:search.appointment_budget}:null} {confirmRequest} onconfirmed={()=>confirmRequest=false} revision={statsRefresh} profiles={data?.profiles??[]} selected={statisticsSelected??selected} onselect={id=>statisticsSelected=id} {t} {language} {dark}/>
  {/if}

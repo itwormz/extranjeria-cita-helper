@@ -17,3 +17,5 @@ pub mod selection;
 pub mod live;
 
 pub mod appointment_budget;
+
+pub mod legacy_import;

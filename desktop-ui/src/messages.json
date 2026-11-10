@@ -255,7 +255,15 @@
     "Подходящий браузер не найден": "No suitable browser found",
     "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "The site certificate chain was not prepared. The search started and HTTPS validation stays strict.",
     "Профиль браузера сейчас используется. Закройте поиск и повторите.": "The browser profile is in use right now. Stop the search and try again.",
-    "Новый проход начнётся с начальной страницы": "A new pass will start from the first page"
+    "Новый проход начнётся с начальной страницы": "A new pass will start from the first page",
+    "Данные прежней версии": "Data from the previous version",
+    "Профили, статистику и бюджет прежней версии можно перенести сюда. Старые данные не изменяются, существующие файлы не перезаписываются. Пароли уведомлений остаются в связке ключей.": "Profiles, statistics and the budget of the previous version can be copied here. The old data is not changed and existing files are not overwritten. Notification passwords stay in the keychain.",
+    "Импортировать": "Import",
+    "Перенесено файлов: {count}": "Files copied: {count}",
+    "Уже были на месте: {count}": "Already in place: {count}",
+    "Закройте прежнюю версию приложения и повторите.": "Close the previous version of the app and try again.",
+    "Данные прежней версии не найдены.": "Data of the previous version was not found.",
+    "Не удалось импортировать данные.": "The data could not be imported."
   },
   "es": {
     "Всего": "Total",
@@ -513,6 +521,14 @@
     "Подходящий браузер не найден": "No se encontró ningún navegador compatible",
     "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "No se preparó la cadena de certificados del sitio. La búsqueda se inició y la validación HTTPS sigue siendo estricta.",
     "Профиль браузера сейчас используется. Закройте поиск и повторите.": "El perfil del navegador está en uso. Detén la búsqueda y vuelve a intentarlo.",
-    "Новый проход начнётся с начальной страницы": "Un nuevo recorrido empezará desde la primera página"
+    "Новый проход начнётся с начальной страницы": "Un nuevo recorrido empezará desde la primera página",
+    "Данные прежней версии": "Datos de la versión anterior",
+    "Профили, статистику и бюджет прежней версии можно перенести сюда. Старые данные не изменяются, существующие файлы не перезаписываются. Пароли уведомлений остаются в связке ключей.": "Los perfiles, las estadísticas y el presupuesto de la versión anterior se pueden copiar aquí. Los datos antiguos no se modifican y los archivos existentes no se sobrescriben. Las contraseñas de notificaciones siguen en el llavero.",
+    "Импортировать": "Importar",
+    "Перенесено файлов: {count}": "Archivos copiados: {count}",
+    "Уже были на месте: {count}": "Ya estaban: {count}",
+    "Закройте прежнюю версию приложения и повторите.": "Cierra la versión anterior de la aplicación y vuelve a intentarlo.",
+    "Данные прежней версии не найдены.": "No se encontraron datos de la versión anterior.",
+    "Не удалось импортировать данные.": "No se pudieron importar los datos."
   }
 }

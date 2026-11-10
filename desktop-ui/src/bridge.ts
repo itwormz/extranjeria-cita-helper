@@ -69,6 +69,8 @@ export async function searchSnapshot():Promise<SearchSnapshot>{return invoke('se
 export async function startSearch(id:string):Promise<void>{return invoke('search_start',{id});}
 export async function controlSearch(command:'pause'|'resume'|'stop'):Promise<void>{return invoke('search_control',{command});}
 export interface InstalledBrowser {id:string;name:string;version:string;support:'supported'|'planned'|'unsupported'}
+export async function legacyCandidates():Promise<string[]>{return invoke('legacy_candidates');}
+export async function legacyImport(name:string):Promise<{copied:number;kept:number}>{return invoke('legacy_import',{name});}
 export async function resetSession(id:string):Promise<'reset'|'restarted'>{return invoke('reset_session',{id});}
 export async function copyStartupReport(id:string):Promise<void>{return invoke('startup_report_copy',{id});}
 export async function loadBrowsers():Promise<InstalledBrowser[]>{return invoke('installed_browsers');}

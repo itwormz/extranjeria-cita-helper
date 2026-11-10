@@ -52,6 +52,22 @@ static CATALOG: LazyLock<ProfileCatalog> = LazyLock::new(|| {
     }
 });
 pub mod startup_report;
+/// Where the Python application kept its data folders on this system.
+pub fn legacy_support_dirs() -> Vec<std::path::PathBuf> {
+    let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+    if cfg!(target_os = "macos") {
+        home.map(|h| h.join("Library/Application Support")).into_iter().collect()
+    } else if cfg!(target_os = "windows") {
+        std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).into_iter().collect()
+    } else {
+        std::env::var_os("XDG_DATA_HOME")
+            .map(std::path::PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .or_else(|| home.map(|h| h.join(".local/share")))
+            .into_iter()
+            .collect()
+    }
+}
 pub fn catalog() -> &'static ProfileCatalog {
     &CATALOG
 }

@@ -541,6 +541,42 @@ fn reset_session(
     })?;
     Ok("reset")
 }
+/// Python data folders that can be imported; the window picks one by name, never by path.
+#[tauri::command]
+fn legacy_candidates(window: WebviewWindow) -> Result<Vec<String>, &'static str> {
+    authorize(&window)?;
+    Ok(ceh_store::legacy_import::candidates(&ceh_desktop::legacy_support_dirs())
+        .into_iter()
+        .map(|c| c.name)
+        .collect())
+}
+/// Copy the named Python data folder into this runtime without overwriting anything.
+#[tauri::command]
+async fn legacy_import(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+    name: String,
+) -> Result<serde_json::Value, &'static str> {
+    authorize(&window)?;
+    if runtime.search.snapshot()?.active {
+        return Err("search_already_running");
+    }
+    let root = runtime.root.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let found = ceh_store::legacy_import::candidates(&ceh_desktop::legacy_support_dirs())
+            .into_iter()
+            .find(|c| c.name == name)
+            .ok_or("legacy_not_found")?;
+        let report = ceh_store::legacy_import::import(found.path(), &root).map_err(|error| match error {
+            ceh_store::legacy_import::ImportError::InUse => "legacy_in_use",
+            ceh_store::legacy_import::ImportError::NoProfiles => "legacy_not_found",
+            _ => "legacy_import_failed",
+        })?;
+        Ok(serde_json::json!({"copied": report.copied.len(), "kept": report.kept.len()}))
+    })
+    .await
+    .map_err(|_| "legacy_import_failed")?
+}
 /// Copy the sanitized startup report with `id` (the id comes from the search snapshot).
 #[tauri::command]
 async fn startup_report_copy(
@@ -668,6 +704,8 @@ fn main() {
             copy_text,
             startup_report_copy,
             reset_session,
+            legacy_candidates,
+            legacy_import,
             desktop_bootstrap,
             validate_profile,
             profile_editor,

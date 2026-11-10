@@ -13,6 +13,8 @@
     "allow-appointment-budget",
     "allow-startup-report-copy",
     "allow-reset-session",
+    "allow-legacy-candidates",
+    "allow-legacy-import",
     "allow-installed-browsers",
     "allow-appointment-daily-target",
     "allow-appointment-distribution",

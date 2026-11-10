@@ -15,6 +15,8 @@ fn main() {
             "copy_text",
             "startup_report_copy",
             "reset_session",
+            "legacy_candidates",
+            "legacy_import",
             "desktop_bootstrap",
             "validate_profile",
             "profile_editor",
