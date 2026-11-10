@@ -1,5 +1,6 @@
 """One task's browser owner; no Qt and no user-interface event loop."""
 import asyncio
+import logging
 import sqlite3
 import os
 import signal
@@ -14,6 +15,36 @@ from ..appointment_schedule import MADRID
 from ..logging_utils import register_sensitive
 from .profiles import ProfileStore
 from .protocol import JsonLinesDecoder, encode_message, validate_command
+
+
+def save_budget_safely(control, budget, reason):
+    """Background saves must not kill their task; the next save retries the write."""
+    try:
+        control.save_appointment_budget(budget)
+    except OSError as exc:
+        logging.getLogger(__name__).warning(
+            'event=appointment_budget_save_failed reason=%s error=%s errno=%s',
+            reason, type(exc).__name__, exc.errno)
+
+
+def _report_failure(exc, phase):
+    from .startup_report import save_startup_error
+    report_id, summary = save_startup_error(exc, phase)
+    location = f'startup-errors/{report_id}.json' if report_id else 'report unavailable'
+    return f'Worker failed — {summary} — {location}'
+
+
+def worker_main(task_id):
+    """Process entry: an exception escaping the worker still leaves a report."""
+    try:
+        return asyncio.run(run_worker(task_id))
+    except Exception as exc:
+        message = _report_failure(exc, 'worker')
+        logging.getLogger(__name__).error('event=worker_failed error=%s', type(exc).__name__)
+        with suppress(OSError, ValueError, AttributeError):
+            sys.stdout.buffer.write(encode_message({'type': 'error', 'message': message}))
+            sys.stdout.buffer.flush()
+        return 1
 
 
 def apply_command(control, message):
@@ -49,7 +80,7 @@ def apply_command(control, message):
         if budget is not None and isinstance(message.get('disabled'), bool):
             policy=control.effective_appointment_protection or AppointmentProtection()
             budget.set_distribution(message['disabled'],now,policy)
-            control.save_appointment_budget(budget)
+            save_budget_safely(control, budget, 'distribution')
     elif command == 'profile_timings':
         from ..timings import parse_timings
         try:
@@ -235,7 +266,7 @@ async def run_worker(task_id):
                 previous_day = budget.day
                 state['appointment_budget'] = budget.summary(now, policy, hot=getattr(control, 'hot_retry', False))
                 if previous_day is not None and budget.day != previous_day:
-                    control.save_appointment_budget(budget)
+                    save_budget_safely(control, budget, 'rollover')
             emit({'type':'state', 'state':state})
             await asyncio.sleep(0.5)
 
@@ -292,13 +323,11 @@ async def run_worker(task_id):
             emit({'type':'state', 'state':control.snapshot()})
             return result
     except Exception as exc:
-        from .startup_report import StartupFailure, save_startup_error
+        from .startup_report import StartupFailure
         if isinstance(exc, StartupFailure):
             message = str(exc)
         else:
-            report_id, summary = await asyncio.to_thread(save_startup_error, exc, 'worker')
-            location = f'startup-errors/{report_id}.json' if report_id else 'report unavailable'
-            message = f'Worker failed — {summary} — {location}'
+            message = await asyncio.to_thread(_report_failure, exc, 'worker')
         emit({'type':'error','message':message})
         return 1
     finally:
@@ -307,7 +336,17 @@ async def run_worker(task_id):
             statistics_session.close(statistics_end_reason)
         for pending in (incoming, outgoing):
             pending.cancel()
-            with suppress(asyncio.CancelledError):
+            try:
                 await pending
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                # A dead background task must not replace the run's result
+                # with an unreported exception at shutdown.
+                logging.getLogger(__name__).error(
+                    'event=worker_background_failed task=%s error=%s',
+                    'commands' if pending is incoming else 'states', type(exc).__name__)
+                emit({'type':'error',
+                      'message':await asyncio.to_thread(_report_failure, exc, 'worker_background')})
         for signum in signals:
             loop.remove_signal_handler(signum)

@@ -29,7 +29,7 @@ def clean(value):
     return sanitize(text)[:16000]
 
 
-def save_startup_error(exc, phase, *, external_checks=True):
+def save_startup_error(exc, phase, *, external_checks=True, frames=None):
     """Return a report ID and safe summary, even when writing is impossible."""
     summary = f"{type(exc).__name__}: {clean(exc)[:600]}"
     try:
@@ -43,8 +43,9 @@ def save_startup_error(exc, phase, *, external_checks=True):
             "browser": inspect_path(browser) if browser else {"path": None, "exists": False},
             "bundle_checks": bundle_checks(external_checks=external_checks),
             "error_type": type(exc).__name__, "message": clean(exc),
-            "traceback": [{"file": clean(frame.filename), "line": frame.lineno,
-                           "function": frame.name} for frame in traceback.extract_tb(exc.__traceback__)],
+            "traceback": frames if frames is not None else [
+                {"file": clean(frame.filename), "line": frame.lineno, "function": frame.name}
+                for frame in traceback.extract_tb(exc.__traceback__)],
         }
         folder = runtime_root() / "startup-errors"
         folder.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -98,6 +99,23 @@ def worker_exit_summary(code, stderr):
     if missing:
         summary += ' — missing module: ' + missing.group(1)
     return summary
+
+
+FRAME = re.compile(r'(?m)^\s*File "([^"\r\n]+)", line (\d+), in ([A-Za-z_<][A-Za-z0-9_<>.]*)\s*$')
+
+
+def worker_exit_frames(stderr, limit=40):
+    """Keep only code locations from a stderr traceback: no folders, no values."""
+    frames = []
+    for filename, line, function in FRAME.findall(stderr):
+        parts = re.split(r'[\\/]', filename)
+        if 'app' in parts:
+            # Paths inside the project keep their module path from `app/`.
+            filename = '/'.join(parts[len(parts) - 1 - parts[::-1].index('app'):])
+        else:
+            filename = parts[-1]
+        frames.append({'file': filename, 'line': int(line), 'function': function})
+    return frames[-limit:]
 
 
 def os_error(exc):
