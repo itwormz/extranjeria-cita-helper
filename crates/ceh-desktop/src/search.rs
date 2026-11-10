@@ -433,6 +433,14 @@ fn update(
     Ok(())
 }
 #[allow(clippy::too_many_arguments)]
+/// How one browser session ended: for good, or with a restart the core asked for (`Recover{Restart}`).
+enum SessionEnd {
+    Finished,
+    NewSession(crate::restart::RestartRequest),
+}
+/// The search of one start: browser sessions one after another until the person stops it. A block (profile
+/// cleared) or a Cl@ve error ends a session and starts the next one, as Python `run_assist` does.
+#[allow(clippy::too_many_arguments)]
 fn run(
     root: &Path,
     profile: ceh_core::profiles::ProfileDraft,
@@ -448,6 +456,52 @@ fn run(
     sound: &Mutex<crate::sound::SoundPlayback>,
     close_browser: &AtomicBool,
 ) -> Result<(), &'static str> {
+    // The journal and the recovery counters belong to the whole search, not to one browser.
+    let mut journal = PageJournal::new();
+    let mut carry = ceh_core::flow::RecoveryCarry::default();
+    loop {
+        let end = run_session(
+            root, profile.clone(), timings.clone(), appointment_policy.clone(), receiver, live, notifications,
+            shared_gate, cancelled, state, window, sound, close_browser, &mut journal, &mut carry,
+        )?;
+        match end {
+            SessionEnd::Finished => return Ok(()),
+            SessionEnd::NewSession(request) => {
+                // The core waited the cooldown before asking (Python `cooldown_completed`): no further delay.
+                if cancelled.load(Ordering::Acquire) {
+                    return Ok(());
+                }
+                let _ = request;
+                update(state, |s| {
+                    s.page = None;
+                    s.manual = false;
+                    s.attention = false;
+                    s.browser_pid = None;
+                    s.paused = false;
+                    s.deadline = None;
+                })?;
+            }
+        }
+    }
+}
+#[allow(clippy::too_many_arguments)]
+fn run_session(
+    root: &Path,
+    profile: ceh_core::profiles::ProfileDraft,
+    timings: ceh_core::timings::AssistTimings,
+    appointment_policy: ceh_core::appointment_budget::AppointmentPolicy,
+    receiver: &mpsc::Receiver<Message>,
+    live: &mpsc::Receiver<LiveCommand>,
+    notifications: &mut crate::notification_worker::LiveNotifications,
+    shared_gate: &Mutex<Option<DispatchGate>>,
+    cancelled: &AtomicBool,
+    state: &Mutex<SearchSnapshot>,
+    window: &tauri::WebviewWindow,
+    sound: &Mutex<crate::sound::SoundPlayback>,
+    close_browser: &AtomicBool,
+    journal: &mut PageJournal,
+    carry: &mut ceh_core::flow::RecoveryCarry,
+) -> Result<SessionEnd, &'static str> {
     let installation = FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
     // One persistent browser profile per search profile, as in Python: cookies survive between runs and
     // "reset session" deletes it.
@@ -484,13 +538,31 @@ fn run(
         window,
         sound,
         &mut browser,
+        journal,
+        carry,
     );
     // Window closing during an automatic search closes the app's own browser; anything else (a stop, an
     // error, a booking handed over) keeps it open for the person.
     // A page the person closed leaves nothing to preserve: quit the browser so its profile is free again.
-    let closed = (close_browser.load(Ordering::Acquire) && browser.stop().is_ok()) || browser.quit_if_page_gone();
+    let restart = match &result {
+        Ok(SessionEnd::NewSession(request)) => Some(request.clone()),
+        _ => None,
+    };
+    let closed = if restart.is_some() {
+        // A new session replaces this browser: close it (the core never restarts while the person owns it).
+        browser.stop().is_ok()
+    } else {
+        (close_browser.load(Ordering::Acquire) && browser.stop().is_ok()) || browser.quit_if_page_gone()
+    };
     if !closed {
         browser.handoff();
+    }
+    if let Some(request) = &restart {
+        drop(browser);
+        if request.clear_profile {
+            // Python `reset_browser_profile`: a blocked session's cookies are what the site holds against it.
+            let _ = ProfileLease::reset_persistent(root, &profile.id);
+        }
     }
     if let Ok(mut player) = sound.lock() {
         let _ = player.stop();
@@ -512,7 +584,9 @@ fn run_owned(
     window: &tauri::WebviewWindow,
     sound: &Mutex<crate::sound::SoundPlayback>,
     browser: &mut OwnedFirefox,
-) -> Result<(), &'static str> {
+    journal: &mut PageJournal,
+    carry: &mut ceh_core::flow::RecoveryCarry,
+) -> Result<SessionEnd, &'static str> {
     // Saved profile changes and budget commands replace these during the run.
     let mut timings = timings.clone();
     let mut appointment_policy = appointment_policy.clone();
@@ -529,6 +603,7 @@ fn run_owned(
         ceh_browser::session_driver::SessionSamples{first_bootstrap:unit_sample(),second_bootstrap:unit_sample(),reload:unit_sample(),contact_typing:unit_sample(),typing:unit_sample()},
     )
     .map_err(|_| "profile_invalid")?;
+    driver.apply_recovery_carry(carry.clone());
     let database = root.join("data/profile-statistics.sqlite3");
     std::fs::create_dir_all(root.join("data")).map_err(|_| "statistics_unavailable")?;
     ceh_store::migrate::migrate_paths(
@@ -563,19 +638,18 @@ fn run_owned(
         mono(),
     )
     .map_err(|_| "statistics_unavailable")?;
-    let mut journal = PageJournal::new();
     journal
         .event(JournalEvent::Start, None, None, false, wall()?)
         .map_err(|_| "search_unavailable")?;
     let mut diagnostics = crate::search_diagnostics::SearchDiagnostics::new(root, session.as_str().to_owned(), profile);
-    let mut presenter = crate::session_presentation::SessionPresentation::new(session, 3000);
+    let mut presenter = crate::session_presentation::SessionPresentation::new(session.clone(), 3000);
     let mut sequence = 0u64;
     let context = browser.context().to_owned();
     if cancelled.load(Ordering::Acquire) {
         stats
             .finish(&mut db, wall()?, mono(), "stopped")
             .map_err(|_| "statistics_unavailable")?;
-        return Ok(());
+        return Ok(SessionEnd::Finished);
     }
     let initial_preferences = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru").ok();
     diagnostics.set_enabled(initial_preferences.as_ref().is_some_and(|bundle| bundle.preferences.diagnostics),
@@ -586,7 +660,10 @@ fn run_owned(
         let deferred = browser.certificate_cache() == ceh_browser::firefox::CertificateCache::Deferred;
         return match crate::navigation_failure(browser.page_open(), deferred) {
             // The window was closed while the page loaded: a stop, as when it closes later.
-            None => stats.finish(&mut db, wall()?, mono(), "stopped").map_err(|_| "statistics_unavailable"),
+            None => stats
+                .finish(&mut db, wall()?, mono(), "stopped")
+                .map(|()| SessionEnd::Finished)
+                .map_err(|_| "statistics_unavailable"),
             Some(error) => Err(error),
         };
     }
@@ -602,7 +679,7 @@ fn run_owned(
         loop {
             while let Ok(message) = receiver.try_recv() {
                 match message.command {
-                    Control::Stop => return Ok(()),
+                    Control::Stop => return Ok(SessionEnd::Finished),
                     Control::Pause => {
                         if driver.control().mode() != ControlMode::Manual {
                             apply_worker_control(&mut driver, &gate, &message, mono())?;
@@ -710,7 +787,7 @@ fn run_owned(
                 }
             }
             if cancelled.load(Ordering::Acquire) {
-                return Ok(());
+                return Ok(SessionEnd::Finished);
             }
             // While the app does not drive the page (handed over or paused) nothing else notices that the
             // person closed the browser: the search ends then, and Start returns (Python: the worker
@@ -719,7 +796,7 @@ fn run_owned(
             if (manual || paused_now) && page_checked.elapsed() >= Duration::from_secs(2) {
                 page_checked = Instant::now();
                 if !browser.page_open() {
-                    return Ok(());
+                    return Ok(SessionEnd::Finished);
                 }
             }
             publish_budget(state, &mut budget, crate::current_time()?, &appointment_policy, observer.hot_retry())?;
@@ -794,19 +871,15 @@ fn run_owned(
                 if !before.offices.is_empty() {
                     journal.offices(before.offices.clone(), None);
                 }
-                if matches!(before.observation.kind, PageKind::Blocked | PageKind::RateLimited) {
-                    browser.handoff();
-                    update(state, |s| s.page = Some(before.observation.kind))?;
-                    return Err("browser_access_limited");
-                }
                 if std::env::var("CEH_PREVIEW_FIREFOX").as_deref() == Ok("applicant")
                     && matches!(before.observation.kind, PageKind::Applicant | PageKind::ApplicantNoSlots)
                 {
                     browser.handoff();
                     update(state, |s| s.page = Some(before.observation.kind))?;
-                    return Ok(());
+                    return Ok(SessionEnd::Finished);
                 }
                 effects = before.effects.clone();
+                let observed_kind = before.observation.kind;
                 let deadline = effects
                     .iter()
                     .filter_map(|e| match e {
@@ -877,7 +950,7 @@ fn run_owned(
                         std::thread::sleep(Duration::from_millis(10));
                     }
                     if cancelled.load(Ordering::Acquire) {
-                        return Ok(());
+                        return Ok(SessionEnd::Finished);
                     }
                 }
                 let entering_auth = effects.iter().any(|effect| matches!(effect, FlowEffect::EnterAuthentication { .. }));
@@ -1023,18 +1096,53 @@ fn run_owned(
                         )
                         .map_err(|_| "search_unavailable")?;
                 }
-                if effects.iter().any(|e| {
-                    matches!(
-                        e,
-                        FlowEffect::Recover {
-                            action: ceh_core::recovery::RecoveryAction::Restart { .. }
-                                | ceh_core::recovery::RecoveryAction::GetCurrent
-                                | ceh_core::recovery::RecoveryAction::Reload,
-                            ..
-                        }
-                    )
+                // Navigation recoveries ran inside `driver.execute`; a restart belongs to this lifecycle owner.
+                if let Some(request) = effects.iter().find_map(|effect| match effect {
+                    FlowEffect::Recover { action, .. } => crate::restart::RestartRequest::from_action(action, observed_kind),
+                    _ => None,
                 }) {
-                    return Err("browser_recovery_required");
+                    *carry = driver.recovery_carry();
+                    journal
+                        .event(JournalEvent::FlowRestart, None, None, false, wall()?)
+                        .map_err(|_| "search_unavailable")?;
+                    match request.kind() {
+                        crate::restart::RestartKind::NewSession => return Ok(SessionEnd::NewSession(request)),
+                        crate::restart::RestartKind::NewPass => {
+                            // Same window and profile, a fresh flow from the entry page (Python new `AssistRunner`).
+                            gate = DispatchGate::new(session.clone());
+                            *shared_gate.lock().map_err(|_| "search_unavailable")? = Some(gate.clone());
+                            driver = SessionDriver::with_samples(
+                                browser.context(),
+                                session.clone(),
+                                profile.clone(),
+                                timings.clone(),
+                                gate.clone(),
+                                ceh_browser::session_driver::SessionSamples {
+                                    first_bootstrap: unit_sample(),
+                                    second_bootstrap: unit_sample(),
+                                    reload: unit_sample(),
+                                    contact_typing: unit_sample(),
+                                    typing: unit_sample(),
+                                },
+                            )
+                            .map_err(|_| "profile_invalid")?;
+                            driver.apply_recovery_carry(carry.clone());
+                            if browser
+                                .connection()
+                                .call("browsingContext.navigate", json!({"context":context,"url":ceh_browser::recovery_navigation::ENTRY_URL,"wait":"none"}))
+                                .is_err()
+                            {
+                                if !browser.page_open() {
+                                    return Ok(SessionEnd::Finished);
+                                }
+                                return Err("browser_navigation_failed");
+                            }
+                            wait = false;
+                            retry_at = Instant::now();
+                            update(state, |s| s.deadline = None)?;
+                            continue;
+                        }
+                    }
                 }
                 let phase = if manual {
                     "booking_handoff"
@@ -1111,9 +1219,12 @@ fn run_owned(
     stats
         .finish(&mut db, at, mono(), reason)
         .map_err(|_| "statistics_unavailable")?;
-    journal
-        .event(JournalEvent::Finish, None, None, true, at)
-        .map_err(|_| "search_unavailable")?;
+    // The search goes on in a new browser session: its journal ends only with the whole search.
+    if !matches!(result, Ok(SessionEnd::NewSession(_))) {
+        journal
+            .event(JournalEvent::Finish, None, None, true, at)
+            .map_err(|_| "search_unavailable")?;
+    }
     update(state, |s| {
         s.rows = journal.rows().to_vec();
         s.counters = stats.counters();

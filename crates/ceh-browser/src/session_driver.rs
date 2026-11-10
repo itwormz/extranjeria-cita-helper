@@ -242,6 +242,13 @@ impl SessionDriver {
     }
     /// Ask for a new pass from the entry page (Try now). It replaces the next planned step when the
     /// automation owns an official, non-captcha page; on any other page the request is dropped.
+    /// Recovery counters that outlive a browser session (blocked streak, 429 reload penalty).
+    pub fn recovery_carry(&self) -> ceh_core::flow::RecoveryCarry {
+        self.flow.recovery_carry()
+    }
+    pub fn apply_recovery_carry(&mut self, carry: ceh_core::flow::RecoveryCarry) {
+        self.flow.apply_carry(carry);
+    }
     pub fn request_fresh_pass(&mut self) {
         self.fresh_pass_requested = true;
     }
