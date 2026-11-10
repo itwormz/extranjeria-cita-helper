@@ -658,15 +658,12 @@ fn run_owned(
             .map_err(|_| "statistics_unavailable")?;
         return Ok(SessionEnd::Finished);
     }
-    let initial_preferences = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru").ok();
-    diagnostics.set_enabled(initial_preferences.as_ref().is_some_and(|bundle| bundle.preferences.diagnostics),
-        browser.connection(), &mut driver, &context);
     {
         use ceh_core::timings::TimingKind;
         let ms = |kind, unit: f64| timings.sample(kind, unit).map(|s| (s * 1000.0).round() as u64).unwrap_or(0);
         let range = timings.action_delay_seconds();
-        diagnostics.session_start(
-            &crate::session_timeline::SessionHeader {
+        diagnostics.set_header(
+            crate::session_timeline::SessionHeader {
                 app_version: env!("CARGO_PKG_VERSION").to_owned(),
                 firefox_version: FirefoxInstallation::discover().map(|i| i.version().to_owned()).unwrap_or_default(),
                 os: std::env::consts::OS.to_owned(),
@@ -678,10 +675,11 @@ fn run_owned(
                 typing_ms: ms(TimingKind::Typing, samples.typing),
                 contact_typing_ms: ms(TimingKind::ContactTyping, samples.contact_typing),
             },
-            browser.connection(),
-            &context,
         );
     }
+    let initial_preferences = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru").ok();
+    diagnostics.set_enabled(initial_preferences.as_ref().is_some_and(|bundle| bundle.preferences.diagnostics),
+        browser.connection(), &mut driver, &context);
     // Only the new owned about:blank context receives this initial GET.
     let navigated = browser.connection().call("browsingContext.navigate",json!({"context":context,"url":"https://icp.administracionelectronica.gob.es/icpplus/index.html","wait":"none"}));
     if navigated.is_err() {
@@ -1010,6 +1008,7 @@ fn run_owned(
                         ceh_browser::BrowserError::StaleDocument
                         | ceh_browser::BrowserError::NoObservation,
                     ) if browser.connection().available() => {
+                        diagnostics.step(crate::session_timeline::step_error_row(&effects, action_delay_ms, executing_since.elapsed().as_millis() as u64, "stale_document"));
                         if entering_auth {
                             return Err("browser_auth_entry_changed");
                         }
@@ -1023,7 +1022,10 @@ fn run_owned(
                         std::thread::sleep(Duration::from_millis(500));
                         continue;
                     }
-                    Err(_) => return Err("browser_action_failed"),
+                    Err(_) => {
+                        diagnostics.step(crate::session_timeline::step_error_row(&effects, action_delay_ms, executing_since.elapsed().as_millis() as u64, "browser_action_failed"));
+                        return Err("browser_action_failed");
+                    }
                 };
                 diagnostics.step(crate::session_timeline::step_row(
                     &effects,

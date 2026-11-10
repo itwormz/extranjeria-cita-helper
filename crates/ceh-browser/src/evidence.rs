@@ -28,7 +28,12 @@ pub fn summarize_cookies(result: &Value) -> Value {
             .as_array()
             .into_iter()
             .flatten()
-            .filter(|cookie| cookie["domain"].as_str().is_some_and(|d| d.trim_start_matches('.').ends_with(SITE_DOMAIN)))
+            .filter(|cookie| {
+                cookie["domain"].as_str().is_some_and(|d| {
+                    let d = d.trim_start_matches('.');
+                    d == SITE_DOMAIN || d.ends_with(&format!(".{SITE_DOMAIN}"))
+                })
+            })
             .map(|cookie| {
                 json!({
                     "name": cookie["name"], "domain": cookie["domain"], "path": cookie["path"],
@@ -46,7 +51,13 @@ pub fn read_environment(connection: &mut BidiConnection, context: &str) -> Optio
         .ok()?;
     summarize_environment(result["result"]["value"].as_str()?)
 }
+/// Cookies of the site's own domains, asked per domain so that other sites' cookies are never even read.
 pub fn read_cookie_names(connection: &mut BidiConnection) -> Option<Value> {
-    let result = connection.call("storage.getCookies", json!({})).ok()?;
-    Some(summarize_cookies(&result))
+    let mut all = Vec::new();
+    for domain in [SITE_DOMAIN, "icp.administracionelectronica.gob.es", ".administracionelectronica.gob.es"] {
+        if let Ok(result) = connection.call("storage.getCookies", json!({"filter":{"domain":domain}})) {
+            all.extend(summarize_cookies(&result).as_array().cloned().unwrap_or_default());
+        }
+    }
+    Some(Value::Array(all))
 }

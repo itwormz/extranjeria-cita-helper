@@ -33,10 +33,16 @@ fn resource_type(request: &Value) -> &'static str {
         _ => "other",
     }
 }
+/// An HTTP token (RFC 9110) of a sane length: anything else is never recorded as a name.
+fn token(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 64
+        && name.bytes().all(|b| b.is_ascii_alphanumeric() || b"!#$%&'*+-.^_`|~".contains(&b))
+}
 fn names(list: &Value, key: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for item in list.as_array().into_iter().flatten() {
-        if let Some(name) = item[key].as_str() {
+        if let Some(name) = item[key].as_str().filter(|n| token(n)) {
             let name = name.to_owned();
             if !out.contains(&name) {
                 out.push(name);
@@ -85,9 +91,14 @@ impl IcpNetworkJournal {
                 .into_iter()
                 .flatten()
                 .filter(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case("set-cookie")))
+                .filter(|h| h["value"]["type"] == "string")
                 .filter_map(|h| h["value"]["value"].as_str())
-                .filter_map(|v| v.split(['=', ';']).next())
-                .map(|n| n.trim().to_owned())
+                // `name=value; attributes`: a text without `=` before its first `;` has no cookie name.
+                .filter_map(|v| v.split(';').next())
+                .filter_map(|pair| pair.split_once('='))
+                .map(|(name, _)| name.trim())
+                .filter(|name| token(name))
+                .map(str::to_owned)
                 .collect();
             let mut unique: Vec<String> = Vec::new();
             for name in set_cookie {

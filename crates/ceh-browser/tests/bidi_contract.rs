@@ -208,3 +208,18 @@ fn every_command_is_logged_once_with_its_outcome_and_drained_once() {
     assert!(connection.take_command_log().is_empty());
     server.join().unwrap();
 }
+
+#[test]
+fn navigation_urls_lose_path_parameters_and_credentials_too() {
+    let navigate = |url: &str| sanitize_command("browsingContext.navigate", &json!({"context":"c","url":url,"wait":"none"}))["url"].clone();
+    assert_eq!(navigate("https://icp.administracionelectronica.gob.es/icpplustieb/acEntrada;jsessionid=SECRET123?x=1"), "https://icp.administracionelectronica.gob.es/icpplustieb/acEntrada");
+    assert_eq!(navigate("https://user:SECRET@icp.administracionelectronica.gob.es:8443/a;b=c/d"), "https://icp.administracionelectronica.gob.es:8443/a/d");
+    assert_eq!(navigate("not a url SECRET"), "invalid");
+}
+
+#[test]
+fn unknown_action_shapes_cannot_smuggle_text_into_the_summary() {
+    let odd = json!({"context":"c","actions":[{"type":"key","id":"SECRET-ID","actions":[{"type":"keyDown","value":"SECRET-KEY","text":"SECRET-TEXT"},{"type":"mystery","value":"SECRET-OTHER","duration":"SECRET-DURATION"}],"extra":"SECRET-EXTRA"}],"origin":"SECRET-ORIGIN"});
+    let text = sanitize_command("input.performActions", &odd).to_string();
+    assert!(!text.contains("SECRET"), "{text}");
+}

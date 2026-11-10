@@ -6,6 +6,8 @@ fn cookies_are_reported_by_name_domain_and_expiry_never_by_value() {
     let result = json!({"cookies":[
         {"name":"JSESSIONID","value":{"type":"string","value":"SECRET-SESSION"},"domain":"icp.administracionelectronica.gob.es","path":"/","size":40,"httpOnly":true,"secure":true,"sameSite":"none","expiry":1794400000},
         {"name":"TS01abc","value":{"type":"string","value":"SECRET-TS"},"domain":".administracionelectronica.gob.es","path":"/","httpOnly":false,"secure":true,"sameSite":"lax"},
+        {"name":"lookalike","value":{"type":"string","value":"SECRET-LOOK"},"domain":"xadministracionelectronica.gob.es","path":"/"},
+        {"name":"lookalike2","value":{"type":"string","value":"SECRET-LOOK2"},"domain":"administracionelectronica.gob.es.evil.test","path":"/"},
         {"name":"other","value":{"type":"string","value":"SECRET-OTHER"},"domain":"example.com","path":"/","httpOnly":false,"secure":false,"sameSite":"lax"}]});
     let summary = summarize_cookies(&result);
     assert_eq!(summary.as_array().unwrap().len(), 2, "only the site's domains");

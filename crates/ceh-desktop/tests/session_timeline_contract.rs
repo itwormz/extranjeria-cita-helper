@@ -90,3 +90,13 @@ fn rows_are_appended_as_private_json_lines_and_nothing_is_written_without_a_dire
     off.append("page", json!({}));
     assert!(!off.is_enabled());
 }
+
+#[test]
+fn a_failed_step_keeps_its_effects_and_delay_with_the_error_code() {
+    let effects = vec![FlowEffect::Activate { guard: guard(), action: ActionKind::Request }];
+    let row = step_error_row(&effects, Some(400), 1_200, "browser_action_failed");
+    assert_eq!(row["effects"], json!(["activate:request"]));
+    assert_eq!(row["delay_ms"], 400);
+    assert_eq!(row["error"], "browser_action_failed");
+    assert_eq!(row["receipts"], json!([]));
+}

@@ -64,9 +64,16 @@ pub fn step_row(effects: &[FlowEffect], delay_ms: Option<u64>, receipts: &[(Acti
         "receipts": receipts.iter().map(|(action, outcome)| json!({"action": action_name(*action), "outcome": snake(outcome)})).collect::<Vec<_>>(),
     })
 }
+/// A step that ended in an error: the effects and the pause are what forensics needs most.
+pub fn step_error_row(effects: &[FlowEffect], delay_ms: Option<u64>, elapsed_ms: u64, error: &str) -> Value {
+    let mut row = step_row(effects, delay_ms, &[], elapsed_ms);
+    row["error"] = json!(error);
+    row
+}
 pub fn page_row(kind: PageKind, method: RequestMethod, document: &DocumentId) -> Value {
     json!({"page": snake(&kind), "method": snake(&method), "doc": short_hash(document.as_str())})
 }
+#[derive(Clone)]
 pub struct SessionHeader {
     pub app_version: String,
     pub firefox_version: String,

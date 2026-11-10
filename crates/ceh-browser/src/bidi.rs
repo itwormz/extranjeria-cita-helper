@@ -59,8 +59,16 @@ pub fn sanitize_command(method: &str, params: &Value) -> Value {
             json!({"script_hash": format!("{hash:016x}"), "length": text.len()})
         }
         "browsingContext.navigate" => {
-            let url = params["url"].as_str().unwrap_or("");
-            let clean = url.split(['?', '#']).next().unwrap_or("");
+            // Scheme, host, port and path only: no credentials, query, fragment or `;jsessionid` path parameter.
+            let clean = params["url"]
+                .as_str()
+                .and_then(|url| url::Url::parse(url).ok())
+                .and_then(|parsed| {
+                    let path: Vec<&str> = parsed.path().split('/').map(|segment| segment.split(';').next().unwrap_or("")).collect();
+                    let port = parsed.port().map(|p| format!(":{p}")).unwrap_or_default();
+                    Some(format!("{}://{}{}{}", parsed.scheme(), parsed.host_str()?, port, path.join("/")))
+                })
+                .unwrap_or_else(|| "invalid".to_owned());
             json!({"url": clean, "wait": params["wait"].as_str().unwrap_or("")})
         }
         _ => json!({}),

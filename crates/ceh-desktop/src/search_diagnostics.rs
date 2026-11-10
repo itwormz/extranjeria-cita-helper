@@ -15,8 +15,12 @@ pub(crate) struct SearchDiagnostics {
     index: u32,
     /// What the app did and saw, for reconstructing the history of a block (`timeline.jsonl`).
     timeline: SessionTimeline,
-    last_document: Option<ceh_core::model::DocumentId>,
+    /// The page last written to the timeline: a document is written again when its kind changes (it may
+    /// be seen as `loading` first and as a block page a moment later).
+    last_page: Option<(ceh_core::model::DocumentId, ceh_core::model::PageKind)>,
+    blocked_documents: HashSet<ceh_core::model::DocumentId>,
     blocks: u32,
+    header: Option<SessionHeader>,
 }
 
 impl SearchDiagnostics {
@@ -27,7 +31,8 @@ impl SearchDiagnostics {
             profile.phone.clone(), profile.email.clone(),
         ]);
         Self { archive, session, directory: None, collector: None, enabled: false, documents: HashSet::new(), index: 0,
-            timeline: SessionTimeline::new(None), last_document: None, blocks: 0 }
+            timeline: SessionTimeline::new(None), last_page: None,
+            blocked_documents: HashSet::new(), blocks: 0, header: None }
     }
 
     pub(crate) fn set_enabled(
@@ -42,9 +47,10 @@ impl SearchDiagnostics {
         }
         self.enabled = enabled;
         if !enabled {
-            self.timeline = SessionTimeline::new(None);
             self.stop_collector(connection, driver);
             self.finish(driver);
+            // Only now: `finish` writes the end row and the last commands.
+            self.timeline = SessionTimeline::new(None);
             return;
         }
         let Ok(now) = crate::current_time() else { return };
@@ -53,6 +59,11 @@ impl SearchDiagnostics {
             return;
         }
         self.timeline = SessionTimeline::new(self.directory.as_deref());
+        // Commands collected while diagnostics were off are not history of this timeline.
+        let _ = connection.take_command_log();
+        if let Some(header) = self.header.clone() {
+            self.session_start(&header, connection, context);
+        }
         self.collector = connection.call("network.addDataCollector", json!({
             "dataTypes":["response"],"maxEncodedDataSize":passive::MAX_RESPONSE_BYTES,
             "collectorType":"blob","contexts":[context]
@@ -70,6 +81,10 @@ impl SearchDiagnostics {
         }
     }
 
+    /// The facts of the session header; written when diagnostics are (or become) enabled.
+    pub(crate) fn set_header(&mut self, header: SessionHeader) {
+        self.header = Some(header);
+    }
     /// Session header, the page environment and the site's cookie names at the start of the session.
     pub(crate) fn session_start(&self, header: &SessionHeader, connection: &mut BidiConnection, context: &str) {
         if !self.timeline.is_enabled() {
@@ -108,6 +123,8 @@ impl SearchDiagnostics {
         for mut row in driver.take_network_meta() {
             if let Some(object) = row.as_object_mut() {
                 object.insert("kind".into(), json!("net_meta"));
+                let at = object.get("time").cloned().unwrap_or(json!(null));
+                object.insert("t".into(), at);
                 self.timeline.append_row(row);
             }
         }
@@ -155,13 +172,16 @@ impl SearchDiagnostics {
         append_network_rows(&directory.join("icp-network.jsonl"), driver.take_network_rows());
         self.flush_timeline(connection, driver);
         let observation = &step.update().observation;
-        if self.last_document.as_ref() != Some(&observation.document) {
-            self.last_document = Some(observation.document.clone());
+        let page = (observation.document.clone(), observation.kind);
+        if self.last_page.as_ref() != Some(&page) {
+            self.last_page = Some(page);
             self.timeline.append("page", session_timeline::page_row(observation.kind, observation.method, &observation.document));
-            if matches!(observation.kind, ceh_core::model::PageKind::Blocked | ceh_core::model::PageKind::RateLimited) {
-                let context = step.context().unwrap_or_default().to_owned();
-                self.record_block(step, connection, &context);
-            }
+        }
+        if matches!(observation.kind, ceh_core::model::PageKind::Blocked | ceh_core::model::PageKind::RateLimited)
+            && self.blocked_documents.insert(observation.document.clone())
+        {
+            let context = step.context().unwrap_or_default().to_owned();
+            self.record_block(step, connection, &context);
         }
         let batch = driver.take_diagnostic_responses();
         if batch.overflowed {

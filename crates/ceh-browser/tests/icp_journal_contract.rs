@@ -95,3 +95,19 @@ fn metadata_rows_hold_header_and_cookie_names_never_values_or_queries() {
     let script = site_event("network.beforeRequestSent", Some(5), "script", serde_json::json!([]), serde_json::json!({}));
     assert!(journal.meta(&script, |_| String::new()).is_none());
 }
+
+#[test]
+fn odd_set_cookie_values_never_become_names() {
+    let mut journal = ceh_browser::icp_journal::IcpNetworkJournal::new();
+    let response = |headers: serde_json::Value| site_event("network.responseCompleted", Some(9), "document", serde_json::json!([]), serde_json::json!({"response":{"status":200,"headers":headers}}));
+    let odd = serde_json::json!([
+        header("Set-Cookie", "abc123def456; Path=/"),
+        {"name":"Set-Cookie","value":{"type":"base64","value":"U0VDUkVULVRPS0VO"}},
+        header("Set-Cookie", "bad name=SECRET"),
+        header("Set-Cookie", &format!("{}=SECRET", "x".repeat(200))),
+        header("Set-Cookie", "good_1=SECRET; Secure"),
+    ]);
+    let row = journal.meta(&response(odd), |ms| format!("t{ms:?}")).unwrap();
+    assert_eq!(row["set_cookie_names"], serde_json::json!(["good_1"]));
+    assert!(!row.to_string().contains("SECRET") && !row.to_string().contains("U0VDUkVU") && !row.to_string().contains("abc123"));
+}
