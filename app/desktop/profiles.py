@@ -106,6 +106,7 @@ class ProfileStore:
     def _write(self, raw, revision):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         # Serialize cooperating editors, then compare content before replace.
+        from ..file_replace import replace_file
         from ..locking import locked_file
         with locked_file(self.path.with_name('.' + self.path.name + '.lock')):
             if self.revision() != revision:
@@ -116,7 +117,7 @@ class ProfileStore:
                     yaml.safe_dump(raw, stream, allow_unicode=True, sort_keys=False)
                     stream.flush()
                     os.fsync(stream.fileno())
-                os.replace(temp, self.path)
+                replace_file(temp, self.path)
             finally:
                 if os.path.exists(temp):
                     os.unlink(temp)

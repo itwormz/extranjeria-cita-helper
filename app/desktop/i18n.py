@@ -8,9 +8,17 @@ LANGUAGES = {'ru': 'Русский', 'en': 'English', 'es': 'Español'}
 CATALOG = json.loads((Path(__file__).parent / 'assets' / 'translations.json').read_text(encoding='utf-8'))
 
 
+def _fragment(key):
+    # A key edge made of letters or digits must sit on a word boundary, so short
+    # keys such as "До" or "с" never translate part of another word.
+    start = r'(?<!\w)' if re.match(r'\w', key) else ''
+    end = r'(?!\w)' if re.search(r'\w$', key) else ''
+    return start + re.escape(key) + end
+
+
 @lru_cache(maxsize=2)
 def _pattern(language):
-    return re.compile('|'.join(re.escape(k) for k in sorted(CATALOG[language], key=len, reverse=True)))
+    return re.compile('|'.join(_fragment(k) for k in sorted(CATALOG[language], key=len, reverse=True)))
 
 
 def translate(text, language):

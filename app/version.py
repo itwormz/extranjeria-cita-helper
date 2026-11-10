@@ -1,7 +1,7 @@
 """Application version exposed in startup logs and CLI output."""
 import re
 
-VERSION = "0.3.6"
+VERSION = "0.3.7"
 
 
 def native_version(value=VERSION):

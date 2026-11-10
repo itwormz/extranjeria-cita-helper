@@ -11,6 +11,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from .appointment_budget import AppointmentBudget
+from .file_replace import replace_file
 from .locking import locked_file
 
 
@@ -95,6 +96,6 @@ class BudgetStore:
         try:
             with os.fdopen(fd, 'w', encoding='utf-8') as stream:
                 json.dump(data, stream, default=lambda value: value.isoformat())
-            os.replace(temporary, path)
+            replace_file(temporary, path)
         finally:
             Path(temporary).unlink(missing_ok=True)
