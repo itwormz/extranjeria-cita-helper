@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.7 — Windows search stability and interface translations
+
 - Keep the search running on Windows when the window reads the attempt budget, profiles or achievements while the search process saves them. Saving now retries briefly instead of stopping the search process with `PermissionError`.
 - Make every unexpected search-process failure produce a startup report with code locations. Failed background budget saves are logged and retried on the next save; failures in background tasks and at process start are reported instead of ending with only an exit code. Reports keep module paths, line numbers and function names, never folders or profile data.
 
