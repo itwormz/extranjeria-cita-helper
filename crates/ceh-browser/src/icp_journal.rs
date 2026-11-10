@@ -33,7 +33,72 @@ fn resource_type(request: &Value) -> &'static str {
         _ => "other",
     }
 }
+fn names(list: &Value, key: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for item in list.as_array().into_iter().flatten() {
+        if let Some(name) = item[key].as_str() {
+            let name = name.to_owned();
+            if !out.contains(&name) {
+                out.push(name);
+            }
+        }
+    }
+    out
+}
 impl IcpNetworkJournal {
+    /// Names only, for the document and script-initiated traffic of the site: which headers and cookies a
+    /// request carried and which cookies a response set. Values, queries and bodies never enter the row.
+    pub fn meta(&self, event: &Value, wall: impl FnOnce(Option<i64>) -> String) -> Option<Value> {
+        let kind = match event["method"].as_str()? {
+            "network.beforeRequestSent" => "request",
+            "network.responseCompleted" => "response",
+            _ => return None,
+        };
+        let request = &event["params"]["request"];
+        let url = url::Url::parse(request["url"].as_str()?).ok()?;
+        if url.host_str() != Some(HOST) || !matches!(resource_type(request), "document" | "xhr" | "fetch") {
+            return None;
+        }
+        let lower = |list: Vec<String>| {
+            let mut out: Vec<String> = Vec::new();
+            for name in list.into_iter().map(|n| n.to_ascii_lowercase()) {
+                if !out.contains(&name) {
+                    out.push(name);
+                }
+            }
+            out
+        };
+        let mut row = Map::new();
+        row.insert("time".into(), json!(wall(event["params"]["timestamp"].as_i64())));
+        row.insert("event".into(), json!(kind));
+        row.insert("method".into(), json!(request["method"].as_str().unwrap_or("")));
+        row.insert("endpoint".into(), json!(endpoint(url.path())));
+        row.insert("resource_type".into(), json!(resource_type(request)));
+        row.insert("request_header_names".into(), json!(lower(names(&request["headers"], "name"))));
+        row.insert("request_cookie_names".into(), json!(names(&request["cookies"], "name")));
+        if kind == "response" {
+            let response = &event["params"]["response"];
+            row.insert("status".into(), json!(response["status"].as_u64().unwrap_or(0)));
+            row.insert("response_header_names".into(), json!(lower(names(&response["headers"], "name"))));
+            let set_cookie: Vec<String> = response["headers"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case("set-cookie")))
+                .filter_map(|h| h["value"]["value"].as_str())
+                .filter_map(|v| v.split(['=', ';']).next())
+                .map(|n| n.trim().to_owned())
+                .collect();
+            let mut unique: Vec<String> = Vec::new();
+            for name in set_cookie {
+                if !unique.contains(&name) {
+                    unique.push(name);
+                }
+            }
+            row.insert("set_cookie_names".into(), json!(unique));
+        }
+        Some(Value::Object(row))
+    }
     pub fn new() -> Self {
         Self::default()
     }
@@ -45,10 +110,11 @@ impl IcpNetworkJournal {
     /// The row for a network event of the appointment site, or `None` for anything else.
     /// `now` is monotonic seconds, `wall` the local ISO time of the event.
     pub fn record(&mut self, event: &Value, now: f64, wall: &str) -> Option<Value> {
-        self.record_with(event, now, || wall.to_owned())
+        self.record_with(event, now, |_| wall.to_owned())
     }
-    /// Like `record`, but the wall-clock text is only produced for a row that is actually written.
-    pub fn record_with(&mut self, event: &Value, now: f64, wall: impl FnOnce() -> String) -> Option<Value> {
+    /// Like `record`, but the wall-clock text is only produced for a row that is actually written, from the
+    /// event's own instant (BiDi `params.timestamp`, ms since the epoch) when the browser reports one.
+    pub fn record_with(&mut self, event: &Value, now: f64, wall: impl FnOnce(Option<i64>) -> String) -> Option<Value> {
         let kind = match event["method"].as_str()? {
             "network.beforeRequestSent" => "request",
             "network.responseCompleted" => "response",
@@ -61,7 +127,7 @@ impl IcpNetworkJournal {
             return None;
         }
         let mut row = Map::new();
-        row.insert("time".into(), json!(wall()));
+        row.insert("time".into(), json!(wall(event["params"]["timestamp"].as_i64())));
         row.insert("event".into(), json!(kind));
         row.insert("method".into(), json!(request["method"].as_str().unwrap_or("")));
         row.insert("endpoint".into(), json!(endpoint(url.path())));

@@ -135,7 +135,7 @@ fn network_journal_is_opt_in_bounded_and_drained_once() {
     let mut observer = PageObserver::new("ctx").unwrap();
     let _ = observer.ingest(&event(200));
     assert!(observer.take_network_rows().is_empty(), "off by default");
-    observer.set_network_journal(Some(Box::new(|| "2026-11-10T10:00:00+01:00".to_owned())));
+    observer.set_network_journal(Some(Box::new(|_| "2026-11-10T10:00:00+01:00".to_owned())));
     let _ = observer.ingest(&event(200));
     let _ = observer.ingest(&event(429));
     let rows = observer.take_network_rows();
@@ -149,4 +149,21 @@ fn network_journal_is_opt_in_bounded_and_drained_once() {
     observer.set_network_journal(None);
     let _ = observer.ingest(&event(200));
     assert!(observer.take_network_rows().is_empty(), "disabled again");
+}
+
+#[test]
+fn rows_of_one_drain_keep_the_instants_of_their_events_and_metadata_is_drained_once() {
+    use ceh_browser::observer::PageObserver;
+    use serde_json::json;
+    let event = |ts: i64| json!({"type":"event","method":"network.beforeRequestSent","params":{"context":"ctx","timestamp":ts,"redirectCount":0,"request":{"request":"r","method":"POST","url":"https://icp.administracionelectronica.gob.es/icpplustieb/acInfo","destination":"document","headers":[{"name":"Accept","value":{"type":"string","value":"x"}}],"cookies":[]}}});
+    let mut observer = PageObserver::new("ctx").unwrap();
+    observer.set_network_journal(Some(Box::new(|ms| format!("t{}", ms.unwrap_or(-1)))));
+    let _ = observer.ingest(&event(10_000));
+    let _ = observer.ingest(&event(11_500));
+    let rows = observer.take_network_rows();
+    assert_eq!(rows.iter().map(|r| r["time"].as_str().unwrap().to_owned()).collect::<Vec<_>>(), vec!["t10000", "t11500"]);
+    let meta = observer.take_network_meta();
+    assert_eq!(meta.len(), 2);
+    assert_eq!(meta[0]["request_header_names"], json!(["accept"]));
+    assert!(observer.take_network_meta().is_empty());
 }

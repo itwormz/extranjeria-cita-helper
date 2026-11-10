@@ -47,3 +47,51 @@ fn rows_never_carry_query_strings_headers_or_bodies() {
     assert!(!text.contains("Y1234567X") && !text.contains("PRIVATE") && !text.contains("SECRET"), "{text}");
     assert_eq!(row["endpoint"], "acCitar");
 }
+
+fn site_event(method: &str, timestamp: Option<i64>, destination: &str, headers: serde_json::Value, extra: serde_json::Value) -> serde_json::Value {
+    let mut params = serde_json::json!({"context":"ctx","redirectCount":0,"request":{
+        "request":"r","method":"POST","url":"https://icp.administracionelectronica.gob.es/icpplustieb/acInfo?secret=value","destination":destination,"initiatorType":null,
+        "headers":headers,"cookies":[{"name":"JSESSIONID","value":{"type":"string","value":"SECRET-COOKIE"}},{"name":"TS01abc","value":{"type":"string","value":"SECRET-TS"}}]}});
+    if let Some(timestamp) = timestamp { params["timestamp"] = serde_json::json!(timestamp); }
+    if let (Some(target), Some(extra)) = (params.as_object_mut(), extra.as_object()) { for (k, v) in extra { target.insert(k.clone(), v.clone()); } }
+    serde_json::json!({"type":"event","method":method,"params":params})
+}
+fn header(name: &str, value: &str) -> serde_json::Value { serde_json::json!({"name":name,"value":{"type":"string","value":value}}) }
+
+#[test]
+fn a_row_carries_the_time_of_the_event_not_of_the_drain() {
+    let mut journal = ceh_browser::icp_journal::IcpNetworkJournal::new();
+    let seen = std::cell::RefCell::new(Vec::new());
+    for timestamp in [1_000_i64, 2_500] {
+        let event = site_event("network.beforeRequestSent", Some(timestamp), "document", serde_json::json!([]), serde_json::json!({}));
+        let row = journal.record_with(&event, 0.0, |ms| { seen.borrow_mut().push(ms); format!("t{ms:?}") }).unwrap();
+        assert_eq!(row["time"], format!("tSome({timestamp})"));
+    }
+    // Without a timestamp the caller's own clock is the only source.
+    let event = site_event("network.beforeRequestSent", None, "document", serde_json::json!([]), serde_json::json!({}));
+    assert_eq!(journal.record_with(&event, 0.0, |ms| format!("t{ms:?}")).unwrap()["time"], "tNone");
+}
+
+#[test]
+fn metadata_rows_hold_header_and_cookie_names_never_values_or_queries() {
+    let mut journal = ceh_browser::icp_journal::IcpNetworkJournal::new();
+    let request = site_event("network.beforeRequestSent", Some(5), "document", serde_json::json!([header("User-Agent", "SECRET-UA"), header("Referer", "https://x/?q=SECRET")]), serde_json::json!({}));
+    let row = journal.meta(&request, |ms| format!("t{ms:?}")).unwrap();
+    assert_eq!(row["event"], "request");
+    assert_eq!(row["endpoint"], "acInfo");
+    assert_eq!(row["request_header_names"], serde_json::json!(["user-agent", "referer"]));
+    assert_eq!(row["request_cookie_names"], serde_json::json!(["JSESSIONID", "TS01abc"]));
+    let response = site_event("network.responseCompleted", Some(9), "document", serde_json::json!([header("User-Agent", "SECRET-UA")]),
+        serde_json::json!({"response":{"status":200,"headers":[header("Content-Type", "text/html"), header("Set-Cookie", "TSPD_101=SECRET-TOKEN; Path=/; Secure"), header("set-cookie", "JSESSIONID=SECRET; HttpOnly")]}}));
+    let row = journal.meta(&response, |ms| format!("t{ms:?}")).unwrap();
+    assert_eq!(row["status"], 200);
+    assert_eq!(row["response_header_names"], serde_json::json!(["content-type", "set-cookie"]));
+    assert_eq!(row["set_cookie_names"], serde_json::json!(["TSPD_101", "JSESSIONID"]));
+    let text = row.to_string();
+    for secret in ["SECRET", "secret=", "?"] {
+        assert!(!text.contains(secret), "{secret} leaked: {text}");
+    }
+    // Static resources are not part of the metadata stream.
+    let script = site_event("network.beforeRequestSent", Some(5), "script", serde_json::json!([]), serde_json::json!({}));
+    assert!(journal.meta(&script, |_| String::new()).is_none());
+}

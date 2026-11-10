@@ -51,22 +51,14 @@ impl SearchDiagnostics {
         })).ok().and_then(|result| result["collector"].as_str().map(str::to_owned));
         let _ = driver.set_passive_diagnostics(self.collector.is_some());
         // Python `icp-network.jsonl`: traffic to the appointment site, written next to the session snapshots.
-        driver.set_network_journal(Some(Box::new(|| {
-            crate::current_time()
-                .map(|now| now.with_timezone(&chrono_tz::Europe::Madrid).to_rfc3339())
-                .unwrap_or_default()
-        })));
+        driver.set_network_journal(Some(Box::new(madrid_text)));
     }
 
     /// A new pass builds a new driver in the same browser: give it the collection that is already running.
     pub(crate) fn rebind(&mut self, driver: &mut SessionDriver) {
         if self.enabled && self.directory.is_some() {
             let _ = driver.set_passive_diagnostics(self.collector.is_some());
-            driver.set_network_journal(Some(Box::new(|| {
-                crate::current_time()
-                    .map(|now| now.with_timezone(&chrono_tz::Europe::Madrid).to_rfc3339())
-                    .unwrap_or_default()
-            })));
+            driver.set_network_journal(Some(Box::new(madrid_text)));
         }
     }
 
@@ -131,6 +123,16 @@ impl SearchDiagnostics {
         });
         let _ = std::fs::write(directory.join(format!("{stem}.json")), metadata.to_string());
     }
+}
+
+/// Madrid ISO time with milliseconds for an event instant (ms since the epoch); the clock when absent.
+pub(crate) fn madrid_text(epoch_ms: Option<i64>) -> String {
+    let instant = epoch_ms
+        .and_then(chrono::DateTime::from_timestamp_millis)
+        .or_else(|| crate::current_time().ok());
+    instant
+        .map(|at| at.with_timezone(&chrono_tz::Europe::Madrid).to_rfc3339_opts(chrono::SecondsFormat::Millis, false))
+        .unwrap_or_default()
 }
 
 #[cfg(target_os = "macos")]

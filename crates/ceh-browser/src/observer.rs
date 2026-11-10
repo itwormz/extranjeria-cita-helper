@@ -28,9 +28,12 @@ pub struct PageObserver {
 }
 struct NetworkTap {
     journal: crate::icp_journal::IcpNetworkJournal,
-    wall: Box<dyn Fn() -> String + Send>,
+    wall: Box<dyn Fn(Option<i64>) -> String + Send>,
     started: std::time::Instant,
+    /// Instant (ms since the epoch) of the first event with a timestamp: monotonic seconds follow the events.
+    origin_ms: Option<i64>,
     rows: std::collections::VecDeque<serde_json::Value>,
+    meta: std::collections::VecDeque<serde_json::Value>,
 }
 const MAX_NETWORK_ROWS: usize = 2000;
 impl PageObserver {
@@ -60,13 +63,22 @@ impl PageObserver {
             queue.ingest(event);
         }
         if let Some(tap) = &mut self.network {
-            let now = tap.started.elapsed().as_secs_f64();
+            let now = match event["params"]["timestamp"].as_i64() {
+                Some(ms) => (ms - *tap.origin_ms.get_or_insert(ms)) as f64 / 1000.0,
+                None => tap.started.elapsed().as_secs_f64(),
+            };
             let wall = &tap.wall;
-            if let Some(row) = tap.journal.record_with(event, now, || wall()) {
+            if let Some(row) = tap.journal.record_with(event, now, |ms| wall(ms)) {
                 if tap.rows.len() >= MAX_NETWORK_ROWS {
                     tap.rows.pop_front();
                 }
                 tap.rows.push_back(row);
+            }
+            if let Some(row) = tap.journal.meta(event, |ms| wall(ms)) {
+                if tap.meta.len() >= MAX_NETWORK_ROWS {
+                    tap.meta.pop_front();
+                }
+                tap.meta.push_back(row);
             }
         }
         let ours = event["params"]["context"].as_str() == Some(self.context.as_str());
@@ -87,13 +99,19 @@ impl PageObserver {
             .map_err(|_| ProtocolError::InvalidData)
     }
     /// Record appointment-site traffic rows (Python `icp-network.jsonl`); `wall` supplies the local ISO time.
-    pub fn set_network_journal(&mut self, wall: Option<Box<dyn Fn() -> String + Send>>) {
+    pub fn set_network_journal(&mut self, wall: Option<Box<dyn Fn(Option<i64>) -> String + Send>>) {
         self.network = wall.map(|wall| NetworkTap {
             journal: crate::icp_journal::IcpNetworkJournal::new(),
             wall,
             started: std::time::Instant::now(),
+            origin_ms: None,
             rows: std::collections::VecDeque::new(),
+            meta: std::collections::VecDeque::new(),
         });
+    }
+    /// Header/cookie-name rows of the site's document and XHR traffic (names only), drained once.
+    pub fn take_network_meta(&mut self) -> Vec<serde_json::Value> {
+        self.network.as_mut().map(|tap| std::mem::take(&mut tap.meta).into()).unwrap_or_default()
     }
     pub fn take_network_rows(&mut self) -> Vec<serde_json::Value> {
         self.network.as_mut().map(|tap| std::mem::take(&mut tap.rows).into()).unwrap_or_default()

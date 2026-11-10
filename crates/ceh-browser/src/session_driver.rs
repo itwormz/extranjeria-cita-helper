@@ -182,8 +182,11 @@ impl SessionDriver {
         self.observer.set_passive_collection(enabled).map_err(|_| BrowserError::NoObservation)
     }
 
-    pub fn set_network_journal(&mut self, wall: Option<Box<dyn Fn() -> String + Send>>) {
+    pub fn set_network_journal(&mut self, wall: Option<Box<dyn Fn(Option<i64>) -> String + Send>>) {
         self.observer.set_network_journal(wall);
+    }
+    pub fn take_network_meta(&mut self) -> Vec<serde_json::Value> {
+        self.observer.take_network_meta()
     }
     pub fn take_network_rows(&mut self) -> Vec<serde_json::Value> {
         self.observer.take_network_rows()
