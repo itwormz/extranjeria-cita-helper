@@ -498,7 +498,6 @@ impl SessionDriver {
                                 &self.gate,
                                 guard,
                                 &selection,
-                                Duration::from_secs_f64(self.typing_ms / 1000.0),
                                 deadline,
                             )
                         }

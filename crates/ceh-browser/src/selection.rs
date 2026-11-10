@@ -87,18 +87,16 @@ pub fn prepare_selection(
     gate: &DispatchGate,
     guard: &DocumentGuard,
     selection: &Selection,
-    typing_delay: Duration,
     deadline: Instant,
 ) -> Result<PreparationOutcome, BrowserError> {
     let payload = |operation: &str| selection.payload(operation);
-    let choice = typed_select::Choice { action: selection.action, script: SCRIPT, payload: &payload, typing_delay };
+    let choice = typed_select::Choice { action: selection.action, script: SCRIPT, payload: &payload };
     while Instant::now() < deadline {
         match typed_select::choose(connection, observer, gate, guard, &choice, &|connection, observer| {
             fresh_page(connection, observer, selection)
         })? {
             typed_select::Chosen::Done => return Ok(PreparationOutcome::Completed),
             typed_select::Chosen::Unknown => return Ok(PreparationOutcome::Unknown),
-            typed_select::Chosen::Mismatch => return Ok(PreparationOutcome::Failed),
             typed_select::Chosen::NotReady => {
                 std::thread::sleep(Duration::from_millis(100).min(deadline.saturating_duration_since(Instant::now())));
             }

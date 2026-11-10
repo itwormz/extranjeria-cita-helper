@@ -258,8 +258,7 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
                     &probe_gate,
                     &probe_guard,
                     &selection,
-                    Duration::from_millis(5),
-                Instant::now() + Duration::from_secs(3)
+                    Instant::now() + Duration::from_secs(3)
                 ),
                 Err(ceh_browser::BrowserError::Paused)
             ) {
@@ -288,7 +287,6 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
                 &gate,
                 guard,
                 &missing,
-                Duration::from_millis(5),
                 Instant::now() + Duration::from_millis(100),
             )
             .map_err(|_| "missing choice execution failed")?
@@ -305,7 +303,6 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
                 &gate,
                 guard,
                 &selection,
-                Duration::from_millis(5),
                 Instant::now() + Duration::from_millis(100),
             )
             .map_err(|_| "multiple-office probe failed")?;
@@ -325,8 +322,7 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
             &gate,
             guard,
             &selection,
-            Duration::from_millis(5),
-                Instant::now() + Duration::from_secs(3),
+            Instant::now() + Duration::from_secs(3),
         );
         let prepared=match prepared{Ok(value)=>value,Err(error)=>{
             let probe=client.call("script.evaluate",json!({"expression":"JSON.stringify({focus:document.activeElement.id,index:document.querySelector('select').selectedIndex,open:document.querySelector('select').matches(':open'),keys:window.fixtureKeys,changes:window.selectionChanges||0,trusted:window.selectionTrusted===true})","target":{"context":context},"awaitPromise":false}))?;
@@ -342,8 +338,7 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
             &gate,
             guard,
             &selection,
-            Duration::from_millis(5),
-                Instant::now() + Duration::from_secs(3),
+            Instant::now() + Duration::from_secs(3),
         )
         .map_err(|_| "selection recheck failed")?;
         if repeated != PreparationOutcome::Completed {
@@ -353,8 +348,9 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
         if !once {
             return Err("prepared selection fired change again".into());
         }
-        let trusted=client.call("script.evaluate",json!({"expression":"window.selectionTrusted===true","target":{"context":context},"awaitPromise":false}))?["result"]["value"]==true;
-        if !trusted{return Err("selection change was not trusted native input".into());}
+        // Python parity: the select is chosen by one script-dispatched input + change (not trusted, no keys).
+        let untrusted=client.call("script.evaluate",json!({"expression":"window.selectionTrusted===false && window.fixtureKeys.length===0","target":{"context":context},"awaitPromise":false}))?["result"]["value"]==true;
+        if !untrusted{return Err("selection change was not a single script-dispatched event without key input".into());}
         client.call("session.status",json!({}))?;
         let posts=client.events.iter().filter(|event|event["method"]=="network.beforeRequestSent"&&event["params"]["request"]["method"]=="POST").count();
         if posts!=index{return Err("selection preparation unexpectedly submitted the form".into());}

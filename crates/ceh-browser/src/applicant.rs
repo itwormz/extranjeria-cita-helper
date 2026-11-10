@@ -210,7 +210,7 @@ pub fn prepare_applicant(
             }
             _ => {
                 let payload = |op: &str| input.field_payload(op, "nationality", "");
-                let choice = typed_select::Choice { action: ActionKind::Applicant, script: SCRIPT, payload: &payload, typing_delay };
+                let choice = typed_select::Choice { action: ActionKind::Applicant, script: SCRIPT, payload: &payload };
                 loop {
                     if Instant::now() >= deadline {
                         break PreparationOutcome::Failed;
@@ -218,7 +218,6 @@ pub fn prepare_applicant(
                     match typed_select::choose(connection, observer, gate, guard, &choice, &page)? {
                         typed_select::Chosen::Done => break PreparationOutcome::Completed,
                         typed_select::Chosen::Unknown => break PreparationOutcome::Unknown,
-                        typed_select::Chosen::Mismatch => break PreparationOutcome::Failed,
                         typed_select::Chosen::NotReady => std::thread::sleep(
                             Duration::from_millis(250).min(deadline.saturating_duration_since(Instant::now())),
                         ),

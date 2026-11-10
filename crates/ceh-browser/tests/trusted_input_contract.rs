@@ -19,7 +19,16 @@ const FORBIDDEN: &[(&str, &str)] = &[
     (r"\.scrollTo\s*\(|\.scrollBy\s*\(", "script scroll"),
 ];
 /// (file, pattern, design section). Empty: no exceptions are recorded.
-const ALLOWED: &[(&str, &str, &str)] = &[];
+const ALLOWED: &[(&str, &str, &str)] = &[
+    // Python parity (`site._select_without_focus`): a `<select>` is chosen by ONE input + change event from the
+    // page script, without focus. Choosing it with keyboard type-ahead produced a burst of selection changes
+    // and requests that the site's WAF answered with a block (live timeline 2026-11-10 21:48); the script
+    // choice passed it in every Rust run before and in Python. See .local/plans/santacita/f5-block-findings.md.
+    ("selection-step.js", r"dispatchEvent", "select choice, Python parity"),
+    ("selection-step.js", r"\.value\s*=[^=]", "select choice, Python parity"),
+    ("applicant-step.js", r"dispatchEvent", "select choice, Python parity"),
+    ("applicant-step.js", r"\.value\s*=[^=]", "select choice, Python parity"),
+];
 
 fn matches(pattern: &str, text: &str) -> bool {
     regex::Regex::new(pattern).unwrap().is_match(text)
@@ -61,4 +70,18 @@ fn step_scripts_never_mutate_the_page_directly() {
         }
     }
     assert!(violations.is_empty(), "scripts that change the page themselves:\n{}", violations.join("\n"));
+}
+
+#[test]
+fn a_select_is_chosen_exactly_like_python_with_one_input_and_one_change_event() {
+    for name in ["selection-step.js", "applicant-step.js"] {
+        let code = scripts().into_iter().find(|(n, _)| n == name).unwrap().1;
+        assert_eq!(code.matches("new Event('input', {bubbles: true, composed: true})").count(), 1, "{name}");
+        assert_eq!(code.matches("new Event('change', {bubbles: true})").count(), 1, "{name}");
+        assert_eq!(code.matches("dispatchEvent").count(), 2, "{name}: only the select choice dispatches events");
+        assert!(code.contains("select.value = option.value") || code.contains("select.value = options[0].value"), "{name}");
+    }
+    // The type-ahead path (a click on the select, then a key per character) is gone.
+    let typed = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/typed_select.rs")).unwrap();
+    assert!(!typed.contains("trusted_input::key") && !typed.contains("type_text") && !typed.contains("trusted_input::focus"));
 }

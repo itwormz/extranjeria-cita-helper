@@ -1,0 +1,38 @@
+<!doctype html><meta charset="utf-8"><title>SantaCita environment probe</title>
+<body style="font:14px system-ui;margin:24px"><h3>Environment probe (local only)</h3><pre id="out">collecting…</pre>
+<script>
+const label = new URLSearchParams(location.search).get('label') || 'unlabeled';
+const hash = text => { let h = 0xcbf29ce484222325n; for (const b of new TextEncoder().encode(text)) { h ^= BigInt(b); h = (h * 0x100000001b3n) & 0xffffffffffffffffn; } return h.toString(16).padStart(16, '0'); };
+const safe = f => { try { return f(); } catch (e) { return 'ERR:' + String(e).slice(0, 80); } };
+const desc = (obj, key) => safe(() => { const d = Object.getOwnPropertyDescriptor(obj, key); return d ? { has_get: !!d.get, configurable: d.configurable, enumerable: d.enumerable, get_src: d.get ? Function.prototype.toString.call(d.get) : null } : null; });
+const nav = {}; for (const k of ['userAgent','platform','vendor','vendorSub','productSub','oscpu','buildID','language','languages','hardwareConcurrency','deviceMemory','maxTouchPoints','cookieEnabled','doNotTrack','pdfViewerEnabled','webdriver','onLine','appVersion','appName']) nav[k] = safe(() => navigator[k]);
+nav.plugins = safe(() => navigator.plugins.length); nav.mimeTypes = safe(() => navigator.mimeTypes.length);
+const suspicious = /webdriver|cdc_|\$cdc|marionette|selenium|playwright|puppeteer|juggler|remote|automation|__nightmare|callPhantom|_phantom/i;
+const winNames = safe(() => Object.getOwnPropertyNames(window).sort());
+const navNames = safe(() => Object.getOwnPropertyNames(navigator).sort());
+const protoNames = safe(() => Object.getOwnPropertyNames(Navigator.prototype).sort());
+const docAttrs = safe(() => Array.from(document.documentElement.attributes).map(a => a.name));
+const canvasHash = safe(() => { const c = document.createElement('canvas'); c.width = 280; c.height = 60; const x = c.getContext('2d'); x.textBaseline = 'top'; x.font = '16px Arial'; x.fillStyle = '#f60'; x.fillRect(10, 5, 100, 30); x.fillStyle = '#069'; x.fillText('SantaCita probe 123 ñÑ', 4, 15); x.strokeStyle = 'rgba(102,204,0,0.6)'; x.arc(60, 30, 20, 0, 6.28); x.stroke(); return hash(c.toDataURL()); });
+const gl = safe(() => { const c = document.createElement('canvas'); const g = c.getContext('webgl') || c.getContext('experimental-webgl'); if (!g) return null; const e = g.getExtension('WEBGL_debug_renderer_info'); const p = {}; for (const n of ['VERSION','SHADING_LANGUAGE_VERSION','VENDOR','RENDERER','MAX_TEXTURE_SIZE','MAX_VERTEX_ATTRIBS']) p[n] = g.getParameter(g[n]); return { unmasked_vendor: e ? g.getParameter(e.UNMASKED_VENDOR_WEBGL) : null, unmasked_renderer: e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : null, params: p, extensions_hash: hash((g.getSupportedExtensions() || []).join(',')) }; });
+const fonts = safe(() => { const list = ['Arial','Helvetica','Times New Roman','Courier New','Verdana','Georgia','Palatino','Garamond','Comic Sans MS','Trebuchet MS','Impact','Tahoma','Menlo','Monaco','Lucida Grande','Helvetica Neue','Avenir','Futura','Optima','Gill Sans','Baskerville','Didot','Hoefler Text','American Typewriter','Apple Chancery','Chalkboard','SF Pro','Segoe UI','Calibri','Cambria','Consolas','DejaVu Sans','Liberation Sans','Roboto','Noto Sans']; const s = document.createElement('span'); s.textContent = 'mmmmmmmmmmlli'; s.style.cssText = 'position:absolute;left:-9999px;font-size:72px'; document.body.appendChild(s); const base = {}; for (const b of ['monospace','sans-serif','serif']) { s.style.fontFamily = b; base[b] = s.offsetWidth; } const found = list.filter(f => ['monospace','sans-serif','serif'].some(b => { s.style.fontFamily = `'${f}',${b}`; return s.offsetWidth !== base[b]; })); s.remove(); return found; });
+let audio = null; try { const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 4410, 44100); const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = 1000; const comp = ctx.createDynamicsCompressor(); o.connect(comp); comp.connect(ctx.destination); o.start(0); audio = ctx.startRendering().then(b => hash(Array.from(b.getChannelData(0).slice(2000, 2100)).join(','))); } catch (e) { audio = 'ERR'; }
+const trace = { events: {}, order: [] };
+for (const t of ['focus','blur','visibilitychange','mousemove','mousedown','keydown','pointermove','resize']) (t === 'visibilitychange' ? document : window).addEventListener(t, e => { trace.events[t] = (trace.events[t] || 0) + 1; if (trace.order.length < 40) trace.order.push([t, e.isTrusted, Math.round(performance.now())]); }, true);
+Promise.resolve(audio).then(audioHash => {
+  const report = {
+    label, at: new Date().toISOString(), href: location.href,
+    navigator: nav, nav_descriptor_webdriver: desc(Navigator.prototype, 'webdriver'), nav_descriptor_userAgent: desc(Navigator.prototype, 'userAgent'),
+    nav_own_names: navNames, nav_proto_names: protoNames, window_name_count: winNames.length, window_names_hash: hash(Array.isArray(winNames) ? winNames.join(',') : ''),
+    window_names: winNames, window_suspicious: Array.isArray(winNames) ? winNames.filter(n => suspicious.test(n)) : winNames, nav_suspicious: Array.isArray(navNames) ? navNames.filter(n => suspicious.test(n)) : navNames,
+    document_attrs: docAttrs, document: { hasFocus: safe(() => document.hasFocus()), visibility: document.visibilityState, hidden: document.hidden },
+    screen: { w: screen.width, h: screen.height, aw: screen.availWidth, ah: screen.availHeight, cd: screen.colorDepth, pd: screen.pixelDepth, dpr: window.devicePixelRatio },
+    window: { iw: innerWidth, ih: innerHeight, ow: outerWidth, oh: outerHeight, sx: screenX, sy: screenY },
+    intl: { tz: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: Intl.DateTimeFormat().resolvedOptions().locale, offset: new Date().getTimezoneOffset() },
+    css: ['(prefers-color-scheme: dark)','(prefers-reduced-motion: reduce)','(hover: hover)','(pointer: fine)'].map(q => [q, matchMedia(q).matches]),
+    canvas2d: canvasHash, webgl: gl, audio: audioHash, fonts,
+    misc: { notification: safe(() => Notification.permission), voices: safe(() => speechSynthesis.getVoices().length), storage: safe(() => !!window.localStorage), chrome_obj: typeof window.chrome, brave: safe(() => typeof navigator.brave), fn_toString_native: safe(() => Function.prototype.toString.call(Function.prototype.toString)), error_stack: safe(() => new Error('x').stack.split('\n')[0].slice(0, 60)) },
+    events_first_second: trace,
+  };
+  setTimeout(() => { report.events_first_second = trace; fetch('/report?label=' + encodeURIComponent(label), { method: 'POST', body: JSON.stringify(report) }).then(() => { document.getElementById('out').textContent = 'Report sent as "' + label + '". You can close this tab.\n\nwebdriver=' + nav.webdriver + ' hasFocus=' + report.document.hasFocus + ' visibility=' + report.document.visibility; }); }, 1500);
+});
+</script>

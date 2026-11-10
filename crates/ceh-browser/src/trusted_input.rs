@@ -232,7 +232,7 @@ fn activate(
     } else {
         gate.begin_preparation(guard, &current.observation, action)?
     };
-    let params = json!({"context":context,"actions":[{"type":"pointer","id":"ceh-pointer","parameters":{"pointerType":"mouse"},"actions":[{"type":"pointerMove","duration":ceh_core::input::POINTER_TIMING.move_ms,"x":0,"y":0,"origin":{"type":"element","element":{"sharedId":shared}}},{"type":"pointerDown","button":0},{"type":"pause","duration":ceh_core::input::POINTER_TIMING.press_ms},{"type":"pointerUp","button":0}]}]});
+    let params = json!({"context":context,"actions":[{"type":"pointer","id":"ceh-pointer","parameters":{"pointerType":"mouse"},"actions":click_actions(&shared, pointer_seed())}]});
     let mut ticket = None;
     let sent = permit.send(&current.observation, || {
         send(connection, "input.performActions", params, &mut ticket)
@@ -256,6 +256,21 @@ fn activate(
     };
     permit.complete_step(outcome)?;
     Ok(permit.finish())
+}
+/// The cursor travels a curved path to the element centre, then presses and releases there.
+pub(crate) fn click_actions(shared: &str, seed: u64) -> Vec<Value> {
+    let origin = json!({"type":"element","element":{"sharedId":shared}});
+    let mut actions: Vec<Value> = ceh_core::input::pointer_path(seed)
+        .into_iter()
+        .map(|step| json!({"type":"pointerMove","duration":step.ms,"x":step.x,"y":step.y,"origin":origin}))
+        .collect();
+    actions.push(json!({"type":"pointerDown","button":0}));
+    actions.push(json!({"type":"pause","duration":ceh_core::input::POINTER_TIMING.press_ms}));
+    actions.push(json!({"type":"pointerUp","button":0}));
+    actions
+}
+fn pointer_seed() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(1, |d| d.as_nanos() as u64)
 }
 fn send(
     connection: &mut BidiConnection,
@@ -292,32 +307,6 @@ pub(crate) fn key(
     )
 }
 /// Key actions that type `text` one character at a time (a select's type-ahead needs them in one chain).
-pub(crate) fn text_actions(text: &str) -> Vec<Value> {
-    text.chars()
-        .flat_map(|c| [json!({"type":"keyDown","value":c.to_string()}), json!({"type":"keyUp","value":c.to_string()})])
-        .collect()
-}
-pub(crate) fn type_text(
-    connection: &mut BidiConnection,
-    permit: &mut crate::ActionPermit,
-    fresh: &ObservedPage,
-    text: &str,
-) -> Result<DispatchOutcome, BrowserError> {
-    perform_keys(connection, permit, fresh, text_actions(text))
-}
-const ESCAPE: &str = "\u{E00C}";
-pub(crate) fn escape(
-    connection: &mut BidiConnection,
-    permit: &mut crate::ActionPermit,
-    fresh: &ObservedPage,
-) -> Result<DispatchOutcome, BrowserError> {
-    perform_keys(
-        connection,
-        permit,
-        fresh,
-        vec![json!({"type":"keyDown","value":ESCAPE}), json!({"type":"keyUp","value":ESCAPE})],
-    )
-}
 const BACKSPACE: &str = "\u{E003}";
 const META: &str = "\u{E03D}";
 const CONTROL: &str = "\u{E009}";
@@ -374,15 +363,19 @@ fn perform_keys(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
-    fn labels_are_typed_as_one_down_up_pair_per_character() {
-        let actions = text_actions("ÑA (1)");
-        assert_eq!(actions.len(), 12);
-        let typed: String = actions.iter().filter(|a| a["type"] == "keyDown").map(|a| a["value"].as_str().unwrap()).collect();
-        assert_eq!(typed, "ÑA (1)");
-        assert!(actions.chunks(2).all(|pair| pair[0]["type"] == "keyDown" && pair[1]["type"] == "keyUp" && pair[0]["value"] == pair[1]["value"]));
+    fn a_click_moves_along_a_curve_then_presses_on_the_element() {
+        let actions = super::click_actions("node-1", 42);
+        let moves: Vec<_> = actions.iter().filter(|a| a["type"] == "pointerMove").collect();
+        assert!(moves.len() >= 8, "several moves, not one jump");
+        assert!(moves.iter().all(|m| m["origin"]["element"]["sharedId"] == "node-1"));
+        let last = moves.last().unwrap();
+        assert_eq!((last["x"].as_i64(), last["y"].as_i64()), (Some(0), Some(0)));
+        let kinds: Vec<_> = actions.iter().rev().take(3).map(|a| a["type"].as_str().unwrap()).collect();
+        assert_eq!(kinds, ["pointerUp", "pause", "pointerDown"]);
     }
+
+    use super::*;
     #[test]
     fn clear_holds_the_platform_modifier_around_a_then_deletes() {
         for (mac, modifier) in [(true, META), (false, CONTROL)] {
@@ -416,15 +409,18 @@ mod tests {
         let lease = ProfileLease::temporary(runtime.path()).unwrap();
         let mut browser = OwnedFirefox::start(&installation, lease, true, &std::sync::atomic::AtomicBool::new(false)).unwrap();
         let context = browser.context().to_owned();
-        let mut call = |browser: &mut OwnedFirefox, method: &str, params: Value| {
+        let call = |browser: &mut OwnedFirefox, method: &str, params: Value| {
             let result = browser.connection().call(method, params).unwrap();
             let _ = browser.connection().take_events();
             result
         };
         call(&mut browser, "browsingContext.navigate", json!({"context":context,"url":url,"wait":"complete"}));
-        let mut eval = |browser: &mut OwnedFirefox, expression: &str| -> Value {
+        let eval = |browser: &mut OwnedFirefox, expression: &str| -> Value {
             let result = call(browser, "script.evaluate", json!({"expression":format!("JSON.stringify({expression})"),"target":{"context":context},"awaitPromise":false}));
             serde_json::from_str(result["result"]["value"].as_str().unwrap()).unwrap()
+        };
+        let text_actions = |text: &str| -> Vec<Value> {
+            text.chars().flat_map(|c| [json!({"type":"keyDown","value":c.to_string()}), json!({"type":"keyUp","value":c.to_string()})]).collect()
         };
         let keys = |browser: &mut OwnedFirefox, actions: Vec<Value>| {
             browser.connection().call("input.performActions", json!({"context":context,"actions":[{"type":"key","id":"k","actions":actions}]})).unwrap();
@@ -440,11 +436,8 @@ mod tests {
         assert_eq!(eval(&mut browser, "document.getElementById('txtIdCitado').value"), json!("Y1234567X"));
         keys(&mut browser, clear_actions(cfg!(target_os = "macos")));
         assert_eq!(eval(&mut browser, "document.getElementById('txtIdCitado').value"), json!(""));
-        focus(&mut browser, "txtPaisNac");
-        keys(&mut browser, text_actions("UCRANIA (EX)"));
-        assert_eq!(eval(&mut browser, "document.getElementById('txtPaisNac').selectedOptions[0].label"), json!("UCRANIA (EX)"));
-        let events = eval(&mut browser, "window.__events.filter(e=>['input','change'].includes(e.type)).map(e=>e.trusted)");
-        assert!(events.as_array().unwrap().len() >= 3 && events.as_array().unwrap().iter().all(|v| v == true), "{events}");
+        let events = eval(&mut browser, "window.__events.filter(e=>['input'].includes(e.type)).map(e=>e.trusted)");
+        assert!(events.as_array().unwrap().len() >= 9 && events.as_array().unwrap().iter().all(|v| v == true), "{events}");
         assert_eq!(eval(&mut browser, "window.__events.filter(e=>!e.trusted).length"), json!(0));
         let _ = browser.stop();
     }

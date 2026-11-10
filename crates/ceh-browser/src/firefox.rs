@@ -32,6 +32,10 @@ pub fn startup_preferences(os: crate::launch::TargetOs) -> serde_json::Value {
     }
     prefs
 }
+/// Preload script: a browser driven over WebDriver reports `navigator.webdriver === true`; an ordinary one
+/// reports `false` (Python's Camoufox does too). Only the value changes. The getter is a Proxy over the native
+/// one, so it still stringifies as native code and keeps its property descriptor.
+pub const WEBDRIVER_MASK: &str = "() => { const d = Object.getOwnPropertyDescriptor(Navigator.prototype, 'webdriver'); if (d && d.get) { Object.defineProperty(Navigator.prototype, 'webdriver', { ...d, get: new Proxy(d.get, { apply: () => false }) }); } }";
 /// Whether `context` (or any child frame of a listed context) is in a `browsingContext.getTree` result.
 pub fn context_is_listed(tree: &serde_json::Value, context: &str) -> bool {
     fn walk(contexts: &serde_json::Value, wanted: &str) -> bool {
@@ -456,6 +460,7 @@ impl OwnedFirefox {
             return Err(FirefoxError::InvalidInstallation);
         }
         connection.call_before("session.subscribe",json!({"events":["network.beforeRequestSent","network.responseCompleted","network.fetchError","browsingContext.load","browsingContext.navigationStarted"]}),deadline).map_err(|_|FirefoxError::Unavailable)?;
+        connection.call_before("script.addPreloadScript", json!({"functionDeclaration":WEBDRIVER_MASK}), deadline).map_err(|_| FirefoxError::Unavailable)?;
         let tree = connection
             .call_before("browsingContext.getTree", json!({}), deadline)
             .map_err(|_| FirefoxError::Unavailable)?;

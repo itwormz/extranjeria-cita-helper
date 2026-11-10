@@ -31,6 +31,14 @@ step => {
       const select=field('txtPaisNac');if (!select || select.tagName!=='SELECT' || select.disabled) return 'refused';
       const options=Array.from(select.options).filter(option=>option.label===step.nationality && !option.disabled && !(option.parentElement.tagName==='OPTGROUP' && option.parentElement.disabled));
       if (options.length!==1) return 'refused';
+      // Python `_select_without_focus`: one input and one change event, no focus, no keyboard or pointer events.
+      if (step.operation==='select') {
+        if (select.selectedOptions[0]===options[0]) return 'unchanged';
+        select.value = options[0].value;
+        select.dispatchEvent(new Event('input', {bubbles: true, composed: true}));
+        select.dispatchEvent(new Event('change', {bubbles: true}));
+        return select.isConnected && select.selectedOptions[0]===options[0] ? 'changed' : 'unknown';
+      }
       if (step.operation==='verify') return select.selectedOptions[0]===options[0] ? 'unchanged' : 'refused';
       if (step.operation==='target') return select;
       if (step.operation==='label') return 'label:'+options[0].label;

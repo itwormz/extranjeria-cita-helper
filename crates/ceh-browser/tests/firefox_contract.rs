@@ -286,3 +286,23 @@ fn a_reset_never_leaves_an_unmarked_half_deleted_profile_behind() {
     // The key is usable again with a fresh owned profile.
     assert!(ProfileLease::persistent(root.path(), "one").unwrap().path().join("ceh-owned-profile").is_file());
 }
+
+/// Launches the installed Firefox on a local `data:` page: run with `-- --ignored`.
+#[test]
+#[ignore = "launches the installed Firefox"]
+fn a_started_firefox_reports_webdriver_false_with_a_native_looking_getter() {
+    use ceh_browser::firefox::OwnedFirefox;
+    use std::sync::atomic::AtomicBool;
+    let Ok(installation) = FirefoxInstallation::discover() else { return };
+    let runtime = tempfile::tempdir().unwrap();
+    let lease = ProfileLease::temporary(runtime.path()).unwrap();
+    let mut browser = OwnedFirefox::start(&installation, lease, true, &AtomicBool::new(false)).unwrap();
+    let context = browser.context().to_owned();
+    let connection = browser.connection();
+    connection.call("browsingContext.navigate", serde_json::json!({"context":context,"url":"data:text/html,<title>t</title>","wait":"complete"})).unwrap();
+    let result = connection.call("script.evaluate", serde_json::json!({"expression":"[navigator.webdriver, Object.getOwnPropertyDescriptor(Navigator.prototype,'webdriver').get.toString().includes('[native code]')]","target":{"context":context},"awaitPromise":false})).unwrap();
+    let values = result["result"]["value"].as_array().unwrap();
+    assert_eq!(values[0]["value"], false);
+    assert_eq!(values[1]["value"], true);
+    let _ = browser.stop();
+}

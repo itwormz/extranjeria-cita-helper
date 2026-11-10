@@ -15,7 +15,14 @@ step => {
     }
     if (choices.length !== 1) return 'refused';
     const {select, option} = choices[0];
-    // Page scripts only read and resolve elements; the browser's own keyboard input makes the choice.
+    // Python `_select_without_focus`: one input and one change event, no focus, no keyboard or pointer events.
+    if (step.operation === 'select') {
+      if (select.selectedOptions[0] === option) return 'unchanged';
+      select.value = option.value;
+      select.dispatchEvent(new Event('input', {bubbles: true, composed: true}));
+      select.dispatchEvent(new Event('change', {bubbles: true}));
+      return select.isConnected && select.selectedOptions[0] === option ? 'changed' : 'unknown';
+    }
     if (step.operation === 'verify') return select.selectedOptions[0] === option ? 'unchanged' : 'refused';
     if (step.operation === 'target') return select;
     if (step.operation === 'label') return 'label:' + option.label;

@@ -74,7 +74,7 @@ fn a_row_carries_the_time_of_the_event_not_of_the_drain() {
 
 #[test]
 fn metadata_rows_hold_header_and_cookie_names_never_values_or_queries() {
-    let mut journal = ceh_browser::icp_journal::IcpNetworkJournal::new();
+    let journal = ceh_browser::icp_journal::IcpNetworkJournal::new();
     let request = site_event("network.beforeRequestSent", Some(5), "document", serde_json::json!([header("User-Agent", "SECRET-UA"), header("Referer", "https://x/?q=SECRET")]), serde_json::json!({}));
     let row = journal.meta(&request, |ms| format!("t{ms:?}")).unwrap();
     assert_eq!(row["event"], "request");
@@ -98,7 +98,7 @@ fn metadata_rows_hold_header_and_cookie_names_never_values_or_queries() {
 
 #[test]
 fn odd_set_cookie_values_never_become_names() {
-    let mut journal = ceh_browser::icp_journal::IcpNetworkJournal::new();
+    let journal = ceh_browser::icp_journal::IcpNetworkJournal::new();
     let response = |headers: serde_json::Value| site_event("network.responseCompleted", Some(9), "document", serde_json::json!([]), serde_json::json!({"response":{"status":200,"headers":headers}}));
     let odd = serde_json::json!([
         header("Set-Cookie", "abc123def456; Path=/"),
