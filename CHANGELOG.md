@@ -5,6 +5,8 @@
 - Keep the search running on Windows when the window reads the attempt budget, profiles or achievements while the search process saves them. Saving now retries briefly instead of stopping the search process with `PermissionError`.
 - Make every unexpected search-process failure produce a startup report with code locations. Failed background budget saves are logged and retried on the next save; failures in background tasks and at process start are reported instead of ending with only an exit code. Reports keep module paths, line numbers and function names, never folders or profile data.
 
+- Fix garbled English and Spanish interface text such as “Untilбавить” on the Telegram recipient button. Short dictionary entries no longer translate parts of other words, and buttons, statistics labels and search timeline messages that were missing translations are now translated.
+
 ## 0.3.6 — Windows folder fixes and achievement card
 
 - Start the browser on Windows when the application or its data is in a folder with non-ASCII characters, such as a Cyrillic user name or `Загрузки`. The fingerprint model is now read through a Unicode-aware file handle, and the TLS intermediate cache loads the browser's NSS library through the folder's short Windows path. If the cache still cannot be opened, the browser starts anyway; HTTPS validation stays strict.
