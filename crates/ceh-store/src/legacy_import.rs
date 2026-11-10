@@ -1,5 +1,6 @@
 //! Import of the Python application's data (profiles, statistics, achievements, budget files, session
-//! journals) into this app's runtime. Read-only on the source; never overwrites existing target files;
+//! journals) into this app's runtime. Read-only on the source; never overwrites existing target files
+//! (a differing profile list is moved aside as `tasks.yml.before-import` first, the only exception);
 //! notification secrets stay in the system vault, which both apps use under the same names.
 use std::{
     fs,
@@ -29,6 +30,8 @@ pub struct Report {
     pub copied: Vec<String>,
     /// Relative paths that already existed there and were left untouched.
     pub kept: Vec<String>,
+    /// Backups made of files the import replaced (the profile list of the new app).
+    pub backed_up: Vec<String>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImportError {
@@ -54,6 +57,12 @@ pub fn candidates(support_dirs: &[PathBuf]) -> Vec<Candidate> {
 }
 fn regular(path: &Path) -> bool {
     fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_file())
+}
+fn same_file(a: &Path, b: &Path) -> bool {
+    match (fs::metadata(a), fs::metadata(b)) {
+        (Ok(x), Ok(y)) if x.len() == y.len() && x.len() <= MAX_FILE => fs::read(a).ok() == fs::read(b).ok(),
+        _ => false,
+    }
 }
 fn plain_dir(path: &Path) -> bool {
     fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_dir())
@@ -98,6 +107,29 @@ pub fn import(source: &Path, target: &Path) -> Result<Report, ImportError> {
     fs::create_dir_all(target).map_err(|_| ImportError::Io)?;
     let mut report = Report::default();
     let mut total = 0u64;
+    // The new app writes its own profile list as soon as one profile is saved, so a plain "keep what is
+    // there" would hide every old profile. A differing list is moved aside, never deleted.
+    let profiles = target.join("tasks.yml");
+    let mut backup: Option<PathBuf> = None;
+    if regular(&profiles) && !same_file(&profiles, &source.join("tasks.yml")) {
+        let name = (1..)
+            .map(|n| if n == 1 { "tasks.yml.before-import".to_owned() } else { format!("tasks.yml.before-import.{n}") })
+            .find(|name| fs::symlink_metadata(target.join(name)).is_err())
+            .ok_or(ImportError::Io)?;
+        fs::rename(&profiles, target.join(&name)).map_err(|_| ImportError::Io)?;
+        report.backed_up.push(name.clone());
+        backup = Some(target.join(name));
+    }
+    match copy_new(&source.join("tasks.yml"), &profiles, MAX_FILE, &mut total) {
+        Ok(true) => report.copied.push("tasks.yml".to_owned()),
+        Ok(false) => report.kept.push("tasks.yml".to_owned()),
+        Err(error) => {
+            if let Some(backup) = backup {
+                let _ = fs::rename(backup, &profiles);
+            }
+            return Err(error);
+        }
+    }
     let mut take = |relative: String, limit: u64, report: &mut Report| -> Result<(), ImportError> {
         let from = source.join(&relative);
         if !regular(&from) {
@@ -110,7 +142,7 @@ pub fn import(source: &Path, target: &Path) -> Result<Report, ImportError> {
         }
         Ok(())
     };
-    for file in ["tasks.yml", "data/achievements.json", "data/profile-statistics.sqlite3", "data/state.db"] {
+    for file in ["data/achievements.json", "data/profile-statistics.sqlite3", "data/state.db"] {
         take(file.to_owned(), MAX_FILE, &mut report)?;
     }
     // Hashed budget files plus the salt that names them.

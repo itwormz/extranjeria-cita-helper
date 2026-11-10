@@ -678,11 +678,11 @@ fn main() {
             let window =
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                     .title(if firefox_preview {
-                        "Cita Extranjeria Helper — Firefox Preview"
+                        "SantaCita — Firefox Preview"
                     } else if ui_review {
-                        "Cita Extranjeria Helper — Rust UI Review"
+                        "SantaCita — Rust UI Review"
                     } else {
-                        "Cita Extranjeria Helper — Rust Preview"
+                        "SantaCita"
                     })
                     .theme(Some(if dark {
                         tauri::Theme::Dark

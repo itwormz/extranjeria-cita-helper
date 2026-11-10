@@ -256,14 +256,14 @@
     "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "The site certificate chain was not prepared. The search started and HTTPS validation stays strict.",
     "Новый проход начнётся с начальной страницы": "A new pass will start from the first page",
     "Данные прежней версии": "Data from the previous version",
-    "Профили, статистику и бюджет прежней версии можно перенести сюда. Старые данные не изменяются, существующие файлы не перезаписываются. Пароли уведомлений остаются в связке ключей.": "Profiles, statistics and the budget of the previous version can be copied here. The old data is not changed and existing files are not overwritten. Notification passwords stay in the keychain.",
     "Импортировать": "Import",
     "Перенесено файлов: {count}": "Files copied: {count}",
     "Уже были на месте: {count}": "Already in place: {count}",
     "Закройте прежнюю версию приложения и повторите.": "Close the previous version of the app and try again.",
     "Данные прежней версии не найдены.": "Data of the previous version was not found.",
     "Не удалось импортировать данные.": "The data could not be imported.",
-    "Браузер прежнего поиска ещё открыт. Закройте его окно и повторите запуск.": "The browser of the previous search is still open. Close its window and start again."
+    "Браузер прежнего поиска ещё открыт. Закройте его окно и повторите запуск.": "The browser of the previous search is still open. Close its window and start again.",
+    "Профили, статистику и бюджет прежней версии можно перенести сюда. Старые данные не изменяются. Текущий список профилей сохранится рядом как tasks.yml.before-import, остальные существующие файлы не перезаписываются. Пароли уведомлений остаются в связке ключей.": "Profiles, statistics and the budget of the previous version can be brought over here. The old data is not changed. Your current profile list is kept beside it as tasks.yml.before-import; other existing files are not overwritten. Notification passwords stay in the keychain."
   },
   "es": {
     "Всего": "Total",
@@ -522,13 +522,13 @@
     "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "No se preparó la cadena de certificados del sitio. La búsqueda se inició y la validación HTTPS sigue siendo estricta.",
     "Новый проход начнётся с начальной страницы": "Un nuevo recorrido empezará desde la primera página",
     "Данные прежней версии": "Datos de la versión anterior",
-    "Профили, статистику и бюджет прежней версии можно перенести сюда. Старые данные не изменяются, существующие файлы не перезаписываются. Пароли уведомлений остаются в связке ключей.": "Los perfiles, las estadísticas y el presupuesto de la versión anterior se pueden copiar aquí. Los datos antiguos no se modifican y los archivos existentes no se sobrescriben. Las contraseñas de notificaciones siguen en el llavero.",
     "Импортировать": "Importar",
     "Перенесено файлов: {count}": "Archivos copiados: {count}",
     "Уже были на месте: {count}": "Ya estaban: {count}",
     "Закройте прежнюю версию приложения и повторите.": "Cierra la versión anterior de la aplicación y vuelve a intentarlo.",
     "Данные прежней версии не найдены.": "No se encontraron datos de la versión anterior.",
     "Не удалось импортировать данные.": "No se pudieron importar los datos.",
-    "Браузер прежнего поиска ещё открыт. Закройте его окно и повторите запуск.": "El navegador de la búsqueda anterior sigue abierto. Cierra su ventana y vuelve a iniciar."
+    "Браузер прежнего поиска ещё открыт. Закройте его окно и повторите запуск.": "El navegador de la búsqueda anterior sigue abierto. Cierra su ventana y vuelve a iniciar.",
+    "Профили, статистику и бюджет прежней версии можно перенести сюда. Старые данные не изменяются. Текущий список профилей сохранится рядом как tasks.yml.before-import, остальные существующие файлы не перезаписываются. Пароли уведомлений остаются в связке ключей.": "Aquí se pueden traer los perfiles, las estadísticas y el presupuesto de la versión anterior. Los datos antiguos no se modifican. Tu lista de perfiles actual se conserva al lado como tasks.yml.before-import; los demás archivos existentes no se sobrescriben. Las contraseñas de las notificaciones siguen en el llavero."
   }
 }

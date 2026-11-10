@@ -54,18 +54,42 @@ fn profiles_statistics_budget_and_journals_are_copied_and_the_source_is_untouche
 }
 
 #[test]
-fn existing_files_are_never_overwritten_and_a_second_import_changes_nothing() {
+fn existing_data_files_are_never_overwritten_and_a_second_import_changes_nothing() {
     let source = tempfile::tempdir().unwrap();
     python_runtime(source.path());
     let target = tempfile::tempdir().unwrap();
-    write(target.path(), "tasks.yml", b"profiles: [mine]\n");
+    write(target.path(), "data/achievements.json", b"{\"mine\":1}");
     let first = import(source.path(), target.path()).unwrap();
-    assert_eq!(fs::read(target.path().join("tasks.yml")).unwrap(), b"profiles: [mine]\n");
-    assert_eq!(first.kept, vec!["tasks.yml".to_owned()]);
+    assert_eq!(fs::read(target.path().join("data/achievements.json")).unwrap(), b"{\"mine\":1}");
+    assert_eq!(first.kept, vec!["data/achievements.json".to_owned()]);
     let after_first = snapshot(target.path());
     let second = import(source.path(), target.path()).unwrap();
     assert!(second.copied.is_empty());
     assert_eq!(snapshot(target.path()), after_first);
+}
+
+#[test]
+fn a_profile_list_already_in_the_new_app_is_kept_as_a_backup_and_the_old_one_takes_its_place() {
+    let source = tempfile::tempdir().unwrap();
+    python_runtime(source.path());
+    let target = tempfile::tempdir().unwrap();
+    write(target.path(), "tasks.yml", b"profiles: [mine]\n");
+    let report = import(source.path(), target.path()).unwrap();
+    assert_eq!(fs::read(target.path().join("tasks.yml")).unwrap(), b"profiles: []\n");
+    assert_eq!(fs::read(target.path().join("tasks.yml.before-import")).unwrap(), b"profiles: [mine]\n");
+    assert!(report.copied.contains(&"tasks.yml".to_owned()));
+    assert_eq!(report.backed_up, vec!["tasks.yml.before-import".to_owned()]);
+    // A second import has nothing to replace and never touches the backup.
+    let after = snapshot(target.path());
+    let second = import(source.path(), target.path()).unwrap();
+    assert!(second.copied.is_empty() && second.backed_up.is_empty());
+    assert_eq!(snapshot(target.path()), after);
+    // An earlier backup is not overwritten by a later one.
+    write(target.path(), "tasks.yml", b"profiles: [newer]\n");
+    let third = import(source.path(), target.path()).unwrap();
+    assert_eq!(third.backed_up, vec!["tasks.yml.before-import.2".to_owned()]);
+    assert_eq!(fs::read(target.path().join("tasks.yml.before-import")).unwrap(), b"profiles: [mine]\n");
+    assert_eq!(fs::read(target.path().join("tasks.yml.before-import.2")).unwrap(), b"profiles: [newer]\n");
 }
 
 #[test]

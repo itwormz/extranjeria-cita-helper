@@ -51,7 +51,7 @@ node ../../desktop-ui/node_modules/@tauri-apps/cli/tauri.js build --debug --feat
 ```
 
 Cargo output follows the workspace target directory under `.local/builds`.
-The app bundle is in `rust-target/debug/bundle/macos/CEH Rust Preview.app`.
+The app bundle is in `rust-target/debug/bundle/macos/SantaCita.app`.
 The Tauri build hook always checks and rebuilds frontend assets before embedding
 them; it does not install dependencies. Run the preparation script first on a
 fresh checkout. The macOS preview uses an explicit ad-hoc bundle signature, binding its Info.plist
