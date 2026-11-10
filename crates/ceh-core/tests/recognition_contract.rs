@@ -69,3 +69,12 @@ fn an_empty_403_entry_response_is_blocked_and_only_the_entry_frame_counts() {
     .unwrap();
     assert_ne!(recognize(&child).unwrap().kind, PageKind::Blocked);
 }
+
+#[test]
+fn the_block_marker_names_the_phrase_that_made_a_page_a_block() {
+    use ceh_core::recognition::block_marker;
+    assert_eq!(block_marker("Request Rejected. The requested URL was rejected. Please consult with your administrator"), Some("request rejected"));
+    assert_eq!(block_marker("ACCESS DENIED"), Some("access denied"));
+    assert_eq!(block_marker("Demasiadas solicitudes, inténtelo más tarde"), Some("demasiadas solicitudes"));
+    assert_eq!(block_marker("Seleccione la provincia donde solicitar la cita"), None);
+}

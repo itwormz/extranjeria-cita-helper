@@ -20,6 +20,7 @@ pub mod observer;
 #[cfg(feature = "bidi")]
 pub mod passive;
 #[cfg(feature = "bidi")]
+pub mod evidence;
 pub mod recovery_navigation;
 pub mod refresh;
 #[cfg(feature = "bidi")]

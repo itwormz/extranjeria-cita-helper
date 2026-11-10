@@ -65,6 +65,22 @@ pub struct Recognition {
 #[derive(Debug, PartialEq, Eq)]
 pub struct InvalidSnapshot;
 
+/// The phrases of a WAF block page (Python `_challenge_code`), most specific first.
+const BLOCK_MARKERS: [&str; 8] = [
+    "access denied",
+    "request rejected",
+    "requested url was rejected",
+    "forbidden",
+    "too many requests",
+    "demasiadas solicitudes",
+    "intrusion prevention triggered",
+    "attempt to access the internet resource is blocked",
+];
+/// Which block phrase a page text contains, if any: the name goes into the diagnostics, the page text never.
+pub fn block_marker(text: &str) -> Option<&'static str> {
+    let text = normalize(text);
+    BLOCK_MARKERS.into_iter().find(|marker| text.contains(marker))
+}
 fn normalize(text: &str) -> String {
     text.to_lowercase()
         .split(is_space)
@@ -235,20 +251,7 @@ pub fn recognize(snapshot: &PageSnapshot) -> Result<Recognition, InvalidSnapshot
     );
     let captcha_text = has_any(&text, &["captcha", "código de la imagen"]);
     // Python _challenge_code returns CAPTCHA before HTTP_BLOCKED when both are present.
-    let blocked = !captcha_text
-        && has_any(
-            &text,
-            &[
-                "access denied",
-                "request rejected",
-                "requested url was rejected",
-                "forbidden",
-                "too many requests",
-                "demasiadas solicitudes",
-                "intrusion prevention triggered",
-                "attempt to access the internet resource is blocked",
-            ],
-        );
+    let blocked = !captcha_text && block_marker(&text).is_some();
     let booking = [
         "input[name*='fecha']",
         "select[name*='fecha']",

@@ -78,6 +78,10 @@ impl NativeStep {
         (current.realm == source.realm && current.snapshot.official).then_some(bytes)
     }
 
+    /// Which block phrase the entry frame's text holds (the name only; the text stays in the browser).
+    pub fn block_marker(&self) -> Option<&'static str> {
+        self.page.page.snapshot.frames.first().and_then(|frame| ceh_core::recognition::block_marker(&frame.text))
+    }
     pub fn update(&self) -> &DriverUpdate {
         &self.update
     }
