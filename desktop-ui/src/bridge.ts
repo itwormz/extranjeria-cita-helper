@@ -69,6 +69,7 @@ export async function searchSnapshot():Promise<SearchSnapshot>{return invoke('se
 export async function startSearch(id:string):Promise<void>{return invoke('search_start',{id});}
 export async function controlSearch(command:'pause'|'resume'|'stop'):Promise<void>{return invoke('search_control',{command});}
 export interface InstalledBrowser {id:string;name:string;version:string;support:'supported'|'planned'|'unsupported'}
+export async function resetSession(id:string):Promise<'reset'|'restarted'>{return invoke('reset_session',{id});}
 export async function copyStartupReport(id:string):Promise<void>{return invoke('startup_report_copy',{id});}
 export async function loadBrowsers():Promise<InstalledBrowser[]>{return invoke('installed_browsers');}
 export async function loadBudget(id:string):Promise<BudgetSummary|null>{return invoke('appointment_budget',{id});}
@@ -77,4 +78,4 @@ export async function setDistributionToday(disabled:boolean):Promise<void>{retur
 export async function tryAppointmentNow():Promise<void>{return invoke('appointment_try_now');}
 export async function resumeSearch():Promise<void>{return invoke('search_resume');}
 export async function showSearchBrowser():Promise<void>{return invoke('search_show');}
-export async function copySearchJournal():Promise<void>{return invoke('search_copy');}
+export async function copyText(text:string):Promise<void>{return invoke('copy_text',{text});}

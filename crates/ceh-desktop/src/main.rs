@@ -499,16 +499,17 @@ fn search_show(
     ceh_desktop::window_theme::show_firefox(&window,pid)
 }
 
+/// Put text the window composed (the journal table as shown) on the clipboard; bounded like any IPC text.
 #[tauri::command]
-async fn search_copy(
+async fn copy_text(
     window: WebviewWindow,
-    runtime: State<'_, DesktopRuntime>,
+    text: String,
 ) -> Result<(), &'static str> {
     authorize(&window)?;
-    let state = runtime.search.snapshot()?;
+    if text.is_empty() || text.len() > 1024 * 1024 {
+        return Err("clipboard_unavailable");
+    }
     tauri::async_runtime::spawn_blocking(move || {
-        let text =
-            serde_json::to_string_pretty(&state.rows).map_err(|_| "clipboard_unavailable")?;
         arboard::Clipboard::new()
             .and_then(|mut c| c.set_text(text))
             .map_err(|_| "clipboard_unavailable")
@@ -517,6 +518,29 @@ async fn search_copy(
     .map_err(|_| "clipboard_unavailable")?
 }
 
+/// Reset the browser session of profile `id` (Python `reset_session`): a running search of this profile
+/// restarts its pass, otherwise the app-owned browser profile is deleted. Returns what was done.
+#[tauri::command]
+fn reset_session(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+    id: String,
+) -> Result<&'static str, &'static str> {
+    authorize(&window)?;
+    let snapshot = runtime.search.snapshot()?;
+    if snapshot.active {
+        if snapshot.profile.as_deref() != Some(id.as_str()) {
+            return Err("search_already_running");
+        }
+        runtime.search.restart()?;
+        return Ok("restarted");
+    }
+    ceh_browser::firefox::ProfileLease::reset_persistent(&runtime.root, &id).map_err(|error| match error {
+        ceh_browser::firefox::FirefoxError::ProfileBusy => "browser_profile_busy",
+        _ => "browser_profile_unavailable",
+    })?;
+    Ok("reset")
+}
 /// Copy the sanitized startup report with `id` (the id comes from the search snapshot).
 #[tauri::command]
 async fn startup_report_copy(
@@ -539,6 +563,31 @@ async fn startup_report_copy(
 
 fn main() {
     tauri::Builder::default()
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                use std::sync::atomic::{AtomicBool, Ordering};
+                static CLOSING: AtomicBool = AtomicBool::new(false);
+                let runtime = window.state::<DesktopRuntime>();
+                if runtime.search.shutdown() == ceh_desktop::search::ClosePlan::CloseNow {
+                    return;
+                }
+                // The search thread ends first (its browser closed or kept); then the window goes.
+                api.prevent_close();
+                if !CLOSING.swap(true, Ordering::AcqRel) {
+                    let window = window.clone();
+                    std::thread::spawn(move || {
+                        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+                        let runtime = window.state::<DesktopRuntime>();
+                        while std::time::Instant::now() < deadline
+                            && runtime.search.snapshot().map(|s| s.active).unwrap_or(false)
+                        {
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                        }
+                        let _ = window.destroy();
+                    });
+                }
+            }
+        })
         .setup(|app| {
             let base =
                 PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.local/builds/runtime");
@@ -616,8 +665,9 @@ fn main() {
             appointment_distribution,
             appointment_try_now,
             search_show,
-            search_copy,
+            copy_text,
             startup_report_copy,
+            reset_session,
             desktop_bootstrap,
             validate_profile,
             profile_editor,

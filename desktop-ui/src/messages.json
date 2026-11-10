@@ -253,7 +253,9 @@
     "Планируется": "Planned",
     "Не поддерживается": "Not supported",
     "Подходящий браузер не найден": "No suitable browser found",
-    "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "The site certificate chain was not prepared. The search started and HTTPS validation stays strict."
+    "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "The site certificate chain was not prepared. The search started and HTTPS validation stays strict.",
+    "Профиль браузера сейчас используется. Закройте поиск и повторите.": "The browser profile is in use right now. Stop the search and try again.",
+    "Новый проход начнётся с начальной страницы": "A new pass will start from the first page"
   },
   "es": {
     "Всего": "Total",
@@ -509,6 +511,8 @@
     "Планируется": "Previsto",
     "Не поддерживается": "No compatible",
     "Подходящий браузер не найден": "No se encontró ningún navegador compatible",
-    "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "No se preparó la cadena de certificados del sitio. La búsqueda se inició y la validación HTTPS sigue siendo estricta."
+    "Цепочка сертификатов сайта не подготовлена. Поиск запущен, проверка HTTPS остаётся строгой.": "No se preparó la cadena de certificados del sitio. La búsqueda se inició y la validación HTTPS sigue siendo estricta.",
+    "Профиль браузера сейчас используется. Закройте поиск и повторите.": "El perfil del navegador está en uso. Detén la búsqueda y vuelve a intentarlo.",
+    "Новый проход начнётся с начальной страницы": "Un nuevo recorrido empezará desde la primera página"
   }
 }

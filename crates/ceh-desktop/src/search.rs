@@ -71,10 +71,29 @@ struct Handle {
     gate: Arc<Mutex<Option<DispatchGate>>>,
     cancelled: Arc<AtomicBool>,
 }
+/// What closing the window requires (Python `closeEvent`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClosePlan {
+    /// No search runs: the window closes at once.
+    CloseNow,
+    /// The app's own automation stops and its browser is closed, then the window closes.
+    StopAndCloseBrowser,
+    /// A browser handed to the person (a booking in progress) is never closed by the app.
+    StopKeepBrowser,
+}
+pub fn close_plan(active: bool, manual: bool) -> ClosePlan {
+    match (active, manual) {
+        (false, _) => ClosePlan::CloseNow,
+        (true, false) => ClosePlan::StopAndCloseBrowser,
+        (true, true) => ClosePlan::StopKeepBrowser,
+    }
+}
 #[derive(Default)]
 pub struct SearchController {
     state: Arc<Mutex<SearchSnapshot>>,
     handle: Mutex<Option<Handle>>,
+    /// Set when the window closes during an automatic search: its browser is closed with the search.
+    close_browser: Arc<AtomicBool>,
 }
 impl SearchController {
     pub fn snapshot(&self) -> Result<SearchSnapshot, &'static str> {
@@ -82,6 +101,19 @@ impl SearchController {
             .lock()
             .map(|s| s.clone())
             .map_err(|_| "search_unavailable")
+    }
+    /// Prepare to close the window: stops a running search (closing its browser unless it was handed to
+    /// the person) and tells the caller whether to wait for the search thread to end.
+    pub fn shutdown(&self) -> ClosePlan {
+        let Ok(snapshot) = self.snapshot() else { return ClosePlan::CloseNow };
+        let plan = close_plan(snapshot.active, snapshot.manual);
+        if plan == ClosePlan::StopAndCloseBrowser {
+            self.close_browser.store(true, Ordering::Release);
+        }
+        if plan != ClosePlan::CloseNow {
+            let _ = self.control(Control::Stop);
+        }
+        plan
     }
     pub fn control(&self, command: Control) -> Result<(), &'static str> {
         let handle = self.handle.lock().map_err(|_| "search_unavailable")?;
@@ -152,6 +184,10 @@ impl SearchController {
         let policy = loaded.appointment_policy.ok_or("profile_invalid")?;
         self.send_live(LiveCommand::Timings(timings))?;
         self.send_live(LiveCommand::Budget(BudgetCommand::ApplyPolicy(policy)))
+    }
+    /// Start a new pass from the entry page in the running browser session (Python `restart`).
+    pub fn restart(&self) -> Result<(), &'static str> {
+        self.send_live(LiveCommand::FreshPass)
     }
     fn send_live(&self, command: LiveCommand) -> Result<(), &'static str> {
         let handle = self.handle.lock().map_err(|_| "search_unavailable")?;
@@ -224,6 +260,8 @@ impl SearchController {
         let root = root.to_owned();
         let worker_gate = gate.clone();
         let stop = cancelled.clone();
+        self.close_browser.store(false, Ordering::Release);
+        let close_browser = self.close_browser.clone();
         std::thread::Builder::new()
             .name("ceh-firefox".into())
             .spawn(move || {
@@ -240,6 +278,7 @@ impl SearchController {
                     &state,
                     &window,
                     &sound,
+                    &close_browser,
                 );
                 let requested_stop = stop.load(Ordering::Acquire);
                 if let Err(code) = &result
@@ -405,9 +444,12 @@ fn run(
     state: &Mutex<SearchSnapshot>,
     window: &tauri::WebviewWindow,
     sound: &Mutex<crate::sound::SoundPlayback>,
+    close_browser: &AtomicBool,
 ) -> Result<(), &'static str> {
     let installation = FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
-    let lease = ProfileLease::temporary(root).map_err(|_| "browser_profile_unavailable")?;
+    // One persistent browser profile per search profile, as in Python: cookies survive between runs and
+    // "reset session" deletes it.
+    let lease = ProfileLease::persistent(root, &profile.id).map_err(|_| "browser_profile_unavailable")?;
     let mut browser =
         OwnedFirefox::start(&installation, lease, false, cancelled).map_err(|error| {
             if error == ceh_browser::firefox::FirefoxError::CertificateCache {
@@ -437,7 +479,11 @@ fn run(
         sound,
         &mut browser,
     );
-    browser.handoff();
+    // Window closing during an automatic search closes the app's own browser; anything else (a stop, an
+    // error, a booking handed over) keeps it open for the person.
+    if !(close_browser.load(Ordering::Acquire) && browser.stop().is_ok()) {
+        browser.handoff();
+    }
     if let Ok(mut player) = sound.lock() {
         let _ = player.stop();
     }
@@ -536,6 +582,7 @@ fn run_owned(
         let mut retry_at = Instant::now();
         let mut preferences_at = Instant::now() - Duration::from_secs(3);
         let mut sound_enabled = false;
+        let mut page_checked = Instant::now();
         loop {
             while let Ok(message) = receiver.try_recv() {
                 match message.command {
@@ -648,6 +695,16 @@ fn run_owned(
             }
             if cancelled.load(Ordering::Acquire) {
                 return Ok(());
+            }
+            // While the app does not drive the page (handed over or paused) nothing else notices that the
+            // person closed the browser: the search ends then, and Start returns (Python: the worker
+            // finishes when its page is closed).
+            let paused_now = driver.control().mode() == ControlMode::Paused;
+            if (manual || paused_now) && page_checked.elapsed() >= Duration::from_secs(2) {
+                page_checked = Instant::now();
+                if !browser.page_open() {
+                    return Ok(());
+                }
             }
             publish_budget(state, &mut budget, crate::current_time()?, &appointment_policy, observer.hot_retry())?;
             let paused = driver.control().mode() == ControlMode::Paused;
@@ -1236,5 +1293,24 @@ mod budget_snapshot_tests {
         publish_budget(&state, &mut AppointmentBudget::default(), now, &AppointmentPolicy::default(), true).unwrap();
         let snapshot = state.lock().unwrap().clone();
         assert!(snapshot.active && snapshot.profile.as_deref() == Some("p") && snapshot.appointment_budget.is_some());
+    }
+}
+
+#[cfg(test)]
+mod close_plan_tests {
+    use super::*;
+    #[test]
+    fn closing_the_window_never_kills_a_browser_handed_to_the_person() {
+        // Python `closeEvent`: an idle window closes at once; a searching one stops first.
+        assert_eq!(close_plan(false, false), ClosePlan::CloseNow);
+        assert_eq!(close_plan(false, true), ClosePlan::CloseNow);
+        assert_eq!(close_plan(true, false), ClosePlan::StopAndCloseBrowser);
+        // A booking in progress stays open: the app only stops its own automation.
+        assert_eq!(close_plan(true, true), ClosePlan::StopKeepBrowser);
+    }
+    #[test]
+    fn shutting_down_an_idle_controller_needs_no_wait() {
+        let controller = SearchController::default();
+        assert_eq!(controller.shutdown(), ClosePlan::CloseNow);
     }
 }

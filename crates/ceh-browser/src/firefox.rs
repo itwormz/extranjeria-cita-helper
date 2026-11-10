@@ -32,6 +32,15 @@ pub fn startup_preferences(os: crate::launch::TargetOs) -> serde_json::Value {
     }
     prefs
 }
+/// Whether `context` (or any child frame of a listed context) is in a `browsingContext.getTree` result.
+pub fn context_is_listed(tree: &serde_json::Value, context: &str) -> bool {
+    fn walk(contexts: &serde_json::Value, wanted: &str) -> bool {
+        contexts.as_array().is_some_and(|list| {
+            list.iter().any(|node| node["context"] == wanted || walk(&node["children"], wanted))
+        })
+    }
+    walk(&tree["contexts"], context)
+}
 /// Outcome of preparing the TLS intermediate cache: optional, so a failure defers it instead of
 /// stopping the browser. Certificate validation stays strict either way.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -203,6 +212,27 @@ impl ProfileLease {
             Err(_) => return Err(FirefoxError::InvalidProfile),
         }
         Self::lease(path, None)
+    }
+    /// Delete the app-owned persistent browser profile `key` (Python `reset_browser_profile`). Refuses a
+    /// profile in use, a foreign or symlinked directory, and an invalid key; a missing profile is fine.
+    pub fn reset_persistent(runtime: &Path, key: &str) -> Result<(), FirefoxError> {
+        ceh_core::model::ProfileId::new(key).map_err(|_| FirefoxError::InvalidProfile)?;
+        let path = Self::root(runtime)?.join(format!("firefox-{key}"));
+        let meta = match fs::symlink_metadata(&path) {
+            Ok(meta) => meta,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(_) => return Err(FirefoxError::InvalidProfile),
+        };
+        if meta.file_type().is_symlink()
+            || !meta.is_dir()
+            || fs::read(path.join("ceh-owned-profile")).ok().as_deref() != Some(b"CEH Firefox profile v1\n")
+        {
+            return Err(FirefoxError::InvalidProfile);
+        }
+        // Holding the lease proves no browser of this app uses the profile while it is removed.
+        let lease = Self::lease(path.clone(), None)?;
+        drop(lease);
+        fs::remove_dir_all(&path).map_err(|_| FirefoxError::InvalidProfile)
     }
     fn lease(path: PathBuf, temporary: Option<tempfile::TempDir>) -> Result<Self, FirefoxError> {
         let lock_path = path.join("ceh-owner.lock");
@@ -405,6 +435,22 @@ impl OwnedFirefox {
     /// Whether the optional TLS intermediate cache is ready or was deferred (strict HTTPS either way).
     pub fn certificate_cache(&self) -> CertificateCache {
         self.certificate_cache
+    }
+    /// Whether the browser process runs and the page this app opened is still there. A page the person
+    /// closed ends the search (Python: the worker finishes when its page is closed).
+    pub fn page_open(&mut self) -> bool {
+        if let Some(child) = self.child.as_mut()
+            && !matches!(child.try_wait(), Ok(None))
+        {
+            return false;
+        }
+        let context = self.context.clone();
+        let Some(connection) = self.connection.as_mut() else { return false };
+        match connection.call("browsingContext.getTree", json!({})) {
+            Ok(tree) => context_is_listed(&tree, &context),
+            // A hiccup is not a closed page; a dead connection is.
+            Err(_) => connection.available(),
+        }
     }
     pub fn process_id(&self) -> Option<u32> {
         self.child.as_ref().map(Child::id)

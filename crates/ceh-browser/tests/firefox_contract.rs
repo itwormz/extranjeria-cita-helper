@@ -146,3 +146,79 @@ fn startup_preferences_add_the_windows_occlusion_switches_only_on_windows() {
         assert!(prefs.as_object().unwrap().keys().all(|k| !k.contains("cert_pinning") && !k.contains("ignore_cert")));
     }
 }
+
+#[test]
+fn resetting_a_session_removes_only_that_owned_idle_browser_profile() {
+    let root = tempfile::tempdir().unwrap();
+    // Nothing to reset is not an error (Python resets a profile that was never created).
+    ProfileLease::reset_persistent(root.path(), "one").unwrap();
+    let first = ProfileLease::persistent(root.path(), "one").unwrap();
+    let first_path = first.path().to_owned();
+    std::fs::write(first_path.join("cookies.sqlite"), "session").unwrap();
+    let other = ProfileLease::persistent(root.path(), "two").unwrap();
+    let other_path = other.path().to_owned();
+    std::fs::write(other_path.join("cookies.sqlite"), "other").unwrap();
+    drop(other);
+    // A profile in use by a running browser is never touched.
+    assert!(matches!(ProfileLease::reset_persistent(root.path(), "one"), Err(FirefoxError::ProfileBusy)));
+    assert!(first_path.join("cookies.sqlite").is_file());
+    drop(first);
+    ProfileLease::reset_persistent(root.path(), "one").unwrap();
+    assert!(!first_path.exists());
+    assert!(other_path.join("cookies.sqlite").is_file(), "other profiles are untouched");
+    // The next start gets a fresh owned profile.
+    let again = ProfileLease::persistent(root.path(), "one").unwrap();
+    assert!(!again.path().join("cookies.sqlite").exists());
+}
+
+#[test]
+fn resetting_refuses_foreign_symlinked_and_invalid_profiles() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("browser-profiles")).unwrap();
+    let foreign = root.path().join("browser-profiles/firefox-foreign");
+    std::fs::create_dir(&foreign).unwrap();
+    std::fs::write(foreign.join("prefs.js"), "personal").unwrap();
+    assert!(ProfileLease::reset_persistent(root.path(), "foreign").is_err());
+    assert!(foreign.join("prefs.js").is_file(), "an unmarked directory is not ours");
+    #[cfg(unix)]
+    {
+        let personal = tempfile::tempdir().unwrap();
+        std::fs::write(personal.path().join("keep"), "x").unwrap();
+        std::os::unix::fs::symlink(personal.path(), root.path().join("browser-profiles/firefox-linked")).unwrap();
+        assert!(ProfileLease::reset_persistent(root.path(), "linked").is_err());
+        assert!(personal.path().join("keep").is_file());
+    }
+    assert!(ProfileLease::reset_persistent(root.path(), "../escape").is_err());
+    assert!(ProfileLease::reset_persistent(root.path(), "").is_err());
+}
+
+#[test]
+fn a_context_tree_lists_the_page_only_while_it_is_open() {
+    use ceh_browser::firefox::context_is_listed;
+    let tree = serde_json::json!({"contexts":[{"context":"a","children":[]},{"context":"b","children":[{"context":"c","children":[]}]}]});
+    assert!(context_is_listed(&tree, "a"));
+    assert!(context_is_listed(&tree, "c"), "child frames count");
+    assert!(!context_is_listed(&tree, "gone"));
+    assert!(!context_is_listed(&serde_json::json!({"contexts":[]}), "a"));
+    assert!(!context_is_listed(&serde_json::json!({}), "a"));
+}
+
+/// Launches the installed Firefox (headless, temporary profile): run with `-- --ignored`.
+#[test]
+#[ignore = "launches the installed Firefox"]
+fn real_firefox_reports_when_the_person_closes_the_page() {
+    use ceh_browser::firefox::OwnedFirefox;
+    use std::sync::atomic::AtomicBool;
+    let Ok(installation) = FirefoxInstallation::discover() else { return };
+    let runtime = tempfile::tempdir().unwrap();
+    let lease = ProfileLease::temporary(runtime.path()).unwrap();
+    let mut browser = OwnedFirefox::start(&installation, lease, true, &AtomicBool::new(false)).unwrap();
+    assert!(browser.page_open());
+    // Opening a second tab keeps ours listed; closing ours is noticed.
+    let context = browser.context().to_owned();
+    browser.connection().call("browsingContext.create", serde_json::json!({"type":"tab"})).unwrap();
+    assert!(browser.page_open());
+    browser.connection().call("browsingContext.close", serde_json::json!({"context":context})).unwrap();
+    assert!(!browser.page_open());
+    let _ = browser.stop();
+}
