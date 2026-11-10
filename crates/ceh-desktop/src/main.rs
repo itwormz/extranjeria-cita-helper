@@ -532,6 +532,9 @@ fn reset_session(
         if snapshot.profile.as_deref() != Some(id.as_str()) {
             return Err("search_already_running");
         }
+        if snapshot.manual {
+            return Err("search_manual");
+        }
         runtime.search.restart()?;
         return Ok("restarted");
     }
@@ -543,10 +546,16 @@ fn reset_session(
 }
 /// Python data folders that can be imported; the window picks one by name, never by path.
 #[tauri::command]
-fn legacy_candidates(window: WebviewWindow) -> Result<Vec<String>, &'static str> {
+fn legacy_candidates(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+) -> Result<Vec<String>, &'static str> {
     authorize(&window)?;
+    let own = runtime.root.canonicalize().ok();
     Ok(ceh_store::legacy_import::candidates(&ceh_desktop::legacy_support_dirs())
         .into_iter()
+        // This app's own data folder is never offered as a source of itself.
+        .filter(|c| c.path().canonicalize().ok() != own)
         .map(|c| c.name)
         .collect())
 }
@@ -563,8 +572,10 @@ async fn legacy_import(
     }
     let root = runtime.root.clone();
     tauri::async_runtime::spawn_blocking(move || {
+        let own = root.canonicalize().ok();
         let found = ceh_store::legacy_import::candidates(&ceh_desktop::legacy_support_dirs())
             .into_iter()
+            .filter(|c| c.path().canonicalize().ok() != own)
             .find(|c| c.name == name)
             .ok_or("legacy_not_found")?;
         let report = ceh_store::legacy_import::import(found.path(), &root).map_err(|error| match error {
@@ -619,7 +630,9 @@ fn main() {
                         {
                             std::thread::sleep(std::time::Duration::from_millis(100));
                         }
-                        let _ = window.destroy();
+                        if window.destroy().is_err() {
+                            CLOSING.store(false, Ordering::Release);
+                        }
                     });
                 }
             }
@@ -726,6 +739,31 @@ fn main() {
             achievement_export,
             open_public_link
         ])
-        .run(tauri::generate_context!())
-        .expect("desktop runtime failed");
+        .build(tauri::generate_context!())
+        .expect("desktop runtime failed")
+        .run(|app, event| {
+            // Cmd+Q / Quit bypasses the window's close request: stop an automatic search the same way.
+            if let tauri::RunEvent::ExitRequested { api, code: None, .. } = event {
+                use std::sync::atomic::{AtomicBool, Ordering};
+                static QUITTING: AtomicBool = AtomicBool::new(false);
+                let runtime = app.state::<DesktopRuntime>();
+                if runtime.search.shutdown() == ceh_desktop::search::ClosePlan::CloseNow {
+                    return;
+                }
+                api.prevent_exit();
+                if !QUITTING.swap(true, Ordering::AcqRel) {
+                    let app = app.clone();
+                    std::thread::spawn(move || {
+                        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+                        let runtime = app.state::<DesktopRuntime>();
+                        while std::time::Instant::now() < deadline
+                            && runtime.search.snapshot().map(|s| s.active).unwrap_or(false)
+                        {
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                        }
+                        app.exit(0);
+                    });
+                }
+            }
+        });
 }

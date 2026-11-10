@@ -281,8 +281,10 @@ impl SearchController {
                     &close_browser,
                 );
                 let requested_stop = stop.load(Ordering::Acquire);
+                let busy = result == Err("browser_profile_busy");
                 if let Err(code) = &result
                     && !requested_stop
+                    && !busy
                 {
                     let home = std::env::var("HOME").unwrap_or_default();
                     let found = FirefoxInstallation::discover().is_ok();
@@ -291,7 +293,7 @@ impl SearchController {
                         .and_then(|now| crate::startup_report::save_failure(&root, &home, code, found, now));
                     let _ = update(&state, |s| s.report_id = id);
                 }
-                if result.is_err() && !requested_stop {
+                if result.is_err() && !requested_stop && !busy {
                     notifications.observe(ceh_services::notifications::NotificationStateInput {
                         failed: true,
                         ..Default::default()
@@ -449,7 +451,11 @@ fn run(
     let installation = FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
     // One persistent browser profile per search profile, as in Python: cookies survive between runs and
     // "reset session" deletes it.
-    let lease = ProfileLease::persistent(root, &profile.id).map_err(|_| "browser_profile_unavailable")?;
+    let lease = ProfileLease::persistent(root, &profile.id).map_err(|error| match error {
+        // The previous search's browser is still open (kept for the person, or its window just closed).
+        ceh_browser::firefox::FirefoxError::ProfileBusy => "browser_profile_busy",
+        _ => "browser_profile_unavailable",
+    })?;
     let mut browser =
         OwnedFirefox::start(&installation, lease, false, cancelled).map_err(|error| {
             if error == ceh_browser::firefox::FirefoxError::CertificateCache {
@@ -481,7 +487,9 @@ fn run(
     );
     // Window closing during an automatic search closes the app's own browser; anything else (a stop, an
     // error, a booking handed over) keeps it open for the person.
-    if !(close_browser.load(Ordering::Acquire) && browser.stop().is_ok()) {
+    // A page the person closed leaves nothing to preserve: quit the browser so its profile is free again.
+    let closed = (close_browser.load(Ordering::Acquire) && browser.stop().is_ok()) || browser.quit_if_page_gone();
+    if !closed {
         browser.handoff();
     }
     if let Ok(mut player) = sound.lock() {
@@ -1089,6 +1097,7 @@ fn run_owned(
         }
     })();
     diagnostics.stop_collector(browser.connection(), &mut driver);
+    diagnostics.finish(&mut driver);
     let at = wall()?;
     let reason = if result.is_err() { "error" } else { "stopped" };
     stats

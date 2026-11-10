@@ -37,6 +37,7 @@ impl SearchDiagnostics {
         self.enabled = enabled;
         if !enabled {
             self.stop_collector(connection, driver);
+            self.finish(driver);
             return;
         }
         let Ok(now) = crate::current_time() else { return };
@@ -59,10 +60,18 @@ impl SearchDiagnostics {
 
     pub(crate) fn stop_collector(&mut self, connection: &mut BidiConnection, driver: &mut SessionDriver) {
         let _ = driver.set_passive_diagnostics(false);
-        driver.set_network_journal(None);
         if let Some(collector) = self.collector.take() {
             let _ = connection.call("network.removeDataCollector", json!({"collector":collector}));
         }
+    }
+
+    /// Write the rows still queued and stop the traffic journal (disabled, or the search ends): the last
+    /// requests before a stop or an error are often the ones that matter.
+    pub(crate) fn finish(&mut self, driver: &mut SessionDriver) {
+        if let Some(directory) = &self.directory {
+            append_network_rows(&directory.join("icp-network.jsonl"), driver.take_network_rows());
+        }
+        driver.set_network_journal(None);
     }
 
     pub(crate) fn observe(&mut self, step: &NativeStep, connection: &mut BidiConnection, driver: &mut SessionDriver) {

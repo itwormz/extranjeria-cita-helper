@@ -30,7 +30,7 @@ struct NetworkTap {
     journal: crate::icp_journal::IcpNetworkJournal,
     wall: Box<dyn Fn() -> String + Send>,
     started: std::time::Instant,
-    rows: Vec<serde_json::Value>,
+    rows: std::collections::VecDeque<serde_json::Value>,
 }
 const MAX_NETWORK_ROWS: usize = 2000;
 impl PageObserver {
@@ -61,11 +61,12 @@ impl PageObserver {
         }
         if let Some(tap) = &mut self.network {
             let now = tap.started.elapsed().as_secs_f64();
-            if let Some(row) = tap.journal.record(event, now, &(tap.wall)()) {
+            let wall = &tap.wall;
+            if let Some(row) = tap.journal.record_with(event, now, || wall()) {
                 if tap.rows.len() >= MAX_NETWORK_ROWS {
-                    tap.rows.remove(0);
+                    tap.rows.pop_front();
                 }
-                tap.rows.push(row);
+                tap.rows.push_back(row);
             }
         }
         let ours = event["params"]["context"].as_str() == Some(self.context.as_str());
@@ -91,11 +92,11 @@ impl PageObserver {
             journal: crate::icp_journal::IcpNetworkJournal::new(),
             wall,
             started: std::time::Instant::now(),
-            rows: Vec::new(),
+            rows: std::collections::VecDeque::new(),
         });
     }
     pub fn take_network_rows(&mut self) -> Vec<serde_json::Value> {
-        self.network.as_mut().map(|tap| std::mem::take(&mut tap.rows)).unwrap_or_default()
+        self.network.as_mut().map(|tap| std::mem::take(&mut tap.rows).into()).unwrap_or_default()
     }
     /// No request of the page is in flight (Python waits for `networkidle` during the F5 warm-up).
     pub fn network_quiet(&self) -> bool {

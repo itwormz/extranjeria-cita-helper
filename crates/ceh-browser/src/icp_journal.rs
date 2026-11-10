@@ -45,6 +45,10 @@ impl IcpNetworkJournal {
     /// The row for a network event of the appointment site, or `None` for anything else.
     /// `now` is monotonic seconds, `wall` the local ISO time of the event.
     pub fn record(&mut self, event: &Value, now: f64, wall: &str) -> Option<Value> {
+        self.record_with(event, now, || wall.to_owned())
+    }
+    /// Like `record`, but the wall-clock text is only produced for a row that is actually written.
+    pub fn record_with(&mut self, event: &Value, now: f64, wall: impl FnOnce() -> String) -> Option<Value> {
         let kind = match event["method"].as_str()? {
             "network.beforeRequestSent" => "request",
             "network.responseCompleted" => "response",
@@ -57,7 +61,7 @@ impl IcpNetworkJournal {
             return None;
         }
         let mut row = Map::new();
-        row.insert("time".into(), json!(wall));
+        row.insert("time".into(), json!(wall()));
         row.insert("event".into(), json!(kind));
         row.insert("method".into(), json!(request["method"].as_str().unwrap_or("")));
         row.insert("endpoint".into(), json!(endpoint(url.path())));

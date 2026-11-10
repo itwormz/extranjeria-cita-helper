@@ -234,10 +234,36 @@ impl ProfileLease {
         drop(lease);
         fs::remove_dir_all(&path).map_err(|_| FirefoxError::InvalidProfile)
     }
+    /// Firefox's own profile lock (`lock` symlink naming `ip:+pid`) belongs to a live browser: a browser
+    /// that outlived this app still holds the profile although this app's flock is gone.
+    fn firefox_running_in(path: &Path) -> bool {
+        #[cfg(unix)]
+        {
+            let Ok(target) = fs::read_link(path.join("lock")) else { return false };
+            let Some(pid) = target.to_str().and_then(|t| t.rsplit_once(":+")).and_then(|(_, pid)| pid.parse::<u32>().ok()) else {
+                return false;
+            };
+            // Signal 0 only checks that the process exists.
+            return std::process::Command::new("kill")
+                .args(["-0", &pid.to_string()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|status| status.success());
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = path;
+            false
+        }
+    }
     fn lease(path: PathBuf, temporary: Option<tempfile::TempDir>) -> Result<Self, FirefoxError> {
         let lock_path = path.join("ceh-owner.lock");
         if fs::symlink_metadata(&lock_path).is_ok_and(|m| m.file_type().is_symlink()) {
             return Err(FirefoxError::InvalidProfile);
+        }
+        if Self::firefox_running_in(&path) {
+            return Err(FirefoxError::ProfileBusy);
         }
         let lock = OpenOptions::new()
             .read(true)
@@ -451,6 +477,20 @@ impl OwnedFirefox {
             // A hiccup is not a closed page; a dead connection is.
             Err(_) => connection.available(),
         }
+    }
+    /// When the page this app opened is gone (the person closed it) there is nothing to preserve: quit the
+    /// browser even after a handoff, so its profile is free for the next search. `true` when it was quit.
+    pub fn quit_if_page_gone(&mut self) -> bool {
+        if self.page_open() {
+            return false;
+        }
+        self.connection.take();
+        if let Some(mut child) = self.child.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+        self.profile.take();
+        true
     }
     pub fn process_id(&self) -> Option<u32> {
         self.child.as_ref().map(Child::id)

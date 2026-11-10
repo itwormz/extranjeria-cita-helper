@@ -222,3 +222,46 @@ fn real_firefox_reports_when_the_person_closes_the_page() {
     assert!(!browser.page_open());
     let _ = browser.stop();
 }
+
+#[cfg(unix)]
+#[test]
+fn a_profile_held_by_a_live_firefox_is_busy_even_without_this_apps_lock() {
+    // After an app restart the flock is gone, but Firefox's own `lock` symlink names its live pid.
+    let root = tempfile::tempdir().unwrap();
+    let held = ProfileLease::persistent(root.path(), "orphan").unwrap();
+    let path = held.path().to_owned();
+    drop(held);
+    let lock = path.join("lock");
+    let alive = format!("127.0.0.1:+{}", std::process::id());
+    std::os::unix::fs::symlink(&alive, &lock).unwrap();
+    assert!(matches!(ProfileLease::persistent(root.path(), "orphan"), Err(FirefoxError::ProfileBusy)));
+    assert!(matches!(ProfileLease::reset_persistent(root.path(), "orphan"), Err(FirefoxError::ProfileBusy)));
+    assert!(path.exists(), "a live browser's profile is never deleted");
+    // A stale lock left by a crash (dead pid) does not block.
+    std::fs::remove_file(&lock).unwrap();
+    std::os::unix::fs::symlink("127.0.0.1:+2147483646", &lock).unwrap();
+    drop(ProfileLease::persistent(root.path(), "orphan").unwrap());
+    ProfileLease::reset_persistent(root.path(), "orphan").unwrap();
+    assert!(!path.exists());
+}
+
+/// Launches the installed Firefox (headless, temporary profile): run with `-- --ignored`.
+#[test]
+#[ignore = "launches the installed Firefox"]
+fn a_page_that_is_gone_lets_the_app_quit_the_browser_even_after_a_handoff() {
+    use ceh_browser::firefox::OwnedFirefox;
+    use std::sync::atomic::AtomicBool;
+    let Ok(installation) = FirefoxInstallation::discover() else { return };
+    let runtime = tempfile::tempdir().unwrap();
+    let lease = ProfileLease::persistent(runtime.path(), "gone").unwrap();
+    let mut browser = OwnedFirefox::start(&installation, lease, true, &AtomicBool::new(false)).unwrap();
+    browser.handoff();
+    assert!(!browser.quit_if_page_gone(), "an open page keeps the browser");
+    let context = browser.context().to_owned();
+    browser.connection().call("browsingContext.create", serde_json::json!({"type":"tab"})).unwrap();
+    browser.connection().call("browsingContext.close", serde_json::json!({"context":context})).unwrap();
+    assert!(browser.quit_if_page_gone(), "the person's page is gone: nothing to preserve");
+    // The profile lease is released, so the next search can start.
+    drop(browser);
+    drop(ProfileLease::persistent(runtime.path(), "gone").unwrap());
+}
