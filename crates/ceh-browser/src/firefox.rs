@@ -232,7 +232,21 @@ impl ProfileLease {
         // Holding the lease proves no browser of this app uses the profile while it is removed.
         let lease = Self::lease(path.clone(), None)?;
         drop(lease);
-        fs::remove_dir_all(&path).map_err(|_| FirefoxError::InvalidProfile)
+        // Move the profile aside first: the key is free at once, and a deletion that fails midway (files
+        // still held by a dying browser) can never leave an unmarked half profile under the key.
+        let parent = path.parent().ok_or(FirefoxError::InvalidProfile)?.to_owned();
+        let prefix = format!("firefox-{key}.deleting-");
+        if let Ok(entries) = fs::read_dir(&parent) {
+            for entry in entries.flatten() {
+                if entry.file_name().to_string_lossy().starts_with(&prefix) {
+                    let _ = fs::remove_dir_all(entry.path());
+                }
+            }
+        }
+        let tombstone = parent.join(format!("{prefix}{}", std::process::id()));
+        fs::rename(&path, &tombstone).map_err(|_| FirefoxError::InvalidProfile)?;
+        let _ = fs::remove_dir_all(&tombstone);
+        Ok(())
     }
     /// Firefox's own profile lock (`lock` symlink naming `ip:+pid`) belongs to a live browser: a browser
     /// that outlived this app still holds the profile although this app's flock is gone.

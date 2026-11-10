@@ -39,3 +39,19 @@ fn driver_uses_profile_policies_and_rejects_pause_resume_after_permanent_handoff
         Err(BrowserError::ManualOwnership)
     ));
 }
+
+use ceh_browser::session_driver::recovery_memory;
+use ceh_core::{model::{ActionKind, DocumentId}, recovery::RecoveryAction};
+#[test]
+fn a_reload_keeps_the_action_it_repeats_and_a_recovery_get_forgets_it() {
+    let doc = DocumentId::new("doc").unwrap();
+    let before = (Some(ActionKind::Request), Some((doc.clone(), ActionKind::Request)));
+    // Python: the repeated availability search stays a "request" for the next retry step.
+    assert_eq!(recovery_memory(RecoveryAction::Reload, before.0, before.1.clone()), (Some(ActionKind::Request), None));
+    let pending_only = (None, Some((doc.clone(), ActionKind::Request)));
+    assert_eq!(recovery_memory(RecoveryAction::Reload, pending_only.0, pending_only.1), (Some(ActionKind::Request), None));
+    // `last_action = pending_action = None` after the recovery GET.
+    for action in [RecoveryAction::GetCurrent, RecoveryAction::GetEntry] {
+        assert_eq!(recovery_memory(action, before.0, before.1.clone()), (None, None));
+    }
+}

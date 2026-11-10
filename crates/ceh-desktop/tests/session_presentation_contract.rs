@@ -245,3 +245,17 @@ fn a_new_core_alert_rearms_after_a_previous_one_shot() {
         SoundCommand::Play
     );
 }
+
+#[test]
+fn a_new_pass_starts_a_new_authority_so_the_presenter_must_be_rebuilt_with_it() {
+    let mut authority = Authority::new(session());
+    let mut presenter = SessionPresentation::new(session(), 3000);
+    presenter.update(&authority.pause().unwrap(), 1, 0, frame(), &[]).unwrap();
+    presenter.update(&authority.resume().unwrap(), 2, 1, frame(), &[]).unwrap();
+    // A new pass builds a new driver and gate (epoch 0) for the same search: the old presenter refuses it...
+    let fresh = Authority::new(session());
+    assert!(presenter.update(&fresh.snapshot(), 3, 2, frame(), &[]).is_err());
+    // ...and a presenter created with the new pass accepts it.
+    let mut rebuilt = SessionPresentation::new(session(), 3000);
+    assert!(rebuilt.update(&fresh.snapshot(), 3, 2, frame(), &[]).is_ok());
+}

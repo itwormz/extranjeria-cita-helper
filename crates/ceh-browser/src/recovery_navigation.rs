@@ -39,9 +39,12 @@ pub fn plan_navigation(
             .filter(|url| official_url(url))
             .map(|url| NavigationRecovery::Get(url.to_owned()))
             .ok_or(BrowserError::Unsupported),
-        RecoveryAction::Reload if snapshot.official => {
+        RecoveryAction::Reload => {
             let previous = snapshot.pending_action.as_deref().or(snapshot.last_action.as_deref());
-            let repeatable_search = observed.method == RequestMethod::Post
+            // Python reloads any GET page (a certificate service outside the site too); only the availability
+            // search of the official site may be repeated from a POST.
+            let repeatable_search = snapshot.official
+                && observed.method == RequestMethod::Post
                 && snapshot.endpoint == "acCitar"
                 && previous == Some("request");
             if observed.method == RequestMethod::Get || repeatable_search {

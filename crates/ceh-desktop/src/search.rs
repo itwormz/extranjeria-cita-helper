@@ -1127,6 +1127,9 @@ fn run_owned(
                             )
                             .map_err(|_| "profile_invalid")?;
                             driver.apply_recovery_carry(carry.clone());
+                            diagnostics.rebind(&mut driver);
+                            // The new gate starts a new control authority; the presenter follows it.
+                            presenter = crate::session_presentation::SessionPresentation::new(session.clone(), 3000);
                             if browser
                                 .connection()
                                 .call("browsingContext.navigate", json!({"context":context,"url":ceh_browser::recovery_navigation::ENTRY_URL,"wait":"none"}))

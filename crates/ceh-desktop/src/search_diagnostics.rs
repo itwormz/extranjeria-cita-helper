@@ -58,6 +58,18 @@ impl SearchDiagnostics {
         })));
     }
 
+    /// A new pass builds a new driver in the same browser: give it the collection that is already running.
+    pub(crate) fn rebind(&mut self, driver: &mut SessionDriver) {
+        if self.enabled && self.directory.is_some() {
+            let _ = driver.set_passive_diagnostics(self.collector.is_some());
+            driver.set_network_journal(Some(Box::new(|| {
+                crate::current_time()
+                    .map(|now| now.with_timezone(&chrono_tz::Europe::Madrid).to_rfc3339())
+                    .unwrap_or_default()
+            })));
+        }
+    }
+
     pub(crate) fn stop_collector(&mut self, connection: &mut BidiConnection, driver: &mut SessionDriver) {
         let _ = driver.set_passive_diagnostics(false);
         if let Some(collector) = self.collector.take() {

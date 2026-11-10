@@ -43,6 +43,11 @@ fn reload_follows_python_get_pages_and_the_repeatable_availability_search_only()
     assert_eq!(plan_navigation(RecoveryAction::Reload, &get, &gs, None), Ok(NavigationRecovery::Reload));
     let (search, ss) = page(PageKind::ServerError, RequestMethod::Post, true, "acCitar", Some("request"));
     assert_eq!(plan_navigation(RecoveryAction::Reload, &search, &ss, None), Ok(NavigationRecovery::Reload));
+    // Python reloads any GET page after a server error, including a certificate service outside the site.
+    let (foreign, fs) = page(PageKind::ServerError, RequestMethod::Get, false, "", None);
+    assert_eq!(plan_navigation(RecoveryAction::Reload, &foreign, &fs, None), Ok(NavigationRecovery::Reload));
+    let (foreign_post, fps) = page(PageKind::ServerError, RequestMethod::Post, false, "acCitar", Some("request"));
+    assert_eq!(plan_navigation(RecoveryAction::Reload, &foreign_post, &fps, None), Err(BrowserError::Unsupported));
     let (contact, cs) = page(PageKind::ServerError, RequestMethod::Post, true, "acEntrada", Some("contact"));
     assert_eq!(plan_navigation(RecoveryAction::Reload, &contact, &cs, None), Err(BrowserError::Unsupported));
 }

@@ -105,6 +105,20 @@ pub struct SessionDriver {
     confirm_appointment_round: bool,
     fresh_pass_requested: bool,
 }
+/// What the driver remembers of the previous action after a navigation recovery (Python `recover`): a
+/// recovery GET clears `last_action`/`pending_action`; a reload keeps the action it repeats, so the next
+/// server error still sees the availability search and reloads again instead of holding.
+pub fn recovery_memory(
+    action: ceh_core::recovery::RecoveryAction,
+    last: Option<ActionKind>,
+    pending: Option<(DocumentId, ActionKind)>,
+) -> (Option<ActionKind>, Option<(DocumentId, ActionKind)>) {
+    if action == ceh_core::recovery::RecoveryAction::Reload {
+        (last.or(pending.map(|(_, kind)| kind)), None)
+    } else {
+        (None, None)
+    }
+}
 impl SessionDriver {
     pub fn new(
         context: &str,
@@ -624,14 +638,11 @@ impl SessionDriver {
                     let outcome = crate::recovery_navigation::execute_navigation(
                         connection, &mut self.observer, &self.gate, guard, *action,
                     )?;
-                    if outcome == DispatchOutcome::Dispatched {
-                        // Python: `last_action = pending_action = None` after the recovery GET (a reload keeps the last action).
-                        self.pending = None;
-                        if *action != ceh_core::recovery::RecoveryAction::Reload {
-                            self.last = None;
-                        }
-                    }
+                    let before = (self.last, self.pending.clone());
                     self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts)?;
+                    if outcome == DispatchOutcome::Dispatched {
+                        (self.last, self.pending) = recovery_memory(*action, before.0, before.1);
+                    }
                 }
                 // Recovery that replaces the browser is handled by the lifecycle owner.
                 _ => {}

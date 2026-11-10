@@ -265,3 +265,24 @@ fn a_page_that_is_gone_lets_the_app_quit_the_browser_even_after_a_handoff() {
     drop(browser);
     drop(ProfileLease::persistent(runtime.path(), "gone").unwrap());
 }
+
+#[test]
+fn a_reset_never_leaves_an_unmarked_half_deleted_profile_behind() {
+    let root = tempfile::tempdir().unwrap();
+    let lease = ProfileLease::persistent(root.path(), "one").unwrap();
+    let path = lease.path().to_owned();
+    std::fs::create_dir(path.join("storage")).unwrap();
+    std::fs::write(path.join("storage/data"), "x").unwrap();
+    drop(lease);
+    // A tombstone of an earlier reset that could not be deleted completely is cleaned up by the next one.
+    let tombstone = path.parent().unwrap().join("firefox-one.deleting-1");
+    std::fs::create_dir(&tombstone).unwrap();
+    std::fs::write(tombstone.join("old"), "x").unwrap();
+    ProfileLease::reset_persistent(root.path(), "one").unwrap();
+    assert!(!path.exists());
+    assert!(!tombstone.exists());
+    let leftovers: Vec<_> = std::fs::read_dir(path.parent().unwrap()).unwrap().flatten().map(|e| e.file_name().into_string().unwrap()).collect();
+    assert!(leftovers.iter().all(|name| !name.contains("deleting")), "{leftovers:?}");
+    // The key is usable again with a fresh owned profile.
+    assert!(ProfileLease::persistent(root.path(), "one").unwrap().path().join("ceh-owned-profile").is_file());
+}
