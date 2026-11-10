@@ -452,6 +452,7 @@ impl SessionDriver {
                             &self.gate,
                             guard,
                             &crate::applicant::ApplicantInput::from_profile(&self.profile)?,
+                            Duration::from_secs_f64(self.contact_typing_ms / 1000.0),
                             deadline,
                         ),
                         ActionKind::Contact => {

@@ -2,9 +2,9 @@
 use crate::{
     BrowserError, DispatchGate, DispatchOutcome,
     bidi::BidiConnection,
-    mutation::{self, Receipt},
     observer::{ObservedPage, PageObserver},
     trusted_input::{self, Target},
+    typed_field,
 };
 use ceh_core::{
     flow::PreparationOutcome,
@@ -68,99 +68,25 @@ pub fn prepare_contact(
         ("email1", input.email.as_str()),
         ("email2", input.email.as_str()),
     ] {
-        if Instant::now() >= deadline {
-            return Ok(PreparationOutcome::Failed);
-        }
-        let mut fresh = fresh_page(connection, observer)?;
-        let mut permit = gate.begin_preparation(guard, &fresh.observation, ActionKind::Contact)?;
-        let verified = mutation::perform(
-            connection,
-            &mut permit,
-            &fresh,
-            input.payload("verify", field, ""),
-            SCRIPT,
-        )?;
-        if verified == Receipt::Unknown {
-            return Ok(PreparationOutcome::Unknown);
-        }
-        if verified == Receipt::Unchanged {
-            continue;
-        }
-        drop(permit);
-        let focused = trusted_input::focus(
+        let payload = |operation: &str, prefix: &str| input.payload(operation, field, prefix);
+        let spec = typed_field::Field {
+            action: ActionKind::Contact,
+            script: SCRIPT,
+            value,
+            payload: &payload,
+        };
+        let outcome = typed_field::enter(
             connection,
             observer,
             gate,
             guard,
-            fresh,
-            Target::icp(
-                ActionKind::Contact,
-                input.payload("target", field, ""),
-                SCRIPT,
-            ),
+            &spec,
+            &|connection, observer| fresh_page(connection, observer),
+            typing_delay,
+            deadline,
         )?;
-        match focused {
-            DispatchOutcome::Unknown => return Ok(PreparationOutcome::Unknown),
-            DispatchOutcome::NotDispatched => return Ok(PreparationOutcome::Failed),
-            DispatchOutcome::Dispatched => {}
-        }
-        fresh = fresh_page(connection, observer)?;
-        let mut permit = gate.begin_preparation(guard, &fresh.observation, ActionKind::Contact)?;
-        let cleared = mutation::perform(
-            connection,
-            &mut permit,
-            &fresh,
-            input.payload("clear", field, ""),
-            SCRIPT,
-        )?;
-        if cleared == Receipt::Unknown {
-            return Ok(PreparationOutcome::Unknown);
-        }
-        if !cleared.completed() {
-            return Ok(PreparationOutcome::Failed);
-        }
-        let mut prefix = String::new();
-        for character in value.chars() {
-            if Instant::now() >= deadline {
-                return Ok(PreparationOutcome::Failed);
-            }
-            let ready = mutation::perform(
-                connection,
-                &mut permit,
-                &fresh,
-                input.payload("ready_key", field, &prefix),
-                SCRIPT,
-            )?;
-            if ready == Receipt::Unknown {
-                return Ok(PreparationOutcome::Unknown);
-            }
-            if ready != Receipt::Unchanged {
-                return Ok(PreparationOutcome::Failed);
-            }
-            match trusted_input::key(connection, &mut permit, &fresh, character)? {
-                DispatchOutcome::Unknown => return Ok(PreparationOutcome::Unknown),
-                DispatchOutcome::NotDispatched => return Ok(PreparationOutcome::Failed),
-                DispatchOutcome::Dispatched => {}
-            }
-            prefix.push(character);
-            if !typing_delay.is_zero() {
-                std::thread::sleep(
-                    typing_delay.min(deadline.saturating_duration_since(Instant::now())),
-                );
-            }
-        }
-        let verified = mutation::perform(
-            connection,
-            &mut permit,
-            &fresh,
-            input.payload("verify", field, ""),
-            SCRIPT,
-        )?;
-        if verified == Receipt::Unknown {
-            return Ok(PreparationOutcome::Unknown);
-        }
-        if verified != Receipt::Unchanged {
-            return Ok(PreparationOutcome::Failed);
+        if outcome != PreparationOutcome::Completed {
+            return Ok(outcome);
         }
     }
     Ok(PreparationOutcome::Completed)

@@ -49,7 +49,6 @@ fn matcher_recognises_the_forbidden_forms_and_ignores_comparisons() {
 }
 
 #[test]
-#[ignore = "red until Task 5 of the browser-layer plan removes the last synthetic input"]
 fn step_scripts_never_mutate_the_page_directly() {
     let scripts = scripts();
     assert!(scripts.len() >= 15, "script list is incomplete: {}", scripts.len());

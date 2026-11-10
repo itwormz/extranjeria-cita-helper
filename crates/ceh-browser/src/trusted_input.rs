@@ -281,13 +281,79 @@ pub(crate) fn key(
     fresh: &ObservedPage,
     value: char,
 ) -> Result<DispatchOutcome, BrowserError> {
+    perform_keys(
+        connection,
+        permit,
+        fresh,
+        vec![
+            json!({"type":"keyDown","value":value.to_string()}),
+            json!({"type":"keyUp","value":value.to_string()}),
+        ],
+    )
+}
+/// Key actions that type `text` one character at a time (a select's type-ahead needs them in one chain).
+pub(crate) fn text_actions(text: &str) -> Vec<Value> {
+    text.chars()
+        .flat_map(|c| [json!({"type":"keyDown","value":c.to_string()}), json!({"type":"keyUp","value":c.to_string()})])
+        .collect()
+}
+pub(crate) fn type_text(
+    connection: &mut BidiConnection,
+    permit: &mut crate::ActionPermit,
+    fresh: &ObservedPage,
+    text: &str,
+) -> Result<DispatchOutcome, BrowserError> {
+    perform_keys(connection, permit, fresh, text_actions(text))
+}
+const ESCAPE: &str = "\u{E00C}";
+pub(crate) fn escape(
+    connection: &mut BidiConnection,
+    permit: &mut crate::ActionPermit,
+    fresh: &ObservedPage,
+) -> Result<DispatchOutcome, BrowserError> {
+    perform_keys(
+        connection,
+        permit,
+        fresh,
+        vec![json!({"type":"keyDown","value":ESCAPE}), json!({"type":"keyUp","value":ESCAPE})],
+    )
+}
+const BACKSPACE: &str = "\u{E003}";
+const META: &str = "\u{E03D}";
+const CONTROL: &str = "\u{E009}";
+/// Key actions that select the whole field and delete it: the platform modifier held around `a`, then Backspace.
+pub(crate) fn clear_actions(mac: bool) -> Vec<Value> {
+    let modifier = if mac { META } else { CONTROL };
+    vec![
+        json!({"type":"keyDown","value":modifier}),
+        json!({"type":"keyDown","value":"a"}),
+        json!({"type":"keyUp","value":"a"}),
+        json!({"type":"keyUp","value":modifier}),
+        json!({"type":"keyDown","value":BACKSPACE}),
+        json!({"type":"keyUp","value":BACKSPACE}),
+    ]
+}
+/// Select-all and delete in the focused field with the browser's own keyboard input.
+pub(crate) fn clear_field(
+    connection: &mut BidiConnection,
+    permit: &mut crate::ActionPermit,
+    fresh: &ObservedPage,
+) -> Result<DispatchOutcome, BrowserError> {
+    perform_keys(connection, permit, fresh, clear_actions(cfg!(target_os = "macos")))
+}
+fn perform_keys(
+    connection: &mut BidiConnection,
+    permit: &mut crate::ActionPermit,
+    fresh: &ObservedPage,
+    actions: Vec<Value>,
+) -> Result<DispatchOutcome, BrowserError> {
     let context = &fresh
         .page
         .sources
         .first()
         .ok_or(BrowserError::NoObservation)?
         .context;
-    let params = json!({"context":context,"actions":[{"type":"key","id":"ceh-keyboard","actions":[{"type":"keyDown","value":value.to_string()},{"type":"keyUp","value":value.to_string()}]}]});
+    let params = json!({"context":context,"actions":[{"type":"key","id":"ceh-keyboard","actions":actions}]});
     let mut ticket = None;
     let sent = permit.send(&fresh.observation, || {
         send(connection, "input.performActions", params, &mut ticket)
@@ -304,4 +370,82 @@ pub(crate) fn key(
     };
     permit.complete_step(outcome)?;
     Ok(outcome)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn labels_are_typed_as_one_down_up_pair_per_character() {
+        let actions = text_actions("ÑA (1)");
+        assert_eq!(actions.len(), 12);
+        let typed: String = actions.iter().filter(|a| a["type"] == "keyDown").map(|a| a["value"].as_str().unwrap()).collect();
+        assert_eq!(typed, "ÑA (1)");
+        assert!(actions.chunks(2).all(|pair| pair[0]["type"] == "keyDown" && pair[1]["type"] == "keyUp" && pair[0]["value"] == pair[1]["value"]));
+    }
+    #[test]
+    fn clear_holds_the_platform_modifier_around_a_then_deletes() {
+        for (mac, modifier) in [(true, META), (false, CONTROL)] {
+            let actions = clear_actions(mac);
+            let sequence: Vec<_> = actions.iter().map(|a| (a["type"].as_str().unwrap(), a["value"].as_str().unwrap())).collect();
+            assert_eq!(sequence, vec![
+                ("keyDown", modifier), ("keyDown", "a"), ("keyUp", "a"), ("keyUp", modifier),
+                ("keyDown", BACKSPACE), ("keyUp", BACKSPACE),
+            ]);
+        }
+    }
+
+    /// Launches the installed Firefox (headless, temporary profile) on a 127.0.0.1 page: run with `-- --ignored`.
+    #[test]
+    #[ignore = "launches the installed Firefox"]
+    fn real_firefox_reports_only_trusted_events_for_clear_text_and_select() {
+        use crate::firefox::{FirefoxInstallation, OwnedFirefox, ProfileLease};
+        use std::io::{Read, Write};
+        let Ok(installation) = FirefoxInstallation::discover() else { return };
+        let page = include_str!("../tests/fixtures/trusted-events.html");
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/", listener.local_addr().unwrap());
+        std::thread::spawn(move || {
+            for mut stream in listener.incoming().flatten() {
+                let mut buffer = [0u8; 1024];
+                let _ = stream.read(&mut buffer);
+                let _ = write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{page}", page.len());
+            }
+        });
+        let runtime = tempfile::tempdir().unwrap();
+        let lease = ProfileLease::temporary(runtime.path()).unwrap();
+        let mut browser = OwnedFirefox::start(&installation, lease, true, &std::sync::atomic::AtomicBool::new(false)).unwrap();
+        let context = browser.context().to_owned();
+        let mut call = |browser: &mut OwnedFirefox, method: &str, params: Value| {
+            let result = browser.connection().call(method, params).unwrap();
+            let _ = browser.connection().take_events();
+            result
+        };
+        call(&mut browser, "browsingContext.navigate", json!({"context":context,"url":url,"wait":"complete"}));
+        let mut eval = |browser: &mut OwnedFirefox, expression: &str| -> Value {
+            let result = call(browser, "script.evaluate", json!({"expression":format!("JSON.stringify({expression})"),"target":{"context":context},"awaitPromise":false}));
+            serde_json::from_str(result["result"]["value"].as_str().unwrap()).unwrap()
+        };
+        let keys = |browser: &mut OwnedFirefox, actions: Vec<Value>| {
+            browser.connection().call("input.performActions", json!({"context":context,"actions":[{"type":"key","id":"k","actions":actions}]})).unwrap();
+            let _ = browser.connection().take_events();
+            std::thread::sleep(std::time::Duration::from_millis(150));
+        };
+        // Test-only focus; production focus is a trusted pointer press.
+        let focus = |browser: &mut OwnedFirefox, id: &str| {
+            let _ = browser.connection().call("script.evaluate", json!({"expression":format!("document.getElementById('{id}').focus()"),"target":{"context":context},"awaitPromise":false}));
+        };
+        focus(&mut browser, "txtIdCitado");
+        keys(&mut browser, text_actions("Y1234567X"));
+        assert_eq!(eval(&mut browser, "document.getElementById('txtIdCitado').value"), json!("Y1234567X"));
+        keys(&mut browser, clear_actions(cfg!(target_os = "macos")));
+        assert_eq!(eval(&mut browser, "document.getElementById('txtIdCitado').value"), json!(""));
+        focus(&mut browser, "txtPaisNac");
+        keys(&mut browser, text_actions("UCRANIA (EX)"));
+        assert_eq!(eval(&mut browser, "document.getElementById('txtPaisNac').selectedOptions[0].label"), json!("UCRANIA (EX)"));
+        let events = eval(&mut browser, "window.__events.filter(e=>['input','change'].includes(e.type)).map(e=>e.trusted)");
+        assert!(events.as_array().unwrap().len() >= 3 && events.as_array().unwrap().iter().all(|v| v == true), "{events}");
+        assert_eq!(eval(&mut browser, "window.__events.filter(e=>!e.trusted).length"), json!(0));
+        let _ = browser.stop();
+    }
 }

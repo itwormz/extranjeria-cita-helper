@@ -3,6 +3,7 @@ use crate::{
     BrowserError, DispatchGate, DispatchOutcome,
     bidi::BidiConnection,
     observer::{ObservedPage, PageObserver},
+    typed_select,
 };
 use ceh_core::{
     flow::PreparationOutcome,
@@ -51,6 +52,9 @@ impl Selection {
     pub fn action(&self) -> ActionKind {
         self.action
     }
+    fn payload(&self, operation: &str) -> serde_json::Value {
+        json!({"operation":operation,"province":self.action==ActionKind::Province,"office":self.action==ActionKind::Office,"labels":self.labels})
+    }
     fn page_kind(&self) -> PageKind {
         match self.action {
             ActionKind::Province => PageKind::Province,
@@ -75,8 +79,8 @@ fn fresh_page(
     }
     Ok(fresh)
 }
-/// Wait only for proven non-mutating readiness failures, within the caller's
-/// profile timing budget. Unknown/partial delivery is never retried.
+/// Choose the option with the browser's own keyboard input. Waits only for proven non-mutating
+/// readiness failures, within the caller's profile timing budget; unknown delivery is never retried.
 pub fn prepare_selection(
     connection: &mut BidiConnection,
     observer: &mut PageObserver,
@@ -85,34 +89,16 @@ pub fn prepare_selection(
     selection: &Selection,
     deadline: Instant,
 ) -> Result<PreparationOutcome, BrowserError> {
+    let payload = |operation: &str| selection.payload(operation);
+    let choice = typed_select::Choice { action: selection.action, script: SCRIPT, payload: &payload };
     while Instant::now() < deadline {
-        let fresh = fresh_page(connection, observer, selection)?;
-        let payload = json!({"prepare":true,"province":selection.action==ActionKind::Province,"office":selection.action==ActionKind::Office,"labels":selection.labels});
-        let function = format!("raw=>{{const prepare={SCRIPT};return prepare(JSON.parse(raw));}}");
-        let params = json!({"target":{"realm":fresh.observation.document.as_str()},"awaitPromise":false,"functionDeclaration":function,"arguments":[{"type":"string","value":payload.to_string()}]});
-        let mut permit = gate.begin_preparation(guard, &fresh.observation, selection.action)?;
-        let mut ticket = None;
-        let sent = permit.send(&fresh.observation, || match connection.send("script.callFunction", params) {
-            Ok(value) => { ticket = Some(value); DispatchOutcome::Unknown }
-            Err(_) => DispatchOutcome::Unknown,
-        })?;
-        let result = match ticket {
-            Some(ticket) => connection.receive(ticket).ok(),
-            None if sent == DispatchOutcome::NotDispatched => return Ok(PreparationOutcome::Failed),
-            None => None,
-        };
-        match result.as_ref().and_then(|v| v["result"]["value"].as_str()) {
-            Some("completed") => {
-                permit.complete_step(DispatchOutcome::Dispatched)?;
-                return Ok(PreparationOutcome::Completed);
-            }
-            Some("refused") => {
-                permit.complete_step(DispatchOutcome::NotDispatched)?;
+        match typed_select::choose(connection, observer, gate, guard, &choice, &|connection, observer| {
+            fresh_page(connection, observer, selection)
+        })? {
+            typed_select::Chosen::Done => return Ok(PreparationOutcome::Completed),
+            typed_select::Chosen::Unknown => return Ok(PreparationOutcome::Unknown),
+            typed_select::Chosen::NotReady => {
                 std::thread::sleep(Duration::from_millis(100).min(deadline.saturating_duration_since(Instant::now())));
-            }
-            _ => {
-                permit.complete_step(DispatchOutcome::Unknown)?;
-                return Ok(PreparationOutcome::Unknown);
             }
         }
     }
@@ -131,7 +117,7 @@ pub fn activate_selection(
         if fresh.observation.document != guard.document {
             return Err(BrowserError::StaleDocument);
         }
-        let payload = json!({"submit":true,"province":selection.action==ActionKind::Province,"office":selection.action==ActionKind::Office,"labels":selection.labels});
+        let payload = selection.payload("submit");
         match crate::trusted_input::click(
             connection,
             observer,

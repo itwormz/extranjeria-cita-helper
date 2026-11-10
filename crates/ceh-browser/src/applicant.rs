@@ -4,6 +4,7 @@ use crate::{
     bidi::BidiConnection,
     mutation::{self, Receipt},
     observer::{ObservedPage, PageObserver},
+    typed_field, typed_select,
 };
 use ceh_core::{
     flow::PreparationOutcome,
@@ -83,7 +84,10 @@ impl ApplicantInput {
         if self.copy { "copy" } else { "manual" }
     }
     fn payload(&self, operation: &str) -> Value {
-        json!({"operation":operation,"fillMode":self.mode(),"regreso":self.regreso,"copy":self.copy,"documentType":self.document_type,"number":self.number,"name":self.name,"nationality":self.nationality})
+        self.field_payload(operation, "", "")
+    }
+    fn field_payload(&self, operation: &str, field: &str, prefix: &str) -> Value {
+        json!({"operation":operation,"field":field,"prefix":prefix,"fillMode":self.mode(),"regreso":self.regreso,"copy":self.copy,"documentType":self.document_type,"number":self.number,"name":self.name,"nationality":self.nationality})
     }
 }
 fn fresh_page(
@@ -108,19 +112,73 @@ fn fresh_page(
     }
     Ok(fresh)
 }
-pub fn prepare_applicant(
+/// Press an element with the browser's own pointer, then wait for the page to show the expected state.
+/// `satisfied` and `verify` are read-only script operations, `target` resolves the element to press.
+fn press_until(
     connection: &mut BidiConnection,
     observer: &mut PageObserver,
     gate: &DispatchGate,
     guard: &DocumentGuard,
     input: &ApplicantInput,
     deadline: Instant,
+    (satisfied, target, verify): (&str, &str, &str),
 ) -> Result<PreparationOutcome, BrowserError> {
+    let fresh = fresh_page(connection, observer, input)?;
+    let mut permit = gate.begin_preparation(guard, &fresh.observation, ActionKind::Applicant)?;
+    match mutation::perform(connection, &mut permit, &fresh, input.payload(satisfied), SCRIPT)? {
+        Receipt::Unchanged | Receipt::Changed => return Ok(PreparationOutcome::Completed),
+        Receipt::Unknown => return Ok(PreparationOutcome::Unknown),
+        Receipt::Refused => {}
+    }
+    drop(permit);
+    match crate::trusted_input::focus(
+        connection,
+        observer,
+        gate,
+        guard,
+        fresh,
+        crate::trusted_input::Target::icp(ActionKind::Applicant, input.payload(target), SCRIPT),
+    )? {
+        DispatchOutcome::Unknown => return Ok(PreparationOutcome::Unknown),
+        DispatchOutcome::NotDispatched => return Ok(PreparationOutcome::Failed),
+        DispatchOutcome::Dispatched => {}
+    }
+    loop {
+        if Instant::now() >= deadline {
+            return Ok(PreparationOutcome::Failed);
+        }
+        let fresh = fresh_page(connection, observer, input)?;
+        let mut permit = gate.begin_preparation(guard, &fresh.observation, ActionKind::Applicant)?;
+        match mutation::perform(connection, &mut permit, &fresh, input.payload(verify), SCRIPT)? {
+            Receipt::Unchanged | Receipt::Changed => return Ok(PreparationOutcome::Completed),
+            Receipt::Unknown => return Ok(PreparationOutcome::Unknown),
+            Receipt::Refused => {}
+        }
+        drop(permit);
+        let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+            return Ok(PreparationOutcome::Failed);
+        };
+        std::thread::sleep(remaining.min(Duration::from_millis(250)));
+    }
+}
+/// Fill the applicant form with the browser's own input only: pointer for the document type and the
+/// copy button, keyboard for text and for the nationality list. Scripts only read and resolve elements.
+pub fn prepare_applicant(
+    connection: &mut BidiConnection,
+    observer: &mut PageObserver,
+    gate: &DispatchGate,
+    guard: &DocumentGuard,
+    input: &ApplicantInput,
+    typing_delay: Duration,
+    deadline: Instant,
+) -> Result<PreparationOutcome, BrowserError> {
+    if typing_delay > Duration::from_millis(250) {
+        return Err(BrowserError::Unsupported);
+    }
     if Instant::now() >= deadline {
         return Ok(PreparationOutcome::Failed);
     }
-    let mut fresh = fresh_page(connection, observer, input)?;
-    let mut permit = gate.begin_preparation(guard, &fresh.observation, ActionKind::Applicant)?;
+    let page = |connection: &mut BidiConnection, observer: &mut PageObserver| fresh_page(connection, observer, input);
     let mut operations = if input.copy {
         vec!["copy", "verify_copy"]
     } else {
@@ -130,30 +188,48 @@ pub fn prepare_applicant(
         operations.push("nationality");
     }
     for operation in operations {
-        loop {
-            if Instant::now() >= deadline {
-                return Ok(PreparationOutcome::Failed);
+        let outcome = match operation {
+            "document_type" => press_until(connection, observer, gate, guard, input, deadline, ("verify_document_type", "target_document_type", "verify_document_type"))?,
+            "copy" => press_until(connection, observer, gate, guard, input, deadline, ("verify_copy_ready", "target_copy", "verify_copy"))?,
+            "verify_copy" => {
+                let fresh = fresh_page(connection, observer, input)?;
+                let mut permit = gate.begin_preparation(guard, &fresh.observation, ActionKind::Applicant)?;
+                match mutation::perform(connection, &mut permit, &fresh, input.payload("verify_copy"), SCRIPT)? {
+                    Receipt::Unchanged | Receipt::Changed => PreparationOutcome::Completed,
+                    Receipt::Unknown => PreparationOutcome::Unknown,
+                    Receipt::Refused => PreparationOutcome::Failed,
+                }
             }
-            let result = mutation::perform(
-                connection,
-                &mut permit,
-                &fresh,
-                input.payload(operation),
-                SCRIPT,
-            )?;
-            if result.completed() {
-                break;
+            "number" | "name" => {
+                let payload = |op: &str, prefix: &str| input.field_payload(op, operation, prefix);
+                let spec = typed_field::Field {
+                    action: ActionKind::Applicant,
+                    script: SCRIPT,
+                    value: if operation == "number" { &input.number } else { &input.name },
+                    payload: &payload,
+                };
+                typed_field::enter(connection, observer, gate, guard, &spec, &page, typing_delay, deadline)?
             }
-            if result == Receipt::Unknown {
-                return Ok(PreparationOutcome::Unknown);
+            _ => {
+                let payload = |op: &str| input.field_payload(op, "nationality", "");
+                let choice = typed_select::Choice { action: ActionKind::Applicant, script: SCRIPT, payload: &payload };
+                loop {
+                    if Instant::now() >= deadline {
+                        break PreparationOutcome::Failed;
+                    }
+                    match typed_select::choose(connection, observer, gate, guard, &choice, &page)? {
+                        typed_select::Chosen::Done => break PreparationOutcome::Completed,
+                        typed_select::Chosen::Unknown => break PreparationOutcome::Unknown,
+                        typed_select::Chosen::NotReady => std::thread::sleep(
+                            Duration::from_millis(250).min(deadline.saturating_duration_since(Instant::now())),
+                        ),
+                    }
+                }
             }
-            let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
-                return Ok(PreparationOutcome::Failed);
-            };
-            std::thread::sleep(remaining.min(Duration::from_millis(250)));
-            fresh = fresh_page(connection, observer, input)?;
+        };
+        if outcome != PreparationOutcome::Completed {
+            return Ok(outcome);
         }
-        fresh = fresh_page(connection, observer, input)?;
     }
     Ok(PreparationOutcome::Completed)
 }

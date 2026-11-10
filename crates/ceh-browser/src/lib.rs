@@ -27,6 +27,10 @@ pub mod request;
 pub mod selection;
 #[cfg(feature = "bidi")]
 mod trusted_input;
+#[cfg(feature = "bidi")]
+mod typed_field;
+#[cfg(feature = "bidi")]
+mod typed_select;
 use ceh_core::control::{Authority, ControlError, ControlMode, ControlSnapshot};
 use ceh_core::model::{ActionKind, DocumentGuard, Observation, Ownership, SessionId};
 pub use dispatch::{ActionPermit, DispatchGate};
