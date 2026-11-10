@@ -608,6 +608,24 @@ impl SessionDriver {
                     let outcome = crate::refresh::start_fresh_pass(connection, &mut self.observer, &self.gate, guard)?;
                     self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts)?;
                 }
+                FlowEffect::Recover {
+                    guard,
+                    action: action @ (ceh_core::recovery::RecoveryAction::Reload
+                    | ceh_core::recovery::RecoveryAction::GetCurrent
+                    | ceh_core::recovery::RecoveryAction::GetEntry),
+                } => {
+                    let outcome = crate::recovery_navigation::execute_navigation(
+                        connection, &mut self.observer, &self.gate, guard, *action,
+                    )?;
+                    if outcome == DispatchOutcome::Dispatched {
+                        // Python: `last_action = pending_action = None` after the recovery GET (a reload keeps the last action).
+                        self.pending = None;
+                        if *action != ceh_core::recovery::RecoveryAction::Reload {
+                            self.last = None;
+                        }
+                    }
+                    self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts)?;
+                }
                 // Recovery that replaces the browser is handled by the lifecycle owner.
                 _ => {}
             }
