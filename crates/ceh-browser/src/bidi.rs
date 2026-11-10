@@ -21,6 +21,57 @@ pub enum ProtocolError {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ticket(u64);
+const MAX_COMMAND_LOG: usize = 5000;
+
+/// A privacy-safe summary of a command for the diagnostics timeline: counts, durations and the hash of our
+/// own script text. Typed values, key values, node ids, script arguments and URL queries never appear.
+pub fn sanitize_command(method: &str, params: &Value) -> Value {
+    match method {
+        "input.performActions" => {
+            let mut counts = serde_json::Map::new();
+            let mut add = |key: &str, amount: u64| {
+                let entry = counts.entry(key.to_owned()).or_insert(json!(0));
+                *entry = json!(entry.as_u64().unwrap_or(0) + amount);
+            };
+            for source in params["actions"].as_array().into_iter().flatten() {
+                for action in source["actions"].as_array().into_iter().flatten() {
+                    let duration = action["duration"].as_u64().unwrap_or(0);
+                    match action["type"].as_str().unwrap_or("") {
+                        "keyDown" => add("key_down", 1),
+                        "keyUp" => add("key_up", 1),
+                        "pointerMove" => {
+                            add("pointer_move", 1);
+                            add("move_ms", duration);
+                        }
+                        "pointerDown" => add("pointer_down", 1),
+                        "pointerUp" => add("pointer_up", 1),
+                        "pause" => add("pause_ms", duration),
+                        _ => {}
+                    }
+                }
+            }
+            Value::Object(counts)
+        }
+        "script.callFunction" | "script.evaluate" => {
+            let text = params["functionDeclaration"].as_str().or_else(|| params["expression"].as_str()).unwrap_or("");
+            // FNV-1a: stable between runs, so the same script of ours reads the same in every session.
+            let hash = text.bytes().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3));
+            json!({"script_hash": format!("{hash:016x}"), "length": text.len()})
+        }
+        "browsingContext.navigate" => {
+            let url = params["url"].as_str().unwrap_or("");
+            let clean = url.split(['?', '#']).next().unwrap_or("");
+            json!({"url": clean, "wait": params["wait"].as_str().unwrap_or("")})
+        }
+        _ => json!({}),
+    }
+}
+fn epoch_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
 /// Raw protocol values may contain credentials; deliberately no Debug/serialization support.
 pub struct BidiConnection {
     socket: WebSocket<TcpStream>,
@@ -31,6 +82,9 @@ pub struct BidiConnection {
     events: Vec<Value>,
     event_bytes: usize,
     native_select_commit:bool,
+    /// Sanitized rows of the commands sent, drained by the diagnostics timeline.
+    command_log: Vec<Value>,
+    in_flight: Option<(Instant, i64, String, Value)>,
 }
 impl BidiConnection {
     pub fn connect(address: SocketAddr, timeout: Duration) -> Result<Self, ProtocolError> {
@@ -66,6 +120,8 @@ impl BidiConnection {
             events: Vec::new(),
             event_bytes: 0,
             native_select_commit:false,
+            command_log: Vec::new(),
+            in_flight: None,
         })
     }
     /// A write error is ambiguous: the connection is poisoned, never automatically retried.
@@ -86,6 +142,7 @@ impl BidiConnection {
             return Err(ProtocolError::InvalidData);
         }
         self.next = id;
+        self.in_flight = Some((Instant::now(), epoch_ms(), method.to_owned(), sanitize_command(method, &params)));
         let ticket = Ticket(id);
         self.pending = Some((ticket, Instant::now() + self.timeout));
         if self.socket.send(Message::Text(packet.into())).is_err() {
@@ -106,6 +163,15 @@ impl BidiConnection {
         }
         let result = self.receive_until(ticket, deadline);
         self.pending = None;
+        if let Some((started, at, method, summary)) = self.in_flight.take() {
+            if self.command_log.len() >= MAX_COMMAND_LOG {
+                self.command_log.remove(0);
+            }
+            self.command_log.push(json!({
+                "t_ms": at, "method": method, "summary": summary, "ok": result.is_ok(),
+                "duration_ms": started.elapsed().as_millis() as u64,
+            }));
+        }
         if result.is_err() && result != Err(ProtocolError::Rejected) {
             self.failed = true;
         }
@@ -178,6 +244,10 @@ impl BidiConnection {
     /// A poisoned transport must never be retried or reused.
     pub fn available(&self) -> bool {
         !self.failed
+    }
+    /// Sanitized rows of the commands sent since the last call (see [`sanitize_command`]).
+    pub fn take_command_log(&mut self) -> Vec<Value> {
+        std::mem::take(&mut self.command_log)
     }
     pub fn take_events(&mut self) -> Vec<Value> {
         self.event_bytes = 0;
