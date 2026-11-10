@@ -8,6 +8,7 @@
 - Make every unexpected search-process failure produce a startup report with code locations. Failed background budget saves are logged and retried on the next save; failures in background tasks and at process start are reported instead of ending with only an exit code. Reports keep module paths, line numbers and function names, never folders or profile data.
 
 - Fix garbled English and Spanish interface text such as “Untilбавить” on the Telegram recipient button. Short dictionary entries no longer translate parts of other words, and buttons, statistics labels and search timeline messages that were missing translations are now translated.
+- Keep the Camoufox button caption visible in the light theme when control is handed over for booking; it was white on a white background.
 
 ## 0.3.6 — Windows folder fixes and achievement card
 

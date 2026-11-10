@@ -119,6 +119,8 @@ def apply_theme(app, *, dark):
         QToolButton[toolbarAction="true"], QPushButton[toolbarAction="true"] {{ border:1px solid transparent; background:transparent; }}
         QToolButton[toolbarAction="true"]:hover, QPushButton[toolbarAction="true"]:hover {{ background:{c['surface']}; border-color:transparent; }}
         QToolButton[toolbarAction="true"]:focus, QPushButton[toolbarAction="true"]:focus {{ border:1px solid {c['accent']}; }}
+        QPushButton[toolbarAction="true"][primary="true"], QPushButton[toolbarAction="true"][primary="true"]:hover {{ background:{c['accent']}; color:#FFFFFF; border:1px solid {c['accent']}; }}
+        QPushButton[toolbarAction="true"][primary="true"]:disabled {{ color:{c['muted']}; background:{c['bg']}; border:1px solid {c['line']}; }}
         QToolButton::menu-indicator {{ image:none; }}
         QMenu {{ background:{c['surface']}; color:{c['text']}; border:1px solid {c['line']}; padding:5px; }}
         QMenu::item {{ padding:8px 18px; }}
