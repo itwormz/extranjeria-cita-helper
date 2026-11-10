@@ -64,11 +64,12 @@ export async function achievementExport(id:string,achievementId:string,language:
 export async function openPublicLink(target:'github'|'readme'|'issues'|'sponsor'|'crypto',language:string):Promise<void>{if(!isTauri())throw new Error('native_required');await invoke('open_public_link',{target,language});}
 
 export interface SearchRow {id:number;time:number;stage:string|null;status:string;event:string;destination:string|null;offices:string[];booking_details:{office?:string|null;offers?:{date?:string;time?:string}[]};deadline:number|null}
-export interface SearchSnapshot {profile:string|null;active:boolean;paused:boolean;manual:boolean;browser_pid:number|null;page:string|null;deadline:number|null;attention:boolean;error:string|null;warning:string|null;rows:SearchRow[];counters:{checks:number};appointment_budget:BudgetSummary|null;revision:number}
+export interface SearchSnapshot {profile:string|null;active:boolean;paused:boolean;manual:boolean;browser_pid:number|null;page:string|null;deadline:number|null;attention:boolean;error:string|null;warning:string|null;report_id:string|null;rows:SearchRow[];counters:{checks:number};appointment_budget:BudgetSummary|null;revision:number}
 export async function searchSnapshot():Promise<SearchSnapshot>{return invoke('search_snapshot');}
 export async function startSearch(id:string):Promise<void>{return invoke('search_start',{id});}
 export async function controlSearch(command:'pause'|'resume'|'stop'):Promise<void>{return invoke('search_control',{command});}
 export interface InstalledBrowser {id:string;name:string;version:string;support:'supported'|'planned'|'unsupported'}
+export async function copyStartupReport(id:string):Promise<void>{return invoke('startup_report_copy',{id});}
 export async function loadBrowsers():Promise<InstalledBrowser[]>{return invoke('installed_browsers');}
 export async function loadBudget(id:string):Promise<BudgetSummary|null>{return invoke('appointment_budget',{id});}
 export async function setDailyTarget(target:number|null,id:string|null=null):Promise<void>{return invoke('appointment_daily_target',{id,target});}

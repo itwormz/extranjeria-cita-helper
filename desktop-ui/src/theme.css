@@ -19,3 +19,5 @@
 .method-hint{font-size:11px;line-height:1.45}
 
 .protection-flag{display:flex;gap:12px;align-items:flex-start;padding:8px 0;cursor:pointer}.protection-flag input{margin-top:3px}.protection-flag span{display:flex;flex-direction:column;gap:2px}.protection-flag small{font-size:12px}.budget-note{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-top:6px}
+
+.report-band{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px}.report-band span{flex:1;min-width:200px;font-size:12px}.report-band button{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px}

@@ -37,6 +37,8 @@ pub struct SearchSnapshot {
     pub error: Option<&'static str>,
     /// A non-fatal notice for the window (the search keeps running).
     pub warning: Option<&'static str>,
+    /// Id of the startup report saved for a failed start (`CEH-<id>`); the window offers to copy it.
+    pub report_id: Option<String>,
     pub rows: Vec<JournalRow>,
     pub counters: Counters,
     /// Today's budget (Python `summary()` keys) while a search runs; the window shows it and its wait reason.
@@ -240,6 +242,16 @@ impl SearchController {
                     &sound,
                 );
                 let requested_stop = stop.load(Ordering::Acquire);
+                if let Err(code) = &result
+                    && !requested_stop
+                {
+                    let home = std::env::var("HOME").unwrap_or_default();
+                    let found = FirefoxInstallation::discover().is_ok();
+                    let id = crate::current_time()
+                        .ok()
+                        .and_then(|now| crate::startup_report::save_failure(&root, &home, code, found, now));
+                    let _ = update(&state, |s| s.report_id = id);
+                }
                 if result.is_err() && !requested_stop {
                     notifications.observe(ceh_services::notifications::NotificationStateInput {
                         failed: true,

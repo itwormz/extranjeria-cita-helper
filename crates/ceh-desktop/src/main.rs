@@ -517,6 +517,26 @@ async fn search_copy(
     .map_err(|_| "clipboard_unavailable")?
 }
 
+/// Copy the sanitized startup report with `id` (the id comes from the search snapshot).
+#[tauri::command]
+async fn startup_report_copy(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+    id: String,
+) -> Result<(), &'static str> {
+    authorize(&window)?;
+    let root = runtime.root.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let home = std::env::var("HOME").unwrap_or_default();
+        let text = ceh_desktop::startup_report::clipboard_text(&root, &home, &id)?;
+        arboard::Clipboard::new()
+            .and_then(|mut c| c.set_text(text))
+            .map_err(|_| "clipboard_unavailable")
+    })
+    .await
+    .map_err(|_| "clipboard_unavailable")?
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -597,6 +617,7 @@ fn main() {
             appointment_try_now,
             search_show,
             search_copy,
+            startup_report_copy,
             desktop_bootstrap,
             validate_profile,
             profile_editor,

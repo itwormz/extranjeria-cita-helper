@@ -51,6 +51,7 @@ static CATALOG: LazyLock<ProfileCatalog> = LazyLock::new(|| {
             .collect(),
     }
 });
+pub mod startup_report;
 pub fn catalog() -> &'static ProfileCatalog {
     &CATALOG
 }

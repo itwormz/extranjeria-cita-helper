@@ -13,6 +13,7 @@ fn main() {
             "appointment_try_now",
             "search_show",
             "search_copy",
+            "startup_report_copy",
             "desktop_bootstrap",
             "validate_profile",
             "profile_editor",
