@@ -207,6 +207,13 @@ async def consume_commands(stream, control, emit):
 
 
 async def run_worker(task_id):
+    background_failures = []
+    result = await _run_worker(task_id, background_failures)
+    # A reported background failure must not end as a successful exit.
+    return 1 if background_failures and result == 0 else result
+
+
+async def _run_worker(task_id, background_failures):
     from ..main import _paths, ROOT
     from ..config import load_dotenv
     from ..state import StateStore
@@ -343,6 +350,7 @@ async def run_worker(task_id):
             except Exception as exc:
                 # A dead background task must not replace the run's result
                 # with an unreported exception at shutdown.
+                background_failures.append(exc)
                 logging.getLogger(__name__).error(
                     'event=worker_background_failed task=%s error=%s',
                     'commands' if pending is incoming else 'states', type(exc).__name__)

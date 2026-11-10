@@ -129,7 +129,8 @@ def test_background_task_failure_is_reported_not_raised(worker_env, monkeypatch)
 
     monkeypatch.setattr(worker, 'consume_commands', broken_commands)
     monkeypatch.setattr(worker, 'run_assist', assist)
-    asyncio.run(worker.run_worker('fictitious-profile'))
+    # A reported background failure must not turn a run into a successful exit.
+    assert asyncio.run(worker.run_worker('fictitious-profile')) == 1
     errors = [m for m in stdout.messages() if m['type'] == 'error']
     assert errors and 'startup-errors/' in errors[-1]['message']
     report, = reports(root)
