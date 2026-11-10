@@ -1,6 +1,7 @@
 //! Browser-independent Cita Extranjeria Helper domain contracts.
 pub mod booking;
 pub mod control;
+pub mod file_replace;
 pub mod flow;
 pub mod journal;
 pub mod model;

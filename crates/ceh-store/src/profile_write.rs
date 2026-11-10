@@ -407,8 +407,7 @@ fn commit_root(
         .as_file()
         .sync_all()
         .map_err(|_| ProfileWriteError::Unavailable)?;
-    temporary
-        .persist(path)
+    ceh_core::file_replace::replace(temporary, |file| file.persist(path).map(|_| ()).map_err(|e| (e.file, e.error)))
         .map_err(|_| ProfileWriteError::Unavailable)?;
     Ok(new_revision)
 }

@@ -140,6 +140,5 @@ fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
     let mut file = tempfile::NamedTempFile::new_in(path.parent().ok_or(io::ErrorKind::InvalidInput)?)?;
     file.write_all(bytes)?;
     file.as_file().sync_all()?;
-    file.persist(path).map_err(|error| error.error)?;
-    Ok(())
+    ceh_core::file_replace::replace(file, |file| file.persist(path).map(|_| ()).map_err(|e| (e.file, e.error)))
 }

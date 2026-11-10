@@ -10,3 +10,14 @@ test('budget save errors map any rejection shape to one translatable text',async
  assert.equal(budgetErrorText(new Error('something odd')),'Не удалось сохранить бюджет на сегодня');
  assert.equal(budgetErrorText(undefined),'Не удалось сохранить бюджет на сегодня');
 });
+
+import {promotedControl} from '../src/work-state.ts';
+test('the browser button is promoted while the user must act or a stopped search left its browser open (Python 0.3.6 update_state_presentation)',()=>{
+ const idle={active:false,manual:false,attention:false,browser_pid:null};
+ assert.equal(promotedControl(null),'start');
+ assert.equal(promotedControl(idle),'start');
+ assert.equal(promotedControl({...idle,active:true}),'start');
+ assert.equal(promotedControl({...idle,active:true,manual:true,browser_pid:7}),'browser');
+ assert.equal(promotedControl({...idle,active:true,attention:true,browser_pid:7}),'browser');
+ assert.equal(promotedControl({...idle,browser_pid:7}),'browser','a browser kept after Stop (retained)');
+});

@@ -1,3 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {mkdir,mkdtemp,rm,readdir,readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';import {join} from 'node:path';
 const project=fileURLToPath(new URL('../..',import.meta.url));
 test('production UI assets exclude the notification fixture and fake bridge',async t=>{const work=join(project,'.local/builds/work');await mkdir(work,{recursive:true});const output=await mkdtemp(join(work,'rust-ui-artifact-'));t.after(()=>rm(output,{recursive:true,force:true}));const result=spawnSync(process.execPath,[join(project,'desktop-ui/node_modules/vite/bin/vite.js'),'build','--outDir',output,'--emptyOutDir'],{cwd:join(project,'desktop-ui'),encoding:'utf8',timeout:30000});assert.equal(result.status,0,result.stderr||result.stdout);const files=(await readdir(join(output,'assets'))).filter(file=>file.endsWith('.js'));assert.ok(files.length>0);for(const file of files){const code=await readFile(join(output,'assets',file),'utf8');for(const marker of ['123456:FIXTURE_TOKEN','Parent submits:','fixture_person','Notification fixture','Statistics fixture only','Fixture historical office','PRIVATE_ERROR_NOT_FOR_UI','PRIVATE-APPOINTMENT-FIXTURE'])assert.ok(!code.includes(marker),`fixture marker leaked into ${file}`);}});
+
+test('a primary button keeps an accent background and white caption on hover',async()=>{
+ const css=(await readFile(new URL('../src/theme.css',import.meta.url),'utf8'));
+ assert.match(css,/button\.primary:hover:not\(:disabled\)\{background:var\(--accent\);color:#FFF/);
+});

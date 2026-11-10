@@ -9,3 +9,9 @@ export function budgetErrorText(failure: unknown): string {
   const known = ['budget_in_use', 'invalid_target', 'profile_not_found', 'appointment_budget_unavailable'];
   return known.includes(code) ? searchErrors[code] : 'Не удалось сохранить бюджет на сегодня';
 }
+
+/** Which action button is the primary one: the browser while the user must act or a kept browser is open. */
+export function promotedControl(search:{active:boolean;manual:boolean;attention:boolean;browser_pid:number|null}|null):'start'|'browser'{
+ if(!search)return 'start';
+ return search.manual||search.attention||(!search.active&&search.browser_pid!==null)?'browser':'start';
+}

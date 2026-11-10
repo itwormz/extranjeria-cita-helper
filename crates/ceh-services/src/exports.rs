@@ -657,7 +657,7 @@ impl AchievementStore {
         file.as_file()
             .sync_all()
             .map_err(|_| ExportError::Unavailable)?;
-        file.persist(&self.path)
+        ceh_core::file_replace::replace(file, |file| file.persist(&self.path).map(|_| ()).map_err(|e| (e.file, e.error)))
             .map_err(|_| ExportError::Unavailable)?;
         Ok(())
     }
