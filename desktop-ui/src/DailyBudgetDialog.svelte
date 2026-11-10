@@ -1,11 +1,11 @@
 <script lang="ts">
-import {onMount,untrack} from 'svelte';import Icon from './Icon.svelte';import {parseDailyTarget,sourceKey,type BudgetSummary} from './budget';
+import {onMount,untrack} from 'svelte';import Icon from './Icon.svelte';import {parseDailyTarget,sourceKey,type BudgetSummary} from './budget';import {budgetErrorText} from './work-state';
 let {budget,t,onclose,onsave}:{budget:BudgetSummary;t:(key:string)=>string;onclose:()=>void;onsave:(target:number|null)=>Promise<void>}=$props();
 let value=$state(untrack(()=>String(budget.target)));let busy=$state(false);let error=$state('');let dialog:HTMLDialogElement;let field:HTMLInputElement;
 const parsed=$derived(parseDailyTarget(value));const remaining=$derived(Math.max(0,(parsed??budget.target)-budget.sent));
 const adaptive=$derived(budget.adaptive_enabled&&budget.adaptive_target!==null);
 onMount(()=>{dialog.showModal();field.focus();field.select();return()=>dialog.close();});
-async function save(target:number|null){if(busy)return;busy=true;error='';try{await onsave(target);}catch(e){error=String(e);}finally{busy=false;}}
+async function save(target:number|null){if(busy)return;busy=true;error='';try{await onsave(target);}catch(e){error=budgetErrorText(e);}finally{busy=false;}}
 </script>
 <dialog class="daily-budget" bind:this={dialog} oncancel={e=>{e.preventDefault();if(!busy)onclose();}}>
 <form onsubmit={e=>{e.preventDefault();if(parsed!==null)void save(parsed);}}>

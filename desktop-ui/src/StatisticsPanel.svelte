@@ -6,15 +6,15 @@ import Choice from './Choice.svelte';
 import StatisticsHistory from './StatisticsHistory.svelte';
 import AppointmentDialog from './AppointmentDialog.svelte';import AchievementPanel from './AchievementPanel.svelte';
 import {loadStatistics,loadAppointmentContext,loadBudget,setDailyTarget,setDistributionToday,tryAppointmentNow,type Achievement,type AppointmentContext,type ProfileSummary,type StatisticsDashboard} from './bridge';
-let {profiles,selected,onselect,t,language,dark,revision=0,live=null,confirmRequest=0}:{profiles:ProfileSummary[];selected:string|null;onselect:(id:string)=>void;t:(key:string)=>string;language:string;dark:boolean;revision?:number;live?:{active:boolean;manual:boolean;budget:BudgetSummary|null}|null;confirmRequest?:number}=$props();
+let {profiles,selected,onselect,t,language,dark,revision=0,live=null,confirmRequest=false,onconfirmed=()=>{}}:{profiles:ProfileSummary[];selected:string|null;onselect:(id:string)=>void;t:(key:string)=>string;language:string;dark:boolean;revision?:number;confirmRequest?:boolean;onconfirmed?:()=>void;live?:{active:boolean;manual:boolean;budget:BudgetSummary|null}|null;}=$props();
 let data=$state<StatisticsDashboard|null>(null);let loading=$state(false);let failed=$state(false);let period=$state('all');
 let heading:HTMLDivElement;let refresh=$state(0);let context=$state<AppointmentContext|null>(null);let item=$state<Achievement|null>(null);let showForm=$state(false);let editing=$state(false);let actionBusy=$state(false);let actionError=$state(false);let view=$state('stats');
 let idleBudget=$state<BudgetSummary|null>(null);let budgetDialog=$state(false);let historyDialog=$state(false);let budgetMessage=$state('');
 let running=$derived(Boolean(live?.active&&live.budget));
 let budget=$derived(running?live!.budget:idleBudget);
 $effect(()=>{const id=selected;revision;refresh;const active=live?.active;let current=true;if(id&&!active)loadBudget(id).then(value=>{if(current)idleBudget=value;}).catch(()=>{if(current)idleBudget=null;});return()=>{current=false;};});
-let confirmed=0;$effect(()=>{if(confirmRequest>confirmed){confirmed=confirmRequest;void openAppointment();}});
-async function saveBudget(target:number|null){try{await setDailyTarget(target,selected);budgetDialog=false;budgetMessage=running?'Бюджет применится со следующего действия':'';refresh++;}catch(e){throw new Error(String(e)==='budget_in_use'?'Этот бюджет используется другим поиском':'Не удалось сохранить бюджет на сегодня');}}
+$effect(()=>{if(confirmRequest){onconfirmed();void openAppointment();}});
+async function saveBudget(target:number|null){await setDailyTarget(target,selected);budgetDialog=false;budgetMessage=running?'Бюджет применится со следующего действия':'';refresh++;}
 async function toggleDistribution(){if(!budget)return;try{await setDistributionToday(!budget.disabled);budgetMessage='Бюджет применится со следующего действия';}catch{budgetMessage='Не удалось изменить состояние поиска';}}
 async function tryNow(){try{await tryAppointmentNow();budgetMessage='Ближайшая попытка разрешена; остальные тайминги сохранены';}catch{budgetMessage='Не удалось изменить состояние поиска';}}
 function budgetTime(value:string){return new Intl.DateTimeFormat(language,{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}).format(new Date(value));}
