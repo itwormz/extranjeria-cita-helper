@@ -1539,3 +1539,26 @@ def test_translated_dialog_buttons_keep_content_space_on_focus(window,language):
             assert contents.height()>=button.fontMetrics().height()
     finally:
         recipient.close();recipient.deleteLater();about.close()
+
+
+@pytest.mark.parametrize('dark', [False, True])
+@pytest.mark.parametrize('hover', [False, True])
+def test_promoted_toolbar_button_keeps_visible_caption(dark, hover):
+    # The Camoufox action is a toolbar button promoted to primary during manual handoff.
+    from collections import Counter
+    from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
+    from app.desktop.theme import apply_theme
+    app = QApplication.instance() or QApplication([])
+    apply_theme(app, dark=dark)
+    host = QWidget(); row = QHBoxLayout(host)
+    button = QPushButton('Camoufox'); button.setProperty('toolbarAction', True); button.setProperty('primary', True)
+    row.addWidget(button); host.resize(220, 60); host.show()
+    if hover:
+        button.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, True)
+    button.style().unpolish(button); button.style().polish(button); QApplication.processEvents()
+    image = host.grab(button.geometry().adjusted(4, 4, -4, -4)).toImage()
+    pixels = [image.pixelColor(x, y).lightness() for x in range(image.width()) for y in range(image.height())]
+    background = Counter(pixels).most_common(1)[0][0]
+    caption = sum(1 for value in pixels if abs(value - background) > 60)
+    host.close()
+    assert caption > 50, f'caption invisible: {caption} contrasting pixels'

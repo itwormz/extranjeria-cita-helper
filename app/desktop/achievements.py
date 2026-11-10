@@ -7,6 +7,7 @@ import tempfile
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from ..file_replace import replace_file
 from ..locking import locked_file
 
 COUNT_KEYS = ('checks', 'offices_seen', 'unique_offices', 'server_errors', 'rate_limited', 'blocked', 'booking_screens', 'flow_passes', 'actions_performed', 'pages_processed')
@@ -70,7 +71,7 @@ class AchievementStore:
                 json.dump(raw, stream, ensure_ascii=False)
                 stream.flush()
                 os.fsync(stream.fileno())
-            os.replace(temporary, self.path)
+            replace_file(temporary, self.path)
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)

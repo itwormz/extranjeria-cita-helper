@@ -1,6 +1,5 @@
 """Desktop application and its private worker entrypoint."""
 import argparse
-import asyncio
 import logging
 import os
 from pathlib import Path
@@ -28,8 +27,8 @@ def main(argv=None):
     if args.command == 'worker':
         for handler in logging.getLogger().handlers:
             if isinstance(handler, logging.StreamHandler): handler.setStream(sys.stderr)
-        from .desktop.worker import run_worker
-        return asyncio.run(run_worker(args.task))
+        from .desktop.worker import worker_main
+        return worker_main(args.task)
     from .desktop import run_desktop
     return run_desktop()
 
