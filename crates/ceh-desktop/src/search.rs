@@ -672,8 +672,9 @@ fn run_owned(
                 certificate_cache: format!("{:?}", browser.certificate_cache()).to_lowercase(),
                 action_delay_ms: [(range[0] * 1000.0).round() as u64, (range[1] * 1000.0).round() as u64],
                 first_bootstrap_ms: ms(TimingKind::Bootstrap, samples.first_bootstrap),
-                typing_ms: ms(TimingKind::Typing, samples.typing),
-                contact_typing_ms: ms(TimingKind::ContactTyping, samples.contact_typing),
+                // Typing samples are already milliseconds; bootstrap is seconds.
+                typing_ms: timings.sample(TimingKind::Typing, samples.typing).map(|v| v.round() as u64).unwrap_or(0),
+                contact_typing_ms: timings.sample(TimingKind::ContactTyping, samples.contact_typing).map(|v| v.round() as u64).unwrap_or(0),
             },
         );
     }

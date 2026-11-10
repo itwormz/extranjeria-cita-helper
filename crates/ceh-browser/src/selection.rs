@@ -87,10 +87,11 @@ pub fn prepare_selection(
     gate: &DispatchGate,
     guard: &DocumentGuard,
     selection: &Selection,
+    typing_delay: Duration,
     deadline: Instant,
 ) -> Result<PreparationOutcome, BrowserError> {
     let payload = |operation: &str| selection.payload(operation);
-    let choice = typed_select::Choice { action: selection.action, script: SCRIPT, payload: &payload };
+    let choice = typed_select::Choice { action: selection.action, script: SCRIPT, payload: &payload, typing_delay };
     while Instant::now() < deadline {
         match typed_select::choose(connection, observer, gate, guard, &choice, &|connection, observer| {
             fresh_page(connection, observer, selection)

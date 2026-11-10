@@ -210,7 +210,7 @@ pub fn prepare_applicant(
             }
             _ => {
                 let payload = |op: &str| input.field_payload(op, "nationality", "");
-                let choice = typed_select::Choice { action: ActionKind::Applicant, script: SCRIPT, payload: &payload };
+                let choice = typed_select::Choice { action: ActionKind::Applicant, script: SCRIPT, payload: &payload, typing_delay };
                 loop {
                     if Instant::now() >= deadline {
                         break PreparationOutcome::Failed;

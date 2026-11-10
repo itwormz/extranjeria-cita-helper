@@ -12,12 +12,15 @@ use crate::{
 };
 use ceh_core::model::{ActionKind, DocumentGuard};
 use serde_json::Value;
+use std::time::Duration;
 
 /// The step script understands `verify`, `target` and `label`.
 pub(crate) struct Choice<'a> {
     pub action: ActionKind,
     pub script: &'static str,
     pub payload: &'a dyn Fn(&str) -> Value,
+    /// The profile's pause between typed characters (clamped like the text fields').
+    pub typing_delay: Duration,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Chosen {
@@ -62,14 +65,19 @@ pub(crate) fn choose(
     }
     let fresh = fresh_page(connection, observer)?;
     let mut permit = gate.begin_preparation(guard, &fresh.observation, choice.action)?;
-    for outcome in [
-        trusted_input::escape(connection, &mut permit, &fresh)?,
-        trusted_input::type_text(connection, &mut permit, &fresh, &label)?,
-    ] {
-        match outcome {
+    match trusted_input::escape(connection, &mut permit, &fresh)? {
+        DispatchOutcome::Unknown => return Ok(Chosen::Unknown),
+        DispatchOutcome::NotDispatched => return Ok(Chosen::NotReady),
+        DispatchOutcome::Dispatched => {}
+    }
+    for (character, pause) in paced_keys(&label, choice.typing_delay) {
+        match trusted_input::key(connection, &mut permit, &fresh, character)? {
             DispatchOutcome::Unknown => return Ok(Chosen::Unknown),
             DispatchOutcome::NotDispatched => return Ok(Chosen::NotReady),
             DispatchOutcome::Dispatched => {}
+        }
+        if !pause.is_zero() {
+            std::thread::sleep(pause);
         }
     }
     // Type-ahead selects the first option that starts with the typed text: always confirm by reading.
@@ -77,5 +85,27 @@ pub(crate) fn choose(
         Receipt::Unchanged | Receipt::Changed => Ok(Chosen::Done),
         Receipt::Refused => Ok(Chosen::Mismatch),
         Receipt::Unknown => Ok(Chosen::Unknown),
+    }
+}
+
+/// One key per character with the profile's typing pause after each, never a burst: a person's keystrokes
+/// are spaced, and the site's page script reacts (and reports to the WAF) to every selection change.
+pub(crate) fn paced_keys(label: &str, configured: Duration) -> Vec<(char, Duration)> {
+    let pause = crate::typed_field::typing_delay(configured);
+    label.chars().map(|character| (character, pause)).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn a_label_is_typed_one_key_at_a_time_with_the_clamped_typing_pause() {
+        let keys = paced_keys("POLICÍA-T", Duration::from_millis(97));
+        assert_eq!(keys.len(), 9);
+        assert_eq!(keys.iter().map(|(c, _)| *c).collect::<String>(), "POLICÍA-T");
+        assert!(keys.iter().all(|(_, pause)| *pause == Duration::from_millis(97)));
+        let slow = paced_keys("ab", Duration::from_millis(900));
+        assert!(slow.iter().all(|(_, pause)| *pause == crate::typed_field::MAX_TYPING_DELAY));
+        assert!(paced_keys("ab", Duration::ZERO).iter().all(|(_, pause)| pause.is_zero()));
     }
 }
