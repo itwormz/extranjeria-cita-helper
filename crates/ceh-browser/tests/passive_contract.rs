@@ -263,3 +263,44 @@ fn rejected_body_is_released_without_retrying_the_get() {
     drop(connection);
     server.join().unwrap();
 }
+
+/// CHANGELOG 0.3.0.dev13: observing traffic must never hold, alter or retain page resources. Production code
+/// may only read response bodies through the bounded, disowning diagnostics collector.
+#[test]
+fn production_code_never_intercepts_holds_or_alters_network_traffic() {
+    fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, out);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                out.push(path);
+            }
+        }
+    }
+    let crates = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+    let mut files = Vec::new();
+    for name in ["ceh-browser", "ceh-core", "ceh-desktop", "ceh-services"] {
+        walk(&crates.join(name).join("src"), &mut files);
+    }
+    let forbidden = [
+        "network.addIntercept",
+        "network.removeIntercept",
+        "network.continueRequest",
+        "network.continueResponse",
+        "network.continueWithAuth",
+        "network.provideResponse",
+        "network.failRequest",
+        "network.setCacheBehavior",
+    ];
+    for file in &files {
+        let code = std::fs::read_to_string(file).unwrap();
+        for method in forbidden {
+            assert!(!code.contains(method), "{} uses {method}", file.display());
+        }
+        if code.contains("\"network.getData\"") {
+            assert!(code.contains("\"disown\":true"), "{} reads response bodies without disowning them", file.display());
+        }
+    }
+    assert!(files.len() > 20);
+}

@@ -454,7 +454,7 @@ fn run_owned(
         profile.clone(),
         timings.clone(),
         gate.clone(),
-        ceh_browser::session_driver::SessionSamples{first_bootstrap:unit_sample(),second_bootstrap:unit_sample(),reload:unit_sample(),contact_typing:unit_sample()},
+        ceh_browser::session_driver::SessionSamples{first_bootstrap:unit_sample(),second_bootstrap:unit_sample(),reload:unit_sample(),contact_typing:unit_sample(),typing:unit_sample()},
     )
     .map_err(|_| "profile_invalid")?;
     let database = root.join("data/profile-statistics.sqlite3");
@@ -584,6 +584,7 @@ fn run_owned(
                                         second_bootstrap: unit_sample(),
                                         reload: unit_sample(),
                                         contact_typing: unit_sample(),
+                                        typing: unit_sample(),
                                     },
                                 )
                                 .map_err(|_| "profile_invalid")?;
@@ -619,6 +620,7 @@ fn run_owned(
                             second_bootstrap: unit_sample(),
                             reload: unit_sample(),
                             contact_typing: unit_sample(),
+                                        typing: unit_sample(),
                         };
                         if driver.apply_timings(next.clone(), samples).is_ok() {
                             timings = next;

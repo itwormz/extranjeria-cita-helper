@@ -13,8 +13,8 @@ use ceh_core::{
 use std::time::{Duration, Instant};
 /// Independent unit samples are supplied by the runtime; the policy stays deterministic.
 #[derive(Clone,Copy)]
-pub struct SessionSamples{pub first_bootstrap:f64,pub second_bootstrap:f64,pub reload:f64,pub contact_typing:f64}
-impl Default for SessionSamples{fn default()->Self{Self{first_bootstrap:0.5,second_bootstrap:0.5,reload:0.5,contact_typing:0.5}}}
+pub struct SessionSamples{pub first_bootstrap:f64,pub second_bootstrap:f64,pub reload:f64,pub contact_typing:f64,pub typing:f64}
+impl Default for SessionSamples{fn default()->Self{Self{first_bootstrap:0.5,second_bootstrap:0.5,reload:0.5,contact_typing:0.5,typing:0.5}}}
 #[derive(Clone)]
 pub struct ActionReceipt {
     pub document: DocumentId,
@@ -100,6 +100,7 @@ pub struct SessionDriver {
     cancelled_preactions: Vec<(DocumentGuard, ActionKind)>,
     preparation:SessionPreparation,
     contact_typing_ms:f64,
+    typing_ms:f64,
     appointment_ready_at: Option<u64>,
     confirm_appointment_round: bool,
     fresh_pass_requested: bool,
@@ -119,6 +120,7 @@ impl SessionDriver {
         let preparation=SessionPreparation::new((sampled(TimingKind::Bootstrap,samples.first_bootstrap)?*1000.).ceil() as u64,(sampled(TimingKind::Bootstrap,samples.second_bootstrap)?*1000.).ceil() as u64,(timings.navigation_seconds()*1000.).ceil() as u64).map_err(|_|BrowserError::Unsupported)?;
         let reload_sample=sampled(TimingKind::Reload,samples.reload)?;
         let contact_typing_ms=sampled(TimingKind::ContactTyping,samples.contact_typing)?;
+        let typing_ms=sampled(TimingKind::Typing,samples.typing)?;
         let options = SearchOptions {
             no_slots_mode: match profile.no_slots_mode.as_str() {
                 "salir" => NoSlotsMode::Salir,
@@ -151,6 +153,7 @@ impl SessionDriver {
             cancelled_preactions: Vec::new(),
             preparation,
             contact_typing_ms,
+            typing_ms,
             appointment_ready_at: None,
             confirm_appointment_round: false,
             fresh_pass_requested: false,
@@ -222,10 +225,12 @@ impl SessionDriver {
         let sampled = |kind, unit| timings.sample(kind, unit).map_err(|_| BrowserError::Unsupported);
         let reload_sample = sampled(TimingKind::Reload, samples.reload)?;
         let contact_typing_ms = sampled(TimingKind::ContactTyping, samples.contact_typing)?;
+        let typing_ms = sampled(TimingKind::Typing, samples.typing)?;
         self.flow
             .apply_timings(timings.clone(), reload_sample)
             .map_err(|_| BrowserError::Unsupported)?;
         self.contact_typing_ms = contact_typing_ms;
+        self.typing_ms = typing_ms;
         self.timings = timings;
         Ok(())
     }
@@ -452,7 +457,7 @@ impl SessionDriver {
                             &self.gate,
                             guard,
                             &crate::applicant::ApplicantInput::from_profile(&self.profile)?,
-                            Duration::from_secs_f64(self.contact_typing_ms / 1000.0),
+                            Duration::from_secs_f64(self.typing_ms / 1000.0),
                             deadline,
                         ),
                         ActionKind::Contact => {
