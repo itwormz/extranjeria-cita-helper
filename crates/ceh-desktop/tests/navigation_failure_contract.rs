@@ -20,3 +20,15 @@ fn the_macos_bundle_may_load_the_firefox_libraries_that_prepare_the_certificate_
     let plist = std::fs::read_to_string(dir.join("entitlements.plist")).unwrap();
     assert!(plist.contains("com.apple.security.cs.disable-library-validation"), "hardened runtime rejects Mozilla's NSS otherwise");
 }
+
+#[test]
+fn a_browser_error_after_the_person_closed_the_window_is_a_stop_not_an_error() {
+    use ceh_desktop::closed_window_stop;
+    for code in ["browser_connection_lost", "browser_observation_failed", "browser_action_failed", "browser_recovery_required", "browser_navigation_failed"] {
+        assert_eq!(closed_window_stop(Err(code), "stop", || false), Ok("stop"), "{code}");
+    }
+    // The window is still there: the error stays an error, and no probing happens for other kinds of errors.
+    assert_eq!(closed_window_stop(Err("browser_action_failed"), "stop", || true), Err("browser_action_failed"));
+    assert_eq!(closed_window_stop(Err("statistics_unavailable"), "stop", || panic!("must not probe")), Err("statistics_unavailable"));
+    assert_eq!(closed_window_stop(Ok("done"), "stop", || panic!("must not probe")), Ok("done"));
+}

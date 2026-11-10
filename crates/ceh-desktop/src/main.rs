@@ -423,6 +423,16 @@ fn installed_browsers(window: WebviewWindow) -> Result<serde_json::Value, &'stat
         .map(|b| serde_json::json!({"id":b.family.id(),"name":b.name,"version":b.version,"support":b.support.id()}))
         .collect::<Vec<_>>()))
 }
+/// The profile's earlier work log (rows of its previous searches), oldest first.
+#[tauri::command]
+fn journal_history(
+    window: WebviewWindow,
+    runtime: State<'_, DesktopRuntime>,
+    id: String,
+) -> Result<Vec<serde_json::Value>, &'static str> {
+    authorize(&window)?;
+    Ok(ceh_desktop::journal_log::load_history(&runtime.root, &id, 250))
+}
 #[tauri::command]
 fn appointment_budget(
     window: WebviewWindow,
@@ -709,6 +719,7 @@ fn main() {
             search_control,
             search_resume,
             appointment_budget,
+            journal_history,
             installed_browsers,
             appointment_daily_target,
             appointment_distribution,

@@ -7,6 +7,7 @@ fn main() {
             "search_control",
             "search_resume",
             "appointment_budget",
+            "journal_history",
             "installed_browsers",
             "appointment_daily_target",
             "appointment_distribution",

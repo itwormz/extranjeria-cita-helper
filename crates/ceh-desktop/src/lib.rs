@@ -2,6 +2,7 @@
 pub mod achievement_exports;
 pub mod appointment;
 pub mod history;
+pub mod journal_log;
 pub mod notification_worker;
 pub mod presentation;
 pub mod session_presentation;
@@ -78,6 +79,18 @@ pub fn navigation_failure(page_open: bool, certificate_cache_deferred: bool) -> 
         (false, _) => None,
         (true, true) => Some("browser_certificate_cache_failed"),
         (true, false) => Some("browser_navigation_failed"),
+    }
+}
+/// A browser error after the person closed the window is a stop (`finished`), not an error: nothing to report,
+/// Start returns. `page_open` is asked only for browser errors.
+pub fn closed_window_stop<T>(
+    result: Result<T, &'static str>,
+    finished: T,
+    page_open: impl FnOnce() -> bool,
+) -> Result<T, &'static str> {
+    match result {
+        Err(code) if code.starts_with("browser_") && !page_open() => Ok(finished),
+        other => other,
     }
 }
 pub fn catalog() -> &'static ProfileCatalog {

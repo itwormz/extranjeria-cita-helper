@@ -464,11 +464,16 @@ fn run(
 ) -> Result<(), &'static str> {
     // The journal and the recovery counters belong to the whole search, not to one browser.
     let mut journal = PageJournal::new();
+    let started_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as u64);
+    // The rows are kept between runs so the Work tab can show the profile's earlier log.
+    let mut log = crate::journal_log::JournalLog::open(root, &profile.id, started_ms);
     let mut carry = ceh_core::flow::RecoveryCarry::default();
     loop {
         let end = run_session(
             root, profile.clone(), timings.clone(), appointment_policy.clone(), receiver, live, notifications,
-            shared_gate, cancelled, state, window, sound, close_browser, &mut journal, &mut carry,
+            shared_gate, cancelled, state, window, sound, close_browser, &mut journal, &mut log, &mut carry,
         )?;
         match end {
             SessionEnd::Finished => return Ok(()),
@@ -506,6 +511,7 @@ fn run_session(
     sound: &Mutex<crate::sound::SoundPlayback>,
     close_browser: &AtomicBool,
     journal: &mut PageJournal,
+    log: &mut Option<crate::journal_log::JournalLog>,
     carry: &mut ceh_core::flow::RecoveryCarry,
 ) -> Result<SessionEnd, &'static str> {
     let installation = FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
@@ -545,8 +551,10 @@ fn run_session(
         sound,
         &mut browser,
         journal,
+        log,
         carry,
     );
+    let result = crate::closed_window_stop(result, SessionEnd::Finished, || browser.page_open());
     // Window closing during an automatic search closes the app's own browser; anything else (a stop, an
     // error, a booking handed over) keeps it open for the person.
     // A page the person closed leaves nothing to preserve: quit the browser so its profile is free again.
@@ -591,6 +599,7 @@ fn run_owned(
     sound: &Mutex<crate::sound::SoundPlayback>,
     browser: &mut OwnedFirefox,
     journal: &mut PageJournal,
+    log: &mut Option<crate::journal_log::JournalLog>,
     carry: &mut ceh_core::flow::RecoveryCarry,
 ) -> Result<SessionEnd, &'static str> {
     // Saved profile changes and budget commands replace these during the run.
@@ -1223,6 +1232,9 @@ fn run_owned(
                 s.rows = journal.rows().to_vec();
                 s.counters = stats.counters();
             })?;
+            if let Some(log) = log.as_mut() {
+                log.record(journal.rows());
+            }
             sequence = sequence.checked_add(1).ok_or("search_unavailable")?;
             if preferences_at.elapsed() >= Duration::from_secs(3) {
                 if let Ok(bundle) = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru") {
@@ -1275,6 +1287,9 @@ fn run_owned(
         s.rows = journal.rows().to_vec();
         s.counters = stats.counters();
     })?;
+    if let Some(log) = log.as_mut() {
+        log.record(journal.rows());
+    }
     result
 }
 
