@@ -98,3 +98,7 @@ optional = true
 
 [dev-dependencies]
 regex.workspace = true
+
+[[example]]
+name = "measure"
+required-features = ["bidi"]
