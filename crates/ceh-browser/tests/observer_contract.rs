@@ -103,3 +103,26 @@ fn observer_holds_pending_navigation_and_uses_actual_method_after_load() {
         server.join().unwrap();
     }
 }
+
+#[test]
+fn network_quiet_follows_requests_of_this_context_only() {
+    use ceh_browser::observer::PageObserver;
+    use serde_json::json;
+    let mut observer = PageObserver::new("ctx").unwrap();
+    let event = |method: &str, context: &str| json!({"type":"event","method":method,"params":{"context":context,"navigation":"n1","request":{"request":"r1","url":"https://icp.administracionelectronica.gob.es/icpplus/index.html","method":"GET"},"response":{"status":200,"url":"https://icp.administracionelectronica.gob.es/icpplus/index.html"},"timestamp":1}});
+    assert!(observer.network_quiet());
+    let _ = observer.ingest(&event("network.beforeRequestSent", "other"));
+    assert!(observer.network_quiet(), "another tab's request does not count");
+    let _ = observer.ingest(&event("network.beforeRequestSent", "ctx"));
+    let _ = observer.ingest(&event("network.beforeRequestSent", "ctx"));
+    assert!(!observer.network_quiet());
+    let _ = observer.ingest(&event("network.responseCompleted", "ctx"));
+    assert!(!observer.network_quiet());
+    observer.ingest(&event("network.fetchError", "ctx")).unwrap();
+    assert!(observer.network_quiet(), "a failed request is finished too");
+    let _ = observer.ingest(&event("network.responseCompleted", "ctx"));
+    assert!(observer.network_quiet(), "never negative");
+    let _ = observer.ingest(&event("network.beforeRequestSent", "ctx"));
+    let _ = observer.ingest(&event("browsingContext.navigationStarted", "ctx"));
+    assert!(observer.network_quiet(), "a new navigation drops the old requests");
+}

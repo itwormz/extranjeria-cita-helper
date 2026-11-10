@@ -21,6 +21,8 @@ pub struct PageObserver {
     last_action: Option<ActionKind>,
     pending_action: Option<ActionKind>,
     passive: Option<crate::passive::ResponseQueue>,
+    /// Requests of this context started and not yet completed or failed (the warm-up's `networkidle`).
+    inflight: u32,
 }
 impl PageObserver {
     pub fn new(context: &str) -> Result<Self, ProtocolError> {
@@ -33,6 +35,7 @@ impl PageObserver {
             last_action: None,
             pending_action: None,
             passive: None,
+            inflight: 0,
         })
     }
     /// The flow engine supplies action context; DOM text cannot invent sent actions.
@@ -46,9 +49,26 @@ impl PageObserver {
         if let Some(queue) = &mut self.passive {
             queue.ingest(event);
         }
+        let ours = event["params"]["context"].as_str() == Some(self.context.as_str());
+        match event["method"].as_str() {
+            Some("network.beforeRequestSent") if ours => self.inflight = self.inflight.saturating_add(1),
+            Some("network.responseCompleted") if ours => self.inflight = self.inflight.saturating_sub(1),
+            Some("browsingContext.navigationStarted") if ours => self.inflight = 0,
+            Some("network.fetchError") => {
+                if ours {
+                    self.inflight = self.inflight.saturating_sub(1);
+                }
+                return Ok(());
+            }
+            _ => {}
+        }
         self.facts
             .ingest(event)
             .map_err(|_| ProtocolError::InvalidData)
+    }
+    /// No request of the page is in flight (Python waits for `networkidle` during the F5 warm-up).
+    pub fn network_quiet(&self) -> bool {
+        self.inflight == 0
     }
     /// Enable only after the debug/capture policy and collector lifecycle allow it.
     pub fn set_passive_collection(&mut self, enabled: bool) -> Result<(), ProtocolError> {

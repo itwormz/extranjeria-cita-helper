@@ -261,7 +261,7 @@ impl SessionDriver {
         {
             self.pending = None;
         }
-        let preparation=self.preparation.observe(&page.observation,page.page.snapshot.official,now).map_err(|_|BrowserError::InvalidControl)?;
+        let preparation=self.preparation.observe_quiet(&page.observation,page.page.snapshot.official,now,self.observer.network_quiet()).map_err(|_|BrowserError::InvalidControl)?;
         if preparation!=PreparationDecision::Continue{
             let reload=preparation==PreparationDecision::ReloadGet;
             let effects=match preparation{PreparationDecision::WaitUntil(deadline)=>vec![FlowEffect::WaitUntil(deadline)],PreparationDecision::Hold=>vec![FlowEffect::Hold],_=>vec![FlowEffect::ReobserveAt(now)]};

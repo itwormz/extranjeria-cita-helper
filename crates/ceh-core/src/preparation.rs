@@ -4,14 +4,16 @@ use crate::model::{DispatchOutcome,DocumentId,Observation,PageKind,RequestMethod
 pub enum PreparationDecision{Continue,WaitUntil(u64),ReloadGet,Hold}
 #[derive(Debug,Clone,Copy,PartialEq,Eq)]
 pub enum PreparationError{InvalidTiming,ClockReversed,Overflow,Paused,UnexpectedReceipt}
+const IDLE_BUDGET_MS:u64=10_000;
+const IDLE_STEP_MS:u64=250;
 #[derive(Clone)]
 enum Phase{Initial,First{document:DocumentId,deadline:u64},ReloadReady{document:DocumentId},AwaitNew{document:DocumentId,deadline:u64},Second{document:DocumentId,deadline:u64},Ready,Held}
 #[derive(Clone)]
-pub struct SessionPreparation{first:u64,second:u64,load_timeout:u64,phase:Phase,last:Option<u64>,paused:Option<u64>}
+pub struct SessionPreparation{first:u64,second:u64,load_timeout:u64,phase:Phase,last:Option<u64>,paused:Option<u64>,idle_since:Option<u64>}
 impl SessionPreparation{
  pub fn new(first_ms:u64,second_ms:u64,load_timeout_ms:u64)->Result<Self,PreparationError>{
   if load_timeout_ms==0{return Err(PreparationError::InvalidTiming);}
-  Ok(Self{first:first_ms,second:second_ms,load_timeout:load_timeout_ms,phase:Phase::Initial,last:None,paused:None})
+  Ok(Self{first:first_ms,second:second_ms,load_timeout:load_timeout_ms,phase:Phase::Initial,last:None,paused:None,idle_since:None})
  }
  fn check(&self,now:u64)->Result<(),PreparationError>{if self.last.is_some_and(|old|now<old){Err(PreparationError::ClockReversed)}else{Ok(())}}
  fn deadline(now:u64,delay:u64)->Result<u64,PreparationError>{now.checked_add(delay).ok_or(PreparationError::Overflow)}
@@ -22,6 +24,7 @@ impl SessionPreparation{
    let delay=now.checked_sub(paused).ok_or(PreparationError::ClockReversed)?;
    let shifted=match self.phase.clone(){Phase::First{document,deadline}=>Phase::First{document,deadline:Self::deadline(deadline,delay)?},Phase::AwaitNew{document,deadline}=>Phase::AwaitNew{document,deadline:Self::deadline(deadline,delay)?},Phase::Second{document,deadline}=>Phase::Second{document,deadline:Self::deadline(deadline,delay)?},other=>other};
    self.phase=shifted;self.paused=None;
+   if let Some(since)=self.idle_since{self.idle_since=Some(Self::deadline(since,delay)?);}
   }self.last=Some(now);Ok(())
  }
  pub fn observe(&mut self,page:&Observation,official:bool,now:u64)->Result<PreparationDecision,PreparationError>{
@@ -49,6 +52,19 @@ impl SessionPreparation{
    Phase::Second{..}=>(Phase::Ready,PreparationDecision::Continue),
   };
   self.phase=phase;self.last=Some(now);Ok(decision)
+ }
+ /// Like `observe`, but a finished wait is extended while requests are still in flight, for at most
+ /// `IDLE_BUDGET_MS` per wait (Python waits for `networkidle` up to 10 s and carries on regardless).
+ pub fn observe_quiet(&mut self,page:&Observation,official:bool,now:u64,quiet:bool)->Result<PreparationDecision,PreparationError>{
+  let before=self.clone();
+  let waiting=matches!(self.phase,Phase::First{..}|Phase::Second{..})&&official&&page.kind==PageKind::Province&&page.method==RequestMethod::Get;
+  let decision=self.observe(page,official,now)?;
+  if !waiting||quiet||!matches!(decision,PreparationDecision::ReloadGet|PreparationDecision::Continue){self.idle_since=None;return Ok(decision);}
+  let since=before.idle_since.unwrap_or(now);
+  if now.saturating_sub(since)>=IDLE_BUDGET_MS{self.idle_since=None;return Ok(decision);}
+  let wake=Self::deadline(now,IDLE_STEP_MS)?;
+  *self=before;self.idle_since=Some(since);self.last=Some(now);
+  Ok(PreparationDecision::WaitUntil(wake))
  }
  pub fn reload_sent(&mut self,outcome:DispatchOutcome,now:u64)->Result<(),PreparationError>{
   self.check(now)?;let Phase::ReloadReady{document}=self.phase.clone()else{return Err(PreparationError::UnexpectedReceipt)};

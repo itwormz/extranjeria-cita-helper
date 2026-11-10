@@ -362,7 +362,7 @@ impl OwnedFirefox {
         {
             return Err(FirefoxError::InvalidInstallation);
         }
-        connection.call_before("session.subscribe",json!({"events":["network.beforeRequestSent","network.responseCompleted","browsingContext.load","browsingContext.navigationStarted"]}),deadline).map_err(|_|FirefoxError::Unavailable)?;
+        connection.call_before("session.subscribe",json!({"events":["network.beforeRequestSent","network.responseCompleted","network.fetchError","browsingContext.load","browsingContext.navigationStarted"]}),deadline).map_err(|_|FirefoxError::Unavailable)?;
         let tree = connection
             .call_before("browsingContext.getTree", json!({}), deadline)
             .map_err(|_| FirefoxError::Unavailable)?;

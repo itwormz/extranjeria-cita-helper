@@ -224,8 +224,14 @@ pub fn recognize(snapshot: &PageSnapshot) -> Result<Recognition, InvalidSnapshot
     );
     let captcha_text = has_any(&text, &["captcha", "código de la imagen"]);
     // Python _challenge_code returns CAPTCHA before HTTP_BLOCKED when both are present.
+    // Python also raises HTTP_BLOCKED for any 403 entry response, after the challenge-text check.
+    let forbidden = snapshot
+        .frames
+        .iter()
+        .any(|frame| frame.response_matches && frame.status == Some(403));
     let blocked = !captcha_text
-        && has_any(
+        && (forbidden
+            || has_any(
             &text,
             &[
                 "access denied",
@@ -237,7 +243,7 @@ pub fn recognize(snapshot: &PageSnapshot) -> Result<Recognition, InvalidSnapshot
                 "intrusion prevention triggered",
                 "attempt to access the internet resource is blocked",
             ],
-        );
+        ));
     let booking = [
         "input[name*='fecha']",
         "select[name*='fecha']",
