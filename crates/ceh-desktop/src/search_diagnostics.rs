@@ -1,4 +1,5 @@
 use ceh_browser::{bidi::BidiConnection, passive, session_driver::{NativeStep, SessionDriver}};
+use crate::session_timeline::{self, SessionHeader, SessionTimeline};
 use ceh_core::profiles::ProfileDraft;
 use ceh_services::diagnostics::ScriptArchive;
 use serde_json::json;
@@ -12,6 +13,10 @@ pub(crate) struct SearchDiagnostics {
     enabled: bool,
     documents: HashSet<ceh_core::model::DocumentId>,
     index: u32,
+    /// What the app did and saw, for reconstructing the history of a block (`timeline.jsonl`).
+    timeline: SessionTimeline,
+    last_document: Option<ceh_core::model::DocumentId>,
+    blocks: u32,
 }
 
 impl SearchDiagnostics {
@@ -21,7 +26,8 @@ impl SearchDiagnostics {
             profile.document_number.clone(), profile.full_name.clone(),
             profile.phone.clone(), profile.email.clone(),
         ]);
-        Self { archive, session, directory: None, collector: None, enabled: false, documents: HashSet::new(), index: 0 }
+        Self { archive, session, directory: None, collector: None, enabled: false, documents: HashSet::new(), index: 0,
+            timeline: SessionTimeline::new(None), last_document: None, blocks: 0 }
     }
 
     pub(crate) fn set_enabled(
@@ -36,6 +42,7 @@ impl SearchDiagnostics {
         }
         self.enabled = enabled;
         if !enabled {
+            self.timeline = SessionTimeline::new(None);
             self.stop_collector(connection, driver);
             self.finish(driver);
             return;
@@ -45,6 +52,7 @@ impl SearchDiagnostics {
         if self.directory.is_none() {
             return;
         }
+        self.timeline = SessionTimeline::new(self.directory.as_deref());
         self.collector = connection.call("network.addDataCollector", json!({
             "dataTypes":["response"],"maxEncodedDataSize":passive::MAX_RESPONSE_BYTES,
             "collectorType":"blob","contexts":[context]
@@ -62,6 +70,68 @@ impl SearchDiagnostics {
         }
     }
 
+    /// Session header, the page environment and the site's cookie names at the start of the session.
+    pub(crate) fn session_start(&self, header: &SessionHeader, connection: &mut BidiConnection, context: &str) {
+        if !self.timeline.is_enabled() {
+            return;
+        }
+        self.timeline.append("session", session_timeline::header_row(header));
+        self.environment("start", connection, context);
+        self.cookies("start", connection);
+    }
+    pub(crate) fn environment(&self, why: &str, connection: &mut BidiConnection, context: &str) {
+        if self.timeline.is_enabled() {
+            let environment = ceh_browser::evidence::read_environment(connection, context);
+            self.timeline.append("environment", json!({"why": why, "environment": environment}));
+        }
+    }
+    pub(crate) fn cookies(&self, why: &str, connection: &mut BidiConnection) {
+        if self.timeline.is_enabled() {
+            let cookies = ceh_browser::evidence::read_cookie_names(connection);
+            self.timeline.append("cookies", json!({"why": why, "cookies": cookies}));
+        }
+    }
+    /// One executed step: effects, the pause before it, receipts and how long the browser took.
+    pub(crate) fn step(&self, row: serde_json::Value) {
+        self.timeline.append("step", row);
+    }
+    /// Commands sent to the browser and header/cookie-name rows of the site's traffic since the last call.
+    pub(crate) fn flush_timeline(&self, connection: &mut BidiConnection, driver: &mut SessionDriver) {
+        if !self.timeline.is_enabled() {
+            return;
+        }
+        for raw in connection.take_command_log() {
+            if let Some(row) = session_timeline::command_row(&raw) {
+                self.timeline.append_row(row);
+            }
+        }
+        for mut row in driver.take_network_meta() {
+            if let Some(object) = row.as_object_mut() {
+                object.insert("kind".into(), json!("net_meta"));
+                self.timeline.append_row(row);
+            }
+        }
+    }
+    /// A block or rate-limit page: marker name, screenshot, environment and cookie names at that moment.
+    fn record_block(&mut self, step: &NativeStep, connection: &mut BidiConnection, context: &str) {
+        let observation = &step.update().observation;
+        self.blocks += 1;
+        let screenshot = match (console_is_unlocked(), step.block_image(connection)) {
+            (true, Some(image)) => {
+                let name = format!("block-{}.png", self.blocks);
+                match self.directory.as_ref().map(|d| std::fs::write(d.join(&name), image)) {
+                    Some(Ok(())) => name,
+                    _ => "write_failed".to_owned(),
+                }
+            }
+            (false, _) => "console_locked".to_owned(),
+            (true, None) => "capture_failed".to_owned(),
+        };
+        self.timeline.append("block", session_timeline::block_row(observation.kind, observation.method, step.block_marker(), &screenshot));
+        self.environment("block", connection, context);
+        self.cookies("block", connection);
+    }
+
     pub(crate) fn stop_collector(&mut self, connection: &mut BidiConnection, driver: &mut SessionDriver) {
         let _ = driver.set_passive_diagnostics(false);
         if let Some(collector) = self.collector.take() {
@@ -75,13 +145,24 @@ impl SearchDiagnostics {
         if let Some(directory) = &self.directory {
             append_network_rows(&directory.join("icp-network.jsonl"), driver.take_network_rows());
         }
+        self.timeline.append("end", json!({}));
         driver.set_network_journal(None);
     }
 
     pub(crate) fn observe(&mut self, step: &NativeStep, connection: &mut BidiConnection, driver: &mut SessionDriver) {
-        let Some(directory) = self.directory.as_ref().filter(|_| self.enabled) else { return };
+        let Some(directory) = self.directory.clone().filter(|_| self.enabled) else { return };
         let Ok(now) = crate::current_time() else { return };
         append_network_rows(&directory.join("icp-network.jsonl"), driver.take_network_rows());
+        self.flush_timeline(connection, driver);
+        let observation = &step.update().observation;
+        if self.last_document.as_ref() != Some(&observation.document) {
+            self.last_document = Some(observation.document.clone());
+            self.timeline.append("page", session_timeline::page_row(observation.kind, observation.method, &observation.document));
+            if matches!(observation.kind, ceh_core::model::PageKind::Blocked | ceh_core::model::PageKind::RateLimited) {
+                let context = step.context().unwrap_or_default().to_owned();
+                self.record_block(step, connection, &context);
+            }
+        }
         let batch = driver.take_diagnostic_responses();
         if batch.overflowed {
             self.stop_collector(connection, driver);
@@ -96,7 +177,7 @@ impl SearchDiagnostics {
                     continue;
                 }
                 if let Ok(body) = passive::read_response(connection, collector, &response) {
-                    let _ = self.archive.save_script(directory, response.url(), body.as_bytes(), response.status(), response.mime(), now.timestamp() as f64);
+                    let _ = self.archive.save_script(&directory, response.url(), body.as_bytes(), response.status(), response.mime(), now.timestamp() as f64);
                 }
             }
         }
@@ -125,15 +206,7 @@ impl SearchDiagnostics {
     }
 }
 
-/// Madrid ISO time with milliseconds for an event instant (ms since the epoch); the clock when absent.
-pub(crate) fn madrid_text(epoch_ms: Option<i64>) -> String {
-    let instant = epoch_ms
-        .and_then(chrono::DateTime::from_timestamp_millis)
-        .or_else(|| crate::current_time().ok());
-    instant
-        .map(|at| at.with_timezone(&chrono_tz::Europe::Madrid).to_rfc3339_opts(chrono::SecondsFormat::Millis, false))
-        .unwrap_or_default()
-}
+pub(crate) use crate::session_timeline::madrid_text;
 
 #[cfg(target_os = "macos")]
 fn console_is_unlocked() -> bool {

@@ -58,9 +58,25 @@ impl NativeStep {
     }
 
     pub fn diagnostic_image(&self, connection: &mut BidiConnection) -> Option<Vec<u8>> {
+        if !matches!(self.update.observation.kind, PageKind::Province | PageKind::Procedure | PageKind::Auth) {
+            return None;
+        }
+        self.capture(connection)
+    }
+    /// The block / rate-limit page itself (the ordinary screenshots only cover the entry forms).
+    pub fn block_image(&self, connection: &mut BidiConnection) -> Option<Vec<u8>> {
+        if !matches!(self.update.observation.kind, PageKind::Blocked | PageKind::RateLimited) {
+            return None;
+        }
+        self.capture(connection)
+    }
+    /// The browsing context of the page this step read.
+    pub fn context(&self) -> Option<&str> {
+        self.page.page.sources.first().map(|source| source.context.as_str())
+    }
+    fn capture(&self, connection: &mut BidiConnection) -> Option<Vec<u8>> {
         use base64::Engine;
         if self.update.control.mode() != ControlMode::Automatic || !self.page.page.snapshot.official
-            || !matches!(self.update.observation.kind, PageKind::Province | PageKind::Procedure | PageKind::Auth)
             || self.page.page.sources.len() != 1
         {
             return None;

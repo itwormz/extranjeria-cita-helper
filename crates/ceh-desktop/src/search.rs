@@ -351,6 +351,12 @@ impl Drop for SearchController {
         }
     }
 }
+/// Whole days since the app created its persistent browser profile of `key`, when known.
+fn profile_age_days(root: &Path, key: &str) -> Option<u64> {
+    let marker = root.join("browser-profiles").join(format!("firefox-{key}")).join("ceh-owned-profile");
+    let created = std::fs::metadata(marker).ok()?.created().ok()?;
+    Some(std::time::SystemTime::now().duration_since(created).ok()?.as_secs() / 86_400)
+}
 fn observation_retry_ms(attempt: u32) -> u64 {
     if attempt < 5 { 500 } else { 30_000 }
 }
@@ -594,13 +600,14 @@ fn run_owned(
         SessionId::new(uuid::Uuid::new_v4().to_string()).map_err(|_| "search_unavailable")?;
     let mut gate = DispatchGate::new(session.clone());
     *shared_gate.lock().map_err(|_| "search_unavailable")? = Some(gate.clone());
+    let samples = ceh_browser::session_driver::SessionSamples{first_bootstrap:unit_sample(),second_bootstrap:unit_sample(),reload:unit_sample(),contact_typing:unit_sample(),typing:unit_sample()};
     let mut driver = SessionDriver::with_samples(
         browser.context(),
         session.clone(),
         profile.clone(),
         timings.clone(),
         gate.clone(),
-        ceh_browser::session_driver::SessionSamples{first_bootstrap:unit_sample(),second_bootstrap:unit_sample(),reload:unit_sample(),contact_typing:unit_sample(),typing:unit_sample()},
+        samples,
     )
     .map_err(|_| "profile_invalid")?;
     driver.apply_recovery_carry(carry.clone());
@@ -654,6 +661,27 @@ fn run_owned(
     let initial_preferences = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru").ok();
     diagnostics.set_enabled(initial_preferences.as_ref().is_some_and(|bundle| bundle.preferences.diagnostics),
         browser.connection(), &mut driver, &context);
+    {
+        use ceh_core::timings::TimingKind;
+        let ms = |kind, unit: f64| timings.sample(kind, unit).map(|s| (s * 1000.0).round() as u64).unwrap_or(0);
+        let range = timings.action_delay_seconds();
+        diagnostics.session_start(
+            &crate::session_timeline::SessionHeader {
+                app_version: env!("CARGO_PKG_VERSION").to_owned(),
+                firefox_version: FirefoxInstallation::discover().map(|i| i.version().to_owned()).unwrap_or_default(),
+                os: std::env::consts::OS.to_owned(),
+                profile_persistent: true,
+                profile_age_days: profile_age_days(root, &profile.id),
+                certificate_cache: format!("{:?}", browser.certificate_cache()).to_lowercase(),
+                action_delay_ms: [(range[0] * 1000.0).round() as u64, (range[1] * 1000.0).round() as u64],
+                first_bootstrap_ms: ms(TimingKind::Bootstrap, samples.first_bootstrap),
+                typing_ms: ms(TimingKind::Typing, samples.typing),
+                contact_typing_ms: ms(TimingKind::ContactTyping, samples.contact_typing),
+            },
+            browser.connection(),
+            &context,
+        );
+    }
     // Only the new owned about:blank context receives this initial GET.
     let navigated = browser.connection().call("browsingContext.navigate",json!({"context":context,"url":"https://icp.administracionelectronica.gob.es/icpplus/index.html","wait":"none"}));
     if navigated.is_err() {
@@ -802,6 +830,7 @@ fn run_owned(
             publish_budget(state, &mut budget, crate::current_time()?, &appointment_policy, observer.hot_retry())?;
             let paused = driver.control().mode() == ControlMode::Paused;
             let mut effects = Vec::new();
+            let mut action_delay_ms: Option<u64> = None;
             if !paused && !manual && Instant::now() < retry_at {
                 stats
                     .heartbeat(&mut db, wall()?, mono())
@@ -937,6 +966,7 @@ fn run_owned(
                             | FlowEffect::AcceptCookies { .. }
                     )
                 }) {
+                    diagnostics.environment("before_action", browser.connection(), &context);
                     let bytes = uuid::Uuid::new_v4();
                     let sample = u64::from_le_bytes(
                         bytes.as_bytes()[..8]
@@ -944,8 +974,9 @@ fn run_owned(
                             .map_err(|_| "search_unavailable")?,
                     ) as f64
                         / u64::MAX as f64;
-                    let until =
-                        Instant::now() + Duration::from_secs_f64(timings.sample(ceh_core::timings::TimingKind::Action,sample).map_err(|_|"profile_invalid")?);
+                    let pause = timings.sample(ceh_core::timings::TimingKind::Action,sample).map_err(|_|"profile_invalid")?;
+                    action_delay_ms = Some((pause * 1000.0).round() as u64);
+                    let until = Instant::now() + Duration::from_secs_f64(pause);
                     while Instant::now() < until && !cancelled.load(Ordering::Acquire) {
                         std::thread::sleep(Duration::from_millis(10));
                     }
@@ -953,6 +984,7 @@ fn run_owned(
                         return Ok(SessionEnd::Finished);
                     }
                 }
+                let executing_since = Instant::now();
                 let entering_auth = effects.iter().any(|effect| matches!(effect, FlowEffect::EnterAuthentication { .. }));
                 let submits_appointment = effects.iter().any(|effect| matches!(effect, FlowEffect::Activate { action: ActionKind::Request, .. }));
                 let mut prior_budget = if submits_appointment {
@@ -993,6 +1025,12 @@ fn run_owned(
                     }
                     Err(_) => return Err("browser_action_failed"),
                 };
+                diagnostics.step(crate::session_timeline::step_row(
+                    &effects,
+                    action_delay_ms,
+                    &after.receipts.iter().map(|r| (r.action, r.outcome)).collect::<Vec<_>>(),
+                    executing_since.elapsed().as_millis() as u64,
+                ));
                 if profile.fill_mode == "copy" && after.applicant_prepared {
                     let identity = driver.copied_budget_identity(browser.connection(), &after.observation)
                         .map_err(|_| "appointment_budget_unavailable")?;
@@ -1190,6 +1228,7 @@ fn run_owned(
                 }
                 preferences_at = Instant::now();
             }
+            diagnostics.flush_timeline(browser.connection(), &mut driver);
             let change = presenter
                 .update(
                     &driver.control(),
@@ -1215,6 +1254,7 @@ fn run_owned(
             std::thread::sleep(Duration::from_millis(500));
         }
     })();
+    diagnostics.flush_timeline(browser.connection(), &mut driver);
     diagnostics.stop_collector(browser.connection(), &mut driver);
     diagnostics.finish(&mut driver);
     let at = wall()?;

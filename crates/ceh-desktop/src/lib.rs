@@ -52,6 +52,7 @@ static CATALOG: LazyLock<ProfileCatalog> = LazyLock::new(|| {
     }
 });
 pub mod restart;
+pub mod session_timeline;
 pub mod startup_report;
 /// Where the Python application kept its data folders on this system.
 pub fn legacy_support_dirs() -> Vec<std::path::PathBuf> {
