@@ -45,3 +45,27 @@ fn http_403_is_a_block_even_without_block_text_unless_the_page_shows_a_captcha()
     assert_ne!(kind_of("Servicio de cita previa", Some(200), true), PageKind::Blocked);
     assert_ne!(kind_of("Servicio de cita previa", None, true), PageKind::Blocked);
 }
+
+#[test]
+fn an_empty_403_entry_response_is_blocked_and_only_the_entry_frame_counts() {
+    use ceh_core::model::PageKind;
+    // Nothing is visible (an empty 403 body has no height): still a block, not "loading".
+    let empty: PageSnapshot = serde_json::from_value(serde_json::json!({
+        "visible": [], "frames": [{"text": "", "status": 403, "response_matches": true}]
+    }))
+    .unwrap();
+    assert_eq!(recognize(&empty).unwrap().kind, PageKind::Blocked);
+    // A genuinely loading page without any status stays loading.
+    let loading: PageSnapshot = serde_json::from_value(serde_json::json!({
+        "visible": [], "frames": [{"text": ""}]
+    }))
+    .unwrap();
+    assert_eq!(recognize(&loading).unwrap().kind, PageKind::Loading);
+    // Python checks the entry response only: a 403 in a child frame does not block the page.
+    let child: PageSnapshot = serde_json::from_value(serde_json::json!({
+        "visible": ["body", "#form"],
+        "frames": [{"text": "Servicio de cita previa", "status": 200}, {"text": "", "status": 403}]
+    }))
+    .unwrap();
+    assert_ne!(recognize(&child).unwrap().kind, PageKind::Blocked);
+}

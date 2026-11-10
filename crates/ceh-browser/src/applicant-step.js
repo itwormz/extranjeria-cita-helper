@@ -13,7 +13,8 @@ step => {
     const textField = () => step.field==='number' ? number : step.field==='name' ? name : null;
     const textValue = () => step.field==='number' ? step.number : step.name;
     const usableText = el => !!el && el instanceof HTMLInputElement && !el.disabled && !el.readOnly && el.type!=='hidden' && typeof textValue()==='string' && !(el.maxLength>=0 && textValue().length>el.maxLength);
-    const match = (a,b) => a===b;
+    // The page may change letter case while typing (NIE letters, names); compare as `submit` does.
+    const match = (a,b) => a.trim().toUpperCase()===b.trim().toUpperCase();
     if (step.operation==='verify_document_type') {
       const radio=radioId ? field(radioId) : null;
       if (!radio) return !step.regreso && !document.querySelector('[name="rdbTipoDoc"]') ? 'unchanged' : 'refused';
@@ -40,6 +41,7 @@ step => {
       if (!usableText(target)) return 'refused';
       if (step.operation==='verify') return match(target.value,textValue()) ? 'unchanged' : 'refused';
       if (step.operation==='target') return target;
+      if (step.operation==='focused') return document.activeElement===target ? 'unchanged' : 'refused';
       if (step.operation==='empty') return document.activeElement===target && target.value==='' ? 'unchanged' : 'refused';
       if (step.operation==='ready_key') return document.activeElement===target && match(target.value,step.prefix) ? 'unchanged' : 'refused';
       return 'refused';

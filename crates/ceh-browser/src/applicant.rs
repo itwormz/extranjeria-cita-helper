@@ -172,9 +172,7 @@ pub fn prepare_applicant(
     typing_delay: Duration,
     deadline: Instant,
 ) -> Result<PreparationOutcome, BrowserError> {
-    if typing_delay > Duration::from_millis(250) {
-        return Err(BrowserError::Unsupported);
-    }
+    let typing_delay = typed_field::typing_delay(typing_delay);
     if Instant::now() >= deadline {
         return Ok(PreparationOutcome::Failed);
     }
@@ -220,6 +218,7 @@ pub fn prepare_applicant(
                     match typed_select::choose(connection, observer, gate, guard, &choice, &page)? {
                         typed_select::Chosen::Done => break PreparationOutcome::Completed,
                         typed_select::Chosen::Unknown => break PreparationOutcome::Unknown,
+                        typed_select::Chosen::Mismatch => break PreparationOutcome::Failed,
                         typed_select::Chosen::NotReady => std::thread::sleep(
                             Duration::from_millis(250).min(deadline.saturating_duration_since(Instant::now())),
                         ),

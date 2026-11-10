@@ -208,6 +208,17 @@ pub fn recognize(snapshot: &PageSnapshot) -> Result<Recognition, InvalidSnapshot
     if result.kind != PageKind::Unknown {
         return Ok(result);
     }
+    // Python raises HTTP_BLOCKED for a 403 entry response after the challenge-text check (captcha text
+    // wins). Judged before the body check: an empty 403 body has no height and would look like loading.
+    let entry = &snapshot.frames[0];
+    if entry.response_matches
+        && entry.status == Some(403)
+        && !has_any(&normalize(&entry.text), &["captcha", "código de la imagen"])
+    {
+        result.kind = PageKind::Blocked;
+        result.source_frame = 0;
+        return Ok(result);
+    }
     let visible = |selector: &str| snapshot.visible.iter().any(|s| s == selector);
     if !visible("body") {
         result.kind = PageKind::Loading;
@@ -224,14 +235,8 @@ pub fn recognize(snapshot: &PageSnapshot) -> Result<Recognition, InvalidSnapshot
     );
     let captcha_text = has_any(&text, &["captcha", "código de la imagen"]);
     // Python _challenge_code returns CAPTCHA before HTTP_BLOCKED when both are present.
-    // Python also raises HTTP_BLOCKED for any 403 entry response, after the challenge-text check.
-    let forbidden = snapshot
-        .frames
-        .iter()
-        .any(|frame| frame.response_matches && frame.status == Some(403));
     let blocked = !captcha_text
-        && (forbidden
-            || has_any(
+        && has_any(
             &text,
             &[
                 "access denied",
@@ -243,7 +248,7 @@ pub fn recognize(snapshot: &PageSnapshot) -> Result<Recognition, InvalidSnapshot
                 "intrusion prevention triggered",
                 "attempt to access the internet resource is blocked",
             ],
-        ));
+        );
     let booking = [
         "input[name*='fecha']",
         "select[name*='fecha']",

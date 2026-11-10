@@ -14,6 +14,7 @@ step => {
   if(!usable(target) || (target.maxLength>=0 && expected.length>target.maxLength))return 'refused';
   if(step.operation==='verify')return match(target.value,expected) ? 'unchanged' : 'refused';
   if(step.operation==='target')return target;
+  if(step.operation==='focused')return document.activeElement===target ? 'unchanged' : 'refused';
   if(step.operation==='empty')return document.activeElement===target && target.value==='' ? 'unchanged' : 'refused';
   if(step.operation==='ready_key')return document.activeElement===target && match(target.value,step.prefix) ? 'unchanged' : 'refused';
   return 'refused';

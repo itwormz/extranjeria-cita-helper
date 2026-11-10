@@ -22,8 +22,11 @@ pub(crate) struct Choice<'a> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Chosen {
     Done,
-    /// The page is not ready or the typed label did not select the option: nothing is known to be wrong.
+    /// The page is not ready (nothing was typed): waiting and trying again is safe.
     NotReady,
+    /// The label was typed but the page shows another option (type-ahead prefix collision, or the page
+    /// resets the value): typing again would repeat the same wrong change, so the step fails at once.
+    Mismatch,
     Unknown,
 }
 pub(crate) fn choose(
@@ -72,7 +75,7 @@ pub(crate) fn choose(
     // Type-ahead selects the first option that starts with the typed text: always confirm by reading.
     match mutation::perform(connection, &mut permit, &fresh, (choice.payload)("verify"), choice.script)? {
         Receipt::Unchanged | Receipt::Changed => Ok(Chosen::Done),
-        Receipt::Refused => Ok(Chosen::NotReady),
+        Receipt::Refused => Ok(Chosen::Mismatch),
         Receipt::Unknown => Ok(Chosen::Unknown),
     }
 }

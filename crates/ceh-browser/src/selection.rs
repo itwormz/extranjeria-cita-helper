@@ -97,6 +97,7 @@ pub fn prepare_selection(
         })? {
             typed_select::Chosen::Done => return Ok(PreparationOutcome::Completed),
             typed_select::Chosen::Unknown => return Ok(PreparationOutcome::Unknown),
+            typed_select::Chosen::Mismatch => return Ok(PreparationOutcome::Failed),
             typed_select::Chosen::NotReady => {
                 std::thread::sleep(Duration::from_millis(100).min(deadline.saturating_duration_since(Instant::now())));
             }

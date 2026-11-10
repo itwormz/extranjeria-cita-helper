@@ -60,9 +60,7 @@ pub fn prepare_contact(
     typing_delay: Duration,
     deadline: Instant,
 ) -> Result<PreparationOutcome, BrowserError> {
-    if typing_delay > Duration::from_millis(250) {
-        return Err(BrowserError::Unsupported);
-    }
+    let typing_delay = typed_field::typing_delay(typing_delay);
     for (field, value) in [
         ("phone", input.phone.as_str()),
         ("email1", input.email.as_str()),

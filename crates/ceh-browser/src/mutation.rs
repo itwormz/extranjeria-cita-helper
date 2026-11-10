@@ -110,7 +110,9 @@ pub(crate) fn read_label(
     })?;
     let Some(ticket) = ticket else {
         // Nothing was sent, or the send is unproven: a read never changes the page either way.
-        permit.complete_step(if sent == DispatchOutcome::Unknown { DispatchOutcome::Unknown } else { DispatchOutcome::NotDispatched })?;
+        if sent == DispatchOutcome::Unknown {
+            permit.complete_step(DispatchOutcome::Unknown)?;
+        }
         return Ok(None);
     };
     let value = connection.receive(ticket).ok();

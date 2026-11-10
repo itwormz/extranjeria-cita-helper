@@ -14,7 +14,7 @@ use ceh_core::{
 use serde_json::Value;
 use std::time::{Duration, Instant};
 
-/// The step script understands the operations `verify`, `target`, `empty` and `ready_key`.
+/// The step script understands the read-only operations `verify`, `target`, `focused`, `empty` and `ready_key`.
 pub(crate) struct Field<'a> {
     pub action: ActionKind,
     pub script: &'static str,
@@ -63,6 +63,14 @@ pub(crate) fn enter(
     }
     fresh = fresh_page(connection, observer)?;
     let mut permit = gate.begin_preparation(guard, &fresh.observation, field.action)?;
+    // Never send select-all + delete unless the pointer press really put the focus on this field.
+    let focused = mutation::perform(connection, &mut permit, &fresh, (field.payload)("focused", ""), field.script)?;
+    if focused == Receipt::Unknown {
+        return Ok(PreparationOutcome::Unknown);
+    }
+    if focused != Receipt::Unchanged {
+        return Ok(PreparationOutcome::Failed);
+    }
     match trusted_input::clear_field(connection, &mut permit, &fresh)? {
         DispatchOutcome::Unknown => return Ok(PreparationOutcome::Unknown),
         DispatchOutcome::NotDispatched => return Ok(PreparationOutcome::Failed),
@@ -105,4 +113,23 @@ pub(crate) fn enter(
         return Ok(PreparationOutcome::Failed);
     }
     Ok(PreparationOutcome::Completed)
+}
+
+/// Longest pause between two typed characters: a person never types slower than the typing-ability spec
+/// allows, but a long configured pause must not abort the step (the spec accepts up to 1000 ms).
+pub(crate) const MAX_TYPING_DELAY: Duration = Duration::from_millis(250);
+pub(crate) fn typing_delay(configured: Duration) -> Duration {
+    configured.min(MAX_TYPING_DELAY)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn a_long_configured_typing_delay_is_clamped_not_rejected() {
+        assert_eq!(typing_delay(Duration::from_millis(70)), Duration::from_millis(70));
+        assert_eq!(typing_delay(Duration::from_millis(300)), MAX_TYPING_DELAY);
+        assert_eq!(typing_delay(Duration::from_millis(1000)), MAX_TYPING_DELAY);
+        assert_eq!(typing_delay(Duration::ZERO), Duration::ZERO);
+    }
 }
