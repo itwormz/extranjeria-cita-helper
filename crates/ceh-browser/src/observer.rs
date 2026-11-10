@@ -23,7 +23,16 @@ pub struct PageObserver {
     passive: Option<crate::passive::ResponseQueue>,
     /// Requests of this context started and not yet completed or failed (the warm-up's `networkidle`).
     inflight: u32,
+    /// Appointment-site traffic rows for the diagnostics file, only while the journal is enabled.
+    network: Option<NetworkTap>,
 }
+struct NetworkTap {
+    journal: crate::icp_journal::IcpNetworkJournal,
+    wall: Box<dyn Fn() -> String + Send>,
+    started: std::time::Instant,
+    rows: Vec<serde_json::Value>,
+}
+const MAX_NETWORK_ROWS: usize = 2000;
 impl PageObserver {
     pub fn new(context: &str) -> Result<Self, ProtocolError> {
         if context.is_empty() || context.len() > 512 {
@@ -36,6 +45,7 @@ impl PageObserver {
             pending_action: None,
             passive: None,
             inflight: 0,
+            network: None,
         })
     }
     /// The flow engine supplies action context; DOM text cannot invent sent actions.
@@ -48,6 +58,15 @@ impl PageObserver {
     pub fn ingest(&mut self, event: &serde_json::Value) -> Result<(), ProtocolError> {
         if let Some(queue) = &mut self.passive {
             queue.ingest(event);
+        }
+        if let Some(tap) = &mut self.network {
+            let now = tap.started.elapsed().as_secs_f64();
+            if let Some(row) = tap.journal.record(event, now, &(tap.wall)()) {
+                if tap.rows.len() >= MAX_NETWORK_ROWS {
+                    tap.rows.remove(0);
+                }
+                tap.rows.push(row);
+            }
         }
         let ours = event["params"]["context"].as_str() == Some(self.context.as_str());
         match event["method"].as_str() {
@@ -65,6 +84,18 @@ impl PageObserver {
         self.facts
             .ingest(event)
             .map_err(|_| ProtocolError::InvalidData)
+    }
+    /// Record appointment-site traffic rows (Python `icp-network.jsonl`); `wall` supplies the local ISO time.
+    pub fn set_network_journal(&mut self, wall: Option<Box<dyn Fn() -> String + Send>>) {
+        self.network = wall.map(|wall| NetworkTap {
+            journal: crate::icp_journal::IcpNetworkJournal::new(),
+            wall,
+            started: std::time::Instant::now(),
+            rows: Vec::new(),
+        });
+    }
+    pub fn take_network_rows(&mut self) -> Vec<serde_json::Value> {
+        self.network.as_mut().map(|tap| std::mem::take(&mut tap.rows)).unwrap_or_default()
     }
     /// No request of the page is in flight (Python waits for `networkidle` during the F5 warm-up).
     pub fn network_quiet(&self) -> bool {

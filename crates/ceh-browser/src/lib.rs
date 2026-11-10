@@ -177,6 +177,9 @@ pub mod cookies;
 pub mod discovery;
 
 #[cfg(feature = "bidi")]
+pub mod icp_journal;
+
+#[cfg(feature = "bidi")]
 pub mod public_details;
 
 #[cfg(feature = "bidi")]

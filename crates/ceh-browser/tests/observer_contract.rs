@@ -126,3 +126,27 @@ fn network_quiet_follows_requests_of_this_context_only() {
     let _ = observer.ingest(&event("browsingContext.navigationStarted", "ctx"));
     assert!(observer.network_quiet(), "a new navigation drops the old requests");
 }
+
+#[test]
+fn network_journal_is_opt_in_bounded_and_drained_once() {
+    use ceh_browser::observer::PageObserver;
+    use serde_json::json;
+    let event = |status: u64| json!({"type":"event","method":"network.responseCompleted","params":{"context":"ctx","redirectCount":0,"request":{"request":"r","url":"https://icp.administracionelectronica.gob.es/icpplus/acCitar","method":"POST","destination":"document"},"response":{"url":"https://icp.administracionelectronica.gob.es/icpplus/acCitar","status":status}}});
+    let mut observer = PageObserver::new("ctx").unwrap();
+    let _ = observer.ingest(&event(200));
+    assert!(observer.take_network_rows().is_empty(), "off by default");
+    observer.set_network_journal(Some(Box::new(|| "2026-11-10T10:00:00+01:00".to_owned())));
+    let _ = observer.ingest(&event(200));
+    let _ = observer.ingest(&event(429));
+    let rows = observer.take_network_rows();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1]["requests_by_minutes"]["1"], 0);
+    assert!(observer.take_network_rows().is_empty(), "drained once");
+    for _ in 0..2100 {
+        let _ = observer.ingest(&event(200));
+    }
+    assert_eq!(observer.take_network_rows().len(), 2000, "bounded");
+    observer.set_network_journal(None);
+    let _ = observer.ingest(&event(200));
+    assert!(observer.take_network_rows().is_empty(), "disabled again");
+}

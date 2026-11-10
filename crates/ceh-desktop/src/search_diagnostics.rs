@@ -49,10 +49,17 @@ impl SearchDiagnostics {
             "collectorType":"blob","contexts":[context]
         })).ok().and_then(|result| result["collector"].as_str().map(str::to_owned));
         let _ = driver.set_passive_diagnostics(self.collector.is_some());
+        // Python `icp-network.jsonl`: traffic to the appointment site, written next to the session snapshots.
+        driver.set_network_journal(Some(Box::new(|| {
+            crate::current_time()
+                .map(|now| now.with_timezone(&chrono_tz::Europe::Madrid).to_rfc3339())
+                .unwrap_or_default()
+        })));
     }
 
     pub(crate) fn stop_collector(&mut self, connection: &mut BidiConnection, driver: &mut SessionDriver) {
         let _ = driver.set_passive_diagnostics(false);
+        driver.set_network_journal(None);
         if let Some(collector) = self.collector.take() {
             let _ = connection.call("network.removeDataCollector", json!({"collector":collector}));
         }
@@ -61,6 +68,7 @@ impl SearchDiagnostics {
     pub(crate) fn observe(&mut self, step: &NativeStep, connection: &mut BidiConnection, driver: &mut SessionDriver) {
         let Some(directory) = self.directory.as_ref().filter(|_| self.enabled) else { return };
         let Ok(now) = crate::current_time() else { return };
+        append_network_rows(&directory.join("icp-network.jsonl"), driver.take_network_rows());
         let batch = driver.take_diagnostic_responses();
         if batch.overflowed {
             self.stop_collector(connection, driver);
@@ -127,4 +135,39 @@ fn console_is_unlocked() -> bool {
 #[cfg(not(target_os = "macos"))]
 fn console_is_unlocked() -> bool {
     false
+}
+
+/// Append rows as JSON lines; the file is private to the user, like the rest of the diagnostics.
+pub(crate) fn append_network_rows(path: &Path, rows: Vec<serde_json::Value>) {
+    use std::io::Write;
+    if rows.is_empty() {
+        return;
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.create(true).append(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+    let Ok(mut file) = options.open(path) else { return };
+    for row in rows {
+        let _ = writeln!(file, "{row}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn network_rows_are_appended_as_private_json_lines() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("icp-network.jsonl");
+        append_network_rows(&path, vec![]);
+        assert!(!path.exists(), "no file for no rows");
+        append_network_rows(&path, vec![json!({"event":"request"}), json!({"event":"response","status":429})]);
+        append_network_rows(&path, vec![json!({"event":"failed"})]);
+        let lines: Vec<_> = std::fs::read_to_string(&path).unwrap().lines().map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap()).collect();
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[1]["status"], 429);
+        #[cfg(unix)]
+        assert_eq!(std::os::unix::fs::PermissionsExt::mode(&std::fs::metadata(&path).unwrap().permissions()) & 0o777, 0o600);
+    }
 }

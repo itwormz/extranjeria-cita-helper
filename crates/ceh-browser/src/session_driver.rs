@@ -168,6 +168,12 @@ impl SessionDriver {
         self.observer.set_passive_collection(enabled).map_err(|_| BrowserError::NoObservation)
     }
 
+    pub fn set_network_journal(&mut self, wall: Option<Box<dyn Fn() -> String + Send>>) {
+        self.observer.set_network_journal(wall);
+    }
+    pub fn take_network_rows(&mut self) -> Vec<serde_json::Value> {
+        self.observer.take_network_rows()
+    }
     pub fn take_diagnostic_responses(&mut self) -> crate::passive::ResponseBatch {
         self.observer.take_responses()
     }
