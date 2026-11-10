@@ -258,7 +258,8 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
                     &probe_gate,
                     &probe_guard,
                     &selection,
-                    Instant::now() + Duration::from_secs(3)
+                    Duration::from_millis(5),
+                Instant::now() + Duration::from_secs(3)
                 ),
                 Err(ceh_browser::BrowserError::Paused)
             ) {
@@ -287,6 +288,7 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
                 &gate,
                 guard,
                 &missing,
+                Duration::from_millis(5),
                 Instant::now() + Duration::from_millis(100),
             )
             .map_err(|_| "missing choice execution failed")?
@@ -303,6 +305,7 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
                 &gate,
                 guard,
                 &selection,
+                Duration::from_millis(5),
                 Instant::now() + Duration::from_millis(100),
             )
             .map_err(|_| "multiple-office probe failed")?;
@@ -322,7 +325,8 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
             &gate,
             guard,
             &selection,
-            Instant::now() + Duration::from_secs(3),
+            Duration::from_millis(5),
+                Instant::now() + Duration::from_secs(3),
         );
         let prepared=match prepared{Ok(value)=>value,Err(error)=>{
             let probe=client.call("script.evaluate",json!({"expression":"JSON.stringify({focus:document.activeElement.id,index:document.querySelector('select').selectedIndex,open:document.querySelector('select').matches(':open'),keys:window.fixtureKeys,changes:window.selectionChanges||0,trusted:window.selectionTrusted===true})","target":{"context":context},"awaitPromise":false}))?;
@@ -338,7 +342,8 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
             &gate,
             guard,
             &selection,
-            Instant::now() + Duration::from_secs(3),
+            Duration::from_millis(5),
+                Instant::now() + Duration::from_secs(3),
         )
         .map_err(|_| "selection recheck failed")?;
         if repeated != PreparationOutcome::Completed {
