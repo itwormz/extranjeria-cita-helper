@@ -658,7 +658,7 @@ impl StartupReports {
         }
         self.scrub_report(&mut report)?;
         Ok(format!(
-            "Cita Extranjeria Helper — CEH-{id}\n{}",
+            "SantaCita — CEH-{id}\n{}",
             serde_json::to_string_pretty(&report).map_err(|_| DiagnosticError::Invalid)?
         ))
     }

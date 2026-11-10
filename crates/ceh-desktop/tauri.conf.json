@@ -27,7 +27,8 @@
       "../../.local/builds/work/rust-ui-icons/256x256.png"
     ],
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": "-",
+      "entitlements": "entitlements.plist"
     }
   }
 }

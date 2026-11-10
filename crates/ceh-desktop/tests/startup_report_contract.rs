@@ -10,7 +10,7 @@ fn a_failed_start_leaves_a_private_report_that_copies_without_paths_or_profile_d
     let id = save_failure(root.path(), "/Users/Fictional", "browser_start_failed", true, at(0)).unwrap();
     assert!(id.starts_with("20261110T100000-"));
     let text = clipboard_text(root.path(), "/Users/Fictional", &id).unwrap();
-    assert!(text.starts_with(&format!("Cita Extranjeria Helper — CEH-{id}")));
+    assert!(text.starts_with(&format!("SantaCita — CEH-{id}")));
     assert!(text.contains("browser_launch") && text.contains("browser_start_failed"));
     assert!(!text.contains("/Users/Fictional"), "home directory is scrubbed: {text}");
     // Only the fixed fields are kept: nothing else can be smuggled in later.

@@ -1,6 +1,6 @@
 <script lang="ts">
 import {onMount,untrack} from 'svelte';
-import {loadNotificationEditor,saveProfile,loadBudget,setDailyTarget,type ProfileEditorData} from './bridge';
+import {loadNotificationEditor,saveProfile,loadBudget,setDailyTarget,loadBrowsers,type ProfileEditorData,type InstalledBrowser} from './bridge';import {browserChoices} from './browsers';
 import {protectionFields,searchRisk,type ProtectionField} from './protection';import {validateProtection,type Protection} from './validation';import {parseDailyTarget,budgetLine,sourceKey,type BudgetSummary} from './budget';import DailyBudgetDialog from './DailyBudgetDialog.svelte';
 import {timingInputs,parseTimingInputs,timingGroups,timingTitles,type Timings} from './timings';
 import NotificationPanel from './NotificationPanel.svelte';
@@ -14,6 +14,7 @@ let notifications=$state<NotificationDraft|null>(null);let notificationLoading=$
 async function notificationTab(){tab='notifications';if(notifications||notificationLoading)return;notificationLoading=true;notificationFailure='';try{const result=await loadNotificationEditor(editingId,model.revision);if(alive)notifications=result.draft;}catch(reason){if(alive)notificationFailure=notificationError(reason,t);}finally{if(alive)notificationLoading=false;}}
 let protection=$state<Protection>(untrack(()=>({...model.protection})));let protectionText=$state<Record<string,string>>(untrack(()=>Object.fromEntries(Object.entries(model.protection).filter(([,v])=>typeof v==='number').map(([k,v])=>[k,String(v)]))));let protectionDirty=$state(false);let budgetNote=$state<BudgetSummary|null>(null);let budgetDialog=$state(false);
 let tab=$state('data');let timingsDirty=$state(false);let timingFields=$state(untrack(()=>timingInputs(model.timings,{decimals:2,comma:language!=='en'})));
+let browsers=$state<InstalledBrowser[]|null>(null);const browserSupportText:Record<string,string>={planned:'Планируется',unsupported:'Не поддерживается'};const browserList=$derived(browserChoices(browsers,draft.browser));
 const flagOn=(field:ProtectionField):boolean=>field.source==='timings'?timingFields[field.key]?.[0]!=='false':Boolean((protection as unknown as Record<string,unknown>)[field.key]);
 function setFlag(field:ProtectionField,on:boolean){if(field.source==='timings'){timingFields[field.key]=[String(on)];timingsDirty=true;}else{(protection as unknown as Record<string,unknown>)[field.key]=on;protectionDirty=true;}}
 const riskMessages=['Пока сайт сообщает, что сит нет, данные не отправляются повторно. Для следующей проверки используется штатная кнопка Salir.','Повторная отправка данных может повысить риск блокировки','Часть настроек защиты отключена. Сайт может временно ограничить отправку запросов.'];
@@ -23,7 +24,7 @@ let lastDocument=draft.document_type;let regresoDocument=draft.document_type;con
 function documentChanged(type:string){documentDrafts.set(lastDocument,draft.document_number);draft.document_number=documentDrafts.get(type)??'';draft.document_type=type;lastDocument=type;}
 function procedureChanged(service:string){if(service==='huellas'){regresoDocument=draft.document_type;documentChanged('NIE');}else documentChanged(regresoDocument);}
 const choices=(values:string[])=>values.map(value=>({value,label:value}));
-onMount(()=>{if(editingId)loadBudget(editingId).then(value=>{if(alive)budgetNote=value;}).catch(()=>{});dialog.showModal();dialog.querySelector<HTMLInputElement>('input')?.focus();return()=>{alive=false;notifications=null;dialog.close();};});
+onMount(()=>{loadBrowsers().then(value=>{if(alive)browsers=value;}).catch(()=>{});if(editingId)loadBudget(editingId).then(value=>{if(alive)budgetNote=value;}).catch(()=>{});dialog.showModal();dialog.querySelector<HTMLInputElement>('input')?.focus();return()=>{alive=false;notifications=null;dialog.close();};});
 async function save(){if(saving||notificationLoading)return;if(!['certificate','movil','permanente'].includes(access)){errors=[t('Выбрать способ авторизации')];return;}let timings:Timings|null=null;if(timingsDirty){try{timings=parseTimingInputs($state.snapshot(timingFields),model.timings);}catch{errors=[t('Проверить значения интервалов')];tab='timings';return;}}
  const candidate:Record<string,unknown>={...$state.snapshot(protection)};for(const field of protectionFields)if(field.kind==='int'&&field.source==='protection')candidate[field.key]=parseDailyTarget(protectionText[field.key]??'')??NaN;
  if(protectionDirty&&validateProtection(candidate).length){errors=[t('Проверить значения защиты от бана')];return;}
@@ -40,7 +41,7 @@ async function save(){if(saving||notificationLoading)return;if(!['certificate','
   <Choice label={t('Провинция')} icon="pin" bind:value={draft.province} options={choices(model.provinces)}/>
   <Choice label={t('Услуга')} icon="file_text" bind:value={draft.procedure} options={[{value:'huellas',label:'Toma de huellas / TIE'},{value:'regreso',label:'Autorización de regreso'}]} onchange={procedureChanged}/>
   <Choice label={t('Способ авторизации')} icon="key" bind:value={access} options={[{value:'certificate',label:t('Электронный сертификат')},{value:'movil',label:'Cl@ve Móvil'},{value:'permanente',label:'Cl@ve Permanente'}]}/>
-  <div class="wide"><Choice label={t('Браузер')} icon="globe" bind:value={draft.browser} options={[{value:'firefox',label:t('Firefox — установленный')}]} /></div>
+  <div class="wide"><Choice label={t('Браузер')} icon="globe" bind:value={draft.browser} options={browserList.options}/>{#each browserList.unavailable as other}<small class="muted browser-note">{other.name}{other.version?' '+other.version:''} — {t(browserSupportText[other.support])}</small>{/each}</div>
   <div class="identity-modes"><div class="mode-buttons" role="group" aria-label={t('NIE и имя')}><button type="button" class:selected={draft.fill_mode==='copy'} aria-pressed={draft.fill_mode==='copy'} onclick={()=>draft.fill_mode='copy'}><Icon name="copy" size={17}/>{t('Из авторизации')}</button><button type="button" class:selected={draft.fill_mode==='manual'} aria-pressed={draft.fill_mode==='manual'} onclick={()=>draft.fill_mode='manual'}><Icon name="pencil" size={17}/>{t('Ввести вручную')}</button></div>{#if draft.fill_mode==='copy'}<small class="muted">{t('NIE и имя будут взяты после входа на сайт.')}</small>{/if}</div>
   {#if draft.fill_mode!=='copy'}
    <div class="wide document-row">{#if draft.procedure==='regreso'}<div class="document-type"><Choice label={t('Документ')} icon="id" bind:value={draft.document_type} options={[{value:'NIE',label:'NIE'},{value:'DNI',label:'DNI'},{value:'PASSPORT',label:t('Паспорт')}]} onchange={documentChanged}/></div>{/if}

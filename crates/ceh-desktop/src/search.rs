@@ -581,7 +581,15 @@ fn run_owned(
     diagnostics.set_enabled(initial_preferences.as_ref().is_some_and(|bundle| bundle.preferences.diagnostics),
         browser.connection(), &mut driver, &context);
     // Only the new owned about:blank context receives this initial GET.
-    browser.connection().call("browsingContext.navigate",json!({"context":context,"url":"https://icp.administracionelectronica.gob.es/icpplus/index.html","wait":"none"})).map_err(|_|"browser_navigation_failed")?;
+    let navigated = browser.connection().call("browsingContext.navigate",json!({"context":context,"url":"https://icp.administracionelectronica.gob.es/icpplus/index.html","wait":"none"}));
+    if navigated.is_err() {
+        let deferred = browser.certificate_cache() == ceh_browser::firefox::CertificateCache::Deferred;
+        return match crate::navigation_failure(browser.page_open(), deferred) {
+            // The window was closed while the page loaded: a stop, as when it closes later.
+            None => stats.finish(&mut db, wall()?, mono(), "stopped").map_err(|_| "statistics_unavailable"),
+            Some(error) => Err(error),
+        };
+    }
     let result = (|| {
         let mut wait = false;
         let mut manual = false;

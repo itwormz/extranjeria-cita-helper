@@ -68,6 +68,16 @@ pub fn legacy_support_dirs() -> Vec<std::path::PathBuf> {
             .collect()
     }
 }
+/// What a rejected first navigation means: `None` when the person closed the window while the page loaded
+/// (a stop, nothing to report), otherwise the error to show. Without the prepared certificate chain the
+/// strict HTTPS check rejects the site, which is told apart from other failures.
+pub fn navigation_failure(page_open: bool, certificate_cache_deferred: bool) -> Option<&'static str> {
+    match (page_open, certificate_cache_deferred) {
+        (false, _) => None,
+        (true, true) => Some("browser_certificate_cache_failed"),
+        (true, false) => Some("browser_navigation_failed"),
+    }
+}
 pub fn catalog() -> &'static ProfileCatalog {
     &CATALOG
 }
