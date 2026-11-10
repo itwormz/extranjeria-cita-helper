@@ -413,6 +413,16 @@ fn search_control(
     }
     result
 }
+/// Installed browsers and whether the app can drive them; never exposes install paths.
+#[tauri::command]
+fn installed_browsers(window: WebviewWindow) -> Result<serde_json::Value, &'static str> {
+    authorize(&window)?;
+    let list = ceh_browser::discovery::discover_browsers(&ceh_browser::discovery::system_roots());
+    Ok(serde_json::json!(list
+        .iter()
+        .map(|b| serde_json::json!({"id":b.family.id(),"name":b.name,"version":b.version,"support":b.support.id()}))
+        .collect::<Vec<_>>()))
+}
 #[tauri::command]
 fn appointment_budget(
     window: WebviewWindow,
@@ -581,6 +591,7 @@ fn main() {
             search_control,
             search_resume,
             appointment_budget,
+            installed_browsers,
             appointment_daily_target,
             appointment_distribution,
             appointment_try_now,

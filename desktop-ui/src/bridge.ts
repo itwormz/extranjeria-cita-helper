@@ -68,6 +68,8 @@ export interface SearchSnapshot {profile:string|null;active:boolean;paused:boole
 export async function searchSnapshot():Promise<SearchSnapshot>{return invoke('search_snapshot');}
 export async function startSearch(id:string):Promise<void>{return invoke('search_start',{id});}
 export async function controlSearch(command:'pause'|'resume'|'stop'):Promise<void>{return invoke('search_control',{command});}
+export interface InstalledBrowser {id:string;name:string;version:string;support:'supported'|'planned'|'unsupported'}
+export async function loadBrowsers():Promise<InstalledBrowser[]>{return invoke('installed_browsers');}
 export async function loadBudget(id:string):Promise<BudgetSummary|null>{return invoke('appointment_budget',{id});}
 export async function setDailyTarget(target:number|null,id:string|null=null):Promise<void>{return invoke('appointment_daily_target',{id,target});}
 export async function setDistributionToday(disabled:boolean):Promise<void>{return invoke('appointment_distribution',{disabled});}

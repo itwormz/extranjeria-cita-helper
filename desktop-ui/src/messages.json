@@ -246,7 +246,13 @@
     "Закрыть": "Close",
     "«Сит нет» до запроса": "“No appointments” before requesting",
     "Ответы «Сит нет» на запрос записи": "No-appointments replies to booking requests",
-    "Ответы «Сит нет» с cod. oper": "No-appointments replies with cod. oper"
+    "Ответы «Сит нет» с cod. oper": "No-appointments replies with cod. oper",
+    "Браузер для поиска": "Search browser",
+    "Поиск идёт в отдельном профиле приложения. Сейчас работает только Firefox.": "The search runs in a separate app profile. Only Firefox works for now.",
+    "Работает": "Works",
+    "Планируется": "Planned",
+    "Не поддерживается": "Not supported",
+    "Подходящий браузер не найден": "No suitable browser found"
   },
   "es": {
     "Всего": "Total",
@@ -495,6 +501,12 @@
     "Закрыть": "Cerrar",
     "«Сит нет» до запроса": "«No hay citas» antes de solicitar",
     "Ответы «Сит нет» на запрос записи": "Respuestas sin citas a solicitudes de cita",
-    "Ответы «Сит нет» с cod. oper": "Respuestas sin citas con cod. oper"
+    "Ответы «Сит нет» с cod. oper": "Respuestas sin citas con cod. oper",
+    "Браузер для поиска": "Navegador para la búsqueda",
+    "Поиск идёт в отдельном профиле приложения. Сейчас работает только Firefox.": "La búsqueda se hace en un perfil propio de la aplicación. Por ahora solo funciona Firefox.",
+    "Работает": "Funciona",
+    "Планируется": "Previsto",
+    "Не поддерживается": "No compatible",
+    "Подходящий браузер не найден": "No se encontró ningún navegador compatible"
   }
 }

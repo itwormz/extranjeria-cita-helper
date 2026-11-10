@@ -170,6 +170,9 @@ impl BrowserPort for ReplayBrowser {
 pub mod cookies;
 
 #[cfg(feature = "bidi")]
+pub mod discovery;
+
+#[cfg(feature = "bidi")]
 pub mod public_details;
 
 #[cfg(feature = "bidi")]
