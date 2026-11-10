@@ -116,6 +116,30 @@ def test_budget_rollover_save_failure_keeps_worker_alive(worker_env, monkeypatch
     assert not reports(root)
 
 
+def test_background_failure_is_reported_while_assist_still_runs(worker_env, monkeypatch):
+    # A forced shutdown after a long run must not lose the report.
+    root, stdout = worker_env
+    from app.desktop import worker
+    seen_during_run = []
+
+    async def broken_commands(_stream, _control, _emit):
+        raise PermissionError(13, 'Access is denied')
+
+    async def assist(task, _settings, *, control, open_panel):
+        await asyncio.sleep(0.3)
+        seen_during_run.extend(m for m in stdout.messages() if m['type'] == 'error')
+        await asyncio.sleep(0.05)
+        return 0
+
+    monkeypatch.setattr(worker, 'consume_commands', broken_commands)
+    monkeypatch.setattr(worker, 'run_assist', assist)
+    assert asyncio.run(worker.run_worker('fictitious-profile')) == 1
+    assert len(seen_during_run) == 1 and 'startup-errors/' in seen_during_run[0]['message']
+    assert not [m for m in stdout.messages() if m['type'] == 'error']  # not repeated at shutdown
+    report, = reports(root)
+    assert report['phase'] == 'worker_background'
+
+
 def test_background_task_failure_is_reported_not_raised(worker_env, monkeypatch):
     root, stdout = worker_env
     from app.desktop import worker

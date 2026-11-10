@@ -281,6 +281,23 @@ async def _run_worker(task_id, background_failures):
     statistics_end_reason = 'interrupted'
     incoming = asyncio.create_task(consume_commands(sys.stdin.buffer, control, emit))
     outgoing = asyncio.create_task(states())
+    reported_background = set()
+
+    def report_background(task):
+        # Report when the task dies, not at shutdown: a run can last hours and
+        # a forced stop would otherwise lose the report.
+        if task.cancelled() or task.exception() is None or task in reported_background:
+            return
+        exc = task.exception()
+        reported_background.add(task)
+        background_failures.append(exc)
+        logging.getLogger(__name__).error(
+            'event=worker_background_failed task=%s error=%s',
+            'commands' if task is incoming else 'states', type(exc).__name__)
+        emit({'type':'error', 'message':_report_failure(exc, 'worker_background')})
+
+    for background in (incoming, outgoing):
+        background.add_done_callback(report_background)
     try:
         from contextlib import ExitStack
         from dataclasses import replace
@@ -347,14 +364,9 @@ async def _run_worker(task_id, background_failures):
                 await pending
             except asyncio.CancelledError:
                 pass
-            except Exception as exc:
-                # A dead background task must not replace the run's result
-                # with an unreported exception at shutdown.
-                background_failures.append(exc)
-                logging.getLogger(__name__).error(
-                    'event=worker_background_failed task=%s error=%s',
-                    'commands' if pending is incoming else 'states', type(exc).__name__)
-                emit({'type':'error',
-                      'message':await asyncio.to_thread(_report_failure, exc, 'worker_background')})
+            except Exception:
+                # Already reported by report_background when the task died;
+                # it must not replace the run's result with an exception here.
+                report_background(pending)
         for signum in signals:
             loop.remove_signal_handler(signum)
