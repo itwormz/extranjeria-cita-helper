@@ -19,3 +19,30 @@ test('the boolean 429-slowdown flag survives the timing editor and is never read
  assert.deepEqual(parseTimingInputs(fields,values),{reload_seconds:[30,60],adaptive_reload_on_429:false});
  for(const invalid of ['','1','yes','TRUE'])assert.throws(()=>{fields.adaptive_reload_on_429=[invalid];parseTimingInputs(fields,values);},/adaptive_reload_on_429/);
 });
+
+import {timingGroups,timingTitles} from '../src/timings.ts';
+import {searchRisk,protectionFields} from '../src/protection.ts';
+test('timing groups and their order are those of Python 0.3.6',()=>{
+ assert.deepEqual(timingGroups.map(group=>group.title),['Ввод данных','Интервалы проверки','Восстановление','Уведомления']);
+ assert.deepEqual(timingGroups[0].fields.map(([key])=>key),['action_delay_seconds','typing_ms','contact_typing_ms']);
+ assert.deepEqual(timingGroups[1].fields.map(([key])=>key),['bootstrap_seconds','reload_seconds','navigation_seconds']);
+ assert.equal(timingGroups[2].fields.length,11);
+ for(const group of timingGroups)for(const [key] of group.fields)assert.ok(timingTitles[key],`${key} has the full title shown as the tooltip`);
+ assert.equal(timingTitles.typing_ms,'Между символами NIE и имени, мс');
+});
+test('only entering data on a no-appointments form or a disabled protection switch makes a search risky',()=>{
+ const on=Object.fromEntries(protectionFields.filter(f=>f.kind==='flag').map(f=>[f.key,true]));
+ assert.deepEqual(searchRisk(false,on),{risk:false,message:0});
+ assert.deepEqual(searchRisk(true,on),{risk:true,message:1});
+ assert.deepEqual(searchRisk(false,{...on,confirm_new_round:false}),{risk:true,message:2});
+ assert.deepEqual(searchRisk(true,{...on,adaptive_reload_on_429:false}),{risk:true,message:2});
+ // Spreading attempts over the day is a preference, not protection: switching it off is not a risk.
+ assert.deepEqual(searchRisk(false,{...on,distribute_attempts:false}),{risk:false,message:0});
+});
+test('timing fields show two decimals like the Python spin boxes, with the language decimal separator, and re-parse unchanged',()=>{
+ const values={action_delay_seconds:[0.3,0.8],navigation_seconds:45,expired_seconds:[0,30,60],adaptive_reload_on_429:true};
+ assert.deepEqual(timingInputs(values,{decimals:2,comma:true}),{action_delay_seconds:['0,30','0,80'],navigation_seconds:['45,00'],expired_seconds:['0, 30, 60'],adaptive_reload_on_429:['true']});
+ assert.deepEqual(timingInputs(values,{decimals:2,comma:false}).action_delay_seconds,['0.30','0.80']);
+ assert.deepEqual(parseTimingInputs(timingInputs(values,{decimals:2,comma:true}),values),values);
+ assert.deepEqual(timingInputs(values).action_delay_seconds,['0.3','0.8'],'without options the old plain format is kept');
+});

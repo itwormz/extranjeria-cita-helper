@@ -11,3 +11,13 @@ export const protectionFields:ProtectionField[]=[
  {key:'adaptive_reload_on_429',title:'Замедлять обновление при 429',description:'Каждый новый HTTP 429 на форме заявителя добавляет 30 секунд к интервалу её обновления до конца запуска.',kind:'flag',source:'timings'},
  {key:'distribute_attempts',title:'Распределять попытки',description:'Распределять бюджет по времени дня. Вне окна чистый проход ждёт; «Попробовать сейчас» открывает ближайшее окно раньше.',kind:'flag',source:'protection'},
 ];
+/**
+ * Warning band of the "Проверка сит" section (`update_search_behavior`): entering data on a no-appointments
+ * form or switching off any protection flag but "Распределять попытки" is risky. Message 0 = recommended,
+ * 1 = repeated submission, 2 = part of the protection is off.
+ */
+export function searchRisk(enterData:boolean,flags:Record<string,boolean>):{risk:boolean;message:0|1|2}{
+ const disabled=Object.entries(flags).some(([key,on])=>key!=='distribute_attempts'&&!on);
+ const risk=enterData||disabled;
+ return {risk,message:disabled?2:risk?1:0};
+}
