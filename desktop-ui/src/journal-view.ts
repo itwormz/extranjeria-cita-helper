@@ -72,13 +72,11 @@ export function displayRows(entries:Entry[],ctx:ViewContext):DisplayRow[]{
    const title=ctx.fill(ctx.t('Новый проход {number}'),{number:String(entry.number)});
    out.push({key:`e${entry.id}`,entryId:entry.id,kind:'pass',cells:[ctx.time(entry.time),'',reason?`${title} · ${reason}`:title],icon:'restart',expandable:false,open:false});
   }else if(entry.kind==='wait'){
-   const next=entry.deadline?ctx.clock(entry.deadline):'';
-   const text=entry.count>1
-    ?(next?ctx.fill(ctx.t('Сит нет · проверок: {count} · дальше в {deadline}'),{count:String(entry.count),deadline:next}):ctx.fill(ctx.t('Сит нет · проверок: {count}'),{count:String(entry.count)}))
-    :(next?ctx.fill(ctx.t('Сит нет · следующая проверка в {deadline}'),{deadline:next}):ctx.t('Сит нет'));
+   // What happened, never when the next check is planned (the timer above the table says that).
+   const text=entry.count>1?ctx.fill(ctx.t('Сит нет · проверок: {count}'),{count:String(entry.count)}):ctx.t('Сит нет');
    out.push({key:`e${entry.id}`,entryId:entry.id,kind:'wait',cells:[range(entry.first,entry.last,ctx),stageLabel(entry.last,ctx),text],icon:'clock',expandable:entry.count>1,open});
   }else if(entry.kind==='run'){
-   out.push({key:`e${entry.id}`,entryId:entry.id,kind:'run',cells:[range(entry.first,entry.last,ctx),stageLabel(entry.first,ctx),'→ '+entry.stages.slice(1).map(s=>ctx.page(s)).join(' → ')],icon:null,expandable:true,open});
+   out.push({key:`e${entry.id}`,entryId:entry.id,kind:'run',cells:[range(entry.first,entry.last,ctx),stageLabel(entry.first,ctx),ctx.fill(ctx.t('Шагов: {count} → {destination}'),{count:String(entry.stages.length-1),destination:ctx.page(entry.stages[entry.stages.length-1])})],icon:null,expandable:true,open});
   }else{
    out.push({key:`e${entry.id}`,entryId:entry.id,kind:'row',cells:[ctx.time(entry.row.time),stageLabel(entry.row,ctx),ctx.what(entry.row)],icon:isWarn(entry.row)?'alert':null,expandable:false,open:false});
   }

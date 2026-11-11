@@ -69,8 +69,8 @@ test('the reported case reads as five short lines with the boundary and its reas
  const rows=[row('applicant_no_slots','passed','applicant'),row('applicant','unconfirmed','province'),row('province','passed','procedure'),row('procedure','passed','auth'),row('auth','passed','applicant_no_slots'),row('applicant_no_slots','passed','applicant_no_slots',{deadline:5000})];
  const shown=displayRows(buildEntries(rows),ctx());
  assert.deepEqual(shown.map(r=>r.kind),['wait','run','pass','row','row']);
- assert.equal(shown[0].cells[2],'Сит нет · следующая проверка в {deadline}'.replace('{deadline}','C5000'));
- assert.deepEqual(shown[1].cells.slice(1),['[province]','→ [procedure] → [auth] → [applicant_no_slots]']);
+ assert.equal(shown[0].cells[2],'Сит нет','what happened, not when the next check is planned');
+ assert.deepEqual(shown[1].cells.slice(1),['[province]','Шагов: 3 → [applicant_no_slots]'],'a run is a count and where it ended, not the whole chain');
  assert.equal(shown[2].cells[2],'Новый проход 2 · сайт вернул на «[province]»');
  assert.equal(shown[3].icon,'alert','the row that explains the reset is marked');
 });
@@ -80,7 +80,7 @@ test('a collapsed run opens into its own rows and closes again',()=>{
  const entries=buildEntries(rows);
  const closed=displayRows(entries,ctx());
  assert.deepEqual([closed.length,closed[0].expandable,closed[0].open],[1,true,false]);
- assert.ok(closed[0].cells[2].startsWith('Сит нет · проверок: 2'));
+ assert.equal(closed[0].cells[2],'Сит нет · проверок: 2');
  const open=displayRows(entries,ctx({expanded:[entries[0].id]}));
  assert.deepEqual(open.map(r=>r.kind),['wait','child','child']);
  assert.equal(open[0].open,true);

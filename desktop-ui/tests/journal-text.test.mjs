@@ -14,8 +14,8 @@ test('visits tell what the bot does, sent, or confirmed per page',()=>{
  assert.equal(journalMessage(row({stage:'procedure',status:'passed',destination:'applicant'})).template,'→ {destination}');
  assert.equal(journalMessage(row({stage:'auth_wait',status:'passed',destination:'applicant'})).template,'Вход выполнен → {destination}');
  assert.equal(journalMessage(row({stage:'request_no_slots',status:'checked'})).template,'Сит нет');
- assert.equal(journalMessage(row({stage:'request_no_slots',status:'waiting',deadline:1})).template,'Сит нет · следующая проверка в {deadline}');
- assert.equal(journalMessage(row({stage:'applicant_no_slots',status:'waiting',deadline:1})).template,'Следующая попытка в {deadline}');
+ assert.equal(journalMessage(row({stage:'request_no_slots',status:'waiting',deadline:1})).template,'Сит нет');
+ assert.equal(journalMessage(row({stage:'applicant_no_slots',status:'waiting',deadline:1})).template,'Ожидаем повторную попытку');
 });
 test('offices, manual states and control rows have their own texts',()=>{
  const found=journalMessage(row({stage:'office',status:'offices_found',offices:['A']}));assert.equal(found.template,'Доступен офис: {offices}');assert.equal(found.values.offices,'A');
