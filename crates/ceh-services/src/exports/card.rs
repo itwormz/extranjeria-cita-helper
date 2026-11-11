@@ -236,7 +236,7 @@ pub fn card_layout(achievement: &Value, language: &str, dark: bool) -> Value {
     }
     card.line(48, 1144, 1104);
     card.icon("activity", 48, 1172, 28, Some(theme.accent));
-    card.text(json!(92), 1164, json!(1000), 42, "Cita Extranjeria Helper", 25, None, true, false, false);
+    card.text(json!(92), 1164, json!(1000), 42, "SantaCita", 25, None, true, false, false);
     card.text(json!(92), 1203, json!(1000), 28, "github.com/itwormz/extranjeria-cita-helper", 19, Some(theme.muted), false, false, false);
     json!({"width":WIDTH,"height":HEIGHT,"background":theme.background,"ops":card.ops})
 }

@@ -288,9 +288,9 @@ fn labels(language: &str) -> &'static [&'static str; 14] {
 }
 fn credit(language: &str) -> &'static str {
     match language {
-        "ru" => "Получено с помощью Cita Extranjeria Helper",
-        "es" => "Conseguido con Cita Extranjeria Helper",
-        _ => "Obtained with Cita Extranjeria Helper",
+        "ru" => "Получено с помощью SantaCita",
+        "es" => "Conseguido con SantaCita",
+        _ => "Obtained with SantaCita",
     }
 }
 /// The public statistics of an achievement; fields the legacy import could not know stay unknown.
@@ -527,7 +527,7 @@ pub fn calendar(achievement: &Value, at: DateTime<Utc>) -> Result<String, Export
     let lines = vec![
         "BEGIN:VCALENDAR".into(),
         "VERSION:2.0".into(),
-        "PRODID:-//Cita Extranjeria Helper//Appointments//EN".into(),
+        "PRODID:-//SantaCita//Appointments//EN".into(),
         "CALSCALE:GREGORIAN".into(),
         "BEGIN:VTIMEZONE".into(),
         format!("TZID:{}", zone.name()),

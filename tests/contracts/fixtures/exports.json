@@ -27,7 +27,7 @@
         "detailed": false
       },
       "expected": {
-        "post": "🎉 Сита получена!\n17 дней поиска.\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n17 дней поиска.\nПолучено с помощью SantaCita",
         "duration": "17 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -82,7 +82,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -116,7 +116,7 @@
         "detailed": true
       },
       "expected": {
-        "post": "🎉 Сита получена!\n17 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n17 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "17 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -171,7 +171,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -204,7 +204,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n<1 дня поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n<1 дня поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "<1 дня поиска",
         "card": {
           "title": "Сита получена",
@@ -259,7 +259,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -292,7 +292,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n1 день поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n1 день поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "1 день поиска",
         "card": {
           "title": "Сита получена",
@@ -347,7 +347,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -380,7 +380,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n2 дня поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n2 дня поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "2 дня поиска",
         "card": {
           "title": "Сита получена",
@@ -435,7 +435,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -468,7 +468,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n11 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n11 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "11 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -523,7 +523,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -556,7 +556,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n21 день поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n21 день поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "21 день поиска",
         "card": {
           "title": "Сита получена",
@@ -611,7 +611,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -644,7 +644,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n112 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n112 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "112 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -699,7 +699,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -732,7 +732,7 @@
         "language": "ru"
       },
       "expected": {
-        "post": "🎉 Сита получена!\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: —\n🏢 Появлений офисов: 0\n📍 Разных офисов: 0\n📅 Появления выбора даты: 0\n📋 «Сит нет» до запроса: —\n💬 Ответы «Сит нет» на запрос записи: —\n🔧 Ошибок сервера: 0\n🚦 Ограничений HTTP 429: 0\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 0\n⚠ Ответы «Сит нет» с cod. oper: —\n🖱 Действий выполнено: —\n📄 Страниц обработано: —\n🕒 Первый офис: —\n📆 Первый выбор даты: —\nПолучено с помощью SantaCita",
         "duration": "—",
         "card": {
           "title": "Сита получена",
@@ -787,7 +787,7 @@
               "—"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -821,7 +821,7 @@
         "detailed": false
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n17 days of searching.\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n17 days of searching.\nObtained with SantaCita",
         "duration": "17 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -876,7 +876,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -910,7 +910,7 @@
         "detailed": true
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n17 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n17 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "17 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -965,7 +965,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -998,7 +998,7 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n<1 day of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n<1 day of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "<1 day of searching",
         "card": {
           "title": "Appointment booked",
@@ -1053,7 +1053,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1086,7 +1086,7 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n1 day of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n1 day of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "1 day of searching",
         "card": {
           "title": "Appointment booked",
@@ -1141,7 +1141,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1174,7 +1174,7 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n2 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n2 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "2 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -1229,7 +1229,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1262,7 +1262,7 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n11 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n11 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "11 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -1317,7 +1317,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1350,7 +1350,7 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n21 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n21 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "21 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -1405,7 +1405,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1438,7 +1438,7 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n112 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n112 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "112 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -1493,7 +1493,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1526,7 +1526,7 @@
         "language": "en"
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: —\n🏢 Office appearances: 0\n📍 Unique offices: 0\n📅 Date selection appearances: 0\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: —\n🔧 Server errors: 0\n🚦 HTTP 429 limits: 0\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 0\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: —\n📄 Pages processed: —\n🕒 First office: —\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "—",
         "card": {
           "title": "Appointment booked",
@@ -1581,7 +1581,7 @@
               "—"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1615,7 +1615,7 @@
         "detailed": false
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\nConseguido con SantaCita",
         "duration": "17 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -1670,7 +1670,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1704,7 +1704,7 @@
         "detailed": true
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "17 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -1759,7 +1759,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1792,7 +1792,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n<1 día de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n<1 día de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "<1 día de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -1847,7 +1847,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1880,7 +1880,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n1 día de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n1 día de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "1 día de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -1935,7 +1935,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -1968,7 +1968,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n2 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n2 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "2 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2023,7 +2023,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -2056,7 +2056,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n11 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n11 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "11 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2111,7 +2111,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -2144,7 +2144,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n21 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n21 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "21 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2199,7 +2199,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -2232,7 +2232,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n112 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n112 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "112 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -2287,7 +2287,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -2320,7 +2320,7 @@
         "language": "es"
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: —\n🏢 Apariciones de oficinas: 0\n📍 Oficinas distintas: 0\n📅 Apariciones de selección de fecha: 0\n📋 «No hay citas» antes de solicitar: —\n💬 Respuestas sin citas a solicitudes de cita: —\n🔧 Errores del servidor: 0\n🚦 Límites HTTP 429: 0\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 0\n⚠ Respuestas sin citas con cod. oper: —\n🖱 Acciones realizadas: —\n📄 Páginas procesadas: —\n🕒 Primera oficina: —\n📆 Primera selección de fecha: —\nConseguido con SantaCita",
         "duration": "—",
         "card": {
           "title": "Cita conseguida",
@@ -2375,7 +2375,7 @@
               "—"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -2407,7 +2407,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T083000Z%2F20261022T083000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
       }
     },
@@ -2436,7 +2436,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20260329T023000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20260329T023000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20260329T013000Z%2F20260329T013000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
       }
     },
@@ -2465,7 +2465,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261025T023000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261025T023000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261025T003000Z%2F20261025T003000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
       }
     },
@@ -2494,7 +2494,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, a\\,b\\;c\\\\d\\nEND:VEVENT\\nBEGIN:VEVENTяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяя\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Madrid\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T030000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Europe/Madrid:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, a\\,b\\;c\\\\d\\nEND:VEVENT\\nBEGIN:VEVENTяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяя\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T083000Z%2F20261022T083000Z&ctz=Europe%2FMadrid&location=PRIVATE+OFFICE%2C+a%2Cb%3Bc%5Cd%0D%0AEND%3AVEVENT%0ABEGIN%3AVEVENT%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F"
       }
     },
@@ -2523,7 +2523,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T093000Z%2F20261022T093000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
       }
     },
@@ -2552,7 +2552,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20260329T013000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20260329T013000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20260329T013000Z%2F20260329T013000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
       }
     },
@@ -2581,7 +2581,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261025T013000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261025T013000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, PRIVATE ADDRESS\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261025T003000Z%2F20261025T003000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+PRIVATE+ADDRESS"
       }
     },
@@ -2610,7 +2610,7 @@
         }
       },
       "expected": {
-        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Cita Extranjeria Helper//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, a\\,b\\;c\\\\d\\nEND:VEVENT\\nBEGIN:VEVENTяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяя\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "calendar": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SantaCita//Appointments//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:Atlantic/Canary\r\nBEGIN:DAYLIGHT\r\nDTSTART:19700329T010000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nDTSTART:19701025T020000\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:6af081a9-f0b5-5e34-a12b-a2d41ea0766b@cita-helper.local\r\nDTSTAMP:20261030T120000Z\r\nDTSTART;TZID=Atlantic/Canary:20261022T103000\r\nSUMMARY:Extranjería — Cita\r\nLOCATION:PRIVATE OFFICE\\, a\\,b\\;c\\\\d\\nEND:VEVENT\\nBEGIN:VEVENTяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя\r\n яяяяяяяяяяяяяяяяяяяя\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
         "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Extranjer%C3%ADa+%E2%80%94+Cita&dates=20261022T093000Z%2F20261022T093000Z&ctz=Atlantic%2FCanary&location=PRIVATE+OFFICE%2C+a%2Cb%3Bc%5Cd%0D%0AEND%3AVEVENT%0ABEGIN%3AVEVENT%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F%D1%8F"
       }
     },
@@ -3237,7 +3237,7 @@
         }
       },
       "expected": {
-        "post": "🎉 Сита получена!\n17 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: 17\n🏢 Появлений офисов: 4\n📍 Разных офисов: 2\n📅 Появления выбора даты: 1\n📋 «Сит нет» до запроса: 120\n💬 Ответы «Сит нет» на запрос записи: 33\n🔧 Ошибок сервера: 3\n🚦 Ограничений HTTP 429: 1\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 50\n⚠ Ответы «Сит нет» с cod. oper: 2\n🖱 Действий выполнено: 900\n📄 Страниц обработано: 2000\n🕒 Первый офис: 45 с\n📆 Первый выбор даты: ≥ 2 ч\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n17 дней поиска.\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: 17\n🏢 Появлений офисов: 4\n📍 Разных офисов: 2\n📅 Появления выбора даты: 1\n📋 «Сит нет» до запроса: 120\n💬 Ответы «Сит нет» на запрос записи: 33\n🔧 Ошибок сервера: 3\n🚦 Ограничений HTTP 429: 1\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 50\n⚠ Ответы «Сит нет» с cod. oper: 2\n🖱 Действий выполнено: 900\n📄 Страниц обработано: 2000\n🕒 Первый офис: 45 с\n📆 Первый выбор даты: ≥ 2 ч\nПолучено с помощью SantaCita",
         "duration": "17 дней поиска",
         "card": {
           "title": "Сита получена",
@@ -3292,7 +3292,7 @@
               "2000"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -3342,7 +3342,7 @@
         }
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n17 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: 17\n🏢 Office appearances: 4\n📍 Unique offices: 2\n📅 Date selection appearances: 1\n📋 “No appointments” before requesting: 120\n💬 No-appointments replies to booking requests: 33\n🔧 Server errors: 3\n🚦 HTTP 429 limits: 1\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 50\n⚠ No-appointments replies with cod. oper: 2\n🖱 Actions performed: 900\n📄 Pages processed: 2000\n🕒 First office: 45 s\n📆 First date selection: ≥ 2 h\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n17 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: 17\n🏢 Office appearances: 4\n📍 Unique offices: 2\n📅 Date selection appearances: 1\n📋 “No appointments” before requesting: 120\n💬 No-appointments replies to booking requests: 33\n🔧 Server errors: 3\n🚦 HTTP 429 limits: 1\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 50\n⚠ No-appointments replies with cod. oper: 2\n🖱 Actions performed: 900\n📄 Pages processed: 2000\n🕒 First office: 45 s\n📆 First date selection: ≥ 2 h\nObtained with SantaCita",
         "duration": "17 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -3397,7 +3397,7 @@
               "2000"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -3447,7 +3447,7 @@
         }
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: 17\n🏢 Apariciones de oficinas: 4\n📍 Oficinas distintas: 2\n📅 Apariciones de selección de fecha: 1\n📋 «No hay citas» antes de solicitar: 120\n💬 Respuestas sin citas a solicitudes de cita: 33\n🔧 Errores del servidor: 3\n🚦 Límites HTTP 429: 1\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 50\n⚠ Respuestas sin citas con cod. oper: 2\n🖱 Acciones realizadas: 900\n📄 Páginas procesadas: 2000\n🕒 Primera oficina: 45 s\n📆 Primera selección de fecha: ≥ 2 h\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 48 h 32 min\n🗓 Días de búsqueda: 17\n🏢 Apariciones de oficinas: 4\n📍 Oficinas distintas: 2\n📅 Apariciones de selección de fecha: 1\n📋 «No hay citas» antes de solicitar: 120\n💬 Respuestas sin citas a solicitudes de cita: 33\n🔧 Errores del servidor: 3\n🚦 Límites HTTP 429: 1\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 50\n⚠ Respuestas sin citas con cod. oper: 2\n🖱 Acciones realizadas: 900\n📄 Páginas procesadas: 2000\n🕒 Primera oficina: 45 s\n📆 Primera selección de fecha: ≥ 2 h\nConseguido con SantaCita",
         "duration": "17 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -3502,7 +3502,7 @@
               "2000"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -3548,7 +3548,7 @@
         }
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n17 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: 17\n🏢 Office appearances: 4\n📍 Unique offices: 2\n📅 Date selection appearances: 1\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: 33\n🔧 Server errors: 3\n🚦 HTTP 429 limits: 1\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 50\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: 900\n📄 Pages processed: 2000\n🕒 First office: 45 s\n📆 First date selection: —\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n17 days of searching.\n🔎 Appointment checks: 3645\n⏱ Active search: 48 h 32 min\n🗓 Days with searches: 17\n🏢 Office appearances: 4\n📍 Unique offices: 2\n📅 Date selection appearances: 1\n📋 “No appointments” before requesting: —\n💬 No-appointments replies to booking requests: 33\n🔧 Server errors: 3\n🚦 HTTP 429 limits: 1\n🛡 Access restrictions: 0\n🔄 Restarts from the beginning: 50\n⚠ No-appointments replies with cod. oper: —\n🖱 Actions performed: 900\n📄 Pages processed: 2000\n🕒 First office: 45 s\n📆 First date selection: —\nObtained with SantaCita",
         "duration": "17 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -3603,7 +3603,7 @@
               "2000"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -3653,7 +3653,7 @@
         }
       },
       "expected": {
-        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 59 s\n🗓 Días de búsqueda: 17\n🏢 Apariciones de oficinas: 4\n📍 Oficinas distintas: 2\n📅 Apariciones de selección de fecha: 1\n📋 «No hay citas» antes de solicitar: 120\n💬 Respuestas sin citas a solicitudes de cita: 33\n🔧 Errores del servidor: 3\n🚦 Límites HTTP 429: 1\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 50\n⚠ Respuestas sin citas con cod. oper: 2\n🖱 Acciones realizadas: 900\n📄 Páginas procesadas: 2000\n🕒 Primera oficina: 59 s\n📆 Primera selección de fecha: 1 h\nConseguido con Cita Extranjeria Helper",
+        "post": "🎉 Cita conseguida!\n17 días de búsqueda.\n🔎 Comprobaciones de citas: 3645\n⏱ Búsqueda activa: 59 s\n🗓 Días de búsqueda: 17\n🏢 Apariciones de oficinas: 4\n📍 Oficinas distintas: 2\n📅 Apariciones de selección de fecha: 1\n📋 «No hay citas» antes de solicitar: 120\n💬 Respuestas sin citas a solicitudes de cita: 33\n🔧 Errores del servidor: 3\n🚦 Límites HTTP 429: 1\n🛡 Restricciones de acceso: 0\n🔄 Reinicios desde el principio: 50\n⚠ Respuestas sin citas con cod. oper: 2\n🖱 Acciones realizadas: 900\n📄 Páginas procesadas: 2000\n🕒 Primera oficina: 59 s\n📆 Primera selección de fecha: 1 h\nConseguido con SantaCita",
         "duration": "17 días de búsqueda",
         "card": {
           "title": "Cita conseguida",
@@ -3708,7 +3708,7 @@
               "2000"
             ]
           ],
-          "credit": "Conseguido con Cita Extranjeria Helper",
+          "credit": "Conseguido con SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -3757,7 +3757,7 @@
         }
       },
       "expected": {
-        "post": "🎉 Сита получена!\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: 17\n🏢 Появлений офисов: 4\n📍 Разных офисов: 2\n📅 Появления выбора даты: 1\n📋 «Сит нет» до запроса: 120\n💬 Ответы «Сит нет» на запрос записи: 33\n🔧 Ошибок сервера: 3\n🚦 Ограничений HTTP 429: 1\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 50\n⚠ Ответы «Сит нет» с cod. oper: 2\n🖱 Действий выполнено: 900\n📄 Страниц обработано: 2000\n🕒 Первый офис: 45 с\n📆 Первый выбор даты: ≥ 2 ч\nПолучено с помощью Cita Extranjeria Helper",
+        "post": "🎉 Сита получена!\n🔎 Проверок сит: 3645\n⏱ Активный поиск: 48 ч 32 мин\n🗓 Дни с поиском: 17\n🏢 Появлений офисов: 4\n📍 Разных офисов: 2\n📅 Появления выбора даты: 1\n📋 «Сит нет» до запроса: 120\n💬 Ответы «Сит нет» на запрос записи: 33\n🔧 Ошибок сервера: 3\n🚦 Ограничений HTTP 429: 1\n🛡 Ограничения доступа: 0\n🔄 Повторные проходы: 50\n⚠ Ответы «Сит нет» с cod. oper: 2\n🖱 Действий выполнено: 900\n📄 Страниц обработано: 2000\n🕒 Первый офис: 45 с\n📆 Первый выбор даты: ≥ 2 ч\nПолучено с помощью SantaCita",
         "duration": "—",
         "card": {
           "title": "Сита получена",
@@ -3812,7 +3812,7 @@
               "2000"
             ]
           ],
-          "credit": "Получено с помощью Cita Extranjeria Helper",
+          "credit": "Получено с помощью SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
@@ -3862,7 +3862,7 @@
         }
       },
       "expected": {
-        "post": "🎉 Appointment booked!\n17 days of searching.\nObtained with Cita Extranjeria Helper",
+        "post": "🎉 Appointment booked!\n17 days of searching.\nObtained with SantaCita",
         "duration": "17 days of searching",
         "card": {
           "title": "Appointment booked",
@@ -3917,7 +3917,7 @@
               "2000"
             ]
           ],
-          "credit": "Obtained with Cita Extranjeria Helper",
+          "credit": "Obtained with SantaCita",
           "width": 1200,
           "height": 900,
           "top_strip_height": 7
