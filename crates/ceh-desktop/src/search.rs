@@ -702,6 +702,8 @@ fn run_owned(
         .map_err(|_| "search_unavailable")?;
     let mut diagnostics = crate::search_diagnostics::SearchDiagnostics::new(root, session.as_str().to_owned(), profile);
     let mut presenter = crate::session_presentation::SessionPresentation::new(session.clone(), 3000);
+    let mut certificate_clicked: Option<u64> = None;
+    let mut certificate_rung = false;
     let mut sequence = 0u64;
     let context = browser.context().to_owned();
     if cancelled.load(Ordering::Acquire) {
@@ -909,6 +911,9 @@ fn run_owned(
                 let step = match driver.plan(browser.connection(), mono()) {
                     Ok(step) => {
                         read_failures = 0;
+                        if step.update().observation.kind != PageKind::AuthWait {
+                            certificate_clicked = None;
+                        }
                         step
                     }
                     Err(ceh_browser::BrowserError::NoObservation)
@@ -919,6 +924,27 @@ fn run_owned(
                             .set_phase(&mut db, "unobserved", wall()?, mono())
                             .map_err(|_| "statistics_unavailable")?;
                         read_failures = read_failures.saturating_add(1);
+                        if crate::certificate_reminder_due(certificate_clicked, certificate_rung, mono()) {
+                            certificate_rung = true;
+                            update(state, |s| s.attention = true)?;
+                            sequence = sequence.checked_add(1).ok_or("search_unavailable")?;
+                            if let Ok(change) = presenter.update(
+                                &driver.control(),
+                                sequence,
+                                mono(),
+                                crate::session_presentation::PresentationFrame {
+                                    active: true,
+                                    browser_retained: manual,
+                                    sound_enabled,
+                                    repeat_alert: false,
+                                    ..Default::default()
+                                },
+                                &[FlowEffect::Alert],
+                            ) && let Ok(mut player) = sound.lock()
+                            {
+                                let _ = crate::session_presentation::apply_native(window, root, &mut player, change);
+                            }
+                        }
                         let delay = observation_retry_ms(read_failures);
                         retry_at = Instant::now() + Duration::from_millis(delay);
                         let deadline = wall()?.saturating_add(delay as i64);
@@ -1058,6 +1084,10 @@ fn run_owned(
                 } else {
                     None
                 };
+                if effects.iter().any(|e| matches!(e, FlowEffect::SelectCertificate { .. })) {
+                    certificate_clicked = Some(mono());
+                    certificate_rung = false;
+                }
                 let after = match driver.execute(browser.connection(), step) {
                     Ok(after) => after,
                     Err(ceh_browser::BrowserError::Paused) => {

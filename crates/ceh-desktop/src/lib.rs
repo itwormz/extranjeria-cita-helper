@@ -93,6 +93,11 @@ pub fn closed_window_stop<T>(
         other => other,
     }
 }
+/// The certificate window of the browser (a native dialog) blocks reading the page, so the core cannot tell
+/// the person in time: five seconds after the click the worker rings the reminder itself, once.
+pub fn certificate_reminder_due(clicked_at_ms: Option<u64>, already_rung: bool, now_ms: u64) -> bool {
+    !already_rung && clicked_at_ms.is_some_and(|at| now_ms >= at.saturating_add(5_000))
+}
 pub fn catalog() -> &'static ProfileCatalog {
     &CATALOG
 }

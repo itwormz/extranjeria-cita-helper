@@ -32,3 +32,12 @@ fn a_browser_error_after_the_person_closed_the_window_is_a_stop_not_an_error() {
     assert_eq!(closed_window_stop(Err("statistics_unavailable"), "stop", || panic!("must not probe")), Err("statistics_unavailable"));
     assert_eq!(closed_window_stop(Ok("done"), "stop", || panic!("must not probe")), Ok("done"));
 }
+
+#[test]
+fn the_certificate_reminder_rings_once_five_seconds_after_the_click_even_if_the_page_cannot_be_read() {
+    use ceh_desktop::certificate_reminder_due;
+    assert!(!certificate_reminder_due(None, false, 99_999));
+    assert!(!certificate_reminder_due(Some(10_000), false, 14_999), "not yet");
+    assert!(certificate_reminder_due(Some(10_000), false, 15_000));
+    assert!(!certificate_reminder_due(Some(10_000), true, 60_000), "once");
+}
