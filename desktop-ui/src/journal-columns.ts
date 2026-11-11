@@ -2,7 +2,7 @@
 export type JournalKind = 'timeline' | 'offices';
 export const MIN_COLUMN = 60;
 const MAX_COLUMN = 1200;
-const DEFAULTS: Record<JournalKind, number[]> = {timeline: [90, 200], offices: [90]};
+const DEFAULTS: Record<JournalKind, number[]> = {timeline: [90], offices: [90]};
 /** The last column is not listed: it takes the remaining width. */
 export function defaultWidths(kind: JournalKind): number[] {
   return [...DEFAULTS[kind]];

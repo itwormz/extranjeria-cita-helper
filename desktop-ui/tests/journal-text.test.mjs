@@ -30,3 +30,8 @@ test('every template has an English and a Spanish translation',()=>{
  const messages=JSON.parse(readFileSync(new URL('../src/messages.json',import.meta.url)));
  for(const template of journalTemplates)for(const language of ['en','es'])assert.ok(messages[language][template],`${language}: ${template}`);
 });
+
+test('a reset to the first page says so plainly',()=>{
+ assert.equal(journalMessage(row({stage:'applicant',status:'unconfirmed',destination:'province'})).template,'Сайт вернул на выбор провинции');
+ assert.equal(journalMessage(row({stage:'applicant',status:'unconfirmed',destination:'office'})).template,'Другая страница → {destination}');
+});

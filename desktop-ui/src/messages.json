@@ -354,7 +354,8 @@
     "Развернуть": "Expand",
     "Свернуть": "Collapse",
     "Ожидаем повторную попытку": "Waiting for another attempt",
-    "Шагов: {count} → {destination}": "Steps: {count} → {destination}"
+    "Шагов: {count} → {destination}": "Steps: {count} → {destination}",
+    "Сайт вернул на выбор провинции": "The site went back to the province choice"
   },
   "es": {
     "Всего": "Total",
@@ -711,6 +712,7 @@
     "Развернуть": "Expandir",
     "Свернуть": "Contraer",
     "Ожидаем повторную попытку": "Esperando otro intento",
-    "Шагов: {count} → {destination}": "Pasos: {count} → {destination}"
+    "Шагов: {count} → {destination}": "Pasos: {count} → {destination}",
+    "Сайт вернул на выбор провинции": "El sitio volvió a la elección de provincia"
   }
 }
