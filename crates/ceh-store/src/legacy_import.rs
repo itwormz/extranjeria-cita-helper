@@ -1,6 +1,7 @@
 //! Import of the Python application's data (profiles, statistics, achievements, budget files, session
 //! journals) into this app's runtime. Read-only on the source; never overwrites existing target files
-//! (a differing profile list is moved aside as `tasks.yml.before-import` first, the only exception);
+//! (the profile list, statistics and achievements are merged: what the new app already has stays, the old
+//! app's missing entries are added, and the new file is backed up first);
 //! notification secrets stay in the system vault, which both apps use under the same names.
 use std::{
     fs,
@@ -192,7 +193,7 @@ fn merge_statistics(from: &Path, to: &Path, report: &mut Report) -> Result<(), I
     Ok(())
 }
 /// Import into `target`; `source` must be a folder returned by [`candidates`] (or an equivalent copy).
-pub fn import(source: &Path, target: &Path) -> Result<Report, ImportError> {
+pub fn import(source: &Path, target: &Path, catalog: &ceh_core::profiles::ProfileCatalog) -> Result<Report, ImportError> {
     if !plain_dir(source) || !regular(&source.join("tasks.yml")) {
         return Err(ImportError::NoProfiles);
     }
@@ -204,27 +205,33 @@ pub fn import(source: &Path, target: &Path) -> Result<Report, ImportError> {
     fs::create_dir_all(target).map_err(|_| ImportError::Io)?;
     let mut report = Report::default();
     let mut total = 0u64;
-    // The new app writes its own profile list as soon as one profile is saved, so a plain "keep what is
-    // there" would hide every old profile. A differing list is moved aside, never deleted.
+    // Profiles: the new app writes its own list as soon as one profile is saved, so the old profiles are
+    // added to it by id (never replacing the new app's own); an unreadable list is left alone.
     let profiles = target.join("tasks.yml");
-    let mut backup: Option<PathBuf> = None;
-    if regular(&profiles) && !same_file(&profiles, &source.join("tasks.yml")) {
-        let name = (1..)
-            .map(|n| if n == 1 { "tasks.yml.before-import".to_owned() } else { format!("tasks.yml.before-import.{n}") })
-            .find(|name| fs::symlink_metadata(target.join(name)).is_err())
-            .ok_or(ImportError::Io)?;
-        fs::rename(&profiles, target.join(&name)).map_err(|_| ImportError::Io)?;
-        report.backed_up.push(name.clone());
-        backup = Some(target.join(name));
-    }
-    match copy_new(&source.join("tasks.yml"), &profiles, MAX_FILE, &mut total) {
-        Ok(true) => report.copied.push("tasks.yml".to_owned()),
-        Ok(false) => report.kept.push("tasks.yml".to_owned()),
-        Err(error) => {
-            if let Some(backup) = backup {
-                let _ = fs::rename(backup, &profiles);
+    let old_profiles = source.join("tasks.yml");
+    if regular(&profiles) && !same_file(&profiles, &old_profiles) {
+        match crate::profile_write::profiles_to_add(&profiles, &old_profiles) {
+            Ok(0) | Err(_) => report.kept.push("tasks.yml".to_owned()),
+            Ok(_) => {
+                let backup = backup_of(&profiles)?;
+                fs::copy(&profiles, &backup).map_err(|_| ImportError::Io)?;
+                match crate::profile_write::merge_profiles(&profiles, &old_profiles, catalog) {
+                    Ok(_) => {
+                        report.backed_up.push(backup.file_name().and_then(|n| n.to_str()).unwrap_or("").to_owned());
+                        report.merged.push("tasks.yml".to_owned());
+                    }
+                    Err(_) => {
+                        let _ = fs::remove_file(&backup);
+                        report.kept.push("tasks.yml".to_owned());
+                    }
+                }
             }
-            return Err(error);
+        }
+    } else {
+        match copy_new(&old_profiles, &profiles, MAX_FILE, &mut total) {
+            Ok(true) => report.copied.push("tasks.yml".to_owned()),
+            Ok(false) => report.kept.push("tasks.yml".to_owned()),
+            Err(error) => return Err(error),
         }
     }
     let mut take = |relative: String, limit: u64, report: &mut Report| -> Result<(), ImportError> {

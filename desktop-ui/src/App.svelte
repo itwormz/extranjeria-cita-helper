@@ -1,8 +1,8 @@
 <script lang="ts">
 import {onMount} from 'svelte';import {journalText,nextSelection} from './journal-copy';import {journalMessage} from './journal-text';
-import {checkUpdates,type UpdateStatus,searchSnapshot,startSearch,controlSearch,showSearchBrowser,copyText,copyStartupReport,resetSession,loadStatistics,loadBudget,loadJournalHistory,setDailyTarget,tryAppointmentNow,resumeSearch,type SearchSnapshot,type SearchRow} from './bridge';
+import {legacyCandidates,checkUpdates,type UpdateStatus,searchSnapshot,startSearch,controlSearch,showSearchBrowser,copyText,copyStartupReport,resetSession,loadStatistics,loadBudget,loadJournalHistory,setDailyTarget,tryAppointmentNow,resumeSearch,type SearchSnapshot,type SearchRow} from './bridge';
 import {budgetLine,sourceKey,waitReasonKey,attemptWindowLabel,showTryNowButton,canResume,type BudgetSummary} from './budget';
-import DailyBudgetDialog from './DailyBudgetDialog.svelte';
+import DailyBudgetDialog from './DailyBudgetDialog.svelte';import ImportOfferDialog from './ImportOfferDialog.svelte';
 import {promotedControl,pages,statuses,searchErrors,countdown} from './work-state';
 import {metricValue} from './statistics';
 import {SerialWrites} from './serial';
@@ -38,6 +38,10 @@ async function saveBudget(target:number|null){const running=Boolean(search?.acti
 let reportCopied=$state(false);
 async function copyReport(id:string|null|undefined){if(!id)return;try{await copyStartupReport(id);reportCopied=true;error='';setTimeout(()=>{reportCopied=false;},4000);}catch{error='Не удалось скопировать журнал';}}
 async function resetBrowserSession(){if(!selected||searchBusy)return;searchBusy=true;try{const done=await resetSession(selected);notice=done==='reset'?'Сессия сброшена. Можно запустить поиск.':'Браузер перезапускается с чистым профилем';error='';}catch(e){error=searchErrors[String(e)]??'Не удалось запустить поиск';}finally{searchBusy=false;}}
+let importOffer=$state<string|null>(null);const importDismissedKey='santacita.import-offer-dismissed';
+function importDismissed(){try{return localStorage.getItem(importDismissedKey)==='1';}catch{return false;}}
+function dismissImportOffer(){importOffer=null;try{localStorage.setItem(importDismissedKey,'1');}catch{/* Remembering is a convenience only. */}}
+async function offerImport(){if(data?.preview_source!=='installed'||data.profiles.length>0||importDismissed())return;try{const names=await legacyCandidates();if(names.length&&!data?.profiles.length)importOffer=names[0];}catch{/* No offer without a readable folder. */}}
 async function reloadProfiles(){try{const result=await bootstrap();data=result.data;if(!selected||!data.profiles.some(p=>p.id===selected))selected=data.selected_profile;error='';}catch{error='Не удалось прочитать профили';}}
 async function showBrowser(){try{await showSearchBrowser();error='';}catch{error='Не удалось показать браузер';}}
 let currentPage=$derived(search?.page?pages[search.page]??'Неизвестная страница':'Браузер ещё не открыт');
@@ -73,7 +77,7 @@ async function chooseProfile(id:string){if(!selectionWrites)return;selected=id;p
 async function openFolder(){try{await openDiagnostics();}catch{error='Не удалось открыть папку диагностики';}}
 
 const service=(procedure:string)=>t(procedure==='regreso'?'Autorización de regreso':'Toma de huellas / TIE');
-onMount(()=>{bootstrap().then(result=>{data=result.data;native=result.native;selected=data.selected_profile;language=data.preferences.language;dark=data.preferences.dark;sound=data.preferences.sound;diagnostics=data.preferences.diagnostics;automaticUpdates=data.preferences.automatic_updates;initializeWrites(result.data);}).catch(()=>{error='Не удалось прочитать профили';});});
+onMount(()=>{bootstrap().then(result=>{data=result.data;native=result.native;selected=data.selected_profile;language=data.preferences.language;dark=data.preferences.dark;sound=data.preferences.sound;diagnostics=data.preferences.diagnostics;automaticUpdates=data.preferences.automatic_updates;initializeWrites(result.data);void offerImport();}).catch(()=>{error='Не удалось прочитать профили';});});
 function closePopups(event:PointerEvent){const target=event.target as Element;if(!target.closest('.profile-picker'))profileMenu=false;if(!target.closest('.language-picker'))languageMenu=false;if(!target.closest('.more-picker'))moreMenu=false;}
 async function editProfile(id:string|null){if(loadingEditor)return;loadingEditor=true;try{await writes.settled();editor=await loadEditor(id);editingId=id;error='';}catch{error='Не удалось открыть профиль';}finally{loadingEditor=false;}}
 async function profileSaved(id:string){editor=null;selected=id;try{if(!selectionWrites){const initial=await bootstrap();data=initial.data;initializeWrites(initial.data);}const selection=await selectionWrites?.set(id);if(selection&&!selection.ok)throw new Error('selection_failed');const result=await bootstrap();data=result.data;error='';}catch{error='Профиль сохранён. Не удалось обновить список профилей';}}
@@ -119,10 +123,11 @@ function keyboard(event:KeyboardEvent){if(event.key==='Escape'){profileMenu=fals
  {:else}
  <StatisticsPanel live={search?.active&&search.profile===(statisticsSelected??selected)?{active:true,manual:search.manual,budget:search.appointment_budget}:null} {confirmRequest} onconfirmed={()=>confirmRequest=false} revision={statsRefresh} profiles={data?.profiles??[]} selected={statisticsSelected??selected} onselect={id=>statisticsSelected=id} {t} {language} {dark}/>
  {/if}
- <footer><span>{t('Данные хранятся локально')} · {data?.version??'0.4.0-beta.1'}</span><span class="preview-label">Rust Preview{data?.preview_source==='legacy_copy'?` · ${t('Копия старых данных')}`:''}{native?'':` · ${t('Превью интерфейса')}`}</span></footer>
+ <footer><span>{t('Данные хранятся локально')} · {data?.version??'0.4.0-beta.1'}</span><span class="preview-label">{data?.preview_source==='installed'?'':'Rust Preview'}{data?.preview_source==='legacy_copy'?` · ${t('Копия старых данных')}`:''}{native?'':` · ${t('Превью интерфейса')}`}</span></footer>
 </main>
 {#if editor}<ProfileEditor model={editor} {editingId} {t} {language} onclose={()=>editor=null} onsaved={id=>{void profileSaved(id);}}/>{/if}
 {#if budgetDialog&&budget}<DailyBudgetDialog {budget} {t} onclose={()=>budgetDialog=false} onsave={saveBudget}/>{/if}
+{#if importOffer}<ImportOfferDialog name={importOffer} {t} onclose={dismissImportOffer} onimported={()=>void reloadProfiles()}/>{/if}
 {#if about}<AboutDialog version={data?.version??'0.4.0-beta.1'} {language} {t} {update} {updateState} oncheck={()=>void runUpdateCheck()} onclose={()=>about=false}/>{/if}
 </div>
 

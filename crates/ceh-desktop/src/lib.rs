@@ -72,6 +72,40 @@ pub fn legacy_support_dirs() -> Vec<std::path::PathBuf> {
             .collect()
     }
 }
+/// The installed application's own data folder, next to where the Python version kept its folder.
+pub fn application_data_root(support: &std::path::Path) -> std::path::PathBuf {
+    support.join("SantaCita")
+}
+/// `None` only when the system has no per-user data location at all.
+pub fn installed_data_root() -> Option<std::path::PathBuf> {
+    legacy_support_dirs().first().map(|support| application_data_root(support))
+}
+/// First start of the installed application: when it has no profile list yet and a Python data folder exists
+/// beside it, bring that data over (merging, never overwriting; the old folder is only read). Returns the
+/// folder name on success; any problem (data in use, unreadable) leaves nothing behind and is retried next start.
+pub fn auto_import(
+    root: &std::path::Path,
+    support_dirs: &[std::path::PathBuf],
+    catalog: &ProfileCatalog,
+) -> Option<String> {
+    if root.join("tasks.yml").symlink_metadata().is_ok() {
+        return None;
+    }
+    let own = root.canonicalize().ok();
+    let found = ceh_store::legacy_import::candidates(support_dirs)
+        .into_iter()
+        .find(|c| own.is_none() || c.path().canonicalize().ok() != own)?;
+    let before_existed = root.exists();
+    match ceh_store::legacy_import::import(found.path(), root, catalog) {
+        Ok(_) => Some(found.name),
+        Err(_) => {
+            if !before_existed {
+                let _ = std::fs::remove_dir(root);
+            }
+            None
+        }
+    }
+}
 /// What a rejected first navigation means: `None` when the person closed the window while the page loaded
 /// (a stop, nothing to report), otherwise the error to show. Without the prepared certificate chain the
 /// strict HTTPS check rejects the site, which is told apart from other failures.

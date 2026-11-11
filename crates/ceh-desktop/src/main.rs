@@ -644,7 +644,7 @@ async fn legacy_import(
             .filter(|c| c.path().canonicalize().ok() != own)
             .find(|c| c.name == name)
             .ok_or("legacy_not_found")?;
-        let report = ceh_store::legacy_import::import(found.path(), &root).map_err(|error| match error {
+        let report = ceh_store::legacy_import::import(found.path(), &root, ceh_desktop::catalog()).map_err(|error| match error {
             ceh_store::legacy_import::ImportError::InUse => "legacy_in_use",
             ceh_store::legacy_import::ImportError::NoProfiles => "legacy_not_found",
             _ => "legacy_import_failed",
@@ -724,9 +724,19 @@ fn main() {
                 (base.join(runtime), "legacy_copy")
             } else if ui_review {
                 (base.join("rust-ui-review"), "isolated")
-            } else {
+            } else if let Some(directory) = std::env::var_os("CEH_DATA_DIR") {
+                // A developer-chosen folder (never a window-supplied path).
+                (PathBuf::from(directory), "isolated")
+            } else if cfg!(debug_assertions) {
                 ceh_desktop::preview_runtime_root(&base, source.as_deref())
                     .map_err(std::io::Error::other)?
+            } else {
+                let root = ceh_desktop::installed_data_root()
+                    .ok_or_else(|| std::io::Error::other("data_folder_unavailable"))?;
+                std::fs::create_dir_all(&root)?;
+                // Transparent first-run import of the Python version's data (no question asked).
+                let _ = ceh_desktop::auto_import(&root, &ceh_desktop::legacy_support_dirs(), ceh_desktop::catalog());
+                (root, "installed")
             };
             let dark = bootstrap(&root, "ru")
                 .map(|data| data.preferences.dark)

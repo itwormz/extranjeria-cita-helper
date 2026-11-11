@@ -349,7 +349,10 @@
     "Не удалось выполнить действие с обновлением": "The update action failed",
     "Установить": "Install",
     "Скачать и проверить": "Download and verify",
-    "Страница релиза": "Release page"
+    "Страница релиза": "Release page",
+    "Найдены данные прошлой версии": "Data from the previous version found",
+    "Профили, статистику и достижения из «{name}» можно перенести в SantaCita. Старые файлы не изменятся.": "Profiles, statistics and achievements from “{name}” can be moved into SantaCita. The old files are not changed.",
+    "Не сейчас": "Not now"
   },
   "es": {
     "Всего": "Total",
@@ -701,6 +704,9 @@
     "Не удалось выполнить действие с обновлением": "No se pudo realizar la acción de actualización",
     "Установить": "Instalar",
     "Скачать и проверить": "Descargar y verificar",
-    "Страница релиза": "Página de la versión"
+    "Страница релиза": "Página de la versión",
+    "Найдены данные прошлой версии": "Datos de la versión anterior encontrados",
+    "Профили, статистику и достижения из «{name}» можно перенести в SantaCita. Старые файлы не изменятся.": "Los perfiles, estadísticas y logros de «{name}» se pueden pasar a SantaCita. Los archivos antiguos no se modifican.",
+    "Не сейчас": "Ahora no"
   }
 }

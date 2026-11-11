@@ -412,6 +412,57 @@ fn commit_root(
     Ok(new_revision)
 }
 
+fn profile_id(value: &RawValue) -> Option<String> {
+    value.get("id").and_then(RawValue::scalar_text)
+}
+/// The old profile list's entries (`tasks:` mapping, or a bare list in the oldest files).
+fn listed_profiles(path: &Path) -> Result<Vec<Arc<RawValue>>, ProfileWriteError> {
+    let document = crate::legacy_yaml::read_document(path).map_err(|_| ProfileWriteError::Read)?;
+    let root = document.root();
+    Ok(root.sequence().or_else(|| root.get("tasks").and_then(RawValue::sequence)).map(<[_]>::to_vec).unwrap_or_default())
+}
+fn missing_profiles(target: &Path, source: &Path) -> Result<Vec<Arc<RawValue>>, ProfileWriteError> {
+    let mut seen: Vec<String> = listed_profiles(target)?.iter().filter_map(|p| profile_id(p)).collect();
+    let mut missing = Vec::new();
+    for profile in listed_profiles(source)? {
+        let Some(id) = profile_id(&profile) else { continue };
+        if !seen.contains(&id) {
+            seen.push(id);
+            missing.push(profile);
+        }
+    }
+    Ok(missing)
+}
+/// How many profiles of `source` the `target` list does not have yet (compared by profile id).
+pub fn profiles_to_add(target: &Path, source: &Path) -> Result<usize, ProfileWriteError> {
+    missing_profiles(target, source).map(|m| m.len())
+}
+/// Append the profiles of `source` that `target` lacks; the target's own profiles and settings are untouched.
+pub fn merge_profiles(
+    target: &Path,
+    source: &Path,
+    catalog: &ProfileCatalog,
+) -> Result<usize, ProfileWriteError> {
+    let _lock = lock_profile(target)?;
+    let bundle = read_profiles(target, catalog, "en").map_err(|_| ProfileWriteError::Read)?;
+    let missing = missing_profiles(target, source)?;
+    if missing.is_empty() {
+        return Ok(0);
+    }
+    let count = missing.len();
+    let mut root = bundle.raw().root().clone();
+    let tasks = map(&mut root)?
+        .entry(LegacyKey::String("tasks".into()))
+        .or_insert_with(|| Arc::new(RawValue::Sequence(Vec::new())));
+    match Arc::make_mut(tasks) {
+        RawValue::Sequence(list) => list.extend(missing),
+        other if matches!(other, RawValue::Null) => *other = RawValue::Sequence(missing),
+        _ => return Err(ProfileWriteError::Read),
+    }
+    commit_root(target, &root, catalog)?;
+    Ok(count)
+}
+
 pub fn save_selection(
     path: &Path,
     id: &str,

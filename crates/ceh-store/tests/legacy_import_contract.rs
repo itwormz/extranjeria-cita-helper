@@ -1,4 +1,22 @@
-use ceh_store::legacy_import::{ImportError, candidates, import};
+use ceh_core::profiles::ProfileCatalog;
+use ceh_store::legacy_import::{ImportError, Report, candidates, import as import_with};
+fn catalog() -> ProfileCatalog {
+    ProfileCatalog { provinces: vec!["Fixture Province".into()], nationalities: vec!["FIXTURE NATIONALITY".into()], barcelona_offices: vec![], timezones: vec!["Europe/Madrid".into(), "UTC".into()] }
+}
+fn import(source: &Path, target: &Path) -> Result<Report, ImportError> {
+    import_with(source, target, &catalog())
+}
+fn profiles_yaml(ids: &[&str], extra: &str) -> String {
+    let mut text = String::from("tasks:\n");
+    for id in ids {
+        text += &format!("- id: {id}\n  label: {id}\n  request:\n    province: Fixture Province\n    procedure: POLICÍA-TOMA DE HUELLAS (EXPEDICIÓN DE TARJETA) INICIAL, RENOVACIÓN, DUPLICADO Y LEY 14/2013\n    access_mode: certificate\n  applicant:\n    document_type: NIE\n    document_number: X0000000T\n    full_name: FICTITIOUS PERSON\n    nationality: FIXTURE NATIONALITY\n    contact:\n      phone: '600000000'\n      email: fixture@example.test\n");
+    }
+    text + extra
+}
+fn profile_ids(root: &Path) -> Vec<String> {
+    let bundle = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), &catalog(), "en").unwrap();
+    bundle.profiles.iter().map(|p| p.validation.normalized.id.clone()).collect()
+}
 use std::{fs, path::Path};
 
 fn write(root: &Path, relative: &str, bytes: &[u8]) {
@@ -66,30 +84,6 @@ fn existing_data_files_are_never_overwritten_and_a_second_import_changes_nothing
     let second = import(source.path(), target.path()).unwrap();
     assert!(second.copied.is_empty());
     assert_eq!(snapshot(target.path()), after_first);
-}
-
-#[test]
-fn a_profile_list_already_in_the_new_app_is_kept_as_a_backup_and_the_old_one_takes_its_place() {
-    let source = tempfile::tempdir().unwrap();
-    python_runtime(source.path());
-    let target = tempfile::tempdir().unwrap();
-    write(target.path(), "tasks.yml", b"profiles: [mine]\n");
-    let report = import(source.path(), target.path()).unwrap();
-    assert_eq!(fs::read(target.path().join("tasks.yml")).unwrap(), b"profiles: []\n");
-    assert_eq!(fs::read(target.path().join("tasks.yml.before-import")).unwrap(), b"profiles: [mine]\n");
-    assert!(report.copied.contains(&"tasks.yml".to_owned()));
-    assert_eq!(report.backed_up, vec!["tasks.yml.before-import".to_owned()]);
-    // A second import has nothing to replace and never touches the backup.
-    let after = snapshot(target.path());
-    let second = import(source.path(), target.path()).unwrap();
-    assert!(second.copied.is_empty() && second.backed_up.is_empty());
-    assert_eq!(snapshot(target.path()), after);
-    // An earlier backup is not overwritten by a later one.
-    write(target.path(), "tasks.yml", b"profiles: [newer]\n");
-    let third = import(source.path(), target.path()).unwrap();
-    assert_eq!(third.backed_up, vec!["tasks.yml.before-import.2".to_owned()]);
-    assert_eq!(fs::read(target.path().join("tasks.yml.before-import")).unwrap(), b"profiles: [mine]\n");
-    assert_eq!(fs::read(target.path().join("tasks.yml.before-import.2")).unwrap(), b"profiles: [newer]\n");
 }
 
 #[test]
@@ -180,5 +174,42 @@ mod merging {
         assert_eq!(ids("person_b"), ["2"]);
         assert_eq!(ids("person_c"), ["4"]);
         assert!(target.path().join("data/achievements.json.before-import").exists());
+    }
+}
+
+mod profile_merge {
+    use super::*;
+
+    #[test]
+    fn old_profiles_missing_from_the_new_app_are_added_and_the_new_apps_own_stay_exactly_as_they_are() {
+        let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        write(source.path(), "tasks.yml", profiles_yaml(&["a", "b"], "").as_bytes());
+        let mine = profiles_yaml(&["b", "c"], "desktop:\n  dark: true\n  language: es\n").replace("label: b", "label: Mine");
+        write(target.path(), "tasks.yml", mine.as_bytes());
+        let report = import(source.path(), target.path()).unwrap();
+        assert_eq!(profile_ids(target.path()), ["b", "c", "a"]);
+        let text = fs::read_to_string(target.path().join("tasks.yml")).unwrap();
+        assert!(text.contains("Mine") && text.contains("language") && text.contains("es"), "{text}");
+        assert!(report.merged.contains(&"tasks.yml".to_owned()), "{report:?}");
+        assert_eq!(fs::read_to_string(target.path().join("tasks.yml.before-import")).unwrap(), mine, "the new list is backed up first");
+        // Importing the same folder again adds nothing and leaves the file alone.
+        let after = fs::read(target.path().join("tasks.yml")).unwrap();
+        let second = import(source.path(), target.path()).unwrap();
+        assert_eq!(fs::read(target.path().join("tasks.yml")).unwrap(), after);
+        assert!(!second.merged.contains(&"tasks.yml".to_owned()));
+        assert!(!target.path().join("tasks.yml.before-import.2").exists());
+    }
+
+    #[test]
+    fn nothing_to_add_changes_nothing_and_a_damaged_new_list_is_never_touched() {
+        let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        write(source.path(), "tasks.yml", profiles_yaml(&["a"], "").as_bytes());
+        write(target.path(), "tasks.yml", profiles_yaml(&["a"], "").as_bytes());
+        import(source.path(), target.path()).unwrap();
+        assert!(!target.path().join("tasks.yml.before-import").exists());
+        write(target.path(), "tasks.yml", b"tasks: [SECRET-DONT-ECHO");
+        let report = import(source.path(), target.path()).unwrap();
+        assert_eq!(fs::read(target.path().join("tasks.yml")).unwrap(), b"tasks: [SECRET-DONT-ECHO");
+        assert!(report.kept.contains(&"tasks.yml".to_owned()));
     }
 }
