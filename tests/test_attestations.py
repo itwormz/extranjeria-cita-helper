@@ -143,3 +143,16 @@ def test_sigstore_policy_names_the_release_repository(monkeypatch, repository):
     assert policy['OIDCSourceRepositoryURI']['_value'] == repository
     assert policy['OIDCSourceRepositoryRef']['_value'] == 'refs/tags/v0.2.0'
     assert policy['OIDCRunnerEnvironment']['_value'] == 'github-hosted'
+
+
+def test_beta_provenance_keeps_exact_tag_and_source_checks(monkeypatch):
+    data = statement_for(NEW_REPOSITORY)
+    definition = data['predicate']['buildDefinition']
+    definition['externalParameters']['workflow']['ref'] = 'refs/tags/v0.4.0-beta.1'
+    definition['resolvedDependencies'][0]['uri'] = f'git+{NEW_REPOSITORY}@refs/tags/v0.4.0-beta.1'
+    monkeypatch.setattr(a, '_verified_statement', lambda *args: (SimpleNamespace(signing_certificate=None), data))
+    monkeypatch.setattr('sigstore.verify.policy.OIDCSourceRepositoryDigest.verify', lambda self, cert: None)
+    assert a.verify_attestation('{}', 'app.msi', DIGEST, '0.4.0-beta.1', expected_commit=COMMIT, repository=NEW_REPOSITORY) == COMMIT
+    definition['externalParameters']['workflow']['ref'] = 'refs/tags/v0.4.0'
+    with pytest.raises(a.AttestationError):
+        a.verify_attestation('{}', 'app.msi', DIGEST, '0.4.0-beta.1', expected_commit=COMMIT, repository=NEW_REPOSITORY)

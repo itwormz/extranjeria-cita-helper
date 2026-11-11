@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-- Prepare for the project's move to SantaCita: updates are accepted from the renamed `itwormz/santacita` repository as well as the current one, with the same build provenance checks.
+## 0.3.8 — SantaCita migration and beta updates
+
+- Prepare the updater for the move to SantaCita. Updates from both repository names keep the same checksum and build provenance checks; previously downloaded updates remain verifiable.
+- Add **Offer beta versions**, off by default, to check stable releases and SantaCita betas. Beta versions are clearly marked, and downloading and installation remain manual.
+- Explain the upcoming rename in all three README files, show a SantaCita migration notice in the update window, and point to manual downloads if an update cannot be verified. Document the manual Windows portable update steps.
 
 ## 0.3.7 — Windows search stability and interface translations
 

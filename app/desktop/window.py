@@ -160,7 +160,7 @@ class DesktopWindow(QMainWindow):
         self.tabs = QTabWidget();self.tabs.tabBar().setObjectName("mainNavigation")
         self.setCentralWidget(self.tabs)
         try:self.preferences = self.store.preferences()
-        except ProfileValidationError:self.preferences = dict(dark=False, diagnostics=False, sound=True, language='en', automatic_updates=True)
+        except ProfileValidationError:self.preferences = dict(dark=False, diagnostics=False, sound=True, language='en', automatic_updates=True,beta_updates=False)
         self._work()
         self._settings()
         self._statistics()
@@ -205,9 +205,9 @@ class DesktopWindow(QMainWindow):
         try:
             self.preferences = store.preferences()
         except ProfileValidationError as exc:
-            self.preferences = dict(dark=False, diagnostics=False, sound=True, language='en', automatic_updates=True)
+            self.preferences = dict(dark=False, diagnostics=False, sound=True, language='en', automatic_updates=True,beta_updates=False)
             self.show_error(str(exc))
-        for key, toggle in [('dark',self.dark_toggle),('diagnostics',self.debug_toggle),('sound',self.sound_toggle),('automatic_updates',self.updates_toggle)]:
+        for key, toggle in [('dark',self.dark_toggle),('diagnostics',self.debug_toggle),('sound',self.sound_toggle),('automatic_updates',self.updates_toggle),('beta_updates',self.beta_updates_toggle)]:
             toggle.setChecked(self.preferences[key])
             toggle.toggled.connect(self.save_preferences)
         apply_theme(QApplication.instance(), dark=self.preferences['dark'])
@@ -569,6 +569,7 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(folder,alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(label('Обновления',name='sectionHeading'))
         self.updates_toggle=self.toggle_row(layout,'Автоматически проверять обновления','Проверять GitHub Releases при запуске и раз в сутки. Скачивание и установка — по кнопке.',key='updates')
+        self.beta_updates_toggle=self.toggle_row(layout,'Предлагать бета-версии','Показывать стабильные и тестовые версии. В бета-версиях возможны ошибки. Скачивание и установка — по кнопке.',key='beta_updates')
         layout.addWidget(label('Интерфейс',name='sectionHeading'))
         self.settings_language=ProfileComboBox()
         for code,title in LANGUAGES.items(): self.settings_language.addItem(code.upper()+' · '+title,code)
@@ -1166,18 +1167,23 @@ class DesktopWindow(QMainWindow):
 
     def save_preferences(self):
         previous_revision=self.store.revision()
-        preferences=dict(dark=self.dark_toggle.isChecked(),diagnostics=self.debug_toggle.isChecked(),sound=self.sound_toggle.isChecked(),language=getattr(self,'pending_language',self.preferences['language']),automatic_updates=self.updates_toggle.isChecked())
+        preferences=dict(dark=self.dark_toggle.isChecked(),diagnostics=self.debug_toggle.isChecked(),sound=self.sound_toggle.isChecked(),language=getattr(self,'pending_language',self.preferences['language']),automatic_updates=self.updates_toggle.isChecked(),beta_updates=self.beta_updates_toggle.isChecked())
         try:
             self.store.save_preferences(**preferences)
         except (ProfileValidationError,ProfileConflictError,OSError):
             self.show_error('Не удалось сохранить настройки. Изменения не применены.','preferences')
-            for key,toggle in [('dark',self.dark_toggle),('diagnostics',self.debug_toggle),('sound',self.sound_toggle),('automatic_updates',self.updates_toggle)]:
+            for key,toggle in [('dark',self.dark_toggle),('diagnostics',self.debug_toggle),('sound',self.sound_toggle),('automatic_updates',self.updates_toggle),('beta_updates',self.beta_updates_toggle)]:
                 toggle.blockSignals(True); toggle.setChecked(self.preferences[key]); toggle.blockSignals(False)
             self.pending_language=self.preferences['language']
             return
         if self.editor_revision==previous_revision: self.editor_revision=self.store.revision()
         self.clear_error('preferences')
+        channel_changed=self.preferences.get('beta_updates',False)!=preferences['beta_updates']
         self.preferences=preferences
+        if channel_changed:
+            self.update_release=None;self.update_path=None
+            self.update_message='Ещё не проверена'
+            self.render_updates()
         apply_theme(QApplication.instance(),dark=preferences['dark'])
         self.controller.send(dict(command='preferences',diagnostics=preferences['diagnostics'],sound=preferences['sound']))
         from ..version import VERSION
@@ -1701,11 +1707,11 @@ class DesktopWindow(QMainWindow):
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose); dialog.show()
 
     def automatic_update_check(self):
-        if self.preferences.get('automatic_updates',True) and not self.update_service.busy and self.update_service.due():
+        if self.preferences.get('automatic_updates',True) and not self.update_service.busy and self.update_service.due(include_beta=self.preferences.get('beta_updates',False)):
             self.check_updates()
 
     def check_updates(self):
-        if self.update_service.check():
+        if self.update_service.check(include_beta=self.preferences.get('beta_updates',False)):
             self.update_message='Проверяем обновления…';self.render_updates()
 
     def update_checked(self, release):
@@ -1732,6 +1738,7 @@ class DesktopWindow(QMainWindow):
         self.update_message=self.t('Скачивание обновления')+f': {percent}%';self.render_updates()
 
     def update_busy(self,busy):
+        self.beta_updates_toggle.setEnabled(not busy)
         self.render_updates()
         if not busy and self.closing:self.close()
 
@@ -1747,6 +1754,8 @@ class DesktopWindow(QMainWindow):
         if self.update_release and version_tuple(self.update_release.version)>=(0,4,0):
             # Releases from 0.4.0 on are the SantaCita application.
             latest.setText(latest.text()+'\n'+self.t('Это новое приложение SantaCita. Данные текущей версии оно перенесёт при первом запуске.'))
+        if self.update_release and '-beta.' in self.update_release.version:
+            latest.setText(latest.text()+'\n'+self.t('Бета-версия: возможны ошибки.'))
         blocked=self.update_message=='Не удалось подтвердить происхождение обновления. Установка заблокирована. Скачайте новую версию вручную со страницы релизов.'
         tone='danger' if blocked else 'normal'
         frame=dialog.findChild(QFrame,'aboutUpdates')

@@ -3,6 +3,7 @@ import json
 import re
 from functools import lru_cache
 
+from .release_versions import release_key
 from .repository import LEGACY_REPOSITORY, REPOSITORIES
 
 WORKFLOW = '.github/workflows/build.yml'
@@ -57,7 +58,8 @@ def verify_attestation(raw, name, digest, version, *, expected_commit=None, repo
     try:
         if repository not in REPOSITORIES:
             raise AttestationError('Untrusted release repository')
-        if len(raw) > MAX_BUNDLE or not re.fullmatch(r'\d+\.\d+\.\d+', version):
+        release_key(version)
+        if len(raw) > MAX_BUNDLE:
             raise AttestationError('Invalid attestation input')
         if not re.fullmatch(r'[a-f0-9]{64}', digest):
             raise AttestationError('Invalid artifact digest')

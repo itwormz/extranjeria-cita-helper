@@ -1588,3 +1588,30 @@ def test_santacita_release_explains_data_import(window, version, note):
     assert version in text
     assert ('This is the new SantaCita app.' in text) is note
     window.about_dialog.close()
+
+
+def test_beta_update_preference_defaults_off_and_survives_reload(window):
+    assert not window.beta_updates_toggle.isChecked()
+    window.beta_updates_toggle.setChecked(True)
+    assert window.store.preferences()['beta_updates'] is True
+    window.store.save_preferences(dark=False, diagnostics=False, sound=True)
+    assert window.store.preferences()['beta_updates'] is True
+    window.beta_updates_toggle.setChecked(False)
+    assert window.store.preferences()['beta_updates'] is False
+
+
+def test_update_channel_cannot_change_during_download(window):
+    window.update_busy(True)
+    assert not window.beta_updates_toggle.isEnabled()
+    window.update_busy(False)
+    assert window.beta_updates_toggle.isEnabled()
+
+
+def test_beta_channel_change_clears_previous_offer(window):
+    from app.desktop.updates import Release
+    from pathlib import Path
+    window.update_release = Release('0.4.0-beta.1','test.msi','url','sums',7,'proof')
+    window.update_path = Path('test.msi')
+    window.beta_updates_toggle.setChecked(True)
+    assert window.update_release is None
+    assert window.update_path is None

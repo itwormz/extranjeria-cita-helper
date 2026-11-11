@@ -41,7 +41,7 @@ def test_create_and_preferences_in_missing_file(tmp_path, catalog_path, task_map
     if os.name != "nt":
         assert store.path.stat().st_mode & 0o777 == 0o600
     store.save_preferences(dark=True, diagnostics=False, sound=False)
-    assert ProfileStore(store.path, catalog_path).preferences() == dict(dark=True, diagnostics=False, sound=False, language='en', automatic_updates=True)
+    assert ProfileStore(store.path, catalog_path).preferences() == dict(dark=True, diagnostics=False, sound=False, language='en', automatic_updates=True,beta_updates=False)
 
 
 def test_preserves_settings_neighbors_and_detects_conflict(config_file, catalog_path, task_mapping):
@@ -81,7 +81,7 @@ def test_malformed_file_is_not_overwritten(tmp_path, catalog_path):
 def test_null_settings_and_invalid_desktop_have_safe_errors(tmp_path,catalog_path):
     path=tmp_path/'tasks.yml';path.write_text('settings: null\ntasks: []\n', encoding="utf-8")
     store=ProfileStore(path,catalog_path)
-    assert store.preferences()==dict(dark=False,diagnostics=False,sound=True,language='en',automatic_updates=True)
+    assert store.preferences()==dict(dark=False,diagnostics=False,sound=True,language='en',automatic_updates=True,beta_updates=False)
     path.write_text('desktop: true\ntasks: []\n', encoding="utf-8")
     with pytest.raises(ProfileValidationError):store.preferences()
 

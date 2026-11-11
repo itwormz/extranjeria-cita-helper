@@ -285,3 +285,103 @@ def test_downloaded_package_with_untrusted_receipt_repository_is_rejected(tmp_pa
         version='0.2.0', commit='b' * 40, bundle={}, repository='https://github.com/other/santacita')))
     with pytest.raises(ValueError):
         verify_download(package)
+
+
+@pytest.mark.parametrize(('new', 'current', 'wanted'), [
+    ('0.4.0-beta.1', '0.3.8', True),
+    ('0.4.0-beta.10', '0.4.0-beta.2', True),
+    ('0.4.0-beta.2', '0.4.0-beta.10', False),
+    ('0.4.0', '0.4.0-beta.10', True),
+    ('0.4.0-beta.10', '0.4.0', False),
+])
+def test_beta_channel_compares_numeric_beta_and_stable_versions(new, current, wanted):
+    from app.desktop.updates import select_release
+    data = dict(release(new), prerelease='-beta.' in new)
+    result = select_release(data, current, 'windows', 'x64', include_beta=True)
+    assert (result is not None) is wanted
+
+
+def test_beta_is_opt_in_and_requires_matching_release_flag():
+    from app.desktop.updates import select_release
+    data = dict(release('0.4.0-beta.1'), prerelease=True)
+    with pytest.raises(ValueError):
+        select_release(data, '0.3.8', 'windows', 'x64')
+    data['prerelease'] = False
+    with pytest.raises(ValueError):
+        select_release(data, '0.3.8', 'windows', 'x64', include_beta=True)
+
+
+def test_beta_listing_uses_version_order_across_pages_and_skips_drafts():
+    import io
+    from app.desktop.updates import latest_release
+    first = [dict(release('0.4.0-beta.2'), prerelease=True)] * 100
+    second = [dict(release('0.4.0-beta.10'), prerelease=True),
+              dict(release('0.5.0-beta.1'), prerelease=True, draft=True),
+              dict(release('0.4.0-rc.1'), prerelease=True)]
+    def fetch(url):
+        assert url.startswith('https://api.github.com/repos/itwormz/santacita/releases?')
+        return io.BytesIO(json.dumps(second if url.endswith('page=2') else first).encode())
+    repository, data = latest_release(fetch, include_beta=True)
+    assert repository == 'https://github.com/itwormz/santacita'
+    assert data['tag_name'] == 'v0.4.0-beta.10'
+
+
+def test_beta_listing_prefers_stable_over_same_version_beta():
+    import io
+    from app.desktop.updates import latest_release
+    entries = [dict(release('0.4.0-beta.10'), prerelease=True), release('0.4.0')]
+    _, data = latest_release(lambda url: io.BytesIO(json.dumps(entries).encode()), include_beta=True)
+    assert data['tag_name'] == 'v0.4.0'
+
+
+@pytest.mark.parametrize('version', ['0.4.0-beta.0', '0.4.0-beta.01', '0.4.0-rc.1', '0.4.0-beta.1/evil', '00.4.0'])
+def test_beta_channel_rejects_noncanonical_tags(version):
+    from app.desktop.updates import select_release
+    with pytest.raises(ValueError):
+        select_release(dict(release(version), prerelease=True), '0.3.8', 'windows', 'x64', include_beta=True)
+
+
+def test_update_check_cache_is_separate_for_beta_channel(tmp_path):
+    import time
+    from app.desktop.updates import UpdateService
+    service = UpdateService(tmp_path, '0.3.8')
+    (tmp_path/'check.json').write_text(json.dumps({'checked_at': time.time()}))
+    assert not service.due()
+    assert service.due(include_beta=True)
+
+
+def test_beta_listing_falls_back_on_404_without_mixing_repositories():
+    import io
+    from urllib.error import HTTPError
+    from app.desktop.updates import latest_release
+    def fetch(url):
+        if '/santacita/' in url:
+            raise HTTPError(url,404,'missing',None,None)
+        assert '/extranjeria-cita-helper/releases?per_page=100&page=1' in url
+        return io.BytesIO(json.dumps([dict(release('0.4.0-beta.1'),prerelease=True)]).encode())
+    repository, data = latest_release(fetch,include_beta=True)
+    assert repository == 'https://github.com/itwormz/extranjeria-cita-helper'
+    assert data['tag_name'] == 'v0.4.0-beta.1'
+
+
+def test_beta_package_download_receipt_and_reverification(tmp_path,monkeypatch):
+    import io
+    from app.desktop.updates import select_release, download_release, verify_download
+    data = dict(release('0.4.0-beta.1'),prerelease=True)
+    item = select_release(data,'0.3.8','windows','x64',include_beta=True)
+    payload = b'package'
+    digest = hashlib.sha256(payload).hexdigest()
+    def verify(raw,name,sha,version,**kwargs):
+        assert version == '0.4.0-beta.1'
+        assert sha == digest
+        assert kwargs['expected_commit'] == 'b'*40
+        return 'b'*40
+    monkeypatch.setattr('app.desktop.updates.verify_attestation',verify)
+    def fetch(url):
+        if '/git/ref/tags/' in url:
+            assert url.endswith('/v0.4.0-beta.1')
+            return io.BytesIO(json.dumps({'object':{'type':'commit','sha':'b'*40}}).encode())
+        if url.endswith('.sigstore.json'):return io.BytesIO(b'{}')
+        return io.BytesIO((digest+'  '+item.name+'\n').encode() if url.endswith('SHA256SUMS') else payload)
+    path=download_release(item,tmp_path,threading.Event(),fetch=fetch)
+    assert verify_download(path) == path

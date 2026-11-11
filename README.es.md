@@ -22,6 +22,8 @@ Asistente para buscar citas de **Toma de huellas / TIE** y **Autorización de re
 - Guarda el historial de búsqueda y las estadísticas.
 - La fecha, el CAPTCHA y la confirmación de la cita se completan manualmente en Camoufox.
 
+El proyecto se prepara para convertirse en **SantaCita**, con una nueva versión en Rust. Python 0.3.8 prepara el actualizador para el cambio de nombre del repositorio y permite recibir versiones beta de forma opcional.
+
 ## 🚀 Inicio rápido
 
 1. [Descargue la aplicación](https://github.com/itwormz/extranjeria-cita-helper/releases/latest).
@@ -136,6 +138,10 @@ Los datos se guardan localmente. Las estadísticas no se publican automáticamen
 **Acerca de → comprobar, descargar e instalar.** Comprobación automática al iniciar y una vez al día; se puede desactivar en ajustes.
 
 Se verifican la autenticidad y la integridad del paquete antes de instalarlo. La búsqueda finaliza; se conservan los perfiles y los ajustes.
+
+Activa **Ofrecer versiones beta** en Ajustes para incluir las versiones beta de SantaCita al buscar actualizaciones. Está desactivado por defecto; las versiones beta pueden contener errores. La descarga e instalación requieren tu confirmación.
+
+**Windows portable:** el actualizador descarga y verifica el ZIP y abre su carpeta. Cierre la aplicación, extraiga la nueva versión en otra carpeta y copie en ella su carpeta `data` anterior. Conserve la carpeta antigua hasta comprobar la actualización.
 
 ## ⚠️ Problemas conocidos
 

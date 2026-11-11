@@ -17,6 +17,8 @@ from PySide6.QtCore import QObject,QThread,Signal
 from ..attestations import verify_attestation, MAX_BUNDLE, AttestationError
 from ..repository import LEGACY_REPOSITORY, REPOSITORIES, api_url, trusted_repository
 
+from ..release_versions import release_key
+
 MAX_PACKAGE=2*1024**3
 
 
@@ -30,9 +32,7 @@ def release_target(system=None,machine=None):
 
 
 def version_tuple(value):
-    if not isinstance(value,str) or not re.fullmatch(r'\d+\.\d+\.\d+',value):
-        raise ValueError('Invalid release version')
-    return tuple(map(int,value.split('.')))
+    return release_key(value)[:3]
 
 
 @dataclass(frozen=True)
@@ -46,19 +46,22 @@ class Release:
     repository:str=LEGACY_REPOSITORY
 
 
-def select_release(data,current,target,arch,*,portable=False,repository=LEGACY_REPOSITORY):
+def select_release(data,current,target,arch,*,portable=False,repository=LEGACY_REPOSITORY,include_beta=False):
     # Assets must come from the exact repository that answered, never from another trusted name.
     trusted_repository(repository)
     tag=data.get('tag_name','')
     if not isinstance(tag,str) or not tag.startswith('v'):
         raise ValueError('Invalid release tag')
     version=tag[1:];version_tuple(version)
-    if data.get('draft') or data.get('prerelease'):
-        raise ValueError('Not a stable release')
+    is_beta='-beta.' in version
+    if data.get('draft') or bool(data.get('prerelease'))!=is_beta or (is_beta and not include_beta):
+        raise ValueError('Release is not allowed in this channel')
     from app.version import native_version
-    current_parts=native_version(current)
-    current_key=current_parts[:3]+((0,current_parts[3]) if '.dev' in current else (1,0))
-    if version_tuple(version)+(1,0)<=current_key:return None
+    if '.dev' in current:
+        current_parts=native_version(current)
+        current_key=current_parts[:3]+(0,current_parts[3])
+    else:current_key=release_key(current)
+    if release_key(version)<=current_key:return None
     extension={'windows':'msi','macos':'dmg','linux':'AppImage'}.get(target)
     if not extension or (target,arch) not in {('windows','x64'),('linux','x64'),('macos','arm64'),('macos','x64')}:
         raise ValueError('Unsupported update target')
@@ -106,8 +109,9 @@ def checksum_for(data,name):
     return candidates[0]
 
 
-def latest_release(fetch):
+def latest_release(fetch, *, include_beta=False):
     """Return (repository, release JSON): the new name first, the old one only on 404."""
+    if include_beta:return beta_channel_release(fetch)
     for repository in REPOSITORIES:
         try:
             with fetch(api_url(repository,'/releases/latest')) as response:
@@ -117,6 +121,34 @@ def latest_release(fetch):
             raise
         if len(data)>1024*1024:raise ValueError('Release response too large')
         return repository,json.loads(data)
+
+
+def beta_channel_release(fetch):
+    """Inspect bounded pages, then choose by version, never by publication order."""
+    for repository in REPOSITORIES:
+        candidates=[]
+        for page in range(1,11):
+            try:
+                with fetch(api_url(repository,f'/releases?per_page=100&page={page}')) as response:
+                    raw=response.read(8*1024*1024+1)
+            except HTTPError as exc:
+                if page==1 and exc.code==404 and repository!=REPOSITORIES[-1]:break
+                raise
+            if len(raw)>8*1024*1024:raise ValueError('Release response too large')
+            entries=json.loads(raw)
+            if not isinstance(entries,list):raise ValueError('Invalid release list')
+            for entry in entries:
+                if not isinstance(entry,dict) or entry.get('draft'):continue
+                tag=entry.get('tag_name')
+                if not isinstance(tag,str) or not tag.startswith('v'):continue
+                try:key=release_key(tag[1:])
+                except ValueError:continue
+                if bool(entry.get('prerelease'))!=('-beta.' in tag):continue
+                candidates.append((key,entry))
+            if len(entries)<100:
+                if not candidates:raise HTTPError(api_url(repository,'/releases'),404,'No releases',None,None)
+                return repository,max(candidates,key=lambda item:item[0])[1]
+        else:raise ValueError('Too many release pages')
 
 
 def release_commit(version, fetch, repository=LEGACY_REPOSITORY):
@@ -208,9 +240,11 @@ class UpdateService(QObject):
         super().__init__(parent);self.directory=Path(directory);self.current=current;self.job=None
     @property
     def busy(self):return self.job is not None
-    def due(self):
+    def due(self, *, include_beta=False):
         try:
-            timestamp=json.loads((self.directory/'check.json').read_text())['checked_at']
+            saved=json.loads((self.directory/'check.json').read_text())
+            if bool(saved.get('include_beta',False))!=include_beta:return True
+            timestamp=saved['checked_at']
             return not 0<=time.time()-float(timestamp)<86400
         except (OSError,ValueError,KeyError,TypeError):return True
     def _start(self,operation,signal):
@@ -220,13 +254,13 @@ class UpdateService(QObject):
         def finish():
             self.job=None;self.busy_changed.emit(False);job.deleteLater()
         job.finished.connect(finish);self.busy_changed.emit(True);job.start();return True
-    def check(self):
+    def check(self, *, include_beta=False):
         def operation(job):
             self.directory.mkdir(parents=True,exist_ok=True)
-            (self.directory/'check.json').write_text(json.dumps({'checked_at':time.time()}))
-            repository,data=latest_release(fetch)
+            (self.directory/'check.json').write_text(json.dumps({'checked_at':time.time(),'include_beta':include_beta}))
+            repository,data=latest_release(fetch,include_beta=include_beta)
             from .paths import portable_mode
-            return select_release(data,self.current,*release_target(),portable=portable_mode(),repository=repository)
+            return select_release(data,self.current,*release_target(),portable=portable_mode(),repository=repository,include_beta=include_beta)
         return self._start(operation,self.checked)
     def download(self,release):
         return self._start(lambda job:download_release(release,self.directory,job.cancelled,progress=job.progress.emit),self.downloaded)
