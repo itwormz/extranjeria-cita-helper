@@ -8,6 +8,7 @@ fn main() {
             "search_resume",
             "appointment_budget",
             "journal_history",
+            "check_updates",
             "installed_browsers",
             "appointment_daily_target",
             "appointment_distribution",

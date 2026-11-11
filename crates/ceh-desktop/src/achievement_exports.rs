@@ -280,6 +280,7 @@ pub enum PublicLink {
     Github,
     Readme,
     Issues,
+    Releases,
     Sponsor,
     Crypto,
 }
@@ -297,6 +298,7 @@ pub fn public_link(target: PublicLink, lang: &str) -> Result<String, &'static st
             }
         ),
         PublicLink::Issues => format!("{repo}/issues/new"),
+        PublicLink::Releases => format!("{repo}/releases/latest"),
         PublicLink::Sponsor => "https://github.com/sponsors/itwormz".into(),
         PublicLink::Crypto => "https://nowpayments.io/donation/itworm".into(),
     })

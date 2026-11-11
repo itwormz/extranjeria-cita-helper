@@ -1,6 +1,6 @@
 <script lang="ts">
 import {onMount} from 'svelte';import {journalText,nextSelection} from './journal-copy';import {journalMessage} from './journal-text';
-import {searchSnapshot,startSearch,controlSearch,showSearchBrowser,copyText,copyStartupReport,resetSession,loadStatistics,loadBudget,loadJournalHistory,setDailyTarget,tryAppointmentNow,resumeSearch,type SearchSnapshot,type SearchRow} from './bridge';
+import {checkUpdates,type UpdateStatus,searchSnapshot,startSearch,controlSearch,showSearchBrowser,copyText,copyStartupReport,resetSession,loadStatistics,loadBudget,loadJournalHistory,setDailyTarget,tryAppointmentNow,resumeSearch,type SearchSnapshot,type SearchRow} from './bridge';
 import {budgetLine,sourceKey,waitReasonKey,attemptWindowLabel,showTryNowButton,canResume,type BudgetSummary} from './budget';
 import DailyBudgetDialog from './DailyBudgetDialog.svelte';
 import {promotedControl,pages,statuses,searchErrors,countdown} from './work-state';
@@ -16,7 +16,11 @@ import {translate} from './i18n';
 let data=$state<Bootstrap|null>(null);let native=$state(false);let error=$state('');let tab=$state('work');let journal=$state('timeline');let selected=$state<string|null>(null);let language=$state('ru');let dark=$state(true);let sound=$state(true);let diagnostics=$state(false);let automaticUpdates=$state(true);let editor=$state<ProfileEditorData|null>(null);let editingId=$state<string|null>(null);let loadingEditor=$state(false);let profileMenu=$state(false);let languageMenu=$state(false);let about=$state(false);
 let search=$state<SearchSnapshot|null>(null);let searchBusy=$state(false);let now=$state(Date.now());let statsRefresh=$state(0);let allChecks=$state<number|null>(null);
 let idleBudget=$state<BudgetSummary|null>(null);let budgetDialog=$state(false);let notice=$state('');let confirmRequest=$state(false);
-let idleFor=$state<string|null>(null);let moreMenu=$state(false);
+let idleFor=$state<string|null>(null);let moreMenu=$state(false);let update=$state<UpdateStatus|null>(null);let updateState=$state<'idle'|'checking'|'failed'>('idle');let updateTried=$state(false);
+async function runUpdateCheck(){if(updateState==='checking')return;updateState='checking';try{update=await checkUpdates();updateState='idle';}catch{updateState='failed';}}
+/* Python: a check at start and once a day while the app runs, when automatic checks are on. */
+$effect(()=>{if(native&&automaticUpdates&&!updateTried){updateTried=true;void runUpdateCheck();}});
+$effect(()=>{if(!native||!automaticUpdates)return;const timer=setInterval(()=>void runUpdateCheck(),24*60*60*1000);return()=>clearInterval(timer);});
 let history=$state<SearchRow[]>([]);let historyFor=$state<string|null>(null);
 /* The saved log of the profile (all its searches, the running one included) is the journal; it is read again when rows change. */
 const rowsKey=$derived(`${search?.profile}|${search?.rows.length}|${search?.rows.at(-1)?.time}|${search?.rows.at(-1)?.status}`);
@@ -85,7 +89,7 @@ function keyboard(event:KeyboardEvent){if(event.key==='Escape'){profileMenu=fals
   <div class="language-picker"><button class="icon-button language" title={t('Язык')} aria-label={t('Язык')} aria-expanded={languageMenu} onclick={()=>languageMenu=!languageMenu}>{language.toUpperCase()}</button>{#if languageMenu}<div class="popup language-popup">{#each ['ru','en','es'] as code}<button class:chosen={language===code} onclick={()=>{language=code;languageMenu=false;persistPreferences();}}>{code.toUpperCase()}</button>{/each}</div>{/if}</div>
   <button class="icon-button" title={t('Тёмная тема')} aria-label={t('Тёмная тема')} aria-pressed={dark} onclick={()=>{dark=!dark;persistPreferences();}}><Icon name={dark?'sun':'moon'}/></button>
   <button class="icon-button" title={t('Звук')} aria-label={t('Звук')} aria-pressed={sound} onclick={()=>{sound=!sound;persistPreferences();}}><Icon name={sound?'bell':'bell_off'}/></button>
-  <button class="icon-button" title={t('О приложении')} aria-label={t('О приложении')} onclick={()=>about=true}><Icon name="info"/></button>
+  <button class="icon-button" title={t('О приложении')} aria-label={t('О приложении')} onclick={()=>about=true}><Icon name="info"/>{#if update?.available}<span class="update-dot" aria-hidden="true"></span>{/if}</button>
  </div>
 </header>
 <main>
@@ -119,7 +123,7 @@ function keyboard(event:KeyboardEvent){if(event.key==='Escape'){profileMenu=fals
 </main>
 {#if editor}<ProfileEditor model={editor} {editingId} {t} {language} onclose={()=>editor=null} onsaved={id=>{void profileSaved(id);}}/>{/if}
 {#if budgetDialog&&budget}<DailyBudgetDialog {budget} {t} onclose={()=>budgetDialog=false} onsave={saveBudget}/>{/if}
-{#if about}<AboutDialog version={data?.version??'0.0.0-dev.1'} {language} {t} onclose={()=>about=false}/>{/if}
+{#if about}<AboutDialog version={data?.version??'0.0.0-dev.1'} {language} {t} {update} {updateState} oncheck={()=>void runUpdateCheck()} onclose={()=>about=false}/>{/if}
 </div>
 
-<style>.budget-row{display:flex;align-items:center;gap:8px}.budget-line{margin:0;display:flex;flex-direction:column}.attempt-window{margin:4px 0}.attention{color:var(--warning,#e9b44c)}.work-log{table-layout:fixed;border-collapse:collapse;flex:1 0 760px;align-self:flex-start;text-align:left;min-width:760px;font-size:13px}.work-log th{color:var(--muted);font-weight:400;position:sticky;top:0;background:var(--surface);z-index:1}.work-log th,.work-log td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}.work-log th:first-child,.work-log td:first-child{width:90px;white-space:nowrap;font-variant-numeric:tabular-nums}.work-log th:nth-child(2){width:190px}.work-log th:nth-child(3){width:215px}.work-log td:nth-child(2),.work-log td:nth-child(3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.journal-content{overflow:auto;max-height:55vh;min-height:160px}.timer b{font-variant-numeric:tabular-nums}.booking-band{display:flex;align-items:center;gap:12px;border:1px solid var(--accent);background:var(--selection);border-radius:8px;padding:10px 14px;margin:0 0 12px}.booking-band span{flex:1}.more-picker{position:relative}.more-popup{top:40px;left:0;width:max-content;min-width:230px}.more-popup button{justify-content:flex-start}</style>
+<style>.budget-row{display:flex;align-items:center;gap:8px}.budget-line{margin:0;display:flex;flex-direction:column}.attempt-window{margin:4px 0}.attention{color:var(--warning,#e9b44c)}.work-log{table-layout:fixed;border-collapse:collapse;flex:1 0 760px;align-self:flex-start;text-align:left;min-width:760px;font-size:13px}.work-log th{color:var(--muted);font-weight:400;position:sticky;top:0;background:var(--surface);z-index:1}.work-log th,.work-log td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}.work-log th:first-child,.work-log td:first-child{width:90px;white-space:nowrap;font-variant-numeric:tabular-nums}.work-log th:nth-child(2){width:190px}.work-log th:nth-child(3){width:215px}.work-log td:nth-child(2),.work-log td:nth-child(3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.journal-content{overflow:auto;max-height:55vh;min-height:160px}.timer b{font-variant-numeric:tabular-nums}.icon-button{position:relative}.update-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--accent-text)}.booking-band{display:flex;align-items:center;gap:12px;border:1px solid var(--accent);background:var(--selection);border-radius:8px;padding:10px 14px;margin:0 0 12px}.booking-band span{flex:1}.more-picker{position:relative}.more-popup{top:40px;left:0;width:max-content;min-width:230px}.more-popup button{justify-content:flex-start}</style>

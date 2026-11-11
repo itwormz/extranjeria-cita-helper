@@ -328,7 +328,15 @@
     "Поиск завершён до подтверждения перехода": "Search ended before the transition was confirmed",
     "Действие прервано ошибкой — работа завершена": "Action failed — run ended",
     "Страница загружена заново → {destination}": "The page was loaded again → {destination}",
-    "Сита найдена? После оформления подтвердите запись, чтобы сохранить данные и поделиться статистикой.": "Appointment found? After booking, confirm it to save the details and share your statistics."
+    "Сита найдена? После оформления подтвердите запись, чтобы сохранить данные и поделиться статистикой.": "Appointment found? After booking, confirm it to save the details and share your statistics.",
+    "Проверяем обновления…": "Checking for updates…",
+    "Не удалось проверить обновления": "Could not check for updates",
+    "Доступна новая версия": "A new version is available",
+    "Последняя версия": "Latest version",
+    "Установлена актуальная версия": "You have the latest version",
+    "Ещё не проверена": "Not checked yet",
+    "Открыть страницу релиза": "Open the release page",
+    "Проверить": "Check"
   },
   "es": {
     "Всего": "Total",
@@ -659,6 +667,14 @@
     "Поиск завершён до подтверждения перехода": "Búsqueda finalizada antes de confirmar la transición",
     "Действие прервано ошибкой — работа завершена": "Acción interrumpida por un error — ejecución finalizada",
     "Страница загружена заново → {destination}": "La página se cargó de nuevo → {destination}",
-    "Сита найдена? После оформления подтвердите запись, чтобы сохранить данные и поделиться статистикой.": "¿Encontraste cita? Tras reservar, confírmala para guardar los datos y compartir tus estadísticas."
+    "Сита найдена? После оформления подтвердите запись, чтобы сохранить данные и поделиться статистикой.": "¿Encontraste cita? Tras reservar, confírmala para guardar los datos y compartir tus estadísticas.",
+    "Проверяем обновления…": "Buscando actualizaciones…",
+    "Не удалось проверить обновления": "No se pudo comprobar las actualizaciones",
+    "Доступна новая версия": "Hay una versión nueva",
+    "Последняя версия": "Última versión",
+    "Установлена актуальная версия": "Tienes la última versión",
+    "Ещё не проверена": "Aún sin comprobar",
+    "Открыть страницу релиза": "Abrir la página de la versión",
+    "Проверить": "Comprobar"
   }
 }

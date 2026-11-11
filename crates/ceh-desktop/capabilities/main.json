@@ -12,6 +12,7 @@
     "allow-search-resume",
     "allow-appointment-budget",
     "allow-journal-history",
+    "allow-check-updates",
     "allow-startup-report-copy",
     "allow-reset-session",
     "allow-legacy-candidates",

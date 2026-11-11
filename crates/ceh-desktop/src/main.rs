@@ -188,6 +188,23 @@ async fn achievement_export(
     .await
     .map_err(|_| "export_failed")?
 }
+#[derive(serde::Serialize)]
+struct UpdateStatus {
+    current: &'static str,
+    latest: Option<String>,
+    available: bool,
+}
+/// Ask the project's public releases whether a newer stable version exists (check only; the person opens the page).
+#[tauri::command]
+async fn check_updates(window: WebviewWindow) -> Result<UpdateStatus, &'static str> {
+    authorize(&window)?;
+    let current = env!("CARGO_PKG_VERSION");
+    let latest = tauri::async_runtime::spawn_blocking(ceh_services::updates::fetch_latest)
+        .await
+        .map_err(|_| "updates_unavailable")?
+        .map_err(|_| "updates_unavailable")?;
+    Ok(UpdateStatus { current, available: ceh_services::updates::newer(&latest.version, current), latest: Some(latest.version) })
+}
 #[tauri::command]
 async fn open_public_link(
     window: WebviewWindow,
@@ -742,6 +759,7 @@ fn main() {
             load_notification_editor,
             notification_action,
             open_diagnostics,
+            check_updates,
             profile_statistics,
             profile_history,
             profile_selection,
