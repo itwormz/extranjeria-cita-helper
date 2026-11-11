@@ -232,7 +232,8 @@ fn activate(
     } else {
         gate.begin_preparation(guard, &current.observation, action)?
     };
-    let params = json!({"context":context,"actions":[{"type":"pointer","id":"ceh-pointer","parameters":{"pointerType":"mouse"},"actions":click_actions(&shared, pointer_seed())}]});
+    let reach = cursor_reach(connection, realm, &shared);
+    let params = json!({"context":context,"actions":[{"type":"pointer","id":"ceh-pointer","parameters":{"pointerType":"mouse"},"actions":click_actions(&shared, pointer_seed(), reach)}]});
     let mut ticket = None;
     let sent = permit.send(&current.observation, || {
         send(connection, "input.performActions", params, &mut ticket)
@@ -258,9 +259,9 @@ fn activate(
     Ok(permit.finish())
 }
 /// The cursor travels a curved path to the element centre, then presses and releases there.
-pub(crate) fn click_actions(shared: &str, seed: u64) -> Vec<Value> {
+pub(crate) fn click_actions(shared: &str, seed: u64, reach: ceh_core::input::Reach) -> Vec<Value> {
     let origin = json!({"type":"element","element":{"sharedId":shared}});
-    let mut actions: Vec<Value> = ceh_core::input::pointer_path(seed)
+    let mut actions: Vec<Value> = ceh_core::input::pointer_path(seed, reach)
         .into_iter()
         .map(|step| json!({"type":"pointerMove","duration":step.ms,"x":step.x,"y":step.y,"origin":origin}))
         .collect();
@@ -268,6 +269,16 @@ pub(crate) fn click_actions(shared: &str, seed: u64) -> Vec<Value> {
     actions.push(json!({"type":"pause","duration":ceh_core::input::POINTER_TIMING.press_ms}));
     actions.push(json!({"type":"pointerUp","button":0}));
     actions
+}
+/// Room the cursor has around the element inside the viewport; none when it cannot be read.
+fn cursor_reach(connection: &mut BidiConnection, realm: &ceh_core::model::DocumentId, shared: &str) -> ceh_core::input::Reach {
+    const NONE: ceh_core::input::Reach = ceh_core::input::Reach { left: 0, right: 0, up: 0, down: 0 };
+    let params = json!({"target":{"realm":realm.as_str()},"awaitPromise":false,"arguments":[{"sharedId":shared}],
+        "functionDeclaration":"el=>{const r=el.getBoundingClientRect();const w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;const cx=r.left+r.width/2,cy=r.top+r.height/2;return JSON.stringify([cx,w-cx,cy,h-cy]);}"});
+    let Ok(result) = connection.call("script.callFunction", params) else { return NONE };
+    let Some(values) = result["result"]["value"].as_str().and_then(|t| serde_json::from_str::<Vec<f64>>(t).ok()).filter(|v| v.len() == 4) else { return NONE };
+    let room = |v: f64| (v.floor() as i32 - 2).max(0);
+    ceh_core::input::Reach { left: room(values[0]), right: room(values[1]), up: room(values[2]), down: room(values[3]) }
 }
 fn pointer_seed() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(1, |d| d.as_nanos() as u64)
@@ -365,7 +376,7 @@ fn perform_keys(
 mod tests {
     #[test]
     fn a_click_moves_along_a_curve_then_presses_on_the_element() {
-        let actions = super::click_actions("node-1", 42);
+        let actions = super::click_actions("node-1", 42, ceh_core::input::Reach { left: 500, right: 500, up: 500, down: 500 });
         let moves: Vec<_> = actions.iter().filter(|a| a["type"] == "pointerMove").collect();
         assert!(moves.len() >= 8, "several moves, not one jump");
         assert!(moves.iter().all(|m| m["origin"]["element"]["sharedId"] == "node-1"));

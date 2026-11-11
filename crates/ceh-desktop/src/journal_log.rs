@@ -11,8 +11,6 @@ use std::{
 };
 
 const KEPT_SEARCHES: usize = 20;
-/// Rows from the end of the journal that may still change (the previous visit gets its end time).
-const MUTABLE_TAIL: usize = 4;
 
 fn directory(root: &Path, profile: &str) -> Option<PathBuf> {
     let safe = !profile.is_empty()
@@ -34,40 +32,47 @@ fn files_newest_first(directory: &Path) -> Vec<PathBuf> {
 }
 
 pub struct JournalLog {
-    file: File,
-    written: Vec<String>,
+    directory: PathBuf,
+    started_ms: u64,
+    file: Option<File>,
+    /// The last stored text of each row, by its id (the journal drops its oldest rows, so positions move).
+    written: std::collections::HashMap<u64, String>,
 }
 impl JournalLog {
-    /// A new file for a search started at `started_ms`; older searches beyond the newest 20 are removed.
+    /// A log for a search started at `started_ms`. Its file is created with the first row, so searches that
+    /// never start (a busy profile, a missing browser) leave nothing behind and prune no history.
     pub fn open(root: &Path, profile: &str, started_ms: u64) -> Option<Self> {
         let directory = directory(root, profile)?;
         fs::create_dir_all(&directory).ok()?;
-        let mut options = OpenOptions::new();
-        options.create(true).append(true);
-        #[cfg(unix)]
-        std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
-        let file = options.open(directory.join(format!("{started_ms:020}.jsonl"))).ok()?;
-        for old in files_newest_first(&directory).into_iter().skip(KEPT_SEARCHES) {
-            let _ = fs::remove_file(old);
+        Some(Self { directory, started_ms, file: None, written: Default::default() })
+    }
+    fn file(&mut self) -> Option<&mut File> {
+        if self.file.is_none() {
+            let mut options = OpenOptions::new();
+            options.create(true).append(true);
+            #[cfg(unix)]
+            std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+            self.file = Some(options.open(self.directory.join(format!("{:020}.jsonl", self.started_ms))).ok()?);
+            for old in files_newest_first(&self.directory).into_iter().skip(KEPT_SEARCHES) {
+                let _ = fs::remove_file(old);
+            }
         }
-        Some(Self { file, written: Vec::new() })
+        self.file.as_mut()
     }
     /// Append the rows that are new or changed since the last call.
     pub fn record<T: Serialize>(&mut self, rows: &[T]) {
-        let floor = self.written.len().saturating_sub(MUTABLE_TAIL);
-        for (index, row) in rows.iter().enumerate().skip(floor) {
-            let Ok(line) = serde_json::to_string(row) else { continue };
-            if self.written.get(index) == Some(&line) {
+        for row in rows {
+            let Ok(value) = serde_json::to_value(row) else { continue };
+            let Some(id) = value["id"].as_u64() else { continue };
+            let line = value.to_string();
+            if self.written.get(&id) == Some(&line) {
                 continue;
             }
-            if writeln!(self.file, "{line}").is_err() {
+            let Some(file) = self.file() else { return };
+            if writeln!(file, "{line}").is_err() {
                 return;
             }
-            if index < self.written.len() {
-                self.written[index] = line;
-            } else {
-                self.written.push(line);
-            }
+            self.written.insert(id, line);
         }
     }
 }

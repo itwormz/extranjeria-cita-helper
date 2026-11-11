@@ -17,9 +17,9 @@ use std::{
 };
 use tungstenite::{Message, WebSocket};
 
-const MAX_EVENTS: usize = 256;
+const MAX_EVENTS: usize = 4096;
 const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
-const MAX_REQUESTS: usize = 512;
+const MAX_REQUESTS: usize = 4096;
 const WORLD: &str = "ceh";
 
 #[derive(Clone)]
@@ -40,7 +40,10 @@ pub(crate) struct CdpWire {
     session: String,
     target: String,
     events: Vec<Value>,
-    worlds: HashMap<String, i64>,
+    worlds: HashMap<String, (i64, u64)>,
+    serial: u64,
+    urls: HashMap<String, String>,
+    dom_enabled: bool,
     loaders: HashMap<String, String>,
     requests: HashMap<String, Request>,
     pointer: (f64, f64),
@@ -126,6 +129,27 @@ fn special_key(value: &str) -> Option<(&'static str, &'static str, i64, u8)> {
         _ => return None,
     })
 }
+/// US-layout physical key of a punctuation character: (`code`, Windows virtual key, needs Shift).
+fn punctuation(c: char) -> Option<(&'static str, i64, bool)> {
+    Some(match c {
+        ' ' => ("Space", 32, false),
+        '-' => ("Minus", 189, false), '_' => ("Minus", 189, true),
+        '=' => ("Equal", 187, false), '+' => ("Equal", 187, true),
+        '[' => ("BracketLeft", 219, false), '{' => ("BracketLeft", 219, true),
+        ']' => ("BracketRight", 221, false), '}' => ("BracketRight", 221, true),
+        '\\' => ("Backslash", 220, false), '|' => ("Backslash", 220, true),
+        ';' => ("Semicolon", 186, false), ':' => ("Semicolon", 186, true),
+        '\'' => ("Quote", 222, false), '"' => ("Quote", 222, true),
+        ',' => ("Comma", 188, false), '<' => ("Comma", 188, true),
+        '.' => ("Period", 190, false), '>' => ("Period", 190, true),
+        '/' => ("Slash", 191, false), '?' => ("Slash", 191, true),
+        '`' => ("Backquote", 192, false), '~' => ("Backquote", 192, true),
+        '!' => ("Digit1", 49, true), '@' => ("Digit2", 50, true), '#' => ("Digit3", 51, true),
+        '$' => ("Digit4", 52, true), '%' => ("Digit5", 53, true), '^' => ("Digit6", 54, true),
+        '&' => ("Digit7", 55, true), '*' => ("Digit8", 56, true), '(' => ("Digit9", 57, true), ')' => ("Digit0", 48, true),
+        _ => return None,
+    })
+}
 /// The CDP key events of one WebDriver key action, given the modifier bits held down so far.
 pub(crate) fn key_event(kind: &str, value: &str, modifiers: u8) -> Option<Value> {
     let down = kind == "keyDown";
@@ -138,10 +162,19 @@ pub(crate) fn key_event(kind: &str, value: &str, modifiers: u8) -> Option<Value>
     let mut chars = value.chars();
     let character = chars.next().filter(|_| chars.next().is_none())?;
     let upper = character.to_ascii_uppercase();
+    let mut modifiers = modifiers;
     let (code, virtual_code) = if character.is_ascii_alphabetic() {
+        if character.is_ascii_uppercase() {
+            modifiers |= 8;
+        }
         (format!("Key{upper}"), i64::from(upper as u8))
     } else if character.is_ascii_digit() {
         (format!("Digit{character}"), i64::from(character as u8))
+    } else if let Some((code, virtual_code, shifted)) = punctuation(character) {
+        if shifted {
+            modifiers |= 8;
+        }
+        (code.to_owned(), virtual_code)
     } else {
         (String::new(), 0)
     };
@@ -172,6 +205,9 @@ impl CdpWire {
             target: String::new(),
             events: Vec::new(),
             worlds: HashMap::new(),
+            serial: 0,
+            urls: HashMap::new(),
+            dom_enabled: false,
             loaders: HashMap::new(),
             requests: HashMap::new(),
             pointer: (0.0, 0.0),
@@ -192,6 +228,10 @@ impl CdpWire {
         wire.target = target;
         Ok(wire)
     }
+    /// Ask the browser to quit cleanly so it flushes cookies and leaves no "restore pages" prompt behind.
+    pub(crate) fn close_browser(&mut self) {
+        let _ = self.browser("Browser.close", json!({}), Instant::now() + Duration::from_secs(2));
+    }
     pub(crate) fn target(&self) -> &str {
         &self.target
     }
@@ -199,9 +239,11 @@ impl CdpWire {
         std::mem::take(&mut self.events)
     }
     fn push(&mut self, event: Value) {
-        if self.events.len() < MAX_EVENTS {
-            self.events.push(event);
+        // The oldest go first: the driver drains these at every observation, and the newest facts matter most.
+        if self.events.len() >= MAX_EVENTS {
+            self.events.remove(0);
         }
+        self.events.push(event);
     }
 
     // ---- transport -------------------------------------------------------------------------------------
@@ -267,6 +309,7 @@ impl CdpWire {
             "Page.frameNavigated" => {
                 if let (Some(frame), Some(loader)) = (params["frame"]["id"].as_str(), params["frame"]["loaderId"].as_str()) {
                     self.loaders.insert(frame.to_owned(), loader.to_owned());
+                    self.urls.insert(frame.to_owned(), params["frame"]["url"].as_str().unwrap_or("").to_owned());
                     self.worlds.remove(frame);
                 }
             }
@@ -285,10 +328,18 @@ impl CdpWire {
                     _ => return,
                 };
                 if let (Some(frame), Some(loader)) = (params["frameId"].as_str(), params["loaderId"].as_str()) {
-                    let url = self.requests.get(loader).map(|r| r.url.clone()).unwrap_or_default();
+                    let url = self.urls.get(frame).cloned().unwrap_or_default();
                     self.push(json!({"type":"event","method":method,"params":{
                         "context":frame,"navigation":loader,"url":url,"timestamp":millis(None)}}));
                 }
+            }
+            "Page.javascriptDialogOpening" => {
+                // An open dialog blocks every script call; Firefox BiDi dismisses it and notifies.
+                self.push(json!({"type":"event","method":"browsingContext.userPromptOpened","params":{
+                    "context":self.target,"type":params["type"],"message":""}}));
+                self.next += 1;
+                let packet = json!({"id":self.next,"method":"Page.handleJavaScriptDialog","params":{"accept":false},"sessionId":self.session});
+                let _ = self.socket.send(Message::Text(packet.to_string().into()));
             }
             "Network.requestWillBeSent" => self.request_will_be_sent(params),
             "Network.responseReceived" => {
@@ -337,6 +388,8 @@ impl CdpWire {
                 "context":frame,"navigation":navigation,"url":url,"timestamp":timestamp}}));
         }
         if self.requests.len() >= MAX_REQUESTS {
+            // Only requests that never finished remain; forget the oldest-registered half is not tracked, so a
+            // pathological page starts over rather than growing without bound.
             self.requests.clear();
         }
         let (destination, initiator) = request_kind(&kind);
@@ -346,8 +399,9 @@ impl CdpWire {
                        "headers":headers(&params["request"]["headers"]),"cookies":[]}}}));
         self.requests.insert(id.to_owned(), Request { frame: frame.to_owned(), navigation, url, method, kind, redirects, status: None, response: None });
     }
+    /// A request that completed: reported once and forgotten (a redirect hop re-registers the request).
     fn finish(&mut self, id: &str, timestamp: i64) {
-        let Some(request) = self.requests.get(id).cloned() else { return };
+        let Some(request) = self.requests.remove(id) else { return };
         let Some(response) = request.response.clone() else { return };
         let (destination, initiator) = request_kind(&request.kind);
         self.push(json!({"type":"event","method":"network.responseCompleted","params":{
@@ -402,7 +456,7 @@ impl CdpWire {
                     .as_array()
                     .into_iter()
                     .flatten()
-                    .filter(|c| domain.is_empty() || c["domain"].as_str().is_some_and(|d| d.trim_start_matches('.').ends_with(domain.trim_start_matches('.'))))
+                    .filter(|c| domain.is_empty() || c["domain"].as_str().is_some_and(|d| { let (d, wanted) = (d.trim_start_matches('.'), domain.trim_start_matches('.')); d == wanted || d.ends_with(&format!(".{wanted}")) }))
                     .map(|c| json!({"name":c["name"],"domain":c["domain"],"path":c["path"],"value":{"type":"string","value":""}}))
                     .collect();
                 Ok(json!({"cookies":cookies}))
@@ -458,28 +512,38 @@ impl CdpWire {
     }
 
     // ---- scripts ---------------------------------------------------------------------------------------
-    fn world(&mut self, frame: &str, deadline: Instant) -> Result<i64, ProtocolError> {
-        if let Some(id) = self.worlds.get(frame) {
-            return Ok(*id);
+    /// The isolated world of a frame: its execution context id and a serial that is never reused, so a realm
+    /// name stays tied to one document even when a new renderer process hands out the same context id again.
+    fn world(&mut self, frame: &str, deadline: Instant) -> Result<(i64, u64), ProtocolError> {
+        if let Some(world) = self.worlds.get(frame) {
+            return Ok(*world);
         }
         let created = self.page("Page.createIsolatedWorld", json!({"frameId":frame,"worldName":WORLD}), deadline)?;
         let id = created["executionContextId"].as_i64().ok_or(ProtocolError::InvalidData)?;
-        self.worlds.insert(frame.to_owned(), id);
-        Ok(id)
+        self.serial += 1;
+        self.worlds.insert(frame.to_owned(), (id, self.serial));
+        Ok((id, self.serial))
     }
-    /// The execution context a BiDi `target` names: a realm (`r<id>`, bound to one document) or a context.
-    fn resolve(&mut self, target: &Value, deadline: Instant) -> Result<(i64, Option<String>), ProtocolError> {
+    /// The execution context a BiDi `target` names: a realm (`r<serial>:<context>:<frame>`, bound to one
+    /// document; stale once the frame moved on) or a context (the frame's current world).
+    fn resolve(&mut self, target: &Value, deadline: Instant) -> Result<(i64, u64, String, bool), ProtocolError> {
         if let Some(realm) = target["realm"].as_str() {
-            let id = realm.strip_prefix('r').and_then(|n| n.parse::<i64>().ok()).ok_or(ProtocolError::InvalidData)?;
-            return Ok((id, None));
+            let mut parts = realm.strip_prefix('r').ok_or(ProtocolError::InvalidData)?.splitn(3, ':');
+            let serial: u64 = parts.next().and_then(|n| n.parse().ok()).ok_or(ProtocolError::InvalidData)?;
+            let id: i64 = parts.next().and_then(|n| n.parse().ok()).ok_or(ProtocolError::InvalidData)?;
+            let frame = parts.next().filter(|f| !f.is_empty()).ok_or(ProtocolError::InvalidData)?.to_owned();
+            // Take in what the page already reported (a navigation) before trusting the realm.
+            self.pump(Duration::from_millis(2));
+            return if self.worlds.get(&frame) == Some(&(id, serial)) { Ok((id, serial, frame, false)) } else { Err(ProtocolError::Rejected) };
         }
-        let frame = target["context"].as_str().ok_or(ProtocolError::InvalidData)?;
-        Ok((self.world(frame, deadline)?, Some(frame.to_owned())))
+        let frame = target["context"].as_str().ok_or(ProtocolError::InvalidData)?.to_owned();
+        let (id, serial) = self.world(&frame, deadline)?;
+        Ok((id, serial, frame, true))
     }
     fn script(&mut self, params: &Value, deadline: Instant, evaluate: bool) -> Result<Value, ProtocolError> {
         let mut attempt = 0;
         loop {
-            let (context, frame) = self.resolve(&params["target"], deadline)?;
+            let (context, serial, frame, by_context) = self.resolve(&params["target"], deadline)?;
             let await_promise = params["awaitPromise"].as_bool().unwrap_or(false);
             let reply = if evaluate {
                 let expression = params["expression"].as_str().ok_or(ProtocolError::InvalidData)?;
@@ -495,7 +559,7 @@ impl CdpWire {
             };
             return match reply {
                 Ok(reply) => {
-                    let realm = format!("r{context}");
+                    let realm = format!("r{serial}:{context}:{frame}");
                     if reply.get("exceptionDetails").is_some_and(|e| !e.is_null()) {
                         Ok(json!({"type":"exception","realm":realm,"exceptionDetails":{"text":reply["exceptionDetails"]["text"]}}))
                     } else {
@@ -504,22 +568,27 @@ impl CdpWire {
                 }
                 // The document navigated since the world was made: a new world for a context target, a stale
                 // realm (fail closed) for a realm target.
-                Err(ProtocolError::Rejected) if frame.is_some() && attempt == 0 => {
+                Err(ProtocolError::Rejected) if by_context && attempt == 0 => {
                     attempt += 1;
-                    if let Some(frame) = frame {
-                        self.worlds.remove(&frame);
-                    }
+                    self.worlds.remove(&frame);
                     continue;
                 }
                 Err(error) => Err(error),
             };
         }
     }
+    fn enable_dom(&mut self, deadline: Instant) -> Result<(), ProtocolError> {
+        if !self.dom_enabled {
+            self.page("DOM.enable", json!({}), deadline)?;
+            self.dom_enabled = true;
+        }
+        Ok(())
+    }
     fn locate(&mut self, params: &Value, deadline: Instant) -> Result<Value, ProtocolError> {
         let parent = params["context"].as_str().ok_or(ProtocolError::InvalidData)?.to_owned();
         let child = params["locator"]["value"]["context"].as_str().ok_or(ProtocolError::InvalidData)?;
-        let world = self.world(&parent, deadline)?;
-        self.page("DOM.enable", json!({}), deadline)?;
+        let (world, _) = self.world(&parent, deadline)?;
+        self.enable_dom(deadline)?;
         let owner = self.page("DOM.getFrameOwner", json!({"frameId":child}), deadline)?;
         let resolved = self.page("DOM.resolveNode", json!({"backendNodeId":owner["backendNodeId"],"executionContextId":world}), deadline)?;
         Ok(json!({"nodes":[{"type":"node","sharedId":resolved["object"]["objectId"]}]}))
@@ -527,6 +596,14 @@ impl CdpWire {
 
     // ---- input -----------------------------------------------------------------------------------------
     fn center(&mut self, shared: &str, deadline: Instant) -> Result<(f64, f64), ProtocolError> {
+        // Quads are in the main frame's viewport, also for an element inside an iframe.
+        if self.enable_dom(deadline).is_ok()
+            && let Ok(quads) = self.page("DOM.getContentQuads", json!({"objectId":shared}), deadline)
+            && let Some(quad) = quads["quads"][0].as_array().filter(|q| q.len() == 8)
+        {
+            let at = |i: usize| quad[i].as_f64().unwrap_or(0.0);
+            return Ok(((at(0) + at(2) + at(4) + at(6)) / 4.0, (at(1) + at(3) + at(5) + at(7)) / 4.0));
+        }
         let result = self.page(
             "Runtime.callFunctionOn",
             json!({"objectId":shared,"functionDeclaration":"function(){const r=this.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2];}","returnByValue":true}),

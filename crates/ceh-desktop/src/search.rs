@@ -357,8 +357,13 @@ impl Drop for SearchController {
     }
 }
 /// Whole days since the app created its persistent browser profile of `key`, when known.
-fn profile_age_days(root: &Path, key: &str) -> Option<u64> {
-    let marker = root.join("browser-profiles").join(format!("firefox-{key}")).join("ceh-owned-profile");
+fn profile_age_days(root: &Path, key: &str, browser: &str) -> Option<u64> {
+    let prefix = match Engine::of(browser) {
+        Some(Engine::Chromium(ceh_browser::firefox::ProfileKind::Brave)) => "brave",
+        Some(Engine::Chromium(_)) => "chrome",
+        _ => "firefox",
+    };
+    let marker = root.join("browser-profiles").join(format!("{prefix}-{key}")).join("ceh-owned-profile");
     let created = std::fs::metadata(marker).ok()?.created().ok()?;
     Some(std::time::SystemTime::now().duration_since(created).ok()?.as_secs() / 86_400)
 }
@@ -716,7 +721,7 @@ fn run_owned(
                 },
                 os: std::env::consts::OS.to_owned(),
                 profile_persistent: true,
-                profile_age_days: profile_age_days(root, &profile.id),
+                profile_age_days: profile_age_days(root, &profile.id, &profile.browser),
                 certificate_cache: format!("{:?}", browser.certificate_cache()).to_lowercase(),
                 action_delay_ms: [(range[0] * 1000.0).round() as u64, (range[1] * 1000.0).round() as u64],
                 first_bootstrap_ms: ms(TimingKind::Bootstrap, samples.first_bootstrap),
@@ -1266,14 +1271,15 @@ fn run_owned(
                     .heartbeat(&mut db, wall()?, mono())
                     .map_err(|_| "statistics_unavailable")?;
             }
+            // Stored before it is published: the Work tab reads the saved log when the rows change.
+            if let Some(log) = log.as_mut() {
+                log.record(journal.rows());
+            }
             update(state, |s| {
                 s.paused = paused;
                 s.rows = journal.rows().to_vec();
                 s.counters = stats.counters();
             })?;
-            if let Some(log) = log.as_mut() {
-                log.record(journal.rows());
-            }
             sequence = sequence.checked_add(1).ok_or("search_unavailable")?;
             if preferences_at.elapsed() >= Duration::from_secs(3) {
                 if let Ok(bundle) = ceh_store::profiles::read_profiles(&root.join("tasks.yml"), crate::catalog(), "ru") {
@@ -1322,13 +1328,13 @@ fn run_owned(
             .event(JournalEvent::Finish, None, None, true, at)
             .map_err(|_| "search_unavailable")?;
     }
+    if let Some(log) = log.as_mut() {
+        log.record(journal.rows());
+    }
     update(state, |s| {
         s.rows = journal.rows().to_vec();
         s.counters = stats.counters();
     })?;
-    if let Some(log) = log.as_mut() {
-        log.record(journal.rows());
-    }
     result
 }
 

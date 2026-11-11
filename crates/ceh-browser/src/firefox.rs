@@ -628,6 +628,21 @@ impl OwnedFirefox {
         self.profile.take();
         true
     }
+    /// Chrome saves its cookies on a clean quit: ask for one and give it a moment before the process is killed.
+    fn quit_gracefully(&mut self) {
+        let Some(connection) = self.connection.as_mut() else { return };
+        if connection.cdp_target().is_none() {
+            return;
+        }
+        connection.close_cdp_browser();
+        let until = Instant::now() + Duration::from_secs(3);
+        while Instant::now() < until {
+            if self.child.as_mut().is_some_and(|c| !matches!(c.try_wait(), Ok(None))) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
     pub fn process_id(&self) -> Option<u32> {
         self.child.as_ref().map(Child::id)
     }
@@ -661,6 +676,7 @@ impl OwnedFirefox {
         if self.manual {
             return Err(FirefoxError::ManualOwnership);
         }
+        self.quit_gracefully();
         self.connection.take();
         if let Some(mut child) = self.child.take() {
             let _ = child.kill();

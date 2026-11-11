@@ -15,7 +15,7 @@ fn serve() -> u16 {
             let n = stream.read(&mut buffer).unwrap_or(0);
             let request = String::from_utf8_lossy(&buffer[..n]).to_string();
             let body = if request.starts_with("GET /inner") {
-                "<html><body><p id=inner>inner</p></body></html>"
+                "<html><body><p id=inner>inner</p><button id=ib style=\"margin:40px\" onclick=\"this.dataset.n=1\">in</button></body></html>"
             } else {
                 "<html><body><button id=b onclick=\"this.dataset.n=(+(this.dataset.n||0)+1);this.dataset.trusted=event.isTrusted\">go</button><input id=i oninput=\"this.dataset.v=this.value\"><iframe id=f src=\"/inner\"></iframe></body></html>"
             };
@@ -87,6 +87,26 @@ fn the_cdp_wire_serves_navigation_scripts_nodes_input_frames_and_events() {
     assert_eq!(visible["result"], json!({"type":"boolean","value":true}));
     let inner = connection.call("script.evaluate", json!({"expression":"document.getElementById('inner').textContent","target":{"context":child},"awaitPromise":false})).unwrap();
     assert_eq!(string(&inner), "inner");
+    // A click on a button inside the iframe lands on it (main-viewport coordinates, not frame-relative ones).
+    let inner_node = connection.call("script.callFunction", json!({"functionDeclaration":"()=>document.getElementById('ib')","target":{"context":child},"awaitPromise":false,"arguments":[]})).unwrap();
+    let inner_realm = inner_node["realm"].as_str().unwrap().to_owned();
+    let inner_shared = inner_node["result"]["sharedId"].as_str().unwrap().to_owned();
+    let inner_origin = json!({"type":"element","element":{"sharedId":inner_shared}});
+    connection.call("input.performActions", json!({"context":child,"actions":[{"type":"pointer","id":"p","parameters":{"pointerType":"mouse"},"actions":[
+        {"type":"pointerMove","duration":10,"x":0,"y":0,"origin":inner_origin},{"type":"pointerDown","button":0},{"type":"pointerUp","button":0}]}]})).unwrap();
+    let inner_clicked = connection.call("script.callFunction", json!({"functionDeclaration":"()=>document.getElementById('ib').dataset.n","target":{"realm":inner_realm},"awaitPromise":false,"arguments":[]})).unwrap();
+    assert_eq!(string(&inner_clicked), "1");
+    // Punctuation and a space type as a real keyboard would.
+    connection.call("script.evaluate", json!({"expression":"document.getElementById('i').focus()","target":{"context":context},"awaitPromise":false})).unwrap();
+    let keys: Vec<Value> = "a b@.-".chars().flat_map(|c| [json!({"type":"keyDown","value":c.to_string()}), json!({"type":"keyUp","value":c.to_string()})]).collect();
+    connection.call("input.performActions", json!({"context":context,"actions":[{"type":"key","id":"k","actions":keys}]})).unwrap();
+    let punctuated = connection.call("script.evaluate", json!({"expression":"document.getElementById('i').value","target":{"context":context},"awaitPromise":false})).unwrap();
+    assert_eq!(string(&punctuated), "a b@.-");
+    // A JavaScript dialog is dismissed instead of freezing the page.
+    let _ = connection.call("script.evaluate", json!({"expression":"setTimeout(()=>alert('x'),0)","target":{"context":context},"awaitPromise":false}));
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    let alive = connection.call("script.evaluate", json!({"expression":"1+1","target":{"context":context},"awaitPromise":false})).unwrap();
+    assert_eq!(string(&alive), "2");
     // A navigation makes the old realm stale (fail closed) and a context call gets the new document.
     connection.call("browsingContext.navigate", json!({"context":context,"url":format!("{url}?second"),"wait":"complete"})).unwrap();
     assert!(connection.call("script.callFunction", json!({"functionDeclaration":"()=>1","target":{"realm":realm},"awaitPromise":false,"arguments":[]})).is_err());

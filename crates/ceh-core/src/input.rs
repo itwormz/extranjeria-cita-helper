@@ -10,6 +10,15 @@ pub fn selection_keys(enabled_index:usize,safe_commit:bool)->Result<Vec<Selectio
 pub struct PointerTiming{pub move_ms:u64,pub press_ms:u64}
 pub const POINTER_TIMING:PointerTiming=PointerTiming{move_ms:120,press_ms:60};
 
+/// How far the cursor may stray from the element centre in each direction while staying inside the page's
+/// viewport (WebDriver rejects a pointer move outside it).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Reach {
+    pub left: i32,
+    pub right: i32,
+    pub up: i32,
+    pub down: i32,
+}
 /// One move of the cursor: a position relative to the target element's centre and the time the move takes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PointerStep {
@@ -27,7 +36,7 @@ fn next(state: &mut u64) -> f64 {
 /// A curved cursor path that ends exactly on the element centre (a cubic Bezier from a point 180–420 px away,
 /// eased in and out, with a little jitter), about 300–600 ms in total. The browser's own pointer input
 /// performs it, so every move reaches the page as a trusted `mousemove`.
-pub fn pointer_path(seed: u64) -> Vec<PointerStep> {
+pub fn pointer_path(seed: u64, reach: Reach) -> Vec<PointerStep> {
     const STEPS: usize = 12;
     let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
     for _ in 0..4 {
@@ -59,7 +68,9 @@ pub fn pointer_path(seed: u64) -> Vec<PointerStep> {
         // The easing already spaces the positions (dense at both ends, wide in the middle), so equal step times
         // give the slow-fast-slow speed.
         let ms = (total / STEPS as f64).round() as u64;
-        path.push(PointerStep { x: x.round() as i32, y: y.round() as i32, ms });
+        let x = (x.round() as i32).clamp(-reach.left.max(0), reach.right.max(0));
+        let y = (y.round() as i32).clamp(-reach.up.max(0), reach.down.max(0));
+        path.push(PointerStep { x, y, ms });
     }
     path
 }

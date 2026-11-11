@@ -167,6 +167,12 @@ impl BidiConnection {
             in_flight: None,
         })
     }
+    /// Chrome: ask the browser to quit cleanly (it flushes its cookie store); a no-op for other connections.
+    pub fn close_cdp_browser(&mut self) {
+        if let Some(wire) = self.cdp.as_mut() {
+            wire.close_browser();
+        }
+    }
     /// The browser target the CDP wire attached to (its id is the page context), when this is a Chrome connection.
     pub fn cdp_target(&self) -> Option<&str> {
         self.cdp.as_ref().map(crate::cdp::CdpWire::target)
@@ -235,8 +241,9 @@ impl BidiConnection {
         let wire = self.cdp.as_mut().ok_or(ProtocolError::Unavailable)?;
         let result = wire.handle(&method, &params, deadline);
         for event in wire.take_events() {
-            if self.events.len() >= MAX_EVENTS {
-                return Err(ProtocolError::EventOverflow);
+            // The CDP wire already keeps the newest events within its own cap.
+            if self.events.len() >= 4096 {
+                self.events.remove(0);
             }
             self.event_bytes += event.to_string().len();
             self.events.push(event);

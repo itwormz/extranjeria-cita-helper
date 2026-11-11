@@ -69,3 +69,29 @@ fn row_ids_stay_unique_across_searches() {
     assert_ne!(ids[0], ids[1]);
     assert!(ids.iter().all(|id| *id < (1u64 << 53)));
 }
+
+#[test]
+fn a_journal_that_drops_its_oldest_rows_is_still_stored_row_by_row() {
+    let root = tempfile::tempdir().unwrap();
+    let mut log = JournalLog::open(root.path(), "p", 100).unwrap();
+    let first: Vec<_> = (1..=200).map(|i| row(i, None)).collect();
+    log.record(&first);
+    // The journal shifts by ten rows at once (its front rows are dropped, ten new ones arrive).
+    let shifted: Vec<_> = (11..=210).map(|i| row(i, None)).collect();
+    log.record(&shifted);
+    let ids: Vec<_> = load_history(root.path(), "p", 250).iter().map(|r| r["id"].as_u64().unwrap()).collect();
+    assert_eq!(ids.len(), 210);
+    assert_eq!(*ids.last().unwrap(), 210);
+}
+
+#[test]
+fn a_search_that_never_records_leaves_no_file_and_prunes_nothing() {
+    let root = tempfile::tempdir().unwrap();
+    for start in 1..=20 {
+        JournalLog::open(root.path(), "p", start).unwrap().record(&[row(start as u64, None)]);
+    }
+    for start in 100..130 {
+        let _unused = JournalLog::open(root.path(), "p", start).unwrap();
+    }
+    assert_eq!(std::fs::read_dir(root.path().join("data/journal/p")).unwrap().count(), 20);
+}
