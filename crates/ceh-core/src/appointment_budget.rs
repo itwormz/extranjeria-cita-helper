@@ -18,8 +18,6 @@ pub struct AppointmentPolicy {
     pub distribute_attempts: bool,
     pub retry_after_office: bool,
     pub minimum_pause_minutes: u32,
-    pub first_cod_pause_minutes: u32,
-    pub next_cod_pause_minutes: u32,
 }
 
 impl Default for AppointmentPolicy {
@@ -31,16 +29,13 @@ impl Default for AppointmentPolicy {
             distribute_attempts: false,
             retry_after_office: true,
             minimum_pause_minutes: 15,
-            first_cod_pause_minutes: 30,
-            next_cod_pause_minutes: 60,
         }
     }
 }
 
 impl AppointmentPolicy {
     pub fn is_valid(&self) -> bool {
-        [self.daily_target, self.minimum_pause_minutes, self.first_cod_pause_minutes, self.next_cod_pause_minutes]
-            .into_iter().all(|value| value > 0)
+        [self.daily_target, self.minimum_pause_minutes].into_iter().all(|value| value > 0)
     }
 }
 
@@ -208,20 +203,17 @@ impl AppointmentBudget {
         self.windows.clear();
     }
 
-    /// Allow one attempt now: skips the window and the `cod. oper` pause, keeps the minimum pause.
+    /// Allow one attempt now: skips the window, keeps the minimum pause.
     pub fn try_now(&mut self, now: DateTime<Utc>, policy: &AppointmentPolicy) {
         self.refresh(now, policy);
         self.immediate_attempt = true;
     }
 
-    /// Recompute an active `cod. oper` pause from its original start under the given policy.
-    pub fn recalculate_restriction(&mut self, policy: &AppointmentPolicy) {
-        let Some(first) = self.first_cod_oper else { return };
-        let (base, minutes) = match self.last_submission {
-            Some(last) if last > first => (last, policy.next_cod_pause_minutes),
-            _ => (first, policy.first_cod_pause_minutes),
-        };
-        self.restriction_until = base.checked_add_signed(Duration::minutes(i64::from(minutes)));
+    /// `cod. oper` no longer schedules any pause (owner decision 2026-11-11): the answer is only recorded for the
+    /// statistics and the possible-restriction view. Kept so callers need no change; it clears a pause that an
+    /// older budget file may still carry.
+    pub fn recalculate_restriction(&mut self, _policy: &AppointmentPolicy) {
+        self.restriction_until = None;
     }
 
     /// A copy-mode profile gets its own budget file once the document is known. Today's explicit
@@ -305,9 +297,6 @@ impl AppointmentBudget {
         } else {
             Vec::new()
         };
-        if self.first_cod_oper.is_some() {
-            self.restriction_until = now.checked_add_signed(Duration::minutes(i64::from(policy.next_cod_pause_minutes)));
-        }
     }
 
     pub fn cod_oper(&mut self, now: DateTime<Utc>, policy: &AppointmentPolicy) {
@@ -321,7 +310,6 @@ impl AppointmentBudget {
             self.offices_during_restriction = 0;
             self.episode_offices.clear();
             self.first_cod_oper = Some(now);
-            self.restriction_until = now.checked_add_signed(Duration::minutes(i64::from(policy.first_cod_pause_minutes)));
         }
         self.last_cod_oper = Some(now);
     }

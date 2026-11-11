@@ -4,10 +4,10 @@ export function profileErrors(errors:string[],t:(key:string)=>string):string[]{
  return [...new Set(errors.map(error=>t(error==='Invalid profile timings'?'Проверить значения интервалов':error==='Invalid notification settings'?'Проверить настройки уведомлений':rules.find(([prefix])=>error.startsWith(`${prefix} `)||error.startsWith(`${prefix}:`))?.[1]??'Проверить данные профиля')))];
 }
 
-export interface Protection {confirm_new_round:boolean;daily_target:number;adaptive_target:boolean;distribute_attempts:boolean;retry_after_office:boolean;minimum_pause_minutes:number;first_cod_pause_minutes:number;next_cod_pause_minutes:number}
+export interface Protection {confirm_new_round:boolean;daily_target:number;adaptive_target:boolean;distribute_attempts:boolean;retry_after_office:boolean;minimum_pause_minutes:number}
 /** Python `AppointmentProtection()` defaults. */
-export const defaultProtection:Protection={confirm_new_round:true,daily_target:5,adaptive_target:true,distribute_attempts:false,retry_after_office:true,minimum_pause_minutes:15,first_cod_pause_minutes:30,next_cod_pause_minutes:60};
-const integerKeys=['daily_target','minimum_pause_minutes','first_cod_pause_minutes','next_cod_pause_minutes'] as const;
+export const defaultProtection:Protection={confirm_new_round:true,daily_target:5,adaptive_target:true,distribute_attempts:false,retry_after_office:true,minimum_pause_minutes:15};
+const integerKeys=['daily_target','minimum_pause_minutes'] as const;
 const flagKeys=['confirm_new_round','adaptive_target','distribute_attempts','retry_after_office'] as const;
 /** Keys with an invalid value: integers must be 1…2147483647, flags must be booleans. */
 export function validateProtection(value:Record<string,unknown>):string[]{

@@ -68,14 +68,28 @@ pub fn same(expected: &Value, actual: &Value, path: &str) -> Result<(), String> 
     }
 }
 
+/// Python 0.3.x paused 30/60 minutes after a `cod. oper` answer; the owner removed that pause (2026-11-11).
+/// Once such an answer has been seen, the fields that carry the pause are not compared with the recording;
+/// counts, flags and every other field still are.
+pub fn without_pause_fields(mut value: Value) -> Value {
+    if let Value::Object(map) = &mut value {
+        for key in ["ready", "wait_reason", "restriction_until", "attempt_window"] {
+            map.remove(key);
+        }
+    }
+    value
+}
+
 pub fn run_scenario(scenario: &Value) -> Result<(), String> {
     let name = scenario["name"].as_str().unwrap();
     let mut budget: AppointmentBudget = match scenario.get("initial").filter(|v| !v.is_null()) {
         Some(initial) => serde_json::from_value(initial.clone()).map_err(|e| format!("{name}: initial: {e}"))?,
         None => AppointmentBudget::default(),
     };
+    let mut cod_seen = budget.restricted();
     for (index, step) in scenario["steps"].as_array().unwrap().iter().enumerate() {
         let op = step["op"].as_str().unwrap();
+        cod_seen |= op == "cod_oper";
         let at = time(&step["at"]);
         let policy = policy(scenario, step);
         let label = format!("{name} step {index} ({op})");
@@ -147,7 +161,14 @@ pub fn run_scenario(scenario: &Value) -> Result<(), String> {
             other => return Err(format!("{label}: unsupported op: {other}")),
         };
         if let (Some(expected), Some(actual)) = (step.get("expect"), observed) {
-            same(expected, &actual, &label)?;
+            if cod_seen && matches!(op, "next_submission" | "restriction_until") {
+                continue; // the whole value is the removed pause
+            }
+            if cod_seen && op == "summary" {
+                same(&without_pause_fields(expected.clone()), &without_pause_fields(actual), &label)?;
+            } else {
+                same(expected, &actual, &label)?;
+            }
         }
     }
     Ok(())

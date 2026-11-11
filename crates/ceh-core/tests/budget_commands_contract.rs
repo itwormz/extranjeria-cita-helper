@@ -31,17 +31,25 @@ fn apply_policy_keeping_adaptive_preserves_manual_target() {
 }
 
 #[test]
-fn apply_policy_changing_cod_pause_recalculates_from_original_start() {
-    let mut policy = AppointmentPolicy::default();
+fn a_cod_oper_answer_is_recorded_for_statistics_but_adds_no_pause() {
+    // Owner decision (2026-11-11): the extra pauses after `cod. oper` are gone. The answer still counts and
+    // still marks a possible restriction; only the ordinary minimum pause between attempts applies.
+    let policy = AppointmentPolicy::default();
     let mut budget = AppointmentBudget::default();
     let start = utc("2026-11-03T11:00:00Z");
     budget.submitted(start, &policy);
     budget.cod_oper(start + Duration::minutes(1), &policy);
-    assert_eq!(budget.restriction_until(), Some(start + Duration::minutes(31)));
-    let next = AppointmentPolicy { first_cod_pause_minutes: 45, ..policy.clone() };
-    apply_budget_command(&mut budget, &mut policy, BudgetCommand::ApplyPolicy(next), start + Duration::minutes(2)).unwrap();
-    assert_eq!(budget.restriction_until(), Some(start + Duration::minutes(46)));
-    assert_eq!(policy.first_cod_pause_minutes, 45);
+    assert!(budget.restricted(), "the possible restriction stays visible");
+    assert_eq!(budget.restriction_until(), None, "no pause is scheduled");
+    let summary = budget.summary(start + Duration::minutes(2), &policy, false);
+    assert_eq!(summary.cod_oper_count, 1);
+    assert!(summary.restricted);
+    assert_ne!(summary.wait_reason, Some(ceh_core::appointment_budget::WaitReason::CodOper));
+    assert_eq!(budget.next_submission(start + Duration::minutes(2), &policy, false), start + Duration::minutes(15));
+    // A further attempt does not start a longer pause either.
+    budget.submitted(start + Duration::minutes(15), &policy);
+    assert_eq!(budget.restriction_until(), None);
+    assert_eq!(budget.next_submission(start + Duration::minutes(16), &policy, false), start + Duration::minutes(30));
 }
 
 #[test]

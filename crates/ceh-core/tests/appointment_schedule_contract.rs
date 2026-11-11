@@ -37,7 +37,9 @@ fn takes_the_later_of_minimum_interval_and_restriction() {
 }
 
 #[test]
-fn cod_oper_cooldown_and_adaptive_target_cross_madrid_midnight() {
+fn cod_oper_adds_no_cooldown_but_the_adaptive_target_still_crosses_madrid_midnight() {
+    // Python 0.3.x paused 30/60 minutes after `cod. oper`; that pause is gone by owner decision (2026-11-11).
+    // The answer is still recorded, and the next day's estimate still drops by one.
     use ceh_core::appointment_budget::{AppointmentBudget, AppointmentPolicy};
     let policy = AppointmentPolicy::default();
     let mut budget = AppointmentBudget::default();
@@ -46,24 +48,16 @@ fn cod_oper_cooldown_and_adaptive_target_cross_madrid_midnight() {
     budget.submitted(now + Duration::minutes(1), &policy);
     budget.cod_oper(now + Duration::minutes(2), &policy);
     let tomorrow = utc("2026-11-04T23:00:00Z");
-    assert_eq!(
-        budget.next_submission(tomorrow, &policy, true),
-        now + Duration::minutes(32)
-    );
+    // Only the ordinary 15-minute pause (long over by midnight) applies.
+    assert_eq!(budget.next_submission(tomorrow, &policy, true), tomorrow);
     // Python 0.3.x never estimates fewer than five attempts for the next day.
     assert_eq!(budget.target(&policy), 5);
     assert_eq!(budget.remaining(&policy), 5);
-    let submitted = now + Duration::minutes(32);
+    let submitted = tomorrow;
     budget.submitted(submitted, &policy);
-    assert_eq!(
-        budget.next_submission(submitted, &policy, true),
-        submitted + Duration::minutes(60)
-    );
+    assert_eq!(budget.next_submission(submitted, &policy, true), submitted + Duration::minutes(15));
     budget.ordinary_result(submitted);
-    assert_eq!(
-        budget.next_submission(submitted, &policy, true),
-        submitted + Duration::minutes(15)
-    );
+    assert_eq!(budget.next_submission(submitted, &policy, true), submitted + Duration::minutes(15));
 }
 
 #[test]

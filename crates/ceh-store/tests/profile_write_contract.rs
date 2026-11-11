@@ -366,8 +366,6 @@ mod protection {
         for bad in [
             AppointmentPolicy { daily_target: 0, ..Default::default() },
             AppointmentPolicy { minimum_pause_minutes: 0, ..Default::default() },
-            AppointmentPolicy { first_cod_pause_minutes: 0, ..Default::default() },
-            AppointmentPolicy { next_cod_pause_minutes: 0, ..Default::default() },
         ] {
             let result = save_profile_changes(&path, Some("fixture"), draft(&original), &revision, &catalog(),
                 ProfileEdits { protection: Some(&bad), ..Default::default() });
