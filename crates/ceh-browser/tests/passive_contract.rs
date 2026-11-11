@@ -298,7 +298,8 @@ fn production_code_never_intercepts_holds_or_alters_network_traffic() {
         for method in forbidden {
             assert!(!code.contains(method), "{} uses {method}", file.display());
         }
-        if code.contains("\"network.getData\"") {
+        // `cdp.rs` answers the command for Chrome; it is not a caller that reads bodies.
+        if code.contains("\"network.getData\"") && !file.ends_with("cdp.rs") {
             assert!(code.contains("\"disown\":true"), "{} reads response bodies without disowning them", file.display());
         }
     }
