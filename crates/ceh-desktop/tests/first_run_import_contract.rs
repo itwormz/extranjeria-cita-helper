@@ -164,3 +164,21 @@ mod windows_running_program {
         assert!(!program.path().join("SantaCita.exe.old").exists());
     }
 }
+
+mod local_update_request {
+    use ceh_desktop::local_update_request;
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|a| (*a).to_owned()).collect()
+    }
+
+    #[test]
+    fn a_zip_given_on_the_command_line_is_used_only_when_everything_allows_it() {
+        let list = args(&["SantaCita.exe", "--apply-update", "C:\\x\\new.zip"]);
+        assert_eq!(local_update_request(&list, true, true), Some(std::path::PathBuf::from("C:\\x\\new.zip")));
+        assert_eq!(local_update_request(&list, false, true), None, "not allowed by the environment");
+        assert_eq!(local_update_request(&list, true, false), None, "not a portable install");
+        assert_eq!(local_update_request(&args(&["SantaCita.exe", "--apply-update"]), true, true), None, "no path");
+        assert_eq!(local_update_request(&args(&["SantaCita.exe"]), true, true), None);
+        assert_eq!(local_update_request(&args(&["SantaCita.exe", "--apply-update", ""]), true, true), None, "an empty path");
+    }
+}

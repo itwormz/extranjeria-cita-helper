@@ -699,6 +699,20 @@ fn main() {
         // SAFETY: nothing else runs yet; this only removes a marker for the child processes started later.
         unsafe { std::env::remove_var("CEH_AFTER_UPDATE") };
     }
+    // The whole update cycle without a release: swap the program for the zip, start the new one, leave.
+    let arguments: Vec<String> = std::env::args().collect();
+    if let Some(zip) = ceh_desktop::local_update_request(
+        &arguments,
+        std::env::var_os("CEH_ALLOW_LOCAL_UPDATE").is_some(),
+        ceh_services::updates::is_portable_install(),
+    ) {
+        let outcome = std::env::current_exe().map_err(|_| "update_install_failed").and_then(|exe| {
+            ceh_desktop::apply_portable_update(&zip, &exe)?;
+            std::process::Command::new(&exe).env("CEH_AFTER_UPDATE", "1").spawn().map_err(|_| "update_install_failed")?;
+            Ok(())
+        });
+        std::process::exit(if outcome.is_ok() { 0 } else { 3 });
+    }
     // A portable install removes what the previous update left beside it.
     if ceh_services::updates::is_portable_install()
         && let Ok(exe) = std::env::current_exe()

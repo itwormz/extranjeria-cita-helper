@@ -88,6 +88,15 @@ pub fn portable_data_root(program_dir: &std::path::Path) -> Option<std::path::Pa
         .is_ok_and(|meta| meta.file_type().is_file())
         .then(|| program_dir.join("data"))
 }
+/// `--apply-update <zip>` on the command line (a way to exercise the whole update cycle without a release, used by the
+/// Windows checks): honoured only in a portable install and only when the environment allows it.
+pub fn local_update_request(args: &[String], allowed: bool, portable: bool) -> Option<std::path::PathBuf> {
+    if !allowed || !portable {
+        return None;
+    }
+    let index = args.iter().position(|a| a == "--apply-update")?;
+    args.get(index + 1).filter(|path| !path.is_empty()).map(std::path::PathBuf::from)
+}
 /// Update a portable install in place: unpack the verified ZIP beside the program, swap the program file (the running
 /// one is renamed aside), refresh the licence, and remove the unpacked copy and the download. Nothing changes when
 /// the package is not a portable release. The caller starts the new program and exits.
