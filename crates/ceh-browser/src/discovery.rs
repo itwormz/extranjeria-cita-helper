@@ -57,6 +57,30 @@ const KNOWN: [(BrowserFamily, &str, &str); 5] = [
     (BrowserFamily::Edge, "Microsoft Edge", "Microsoft Edge"),
     (BrowserFamily::Safari, "Safari", "Safari"),
 ];
+/// Browsers the app can drive on this machine: macOS from the application bundles, other systems from the
+/// known install locations. Edge is offered on Windows only (it is not tested elsewhere).
+pub fn discover_installed() -> Vec<InstalledBrowser> {
+    if cfg!(target_os = "macos") {
+        return discover_browsers(&system_roots());
+    }
+    let mut found = Vec::new();
+    if let Ok(installation) = FirefoxInstallation::discover() {
+        found.push(InstalledBrowser { family: BrowserFamily::Firefox, name: "Firefox".into(), version: installation.version().into(), executable: installation.executable().to_owned(), support: Support::Supported });
+    }
+    for (family, kind, name) in [
+        (BrowserFamily::Chrome, crate::firefox::ProfileKind::Chrome, "Google Chrome"),
+        (BrowserFamily::Brave, crate::firefox::ProfileKind::Brave, "Brave Browser"),
+        (BrowserFamily::Edge, crate::firefox::ProfileKind::Edge, "Microsoft Edge"),
+    ] {
+        if family == BrowserFamily::Edge && !cfg!(target_os = "windows") {
+            continue;
+        }
+        if let Ok(installation) = crate::chromium::ChromiumInstallation::discover(kind) {
+            found.push(InstalledBrowser { family, name: name.into(), version: installation.version().into(), executable: installation.executable().to_owned(), support: Support::Supported });
+        }
+    }
+    found
+}
 pub fn system_roots() -> Vec<PathBuf> {
     let mut roots = vec![PathBuf::from("/Applications")];
     if let Some(home) = std::env::var_os("HOME") {

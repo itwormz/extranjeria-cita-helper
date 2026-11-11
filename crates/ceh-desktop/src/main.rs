@@ -441,7 +441,7 @@ fn installed_browsers(window: WebviewWindow) -> Result<serde_json::Value, &'stat
             {"id":"safari","name":"Safari","version":"","support":"unsupported"}
         ]));
     }
-    let list = ceh_browser::discovery::discover_browsers(&ceh_browser::discovery::system_roots());
+    let list = ceh_browser::discovery::discover_installed();
     Ok(serde_json::json!(list
         .iter()
         .map(|b| serde_json::json!({"id":b.family.id(),"name":b.name,"version":b.version,"support":b.support.id()}))
@@ -573,7 +573,7 @@ fn reset_session(
         return Ok("restarted");
     }
     // The profile may have been used with any of the browsers it could choose; reset each one's own copy.
-    for kind in [ceh_browser::firefox::ProfileKind::Firefox, ceh_browser::firefox::ProfileKind::Chrome, ceh_browser::firefox::ProfileKind::Brave] {
+    for kind in [ceh_browser::firefox::ProfileKind::Firefox, ceh_browser::firefox::ProfileKind::Chrome, ceh_browser::firefox::ProfileKind::Brave, ceh_browser::firefox::ProfileKind::Edge] {
         ceh_browser::firefox::ProfileLease::reset_persistent_kind(&runtime.root, &id, kind).map_err(|error| match error {
             ceh_browser::firefox::FirefoxError::ProfileBusy => "browser_profile_busy",
             _ => "browser_profile_unavailable",

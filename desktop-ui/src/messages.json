@@ -85,7 +85,7 @@
     "Меньше дня поиска": "Less than a day of searching",
     "Не удалось прочитать данные записи": "Could not read appointment details",
     "Не удалось скопировать": "Could not copy",
-    "Получено с помощью Cita Extranjeria Helper": "Obtained with Cita Extranjeria Helper",
+    "Получено с помощью SantaCita": "Obtained with SantaCita",
     "Проверить данные записи": "Check appointment details",
     "Сохранение…": "Saving…",
     "Карточка достижения": "Achievement card",
@@ -337,7 +337,9 @@
     "Ещё не проверена": "Not checked yet",
     "Открыть страницу релиза": "Open the release page",
     "Проверить": "Check",
-    "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No compatible browser was found. Install Firefox, Google Chrome or Brave, then open the profile again. You can save the profile without one, but the search will not start."
+    "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No compatible browser was found. Install Firefox, Google Chrome or Brave, then open the profile again. You can save the profile without one, but the search will not start.",
+    "Совместимый браузер не найден. Установите:": "Compatible browser not found. Install:",
+    "browser must be firefox, chrome, brave or edge": "Choose an installed browser"
   },
   "es": {
     "Всего": "Total",
@@ -425,7 +427,7 @@
     "Меньше дня поиска": "Menos de un día de búsqueda",
     "Не удалось прочитать данные записи": "No se pudieron leer los datos de la cita",
     "Не удалось скопировать": "No se pudo copiar",
-    "Получено с помощью Cita Extranjeria Helper": "Conseguida con Cita Extranjeria Helper",
+    "Получено с помощью SantaCita": "Conseguida con SantaCita",
     "Проверить данные записи": "Revisar los datos de la cita",
     "Сохранение…": "Guardando…",
     "Карточка достижения": "Tarjeta del logro",
@@ -677,6 +679,8 @@
     "Ещё не проверена": "Aún sin comprobar",
     "Открыть страницу релиза": "Abrir la página de la versión",
     "Проверить": "Comprobar",
-    "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No se encontró ningún navegador compatible. Instala Firefox, Google Chrome o Brave y vuelve a abrir el perfil. Puedes guardar el perfil sin él, pero la búsqueda no se iniciará."
+    "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No se encontró ningún navegador compatible. Instala Firefox, Google Chrome o Brave y vuelve a abrir el perfil. Puedes guardar el perfil sin él, pero la búsqueda no se iniciará.",
+    "Совместимый браузер не найден. Установите:": "No se encontró un navegador compatible. Instala:",
+    "browser must be firefox, chrome, brave or edge": "Elegir un navegador instalado"
   }
 }

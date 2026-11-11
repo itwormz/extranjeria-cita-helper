@@ -171,6 +171,7 @@ pub enum ProfileKind {
     Firefox,
     Chrome,
     Brave,
+    Edge,
 }
 impl ProfileKind {
     fn prefix(self) -> &'static str {
@@ -178,6 +179,7 @@ impl ProfileKind {
             Self::Firefox => "firefox",
             Self::Chrome => "chrome",
             Self::Brave => "brave",
+            Self::Edge => "edge",
         }
     }
     fn marker(self) -> &'static [u8] {
@@ -185,6 +187,7 @@ impl ProfileKind {
             Self::Firefox => b"CEH Firefox profile v1\n",
             Self::Chrome => b"CEH Chrome profile v1\n",
             Self::Brave => b"CEH Brave profile v1\n",
+            Self::Edge => b"CEH Edge profile v1\n",
         }
     }
 }

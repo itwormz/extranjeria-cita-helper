@@ -25,3 +25,4 @@
 
 /* A promoted button keeps its accent background and white caption on hover (Python 0.3.7). */
 button.primary:hover:not(:disabled){background:var(--accent);color:#FFF;filter:brightness(1.1)}
+.link-button{background:none;border:0;padding:0;min-height:0;color:var(--accent-text);text-decoration:underline;display:inline}.link-button:hover:not(:disabled){background:none;color:var(--text)}

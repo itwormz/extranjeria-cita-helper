@@ -75,18 +75,32 @@ impl ChromiumInstallation {
     /// Fixed known install locations only; never inspect the person's browser profiles.
     pub fn discover(kind: ProfileKind) -> Result<Self, FirefoxError> {
         let mut candidates: Vec<PathBuf> = Vec::new();
-        let chrome = kind == ProfileKind::Chrome;
         if cfg!(target_os = "macos") {
-            candidates.push(if chrome { "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" } else { "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" }.into());
+            candidates.push(
+                match kind {
+                    ProfileKind::Chrome => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                    ProfileKind::Brave => "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+                    _ => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                }
+                .into(),
+            );
         } else if cfg!(target_os = "windows") {
             for variable in ["ProgramFiles", "ProgramFiles(x86)", "LocalAppData"] {
                 if let Some(base) = std::env::var_os(variable) {
                     let base = PathBuf::from(base);
-                    candidates.push(if chrome { base.join("Google/Chrome/Application/chrome.exe") } else { base.join("BraveSoftware/Brave-Browser/Application/brave.exe") });
+                    candidates.push(match kind {
+                        ProfileKind::Chrome => base.join("Google/Chrome/Application/chrome.exe"),
+                        ProfileKind::Brave => base.join("BraveSoftware/Brave-Browser/Application/brave.exe"),
+                        _ => base.join("Microsoft/Edge/Application/msedge.exe"),
+                    });
                 }
             }
         } else {
-            let names: &[&str] = if chrome { &["google-chrome", "google-chrome-stable"] } else { &["brave-browser", "brave"] };
+            let names: &[&str] = match kind {
+                ProfileKind::Chrome => &["google-chrome", "google-chrome-stable"],
+                ProfileKind::Brave => &["brave-browser", "brave"],
+                _ => &["microsoft-edge", "microsoft-edge-stable"],
+            };
             candidates.extend(names.iter().map(|n| PathBuf::from("/usr/bin").join(n)));
         }
         candidates.iter().find_map(|path| Self::from_executable(kind, path).ok()).ok_or(FirefoxError::NotInstalled)

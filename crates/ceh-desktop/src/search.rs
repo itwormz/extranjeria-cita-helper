@@ -362,6 +362,7 @@ impl Drop for SearchController {
 fn profile_age_days(root: &Path, key: &str, browser: &str) -> Option<u64> {
     let prefix = match Engine::of(browser) {
         Some(Engine::Chromium(ceh_browser::firefox::ProfileKind::Brave)) => "brave",
+        Some(Engine::Chromium(ceh_browser::firefox::ProfileKind::Edge)) => "edge",
         Some(Engine::Chromium(_)) => "chrome",
         _ => "firefox",
     };
@@ -472,6 +473,7 @@ impl Engine {
             "firefox" => Some(Self::Firefox),
             "chrome" => Some(Self::Chromium(ProfileKind::Chrome)),
             "brave" => Some(Self::Chromium(ProfileKind::Brave)),
+            "edge" if cfg!(target_os = "windows") => Some(Self::Chromium(ProfileKind::Edge)),
             _ => None,
         }
     }
