@@ -324,3 +324,13 @@ fn each_browser_keeps_its_own_profile_for_a_search_profile_and_a_reset_touches_o
     std::fs::write(paths[2].join("ceh-owned-profile"), b"CEH Firefox profile v1\n").unwrap();
     assert!(ProfileLease::persistent_kind(runtime.path(), "p1", ProfileKind::Brave).is_err());
 }
+
+#[test]
+fn the_places_where_linux_distributions_keep_firefox_are_all_searched() {
+    let places = ceh_browser::firefox::linux_firefox_locations();
+    // Mozilla's tarball and apt repository, Fedora/Arch lib64, and Debian's Firefox ESR (its program is `firefox-esr`).
+    for expected in ["/usr/lib/firefox/firefox", "/usr/lib64/firefox/firefox", "/opt/firefox/firefox", "/usr/lib/firefox-esr/firefox-esr", "/usr/lib/firefox-esr/firefox"] {
+        assert!(places.iter().any(|p| p == std::path::Path::new(expected)), "{expected} in {places:?}");
+    }
+    assert!(places.iter().all(|p| p.is_absolute()), "only fixed locations, never a search of the user's PATH");
+}

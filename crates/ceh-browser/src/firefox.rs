@@ -150,19 +150,28 @@ impl FirefoxInstallation {
         }
         #[cfg(target_os = "linux")]
         {
-            for path in [
-                "/usr/lib/firefox/firefox",
-                "/usr/lib64/firefox/firefox",
-                "/opt/firefox/firefox",
-            ] {
-                candidates.push(PathBuf::from(path));
-            }
+            candidates.extend(linux_firefox_locations());
         }
         candidates
             .iter()
             .find_map(|path| Self::from_executable(path).ok())
             .ok_or(FirefoxError::NotInstalled)
     }
+}
+/// The fixed places Linux distributions keep Firefox: Mozilla's tarball and apt repository, Fedora/Arch `lib64`, and
+/// Debian's Firefox ESR (whose program is `firefox-esr`). Never a search of the user's `PATH`.
+pub fn linux_firefox_locations() -> Vec<PathBuf> {
+    [
+        "/usr/lib/firefox/firefox",
+        "/usr/lib64/firefox/firefox",
+        "/opt/firefox/firefox",
+        "/usr/lib/firefox-esr/firefox-esr",
+        "/usr/lib/firefox-esr/firefox",
+        "/usr/lib64/firefox-esr/firefox-esr",
+    ]
+    .into_iter()
+    .map(PathBuf::from)
+    .collect()
 }
 /// Which browser an owned profile directory belongs to; the directory name and marker differ so a profile of one
 /// browser is never opened by another.
