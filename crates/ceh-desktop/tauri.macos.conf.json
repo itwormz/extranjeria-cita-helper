@@ -1,0 +1,11 @@
+{
+  "bundle": {
+    "icon": [
+      "../../.local/builds/work/rust-ui-icons-macos/icon.png",
+      "../../.local/builds/work/rust-ui-icons-macos/32x32.png",
+      "../../.local/builds/work/rust-ui-icons-macos/128x128.png",
+      "../../.local/builds/work/rust-ui-icons-macos/128x128@2x.png",
+      "../../.local/builds/work/rust-ui-icons-macos/icon.icns"
+    ]
+  }
+}

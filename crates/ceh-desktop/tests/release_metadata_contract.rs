@@ -49,3 +49,19 @@ fn the_installed_application_keeps_its_data_beside_the_python_folder_never_insid
     let found = ceh_desktop::installed_data_root().expect("a data folder on this system");
     assert!(found.ends_with("SantaCita") && !found.to_string_lossy().contains(".local/builds"), "{found:?}");
 }
+
+#[test]
+fn the_macos_icons_keep_the_system_margin_while_other_systems_use_the_full_frame() {
+    let read = |path: &str| -> serde_json::Value { serde_json::from_str(&fs::read_to_string(root().join(path)).unwrap()).unwrap() };
+    let mac = read("crates/ceh-desktop/tauri.macos.conf.json");
+    let icons: Vec<&str> = mac["bundle"]["icon"].as_array().unwrap().iter().filter_map(|i| i.as_str()).collect();
+    assert!(icons.iter().all(|i| i.contains("rust-ui-icons-macos/")), "{icons:?}");
+    assert!(icons.iter().find(|i| i.ends_with(".png")).unwrap().ends_with("/icon.png"));
+    assert!(icons.iter().any(|i| i.ends_with(".icns")));
+    // The artwork there is 824 of 1024 px on a transparent canvas (the macOS icon grid).
+    let svg = fs::read_to_string(root().join("assets/santacita-icon-macos.svg")).unwrap();
+    assert!(svg.contains("viewBox=\"0 0 1024 1024\"") && svg.contains("translate(100 100) scale(1.609375)"));
+    // The shared configuration still names the full-frame icons.
+    let shared = read("crates/ceh-desktop/tauri.conf.json");
+    assert!(shared["bundle"]["icon"].as_array().unwrap().iter().all(|i| !i.as_str().unwrap().contains("-macos")));
+}
