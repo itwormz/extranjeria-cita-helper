@@ -15,9 +15,8 @@ from urllib.request import Request, urlopen
 
 from PySide6.QtCore import QObject,QThread,Signal
 from ..attestations import verify_attestation, MAX_BUNDLE, AttestationError
+from ..repository import LEGACY_REPOSITORY, REPOSITORIES, api_url, trusted_repository
 
-REPOSITORY='https://github.com/itwormz/extranjeria-cita-helper'
-API='https://api.github.com/repos/itwormz/extranjeria-cita-helper/releases/latest'
 MAX_PACKAGE=2*1024**3
 
 
@@ -44,9 +43,12 @@ class Release:
     sums_url:str
     size:int
     attestation_url:str
+    repository:str=LEGACY_REPOSITORY
 
 
-def select_release(data,current,target,arch,*,portable=False):
+def select_release(data,current,target,arch,*,portable=False,repository=LEGACY_REPOSITORY):
+    # Assets must come from the exact repository that answered, never from another trusted name.
+    trusted_repository(repository)
     tag=data.get('tag_name','')
     if not isinstance(tag,str) or not tag.startswith('v'):
         raise ValueError('Invalid release tag')
@@ -65,7 +67,7 @@ def select_release(data,current,target,arch,*,portable=False):
     if portable:
         if target!='windows':raise ValueError('Portable updates require Windows')
         name=f'extranjeria-cita-helper-{version}-windows-{arch}-portable.zip'
-    base=REPOSITORY+'/releases/download/'+tag+'/'
+    base=repository+'/releases/download/'+tag+'/'
     def asset(name):
         found=[a for a in data.get('assets',[]) if a.get('name')==name]
         if len(found)!=1 or found[0].get('browser_download_url')!=base+name:
@@ -87,7 +89,7 @@ def select_release(data,current,target,arch,*,portable=False):
     size=package.get('size')
     if not isinstance(size,int) or isinstance(size,bool) or not 0<size<=MAX_PACKAGE:
         raise ValueError('Invalid package size')
-    return Release(version,name,package['browser_download_url'],sums['browser_download_url'],size,proof['browser_download_url'])
+    return Release(version,name,package['browser_download_url'],sums['browser_download_url'],size,proof['browser_download_url'],repository)
 
 
 def fetch(url):
@@ -104,8 +106,21 @@ def checksum_for(data,name):
     return candidates[0]
 
 
-def release_commit(version, fetch):
-    url=f'https://api.github.com/repos/itwormz/extranjeria-cita-helper/git/ref/tags/v{version}'
+def latest_release(fetch):
+    """Return (repository, release JSON): the new name first, the old one only on 404."""
+    for repository in REPOSITORIES:
+        try:
+            with fetch(api_url(repository,'/releases/latest')) as response:
+                data=response.read(1024*1024+1)
+        except HTTPError as exc:
+            if exc.code==404 and repository!=REPOSITORIES[-1]:continue
+            raise
+        if len(data)>1024*1024:raise ValueError('Release response too large')
+        return repository,json.loads(data)
+
+
+def release_commit(version, fetch, repository=LEGACY_REPOSITORY):
+    url=api_url(repository,f'/git/ref/tags/v{version}')
     for _ in range(4):
         with fetch(url) as response:raw=response.read(16385)
         if len(raw)>16384:raise ValueError('Release tag response too large')
@@ -113,7 +128,7 @@ def release_commit(version, fetch):
         if not re.fullmatch(r'[a-f0-9]{40}',sha):raise ValueError('Invalid release commit')
         if obj['type']=='commit':return sha
         if obj['type']!='tag':raise ValueError('Invalid release tag object')
-        url=f'https://api.github.com/repos/itwormz/extranjeria-cita-helper/git/tags/{sha}'
+        url=api_url(repository,f'/git/tags/{sha}')
     raise ValueError('Too many nested release tags')
 
 
@@ -137,13 +152,14 @@ def download_release(release,directory,cancel,*,fetch=fetch,progress=lambda valu
                 actual.update(chunk);output.write(chunk);progress(int(count*100/release.size))
         if count!=release.size or actual.hexdigest()!=digest:
             raise ValueError('Package checksum mismatch')
-        commit=release_commit(release.version,fetch)
+        commit=release_commit(release.version,fetch,release.repository)
         try:
             with fetch(release.attestation_url) as response:proof=response.read(MAX_BUNDLE+1)
         except HTTPError as exc:raise AttestationError('Update provenance is unavailable') from exc
-        verify_attestation(proof,release.name,actual.hexdigest(),release.version,expected_commit=commit)
+        verify_attestation(proof,release.name,actual.hexdigest(),release.version,expected_commit=commit,
+                           repository=release.repository)
         if cancel.is_set():raise InterruptedError('Download cancelled')
-        receipt=dict(version=release.version,commit=commit,bundle=json.loads(proof))
+        receipt=dict(version=release.version,commit=commit,bundle=json.loads(proof),repository=release.repository)
         destination.with_name(destination.name+'.provenance.json').write_text(json.dumps(receipt),encoding='utf-8')
         os.replace(partial,destination)
         destination.with_name(destination.name+'.sha256').write_text(digest+'  '+destination.name+'\n')
@@ -161,7 +177,9 @@ def verify_download(path):
     receipt_path=path.with_name(path.name+'.provenance.json')
     if receipt_path.stat().st_size>MAX_BUNDLE+4096:raise ValueError('Update provenance too large')
     receipt=json.loads(receipt_path.read_bytes())
-    verify_attestation(json.dumps(receipt['bundle']),path.name,digest,receipt['version'],expected_commit=receipt['commit'])
+    # Receipts written by 0.3.7 and earlier have no repository: they came from the old name.
+    verify_attestation(json.dumps(receipt['bundle']),path.name,digest,receipt['version'],expected_commit=receipt['commit'],
+                       repository=receipt.get('repository',LEGACY_REPOSITORY))
     return path
 
 
@@ -206,11 +224,9 @@ class UpdateService(QObject):
         def operation(job):
             self.directory.mkdir(parents=True,exist_ok=True)
             (self.directory/'check.json').write_text(json.dumps({'checked_at':time.time()}))
-            with fetch(API) as response:
-                data=response.read(1024*1024+1)
-            if len(data)>1024*1024:raise ValueError('Release response too large')
+            repository,data=latest_release(fetch)
             from .paths import portable_mode
-            return select_release(json.loads(data),self.current,*release_target(),portable=portable_mode())
+            return select_release(data,self.current,*release_target(),portable=portable_mode(),repository=repository)
         return self._start(operation,self.checked)
     def download(self,release):
         return self._start(lambda job:download_release(release,self.directory,job.cancelled,progress=job.progress.emit),self.downloaded)

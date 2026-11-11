@@ -167,3 +167,121 @@ def test_renamed_release_assets(target, arch, portable, name):
          "browser_download_url": proof["browser_download_url"].replace(old["name"], name)},
     ]
     assert select_release(data, "0.1.0", target, arch, portable=portable).name == name
+
+
+NEW_REPOSITORY = 'https://github.com/itwormz/santacita'
+OLD_REPOSITORY = 'https://github.com/itwormz/extranjeria-cita-helper'
+
+
+def repository_release(repository, version='0.2.0'):
+    data = release(version)
+    for item in data['assets']:
+        item['browser_download_url'] = item['browser_download_url'].replace(OLD_REPOSITORY, repository)
+    return data
+
+
+@pytest.mark.parametrize('repository', [NEW_REPOSITORY, OLD_REPOSITORY])
+def test_release_from_either_trusted_repository_is_accepted(repository):
+    from app.desktop.updates import select_release
+    item = select_release(repository_release(repository), '0.1.0', 'windows', 'x64', repository=repository)
+    assert item.repository == repository
+    assert item.url.startswith(repository + '/releases/download/v0.2.0/')
+
+
+@pytest.mark.parametrize('url', [
+    'https://github.com/itwormz/santacita-evil/releases/download/v0.2.0/',  # name suffix
+    'https://github.com/itwormz/santacitaX/releases/download/v0.2.0/',
+    'https://evil.github.com/itwormz/santacita/releases/download/v0.2.0/',  # subdomain
+    'https://github.com.evil.example/itwormz/santacita/releases/download/v0.2.0/',
+    'https://github.com/other/santacita/releases/download/v0.2.0/',  # other owner
+    OLD_REPOSITORY + '/releases/download/v0.2.0/',  # the other trusted name, mixed into a new release
+])
+def test_release_rejects_package_outside_the_answering_repository(url):
+    from app.desktop.updates import select_release
+    data = repository_release(NEW_REPOSITORY)
+    name = data['assets'][0]['name']
+    data['assets'][0]['browser_download_url'] = url + name
+    with pytest.raises(ValueError):
+        select_release(data, '0.1.0', 'windows', 'x64', repository=NEW_REPOSITORY)
+
+
+@pytest.mark.parametrize('repository', ['https://github.com/itwormz/santacita2', 'https://github.com/itwormz',
+                                        'https://github.com/other/extranjeria-cita-helper'])
+def test_release_rejects_untrusted_repository(repository):
+    from app.desktop.updates import select_release
+    with pytest.raises(ValueError):
+        select_release(repository_release(repository), '0.1.0', 'windows', 'x64', repository=repository)
+
+
+def test_latest_release_prefers_new_name_and_falls_back_only_on_404():
+    import io
+    from urllib.error import HTTPError
+    from app.desktop.updates import latest_release
+    calls = []
+
+    def fetch(url, missing=()):
+        calls.append(url)
+        if any(name in url for name in missing):
+            raise HTTPError(url, 404, 'Not Found', {}, None)
+        return io.BytesIO(json.dumps({'tag_name': 'v0.2.0'}).encode())
+
+    assert latest_release(fetch)[0] == NEW_REPOSITORY
+    assert calls == ['https://api.github.com/repos/itwormz/santacita/releases/latest']
+    calls.clear()
+    assert latest_release(lambda url: fetch(url, missing=('/santacita/',)))[0] == OLD_REPOSITORY
+    assert calls == ['https://api.github.com/repos/itwormz/santacita/releases/latest',
+                     'https://api.github.com/repos/itwormz/extranjeria-cita-helper/releases/latest']
+
+    def unavailable(url):
+        raise HTTPError(url, 503, 'Unavailable', {}, None)
+    with pytest.raises(HTTPError):
+        latest_release(unavailable)
+
+
+def test_release_commit_and_receipt_use_the_release_repository(tmp_path, monkeypatch):
+    import io
+    from app.desktop.updates import select_release, download_release, verify_download
+    item = select_release(repository_release(NEW_REPOSITORY), '0.1.0', 'windows', 'x64', repository=NEW_REPOSITORY)
+    checked = []
+    monkeypatch.setattr('app.desktop.updates.verify_attestation',
+                        lambda *args, **kwargs: checked.append(kwargs['repository']) or 'b' * 40)
+    data = b'package'; digest = hashlib.sha256(data).hexdigest(); api = []
+
+    def fetch(url):
+        if urlsplit(url).hostname == 'api.github.com':
+            api.append(url)
+            return io.BytesIO(json.dumps({'object': {'type': 'commit', 'sha': 'b' * 40}}).encode())
+        if url.endswith('.sigstore.json'): return io.BytesIO(b'{}')
+        return io.BytesIO((digest + '  ' + item.name + '\n').encode() if url.endswith('SHA256SUMS') else data)
+    output = download_release(item, tmp_path, threading.Event(), fetch=fetch)
+    assert api == ['https://api.github.com/repos/itwormz/santacita/git/ref/tags/v0.2.0']
+    receipt = json.loads(output.with_name(output.name + '.provenance.json').read_text())
+    assert receipt['repository'] == NEW_REPOSITORY
+    verify_download(output)
+    assert checked == [NEW_REPOSITORY, NEW_REPOSITORY]
+
+
+@pytest.mark.parametrize(('stored', 'expected'), [(None, OLD_REPOSITORY), (NEW_REPOSITORY, NEW_REPOSITORY)])
+def test_downloaded_package_is_reverified_against_receipt_repository(tmp_path, monkeypatch, stored, expected):
+    from app.desktop.updates import verify_download
+    checked = []
+    monkeypatch.setattr('app.desktop.updates.verify_attestation',
+                        lambda *args, **kwargs: checked.append(kwargs['repository']) or 'b' * 40)
+    package = tmp_path / 'app.msi'; package.write_bytes(b'package')
+    package.with_name('app.msi.sha256').write_text(hashlib.sha256(b'package').hexdigest() + '  app.msi\n')
+    receipt = dict(version='0.2.0', commit='b' * 40, bundle={})  # receipts from 0.3.7 have no repository
+    if stored:
+        receipt['repository'] = stored
+    package.with_name('app.msi.provenance.json').write_text(json.dumps(receipt))
+    verify_download(package)
+    assert checked == [expected]
+
+
+def test_downloaded_package_with_untrusted_receipt_repository_is_rejected(tmp_path):
+    from app.desktop.updates import verify_download
+    package = tmp_path / 'app.msi'; package.write_bytes(b'package')
+    package.with_name('app.msi.sha256').write_text(hashlib.sha256(b'package').hexdigest() + '  app.msi\n')
+    package.with_name('app.msi.provenance.json').write_text(json.dumps(dict(
+        version='0.2.0', commit='b' * 40, bundle={}, repository='https://github.com/other/santacita')))
+    with pytest.raises(ValueError):
+        verify_download(package)

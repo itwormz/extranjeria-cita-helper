@@ -441,12 +441,15 @@ def test_about_update_check_handles_release_and_failures(window,monkeypatch,erro
     extension={'macos':'dmg','windows':'msi','linux':'AppImage'}[target]
     name=('Cita_Extranjeria_Helper-9.9.9-x86_64.AppImage' if target=='linux'
           else f'extranjeria-cita-helper-9.9.9-{target}-{arch}.{extension}')
-    base=updates.REPOSITORY+'/releases/download/v9.9.9/'
+    from app.repository import LEGACY_REPOSITORY, REPOSITORIES, api_url
+    base=LEGACY_REPOSITORY+'/releases/download/v9.9.9/'
     payload={'tag_name':'v9.9.9','immutable':True,'assets':[{'name':name,'browser_download_url':base+name,'size':7},
                                          {'name':'SHA256SUMS','browser_download_url':base+'SHA256SUMS'},
                                          {'name':name+'.sigstore.json','browser_download_url':base+name+'.sigstore.json'}]}
     def fetch(url):
-        assert url==updates.API
+        # Before the rename the new repository does not exist yet.
+        if url==api_url(REPOSITORIES[0],'/releases/latest'):raise HTTPError(url,404,'missing',{},None)
+        assert url==api_url(LEGACY_REPOSITORY,'/releases/latest')
         if error:raise HTTPError(url,404,'missing',{},None)
         return io.BytesIO(json.dumps(payload).encode())
     monkeypatch.setattr(updates,'fetch',fetch)
