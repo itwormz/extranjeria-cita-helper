@@ -41,6 +41,8 @@ fn the_cdp_wire_serves_navigation_scripts_nodes_input_frames_and_events() {
     let port = serve();
     let url = format!("http://127.0.0.1:{port}/");
     let connection = browser.connection();
+    let collector = connection.call("network.addDataCollector", json!({"dataTypes":["response"],"maxEncodedDataSize":131072,"collectorType":"blob","contexts":[context]})).unwrap();
+    let collector = collector["collector"].as_str().unwrap().to_owned();
     connection.call("browsingContext.navigate", json!({"context":context,"url":url,"wait":"complete"})).unwrap();
     // Events: a navigation, its document request and response, and the load.
     let events = connection.take_events();
@@ -50,6 +52,14 @@ fn the_cdp_wire_serves_navigation_scripts_nodes_input_frames_and_events() {
     }
     let document = events.iter().find(|e| e["method"] == "network.beforeRequestSent" && !e["params"]["navigation"].is_null()).unwrap();
     assert_eq!(document["params"]["request"]["destination"], "document");
+    // The collector keeps the document's response body for a later read (the F5 script archive reads these).
+    let request = document["params"]["request"]["request"].as_str().unwrap().to_owned();
+    let body = connection.call("network.getData", json!({"request":request,"dataType":"response","collector":collector,"disown":true})).unwrap();
+    assert_eq!(body["bytes"]["type"], "string");
+    assert!(body["bytes"]["value"].as_str().unwrap().contains("<button id=b"));
+    assert!(connection.call("network.getData", json!({"request":"unknown","dataType":"response","collector":collector,"disown":true})).is_err());
+    connection.call("network.disownData", json!({"request":request,"dataType":"response","collector":collector})).unwrap();
+    connection.call("network.removeDataCollector", json!({"collector":collector})).unwrap();
     // Scripts: a string, a boolean, and the realm that identifies the document.
     let title = connection.call("script.evaluate", json!({"expression":"document.readyState","target":{"context":context},"awaitPromise":false})).unwrap();
     assert_eq!(string(&title), "complete");

@@ -425,7 +425,7 @@ impl CdpWire {
             "session.subscribe" => {
                 self.page("Page.enable", json!({}), deadline)?;
                 self.page("Page.setLifecycleEventsEnabled", json!({"enabled":true}), deadline)?;
-                self.page("Network.enable", json!({}), deadline)?;
+                self.page("Network.enable", json!({"maxTotalBufferSize":20_000_000,"maxResourceBufferSize":2_000_000}), deadline)?;
                 // A window opened behind others reads as hidden/unfocused to the site (owner's Camoufox
                 // observation: early pages in the background got blocked more often).
                 let _ = self.page("Page.bringToFront", json!({}), deadline);
@@ -469,7 +469,17 @@ impl CdpWire {
             }
             "input.performActions" => self.perform(params, deadline),
             "input.releaseActions" => Ok(json!({})),
-            // Response collectors, intercepts, user contexts: not available on this wire.
+            // Response bodies: Chrome keeps the bodies of finished requests (the buffer is sized at `Network.enable`),
+            // so a "collector" only has to exist; the body is read from the browser when asked for.
+            "network.addDataCollector" => Ok(json!({"collector":"cdp-bodies"})),
+            "network.removeDataCollector" | "network.disownData" => Ok(json!({})),
+            "network.getData" => {
+                let request = params["request"].as_str().ok_or(ProtocolError::InvalidData)?;
+                let body = self.page("Network.getResponseBody", json!({"requestId":request}), deadline)?;
+                let kind = if body["base64Encoded"] == true { "base64" } else { "string" };
+                Ok(json!({"bytes":{"type":kind,"value":body["body"]}}))
+            }
+            // Intercepts, user contexts: not available on this wire.
             _ => Err(ProtocolError::Rejected),
         }
     }
