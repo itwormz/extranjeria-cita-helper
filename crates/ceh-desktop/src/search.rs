@@ -1073,7 +1073,11 @@ fn run_owned(
                         ceh_browser::BrowserError::StaleDocument
                         | ceh_browser::BrowserError::NoObservation,
                     ) if browser.connection().available() => {
-                        diagnostics.step(crate::session_timeline::step_error_row(&effects, action_delay_ms, executing_since.elapsed().as_millis() as u64, "stale_document"));
+                        let mut row = crate::session_timeline::step_error_row(&effects, action_delay_ms, executing_since.elapsed().as_millis() as u64, "stale_document");
+                        if let Some(reason) = ceh_browser::take_stale_reason() {
+                            row["detail"] = serde_json::json!(reason);
+                        }
+                        diagnostics.step(row);
                         if entering_auth {
                             return Err("browser_auth_entry_changed");
                         }

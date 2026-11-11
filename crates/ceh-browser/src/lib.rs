@@ -30,6 +30,8 @@ pub mod selection;
 #[cfg(feature = "bidi")]
 mod trusted_input;
 #[cfg(feature = "bidi")]
+pub use trusted_input::take_stale_reason;
+#[cfg(feature = "bidi")]
 mod typed_field;
 #[cfg(feature = "bidi")]
 mod typed_select;

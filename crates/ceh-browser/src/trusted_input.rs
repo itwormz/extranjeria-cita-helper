@@ -5,7 +5,7 @@ use crate::{
     dom::{FrameSource, INSPECT_DOCUMENT, read_document},
     observer::{ObservedPage, PageObserver},
 };
-use ceh_core::model::{ActionKind, DocumentGuard};
+use ceh_core::{model::{ActionKind, DocumentGuard, PageKind}, recognition::PageSnapshot};
 use serde_json::{Value, json};
 use std::time::{SystemTime, UNIX_EPOCH};
 const GUARD: &str = include_str!("mutation-guard.js");
@@ -123,12 +123,12 @@ fn activate(
             .iter()
             .any(|s| s.context == source.context && s.realm == source.realm)
         {
-            return Err(BrowserError::StaleDocument);
+            return Err(stale("source_missing_from_observation"));
         }
         let document = read_document(connection, &source.context, fill_mode)
-            .map_err(|_| BrowserError::NoObservation)?;
+            .map_err(|_| unseen("source_read_failed"))?;
         if document.realm != source.realm {
-            return Err(BrowserError::StaleDocument);
+            return Err(stale("source_realm_changed"));
         }
         Some(document)
     } else {
@@ -197,13 +197,13 @@ fn activate(
     permit.finish();
     let current = observer
         .observe(connection, fill_mode)
-        .map_err(|_| BrowserError::NoObservation)?;
+        .map_err(|_| unseen("second_observation_failed"))?;
     if current.page.snapshot.endpoint != fresh.page.snapshot.endpoint
         || current.page.snapshot.visible != fresh.page.snapshot.visible
         || current.page.snapshot.frames.first().map(|f| &f.text)
             != fresh.page.snapshot.frames.first().map(|f| &f.text)
     {
-        return Err(BrowserError::StaleDocument);
+        return Err(stale(describe_change(current.observation.kind, &fresh.page.snapshot, &current.page.snapshot)));
     }
     if let Some(source) = &source {
         if current.observation.document != guard.document
@@ -214,17 +214,17 @@ fn activate(
                 .iter()
                 .any(|s| s.context == source.context && s.realm == source.realm)
         {
-            return Err(BrowserError::StaleDocument);
+            return Err(stale("document_kind_or_source_changed"));
         }
         let document = read_document(connection, &source.context, fill_mode)
-            .map_err(|_| BrowserError::NoObservation)?;
+            .map_err(|_| unseen("source_reread_failed"))?;
         if document.realm != source.realm
             || document.snapshot.endpoint != snapshot.endpoint
             || document.snapshot.visible != snapshot.visible
             || document.snapshot.frames.first().map(|f| &f.text)
                 != snapshot.frames.first().map(|f| &f.text)
         {
-            return Err(BrowserError::StaleDocument);
+            return Err(stale("source_text_or_realm_changed"));
         }
     }
     let mut permit = if submission {
@@ -257,6 +257,36 @@ fn activate(
     };
     permit.complete_step(outcome)?;
     Ok(permit.finish())
+}
+thread_local! {
+    static STALE_REASON: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
+}
+/// Why the last click was refused as stale (which check), for the diagnostics timeline; read once.
+pub fn take_stale_reason() -> Option<String> {
+    STALE_REASON.with(|r| r.borrow_mut().take())
+}
+fn stale(reason: impl Into<String>) -> BrowserError {
+    STALE_REASON.with(|r| *r.borrow_mut() = Some(reason.into()));
+    BrowserError::StaleDocument
+}
+fn unseen(reason: &'static str) -> BrowserError {
+    STALE_REASON.with(|r| *r.borrow_mut() = Some(reason.to_owned()));
+    BrowserError::NoObservation
+}
+/// Which part of the page read changed between two reads: lengths, where the text first differs and, for the
+/// public error pages only (no personal data there), a short snippet of both sides.
+fn describe_change(kind: PageKind, before: &PageSnapshot, after: &PageSnapshot) -> String {
+    let (a, b) = (before.frames.first().map_or("", |f| f.text.as_str()), after.frames.first().map_or("", |f| f.text.as_str()));
+    let at = a.chars().zip(b.chars()).take_while(|(x, y)| x == y).count();
+    let mut text = format!(
+        "page changed: text_equal={} visible_equal={} endpoint_equal={} len={}->{} first_diff={at}",
+        a == b, before.visible == after.visible, before.endpoint == after.endpoint, a.chars().count(), b.chars().count()
+    );
+    if matches!(kind, PageKind::Expired | PageKind::ServerError | PageKind::Blocked | PageKind::RateLimited) {
+        let cut = |t: &str| t.chars().skip(at.saturating_sub(20)).take(60).collect::<String>();
+        text.push_str(&format!(" before={:?} after={:?}", cut(a), cut(b)));
+    }
+    text
 }
 /// The cursor travels a curved path to the element centre, then presses and releases there.
 pub(crate) fn click_actions(shared: &str, seed: u64, reach: ceh_core::input::Reach) -> Vec<Value> {
