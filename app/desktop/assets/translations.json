@@ -1113,7 +1113,13 @@
     " сегодня": " today",
     " в истории": " in history",
     "секунд": "seconds",
-    "Этот документ уже используется другим процессом.": "This document is already in use by another process."
+    "Этот документ уже используется другим процессом.": "This document is already in use by another process.",
+    "Не удалось подтвердить происхождение обновления. Установка заблокирована. Скачайте новую версию вручную со страницы релизов.": "Update provenance could not be verified. Installation blocked. Download the new version manually from the releases page.",
+    "Не удалось проверить или скачать обновление. Скачайте новую версию вручную со страницы релизов.": "Could not check or download the update. Download the new version manually from the releases page.",
+    "Это новое приложение SantaCita. Данные текущей версии оно перенесёт при первом запуске.": "This is the new SantaCita app. It imports the data of the current version on first launch.",
+    "Предлагать бета-версии": "Offer beta versions",
+    "Показывать стабильные и тестовые версии. В бета-версиях возможны ошибки. Скачивание и установка — по кнопке.": "Show stable and test versions. Beta versions may contain bugs. Download and install only when requested.",
+    "Бета-версия: возможны ошибки.": "Beta version: bugs are possible."
   },
   "es": {
     "Перепроверять наличие сит": "Volver a comprobar citas",
@@ -2229,6 +2235,12 @@
     " сегодня": " hoy",
     " в истории": " en el historial",
     "секунд": "segundos",
-    "Этот документ уже используется другим процессом.": "Otro proceso ya está utilizando este documento."
+    "Этот документ уже используется другим процессом.": "Otro proceso ya está utilizando este documento.",
+    "Не удалось подтвердить происхождение обновления. Установка заблокирована. Скачайте новую версию вручную со страницы релизов.": "No se pudo verificar el origen de la actualización. Instalación bloqueada. Descarga la nueva versión manualmente desde la página de versiones.",
+    "Не удалось проверить или скачать обновление. Скачайте новую версию вручную со страницы релизов.": "No se pudo comprobar o descargar la actualización. Descarga la nueva versión manualmente desde la página de versiones.",
+    "Это новое приложение SantaCita. Данные текущей версии оно перенесёт при первом запуске.": "Es la nueva aplicación SantaCita. Importa los datos de la versión actual en el primer inicio.",
+    "Предлагать бета-версии": "Ofrecer versiones beta",
+    "Показывать стабильные и тестовые версии. В бета-версиях возможны ошибки. Скачивание и установка — по кнопке.": "Mostrar versiones estables y de prueba. Las versiones beta pueden contener errores. La descarga e instalación requieren confirmación.",
+    "Бета-версия: возможны ошибки.": "Versión beta: puede contener errores."
   }
 }

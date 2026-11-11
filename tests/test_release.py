@@ -172,3 +172,32 @@ def test_zsync_receives_build_attestation_sidecar(tmp_path):
     attach(tmp_path,bundle)
     assert image.with_name(image.name+'.sigstore.json').read_bytes()==b'public build bundle'
     assert zsync.with_name(zsync.name+'.sigstore.json').read_bytes()==b'public build bundle'
+
+
+@pytest.mark.parametrize(('environ', 'expected'), [
+    ({'GITHUB_SERVER_URL': 'https://github.com', 'GITHUB_REPOSITORY': 'itwormz/santacita'}, 'https://github.com/itwormz/santacita'),
+    ({'GITHUB_SERVER_URL': 'https://github.com', 'GITHUB_REPOSITORY': 'itwormz/extranjeria-cita-helper'},
+     'https://github.com/itwormz/extranjeria-cita-helper'),
+    ({}, 'https://github.com/itwormz/extranjeria-cita-helper'),
+])
+def test_release_build_verifies_provenance_for_its_own_repository(tmp_path, monkeypatch, environ, expected):
+    # Python releases may still be built after the rename, while both lines are developed.
+    from scripts import attest_release
+    package = tmp_path / 'app.msi'; package.write_bytes(b'package')
+    package.with_name('app.msi.sigstore.json').write_text('{}')
+    seen = []
+    monkeypatch.setattr(attest_release, 'verify_attestation', lambda *args, **kwargs: seen.append(kwargs['repository']))
+    attest_release.verified_attestations([package], '0.2.0', 'b' * 40, environ=environ)
+    assert seen == [expected]
+
+
+@pytest.mark.parametrize('environ', [
+    {'GITHUB_SERVER_URL': 'https://github.com', 'GITHUB_REPOSITORY': 'other/santacita'},
+    {'GITHUB_SERVER_URL': 'https://github.example', 'GITHUB_REPOSITORY': 'itwormz/santacita'},
+])
+def test_release_build_from_untrusted_repository_is_rejected(tmp_path, environ):
+    from scripts import attest_release
+    package = tmp_path / 'app.msi'; package.write_bytes(b'package')
+    package.with_name('app.msi.sigstore.json').write_text('{}')
+    with pytest.raises(ValueError):
+        attest_release.verified_attestations([package], '0.2.0', 'b' * 40, environ=environ)

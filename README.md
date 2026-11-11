@@ -22,6 +22,8 @@ An assistant for finding **Toma de huellas / TIE** and **Autorización de regres
 - Keeps search history and statistics.
 - Date selection, CAPTCHA and booking confirmation stay manual in Camoufox.
 
+The project is preparing to become **SantaCita**, with a new Rust-based version. Python 0.3.8 prepares the updater for the repository rename and offers optional beta updates.
+
 ## 🚀 Quick start
 
 1. [Download the app](https://github.com/itwormz/extranjeria-cita-helper/releases/latest).
@@ -136,6 +138,10 @@ Data stays local. Statistics are not published automatically. Copy log rows with
 **About → check, download and install.** Automatic checks run at startup and once a day; disable them in settings.
 
 Package authenticity and integrity are verified before installation. The search ends; profiles and settings are preserved.
+
+Enable **Offer beta versions** in Settings to include SantaCita beta releases in update checks. It is off by default; beta versions may contain bugs. Download and installation require your confirmation.
+
+**Windows portable:** the updater downloads and verifies the ZIP, then opens its folder. Close the app, extract the new version into a separate folder and copy your existing `data` folder into it. Keep the old folder until you have checked the update.
 
 ## ⚠️ Known issues
 

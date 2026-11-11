@@ -41,7 +41,7 @@ def test_create_and_preferences_in_missing_file(tmp_path, catalog_path, task_map
     if os.name != "nt":
         assert store.path.stat().st_mode & 0o777 == 0o600
     store.save_preferences(dark=True, diagnostics=False, sound=False)
-    assert ProfileStore(store.path, catalog_path).preferences() == dict(dark=True, diagnostics=False, sound=False, language='en', automatic_updates=True)
+    assert ProfileStore(store.path, catalog_path).preferences() == dict(dark=True, diagnostics=False, sound=False, language='en', automatic_updates=True,beta_updates=False)
 
 
 def test_preserves_settings_neighbors_and_detects_conflict(config_file, catalog_path, task_mapping):
@@ -81,7 +81,7 @@ def test_malformed_file_is_not_overwritten(tmp_path, catalog_path):
 def test_null_settings_and_invalid_desktop_have_safe_errors(tmp_path,catalog_path):
     path=tmp_path/'tasks.yml';path.write_text('settings: null\ntasks: []\n', encoding="utf-8")
     store=ProfileStore(path,catalog_path)
-    assert store.preferences()==dict(dark=False,diagnostics=False,sound=True,language='en',automatic_updates=True)
+    assert store.preferences()==dict(dark=False,diagnostics=False,sound=True,language='en',automatic_updates=True,beta_updates=False)
     path.write_text('desktop: true\ntasks: []\n', encoding="utf-8")
     with pytest.raises(ProfileValidationError):store.preferences()
 
@@ -175,3 +175,13 @@ def test_applicant_warning_mode_migrates_and_roundtrips_independently(tmp_path,c
     assert task.applicant_no_slots_mode=='continue' and task.no_slots_mode==result_mode
     raw['request']['applicant_no_slots_mode']='invalid'
     with pytest.raises(ProfileValidationError):store.save_profile(profile,raw,revision=store.revision())
+
+
+@pytest.mark.parametrize('value', [False, 'false', 'true', 1, 0, None, True])
+def test_beta_updates_require_explicit_boolean_opt_in(tmp_path, catalog_path, value):
+    path = tmp_path/'tasks.yml'
+    path.write_text(yaml.safe_dump({'tasks': [], 'desktop': {'beta_updates': value}}), encoding='utf-8')
+    store = ProfileStore(path, catalog_path)
+    assert store.preferences()['beta_updates'] is (value is True)
+    store.save_preferences(dark=False, diagnostics=False, sound=True)
+    assert ProfileStore(path, catalog_path).preferences()['beta_updates'] is (value is True)

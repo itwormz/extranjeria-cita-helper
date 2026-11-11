@@ -58,20 +58,44 @@ Run Linux AppImage with execute permission (`chmod +x file.AppImage`). On system
 
 `.github/workflows/build.yml` runs manually through **Actions → Build desktop packages → Run workflow**, and on `v*` tags. It tests source/privacy, builds all four native targets, verifies the browser and worker offline, then uploads packages with SHA256 sidecars as Actions artifacts (14 days).
 
-Set the same numeric version in `app/version.py`, `pyproject.toml`, and the project entry in `uv.lock`; update `CHANGELOG.md`. Versions use MAJOR.MINOR.PATCH: fixes increment PATCH, features MINOR, incompatible changes MAJOR. All CPU architectures share one version. README headers use a dynamic latest-published-release badge and do not need a source-version edit. A tag such as `v0.1.0` must match the source version exactly.
+Prepare a release through a PR using [the release instructions](release-pr.md): set
+`.github/release-version` and write the final notes under `Unreleased` in
+`CHANGELOG.md`, then run the preparation workflow or
+`python3 scripts/prepare_release_version.py`. The script synchronizes
+`app/version.py`, `pyproject.toml`, `uv.lock` and the versioned changelog section.
+README headers keep the dynamic latest-published-release badge. After merge, the
+release workflow creates the matching tag and starts the native build.
 
 After every native build and verification passes, a tag run automatically publishes a **GitHub Release** with two DMGs, one MSI, one Windows portable ZIP, one Linux AppImage, their Sigstore bundles and `SHA256SUMS`. Release notes include the matching `CHANGELOG.md` section. Packages are first uploaded to a draft; it becomes public only after all uploads succeed. Failed uploads leave a draft for investigation. Existing releases are never overwritten by reruns. Build jobs have read-only repository contents access plus `id-token: write` and `attestations: write` for keyless tag-build attestations; only the publish-release job receives `contents: write`. No personal credentials are needed; it uses the scoped GitHub token.
 
-For a prepared source version of `0.2.1`, push the source commit and its matching
-tag (use the actual source version for later releases):
+Use the release PR workflow for routine releases; do not create another tag
+manually after merging that PR. The tag must match the source version exactly.
+A normal push without a release-version change does not publish a release.
+Manual **Build desktop packages** runs build/test packages without publishing.
+Pull requests run the separate Tests and CodeQL workflows.
 
-```sh
-git push origin main
-git tag v0.2.1
-git push origin v0.2.1
-```
+## SantaCita update compatibility
 
-A normal push to `main` does not start this workflow or publish a release. Manual workflow runs build/test packages without publishing them. Pull requests run the separate lightweight Tests and CodeQL workflows.
+Python 0.3.8 accepts release packages from the exact old and new repository URLs.
+Stable checks use `/releases/latest`; **Offer beta versions**, off by default,
+checks the paginated release list for stable versions and `X.Y.Z-beta.N` releases.
+Drafts, development tags and other prerelease formats are excluded. Numeric beta
+ordering is used, and a stable release supersedes betas of the same version.
+Changing channels does not downgrade an installed application.
+
+Both channels require immutable releases, exact package URLs, `SHA256SUMS` and
+matching Sigstore build provenance. Beta provenance uses its exact beta tag;
+repository, workflow path, GitHub-hosted push build and source commit checks are
+unchanged. Future SantaCita builds must keep `.github/workflows/build.yml` and
+publish the expected packages and provenance before users can update to them.
+Beta releases must not replace the stable `latest` release.
+
+The Windows portable updater only downloads and verifies the ZIP and opens its
+folder. It does not replace the running installation. Close the application,
+extract into a separate folder, copy the existing `data` directory and check the
+new version before removing the old one. This is the Python portable update
+procedure; SantaCita's portable import and update behavior needs its own native
+verification.
 
 ## Signatures and browser resources
 

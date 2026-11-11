@@ -15,9 +15,10 @@ from urllib.request import Request, urlopen
 
 from PySide6.QtCore import QObject,QThread,Signal
 from ..attestations import verify_attestation, MAX_BUNDLE, AttestationError
+from ..repository import LEGACY_REPOSITORY, REPOSITORIES, api_url, trusted_repository
 
-REPOSITORY='https://github.com/itwormz/extranjeria-cita-helper'
-API='https://api.github.com/repos/itwormz/extranjeria-cita-helper/releases/latest'
+from ..release_versions import release_key
+
 MAX_PACKAGE=2*1024**3
 
 
@@ -31,9 +32,7 @@ def release_target(system=None,machine=None):
 
 
 def version_tuple(value):
-    if not isinstance(value,str) or not re.fullmatch(r'\d+\.\d+\.\d+',value):
-        raise ValueError('Invalid release version')
-    return tuple(map(int,value.split('.')))
+    return release_key(value)[:3]
 
 
 @dataclass(frozen=True)
@@ -44,19 +43,25 @@ class Release:
     sums_url:str
     size:int
     attestation_url:str
+    repository:str=LEGACY_REPOSITORY
 
 
-def select_release(data,current,target,arch,*,portable=False):
+def select_release(data,current,target,arch,*,portable=False,repository=LEGACY_REPOSITORY,include_beta=False):
+    # Assets must come from the exact repository that answered, never from another trusted name.
+    trusted_repository(repository)
     tag=data.get('tag_name','')
     if not isinstance(tag,str) or not tag.startswith('v'):
         raise ValueError('Invalid release tag')
     version=tag[1:];version_tuple(version)
-    if data.get('draft') or data.get('prerelease'):
-        raise ValueError('Not a stable release')
+    is_beta='-beta.' in version
+    if data.get('draft') or bool(data.get('prerelease'))!=is_beta or (is_beta and not include_beta):
+        raise ValueError('Release is not allowed in this channel')
     from app.version import native_version
-    current_parts=native_version(current)
-    current_key=current_parts[:3]+((0,current_parts[3]) if '.dev' in current else (1,0))
-    if version_tuple(version)+(1,0)<=current_key:return None
+    if '.dev' in current:
+        current_parts=native_version(current)
+        current_key=current_parts[:3]+(0,current_parts[3])
+    else:current_key=release_key(current)
+    if release_key(version)<=current_key:return None
     extension={'windows':'msi','macos':'dmg','linux':'AppImage'}.get(target)
     if not extension or (target,arch) not in {('windows','x64'),('linux','x64'),('macos','arm64'),('macos','x64')}:
         raise ValueError('Unsupported update target')
@@ -65,7 +70,7 @@ def select_release(data,current,target,arch,*,portable=False):
     if portable:
         if target!='windows':raise ValueError('Portable updates require Windows')
         name=f'extranjeria-cita-helper-{version}-windows-{arch}-portable.zip'
-    base=REPOSITORY+'/releases/download/'+tag+'/'
+    base=repository+'/releases/download/'+tag+'/'
     def asset(name):
         found=[a for a in data.get('assets',[]) if a.get('name')==name]
         if len(found)!=1 or found[0].get('browser_download_url')!=base+name:
@@ -87,7 +92,7 @@ def select_release(data,current,target,arch,*,portable=False):
     size=package.get('size')
     if not isinstance(size,int) or isinstance(size,bool) or not 0<size<=MAX_PACKAGE:
         raise ValueError('Invalid package size')
-    return Release(version,name,package['browser_download_url'],sums['browser_download_url'],size,proof['browser_download_url'])
+    return Release(version,name,package['browser_download_url'],sums['browser_download_url'],size,proof['browser_download_url'],repository)
 
 
 def fetch(url):
@@ -104,8 +109,51 @@ def checksum_for(data,name):
     return candidates[0]
 
 
-def release_commit(version, fetch):
-    url=f'https://api.github.com/repos/itwormz/extranjeria-cita-helper/git/ref/tags/v{version}'
+def latest_release(fetch, *, include_beta=False):
+    """Return (repository, release JSON): the new name first, the old one only on 404."""
+    if include_beta:return beta_channel_release(fetch)
+    for repository in REPOSITORIES:
+        try:
+            with fetch(api_url(repository,'/releases/latest')) as response:
+                data=response.read(1024*1024+1)
+        except HTTPError as exc:
+            if exc.code==404 and repository!=REPOSITORIES[-1]:continue
+            raise
+        if len(data)>1024*1024:raise ValueError('Release response too large')
+        return repository,json.loads(data)
+
+
+def beta_channel_release(fetch):
+    """Inspect bounded pages, then choose by version, never by publication order."""
+    for repository in REPOSITORIES:
+        candidates=[]
+        for page in range(1,11):
+            try:
+                with fetch(api_url(repository,f'/releases?per_page=100&page={page}')) as response:
+                    raw=response.read(8*1024*1024+1)
+            except HTTPError as exc:
+                if page==1 and exc.code==404 and repository!=REPOSITORIES[-1]:break
+                raise
+            if len(raw)>8*1024*1024:raise ValueError('Release response too large')
+            entries=json.loads(raw)
+            if not isinstance(entries,list):raise ValueError('Invalid release list')
+            for entry in entries:
+                if not isinstance(entry,dict) or entry.get('draft'):continue
+                tag=entry.get('tag_name')
+                if not isinstance(tag,str) or not tag.startswith('v'):continue
+                try:key=release_key(tag[1:])
+                except ValueError:continue
+                if bool(entry.get('prerelease'))!=('-beta.' in tag):continue
+                candidates.append((key,entry))
+            if len(entries)<100:
+                if not candidates:break
+                return repository,max(candidates,key=lambda item:item[0])[1]
+        else:raise ValueError('Too many release pages')
+    raise HTTPError(api_url(REPOSITORIES[-1],'/releases'),404,'No releases',None,None)
+
+
+def release_commit(version, fetch, repository=LEGACY_REPOSITORY):
+    url=api_url(repository,f'/git/ref/tags/v{version}')
     for _ in range(4):
         with fetch(url) as response:raw=response.read(16385)
         if len(raw)>16384:raise ValueError('Release tag response too large')
@@ -113,7 +161,7 @@ def release_commit(version, fetch):
         if not re.fullmatch(r'[a-f0-9]{40}',sha):raise ValueError('Invalid release commit')
         if obj['type']=='commit':return sha
         if obj['type']!='tag':raise ValueError('Invalid release tag object')
-        url=f'https://api.github.com/repos/itwormz/extranjeria-cita-helper/git/tags/{sha}'
+        url=api_url(repository,f'/git/tags/{sha}')
     raise ValueError('Too many nested release tags')
 
 
@@ -137,13 +185,14 @@ def download_release(release,directory,cancel,*,fetch=fetch,progress=lambda valu
                 actual.update(chunk);output.write(chunk);progress(int(count*100/release.size))
         if count!=release.size or actual.hexdigest()!=digest:
             raise ValueError('Package checksum mismatch')
-        commit=release_commit(release.version,fetch)
+        commit=release_commit(release.version,fetch,release.repository)
         try:
             with fetch(release.attestation_url) as response:proof=response.read(MAX_BUNDLE+1)
         except HTTPError as exc:raise AttestationError('Update provenance is unavailable') from exc
-        verify_attestation(proof,release.name,actual.hexdigest(),release.version,expected_commit=commit)
+        verify_attestation(proof,release.name,actual.hexdigest(),release.version,expected_commit=commit,
+                           repository=release.repository)
         if cancel.is_set():raise InterruptedError('Download cancelled')
-        receipt=dict(version=release.version,commit=commit,bundle=json.loads(proof))
+        receipt=dict(version=release.version,commit=commit,bundle=json.loads(proof),repository=release.repository)
         destination.with_name(destination.name+'.provenance.json').write_text(json.dumps(receipt),encoding='utf-8')
         os.replace(partial,destination)
         destination.with_name(destination.name+'.sha256').write_text(digest+'  '+destination.name+'\n')
@@ -161,7 +210,9 @@ def verify_download(path):
     receipt_path=path.with_name(path.name+'.provenance.json')
     if receipt_path.stat().st_size>MAX_BUNDLE+4096:raise ValueError('Update provenance too large')
     receipt=json.loads(receipt_path.read_bytes())
-    verify_attestation(json.dumps(receipt['bundle']),path.name,digest,receipt['version'],expected_commit=receipt['commit'])
+    # Receipts written by 0.3.7 and earlier have no repository: they came from the old name.
+    verify_attestation(json.dumps(receipt['bundle']),path.name,digest,receipt['version'],expected_commit=receipt['commit'],
+                       repository=receipt.get('repository',LEGACY_REPOSITORY))
     return path
 
 
@@ -190,9 +241,11 @@ class UpdateService(QObject):
         super().__init__(parent);self.directory=Path(directory);self.current=current;self.job=None
     @property
     def busy(self):return self.job is not None
-    def due(self):
+    def due(self, *, include_beta=False):
         try:
-            timestamp=json.loads((self.directory/'check.json').read_text())['checked_at']
+            saved=json.loads((self.directory/'check.json').read_text())
+            if bool(saved.get('include_beta',False))!=include_beta:return True
+            timestamp=saved['checked_at']
             return not 0<=time.time()-float(timestamp)<86400
         except (OSError,ValueError,KeyError,TypeError):return True
     def _start(self,operation,signal):
@@ -202,15 +255,13 @@ class UpdateService(QObject):
         def finish():
             self.job=None;self.busy_changed.emit(False);job.deleteLater()
         job.finished.connect(finish);self.busy_changed.emit(True);job.start();return True
-    def check(self):
+    def check(self, *, include_beta=False):
         def operation(job):
             self.directory.mkdir(parents=True,exist_ok=True)
-            (self.directory/'check.json').write_text(json.dumps({'checked_at':time.time()}))
-            with fetch(API) as response:
-                data=response.read(1024*1024+1)
-            if len(data)>1024*1024:raise ValueError('Release response too large')
+            (self.directory/'check.json').write_text(json.dumps({'checked_at':time.time(),'include_beta':include_beta}))
+            repository,data=latest_release(fetch,include_beta=include_beta)
             from .paths import portable_mode
-            return select_release(json.loads(data),self.current,*release_target(),portable=portable_mode())
+            return select_release(data,self.current,*release_target(),portable=portable_mode(),repository=repository,include_beta=include_beta)
         return self._start(operation,self.checked)
     def download(self,release):
         return self._start(lambda job:download_release(release,self.directory,job.cancelled,progress=job.progress.emit),self.downloaded)

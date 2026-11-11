@@ -441,12 +441,15 @@ def test_about_update_check_handles_release_and_failures(window,monkeypatch,erro
     extension={'macos':'dmg','windows':'msi','linux':'AppImage'}[target]
     name=('Cita_Extranjeria_Helper-9.9.9-x86_64.AppImage' if target=='linux'
           else f'extranjeria-cita-helper-9.9.9-{target}-{arch}.{extension}')
-    base=updates.REPOSITORY+'/releases/download/v9.9.9/'
+    from app.repository import LEGACY_REPOSITORY, REPOSITORIES, api_url
+    base=LEGACY_REPOSITORY+'/releases/download/v9.9.9/'
     payload={'tag_name':'v9.9.9','immutable':True,'assets':[{'name':name,'browser_download_url':base+name,'size':7},
                                          {'name':'SHA256SUMS','browser_download_url':base+'SHA256SUMS'},
                                          {'name':name+'.sigstore.json','browser_download_url':base+name+'.sigstore.json'}]}
     def fetch(url):
-        assert url==updates.API
+        # Before the rename the new repository does not exist yet.
+        if url==api_url(REPOSITORIES[0],'/releases/latest'):raise HTTPError(url,404,'missing',{},None)
+        assert url==api_url(LEGACY_REPOSITORY,'/releases/latest')
         if error:raise HTTPError(url,404,'missing',{},None)
         return io.BytesIO(json.dumps(payload).encode())
     monkeypatch.setattr(updates,'fetch',fetch)
@@ -1562,3 +1565,53 @@ def test_promoted_toolbar_button_keeps_visible_caption(dark, hover):
     caption = sum(1 for value in pixels if abs(value - background) > 60)
     host.close()
     assert caption > 50, f'caption invisible: {caption} contrasting pixels'
+
+
+@pytest.mark.parametrize(('reason', 'blocked'), [('provenance', True), ('failed', False), ('network', False)])
+def test_failed_update_points_to_manual_download(window, reason, blocked):
+    from PySide6.QtWidgets import QLabel
+    window.set_language('en'); window.show_about()
+    window.update_failed(reason)
+    label = window.about_dialog.findChild(QLabel, 'latestVersion')
+    assert 'Download the new version manually from the releases page.' in label.text()
+    assert (label.property('tone') == 'danger') is blocked
+    window.about_dialog.close()
+
+
+@pytest.mark.parametrize(('version', 'note'), [('0.3.9', False), ('0.4.0', True), ('1.0.0', True)])
+def test_santacita_release_explains_data_import(window, version, note):
+    from PySide6.QtWidgets import QLabel
+    from app.desktop.updates import Release
+    window.set_language('en'); window.show_about()
+    window.update_checked(Release(version, 'app.msi', 'u', 's', 7, 'a'))
+    text = window.about_dialog.findChild(QLabel, 'latestVersion').text()
+    assert version in text
+    assert ('This is the new SantaCita app.' in text) is note
+    window.about_dialog.close()
+
+
+def test_beta_update_preference_defaults_off_and_survives_reload(window):
+    assert not window.beta_updates_toggle.isChecked()
+    window.beta_updates_toggle.setChecked(True)
+    assert window.store.preferences()['beta_updates'] is True
+    window.store.save_preferences(dark=False, diagnostics=False, sound=True)
+    assert window.store.preferences()['beta_updates'] is True
+    window.beta_updates_toggle.setChecked(False)
+    assert window.store.preferences()['beta_updates'] is False
+
+
+def test_update_channel_cannot_change_during_download(window):
+    window.update_busy(True)
+    assert not window.beta_updates_toggle.isEnabled()
+    window.update_busy(False)
+    assert window.beta_updates_toggle.isEnabled()
+
+
+def test_beta_channel_change_clears_previous_offer(window):
+    from app.desktop.updates import Release
+    from pathlib import Path
+    window.update_release = Release('0.4.0-beta.1','test.msi','url','sums',7,'proof')
+    window.update_path = Path('test.msi')
+    window.beta_updates_toggle.setChecked(True)
+    assert window.update_release is None
+    assert window.update_path is None

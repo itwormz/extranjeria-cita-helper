@@ -9,6 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.attestations import verify_attestation, MAX_BUNDLE
+from app.repository import LEGACY_REPOSITORY, trusted_repository
 
 
 def packages(directory):
@@ -24,7 +25,15 @@ def attach(directory, bundle):
         shutil.copyfile(bundle, package.with_name(package.name + '.sigstore.json'))
 
 
-def verified_attestations(assets, version, commit):
+def release_repository(environ=os.environ):
+    """The repository this release is built in; local runs use the original name."""
+    if not environ.get('GITHUB_REPOSITORY'):
+        return LEGACY_REPOSITORY
+    return trusted_repository(f"{environ.get('GITHUB_SERVER_URL', '')}/{environ['GITHUB_REPOSITORY']}")
+
+
+def verified_attestations(assets, version, commit, *, environ=os.environ):
+    repository = release_repository(environ)
     if not isinstance(commit, str) or not re.fullmatch(r'[a-f0-9]{40}', commit):
         raise ValueError('Expected release commit is required')
     proofs = []
@@ -36,7 +45,7 @@ def verified_attestations(assets, version, commit):
             raw = stream.read(MAX_BUNDLE + 1)
         with package.open('rb') as stream:
             digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-        verify_attestation(raw, package.name, digest, version, expected_commit=commit)
+        verify_attestation(raw, package.name, digest, version, expected_commit=commit, repository=repository)
         proofs.append(proof)
     return proofs
 

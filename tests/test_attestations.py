@@ -16,9 +16,9 @@ def statement():
     return {'_type': 'https://in-toto.io/Statement/v1', 'predicateType': 'https://slsa.dev/provenance/v1',
             'subject': [{'name': 'app.msi', 'digest': {'sha256': DIGEST}}],
             'predicate': {'buildDefinition': {'buildType': 'https://actions.github.io/buildtypes/workflow/v1',
-                'externalParameters': {'workflow': {'repository': a.REPOSITORY, 'path': a.WORKFLOW, 'ref': ref}},
+                'externalParameters': {'workflow': {'repository': a.LEGACY_REPOSITORY, 'path': a.WORKFLOW, 'ref': ref}},
                 'internalParameters': {'github': {'event_name': 'push', 'runner_environment': 'github-hosted'}},
-                'resolvedDependencies': [{'uri': f'git+{a.REPOSITORY}@{ref}', 'digest': {'gitCommit': COMMIT}}]}}}
+                'resolvedDependencies': [{'uri': f'git+{a.LEGACY_REPOSITORY}@{ref}', 'digest': {'gitCommit': COMMIT}}]}}}
 
 
 @pytest.mark.parametrize('mutation', ['digest', 'duplicate', 'workflow', 'repository', 'ref', 'runner', 'event', 'type', 'commit'])
@@ -88,3 +88,71 @@ def test_signed_statement_commit_must_match_certificate(monkeypatch):
     assert a.verify_attestation('{}','app.msi',DIGEST,'0.2.0',expected_commit=commit)==commit
     data['predicate']['buildDefinition']['resolvedDependencies'][0]['digest']['gitCommit']='c'*40
     with pytest.raises(a.AttestationError):a.verify_attestation('{}','app.msi',DIGEST,'0.2.0',expected_commit='c'*40)
+
+
+NEW_REPOSITORY = 'https://github.com/itwormz/santacita'
+OLD_REPOSITORY = 'https://github.com/itwormz/extranjeria-cita-helper'
+
+
+def statement_for(repository):
+    data = statement()
+    definition = data['predicate']['buildDefinition']
+    definition['externalParameters']['workflow']['repository'] = repository
+    definition['resolvedDependencies'][0]['uri'] = f'git+{repository}@refs/tags/v0.2.0'
+    return data
+
+
+@pytest.mark.parametrize('repository', [NEW_REPOSITORY, OLD_REPOSITORY])
+def test_provenance_from_either_trusted_repository_is_accepted(monkeypatch, repository):
+    data = statement_for(repository)
+    monkeypatch.setattr(a, '_verified_statement', lambda *args: (SimpleNamespace(signing_certificate=None), data))
+    monkeypatch.setattr('sigstore.verify.policy.OIDCSourceRepositoryDigest.verify', lambda self, cert: None)
+    assert a.verify_attestation('{}', 'app.msi', DIGEST, '0.2.0', expected_commit=COMMIT, repository=repository) == COMMIT
+
+
+@pytest.mark.parametrize(('signed', 'expected'), [(OLD_REPOSITORY, NEW_REPOSITORY), (NEW_REPOSITORY, OLD_REPOSITORY),
+                                                 ('https://github.com/itwormz/santacita-evil', NEW_REPOSITORY)])
+def test_provenance_from_another_repository_is_rejected(monkeypatch, signed, expected):
+    data = statement_for(signed)
+    monkeypatch.setattr(a, '_verified_statement', lambda *args: (SimpleNamespace(signing_certificate=None), data))
+    with pytest.raises(a.AttestationError):
+        a.verify_attestation('{}', 'app.msi', DIGEST, '0.2.0', expected_commit=COMMIT, repository=expected)
+
+
+@pytest.mark.parametrize('repository', ['https://github.com/itwormz/santacita2', 'https://github.com/other/santacita'])
+def test_untrusted_repository_is_rejected_before_any_check(monkeypatch, repository):
+    monkeypatch.setattr(a, '_verified_statement', lambda *args: pytest.fail('must not verify'))
+    with pytest.raises(a.AttestationError):
+        a.verify_attestation('{}', 'app.msi', DIGEST, '0.2.0', repository=repository)
+
+
+@pytest.mark.parametrize('repository', [NEW_REPOSITORY, OLD_REPOSITORY])
+def test_sigstore_policy_names_the_release_repository(monkeypatch, repository):
+    seen = []
+
+    class Verifier:
+        def verify_dsse(self, bundle, policy):
+            seen.append({type(child).__name__: dict(vars(child)) for child in policy._children})
+            raise RuntimeError('stop after policy')
+    monkeypatch.setattr(a, '_verifier', lambda: Verifier())
+    monkeypatch.setattr('sigstore.models.Bundle.from_json', lambda raw: object())
+    with pytest.raises(RuntimeError, match='stop after policy'):
+        a._verified_statement('{}', '0.2.0', repository)
+    policy, = seen
+    assert policy['Identity']['_identity'] == f'{repository}/.github/workflows/build.yml@refs/tags/v0.2.0'
+    assert policy['OIDCSourceRepositoryURI']['_value'] == repository
+    assert policy['OIDCSourceRepositoryRef']['_value'] == 'refs/tags/v0.2.0'
+    assert policy['OIDCRunnerEnvironment']['_value'] == 'github-hosted'
+
+
+def test_beta_provenance_keeps_exact_tag_and_source_checks(monkeypatch):
+    data = statement_for(NEW_REPOSITORY)
+    definition = data['predicate']['buildDefinition']
+    definition['externalParameters']['workflow']['ref'] = 'refs/tags/v0.4.0-beta.1'
+    definition['resolvedDependencies'][0]['uri'] = f'git+{NEW_REPOSITORY}@refs/tags/v0.4.0-beta.1'
+    monkeypatch.setattr(a, '_verified_statement', lambda *args: (SimpleNamespace(signing_certificate=None), data))
+    monkeypatch.setattr('sigstore.verify.policy.OIDCSourceRepositoryDigest.verify', lambda self, cert: None)
+    assert a.verify_attestation('{}', 'app.msi', DIGEST, '0.4.0-beta.1', expected_commit=COMMIT, repository=NEW_REPOSITORY) == COMMIT
+    definition['externalParameters']['workflow']['ref'] = 'refs/tags/v0.4.0'
+    with pytest.raises(a.AttestationError):
+        a.verify_attestation('{}', 'app.msi', DIGEST, '0.4.0-beta.1', expected_commit=COMMIT, repository=NEW_REPOSITORY)
