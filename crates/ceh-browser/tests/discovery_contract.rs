@@ -29,8 +29,8 @@ fn only_firefox_is_supported_and_others_are_listed_with_their_status() {
     let summary: Vec<_> = found.iter().map(|b| (b.family, b.version.as_str(), b.support)).collect();
     assert_eq!(summary, vec![
         (BrowserFamily::Firefox, "158.0.1", Support::Supported),
-        (BrowserFamily::Chrome, "140.0.1", Support::Planned),
-        (BrowserFamily::Brave, "1.80", Support::Planned),
+        (BrowserFamily::Chrome, "140.0.1", Support::Supported),
+        (BrowserFamily::Brave, "1.80", Support::Supported),
         (BrowserFamily::Edge, "140.0", Support::Planned),
         (BrowserFamily::Safari, "", Support::Unsupported("no_input_automation")),
     ]);
@@ -70,7 +70,7 @@ fn oversized_or_binary_plists_do_not_break_discovery() {
     std::fs::write(brave.join("Info.plist"), b"bplist00\x00\x01").unwrap();
     let found = discover_browsers(&[root.path().to_owned()]);
     assert_eq!(found.len(), 2);
-    assert!(found.iter().all(|b| b.version.is_empty() && b.support == Support::Planned));
+    assert!(found.iter().all(|b| b.version.is_empty() && b.support == Support::Supported));
 }
 
 #[test]

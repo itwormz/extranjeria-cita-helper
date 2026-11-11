@@ -366,6 +366,9 @@ impl CdpWire {
                 self.page("Page.enable", json!({}), deadline)?;
                 self.page("Page.setLifecycleEventsEnabled", json!({"enabled":true}), deadline)?;
                 self.page("Network.enable", json!({}), deadline)?;
+                // A window opened behind others reads as hidden/unfocused to the site (owner's Camoufox
+                // observation: early pages in the background got blocked more often).
+                let _ = self.page("Page.bringToFront", json!({}), deadline);
                 Ok(json!({"subscription":"cdp"}))
             }
             "browsingContext.getTree" => self.tree(deadline),

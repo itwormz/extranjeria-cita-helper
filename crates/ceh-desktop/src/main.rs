@@ -548,10 +548,13 @@ fn reset_session(
         runtime.search.restart()?;
         return Ok("restarted");
     }
-    ceh_browser::firefox::ProfileLease::reset_persistent(&runtime.root, &id).map_err(|error| match error {
-        ceh_browser::firefox::FirefoxError::ProfileBusy => "browser_profile_busy",
-        _ => "browser_profile_unavailable",
-    })?;
+    // The profile may have been used with any of the browsers it could choose; reset each one's own copy.
+    for kind in [ceh_browser::firefox::ProfileKind::Firefox, ceh_browser::firefox::ProfileKind::Chrome, ceh_browser::firefox::ProfileKind::Brave] {
+        ceh_browser::firefox::ProfileLease::reset_persistent_kind(&runtime.root, &id, kind).map_err(|error| match error {
+            ceh_browser::firefox::FirefoxError::ProfileBusy => "browser_profile_busy",
+            _ => "browser_profile_unavailable",
+        })?;
+    }
     Ok("reset")
 }
 /// Python data folders that can be imported; the window picks one by name, never by path.

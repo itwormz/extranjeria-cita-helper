@@ -116,7 +116,8 @@ pub fn discover_browsers(roots: &[PathBuf]) -> Vec<InstalledBrowser> {
                     name: bundle.into(),
                     version: bundle_version(&contents),
                     executable: binary,
-                    support: Support::Planned,
+                    // Chrome and Brave are driven over CDP; other Chromium browsers are not yet.
+                    support: if matches!(family, BrowserFamily::Chrome | BrowserFamily::Brave) { Support::Supported } else { Support::Planned },
                 },
             };
             found.push(entry);

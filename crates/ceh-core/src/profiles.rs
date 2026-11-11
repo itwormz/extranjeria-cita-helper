@@ -126,8 +126,8 @@ pub fn validate_profile(mut value: ProfileDraft, catalog: &ProfileCatalog) -> Va
     value.email = value.email.trim_matches(is_space).to_owned();
     let mut errors = Vec::new();
     let mut reject = |message: &str| errors.push(message.to_owned());
-    if value.browser != "firefox" {
-        reject("browser must be firefox");
+    if !matches!(value.browser.as_str(), "firefox" | "chrome" | "brave") {
+        reject("browser must be firefox, chrome or brave");
     }
     if ProfileId::new(&value.id).is_err() {
         reject("id must match [a-z0-9_-]+");

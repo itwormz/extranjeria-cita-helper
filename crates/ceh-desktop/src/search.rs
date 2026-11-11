@@ -220,10 +220,15 @@ impl SearchController {
         if !loaded.validation.errors.is_empty() {
             return Err("profile_invalid");
         }
-        if loaded.validation.normalized.browser != "firefox" {
-            return Err("browser_unsupported");
+        match Engine::of(&loaded.validation.normalized.browser) {
+            Some(Engine::Firefox) => {
+                FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
+            }
+            Some(Engine::Chromium(kind)) => {
+                ceh_browser::chromium::ChromiumInstallation::discover(kind).map_err(|_| "browser_not_installed")?;
+            }
+            None => return Err("browser_unsupported"),
         }
-        FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
         let profile = loaded.validation.normalized;
         let timings = loaded.timings.ok_or("profile_invalid")?;
         let appointment_policy = loaded.appointment_policy.ok_or("profile_invalid")?;
@@ -439,6 +444,29 @@ fn update(
     Ok(())
 }
 #[allow(clippy::too_many_arguments)]
+/// The browser a search profile drives: Firefox over WebDriver BiDi, Chrome or Brave over CDP.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Engine {
+    Firefox,
+    Chromium(ceh_browser::firefox::ProfileKind),
+}
+impl Engine {
+    pub fn of(browser: &str) -> Option<Self> {
+        use ceh_browser::firefox::ProfileKind;
+        match browser {
+            "firefox" => Some(Self::Firefox),
+            "chrome" => Some(Self::Chromium(ProfileKind::Chrome)),
+            "brave" => Some(Self::Chromium(ProfileKind::Brave)),
+            _ => None,
+        }
+    }
+    pub fn kind(self) -> ceh_browser::firefox::ProfileKind {
+        match self {
+            Self::Firefox => ceh_browser::firefox::ProfileKind::Firefox,
+            Self::Chromium(kind) => kind,
+        }
+    }
+}
 /// How one browser session ended: for good, or with a restart the core asked for (`Recover{Restart}`).
 enum SessionEnd {
     Finished,
@@ -514,22 +542,30 @@ fn run_session(
     log: &mut Option<crate::journal_log::JournalLog>,
     carry: &mut ceh_core::flow::RecoveryCarry,
 ) -> Result<SessionEnd, &'static str> {
-    let installation = FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
+    let engine = Engine::of(&profile.browser).ok_or("browser_unsupported")?;
     // One persistent browser profile per search profile, as in Python: cookies survive between runs and
     // "reset session" deletes it.
-    let lease = ProfileLease::persistent(root, &profile.id).map_err(|error| match error {
+    let lease = ProfileLease::persistent_kind(root, &profile.id, engine.kind()).map_err(|error| match error {
         // The previous search's browser is still open (kept for the person, or its window just closed).
         ceh_browser::firefox::FirefoxError::ProfileBusy => "browser_profile_busy",
         _ => "browser_profile_unavailable",
     })?;
-    let mut browser =
-        OwnedFirefox::start(&installation, lease, false, cancelled).map_err(|error| {
-            if error == ceh_browser::firefox::FirefoxError::CertificateCache {
-                "browser_certificate_cache_failed"
-            } else {
-                "browser_start_failed"
-            }
-        })?;
+    let mut browser = match engine {
+        Engine::Firefox => {
+            let installation = FirefoxInstallation::discover().map_err(|_| "firefox_not_installed")?;
+            OwnedFirefox::start(&installation, lease, false, cancelled).map_err(|error| {
+                if error == ceh_browser::firefox::FirefoxError::CertificateCache {
+                    "browser_certificate_cache_failed"
+                } else {
+                    "browser_start_failed"
+                }
+            })?
+        }
+        Engine::Chromium(kind) => {
+            let installation = ceh_browser::chromium::ChromiumInstallation::discover(kind).map_err(|_| "browser_not_installed")?;
+            OwnedFirefox::start_chromium(&installation, lease, cancelled).map_err(|_| "browser_start_failed")?
+        }
+    };
     update(state, |s| {
         s.browser_pid = browser.process_id();
         s.warning = (browser.certificate_cache() == ceh_browser::firefox::CertificateCache::Deferred)
@@ -575,7 +611,7 @@ fn run_session(
         drop(browser);
         if request.clear_profile {
             // Python `reset_browser_profile`: a blocked session's cookies are what the site holds against it.
-            let _ = ProfileLease::reset_persistent(root, &profile.id);
+            let _ = ProfileLease::reset_persistent_kind(root, &profile.id, engine.kind());
         }
     }
     if let Ok(mut player) = sound.lock() {
@@ -674,7 +710,10 @@ fn run_owned(
         diagnostics.set_header(
             crate::session_timeline::SessionHeader {
                 app_version: env!("CARGO_PKG_VERSION").to_owned(),
-                firefox_version: FirefoxInstallation::discover().map(|i| i.version().to_owned()).unwrap_or_default(),
+                firefox_version: match Engine::of(&profile.browser).unwrap_or(Engine::Firefox) {
+                    Engine::Firefox => FirefoxInstallation::discover().map(|i| i.version().to_owned()).unwrap_or_default(),
+                    Engine::Chromium(kind) => ceh_browser::chromium::ChromiumInstallation::discover(kind).map(|i| format!("{kind:?} {}", i.version())).unwrap_or_default(),
+                },
                 os: std::env::consts::OS.to_owned(),
                 profile_persistent: true,
                 profile_age_days: profile_age_days(root, &profile.id),
