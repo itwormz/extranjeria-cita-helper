@@ -2,7 +2,7 @@
 import {spawnSync} from 'node:child_process';
 import {join,resolve} from 'node:path';
 import {writeFile} from 'node:fs/promises';
-import {ROOT,readMetadata,releaseNotes,finalize} from './release.mjs';
+import {ROOT,readMetadata,releaseNotes,finalize,verifyPublishedRelease} from './release.mjs';
 function run(command,args,options={}){const r=spawnSync(command,args,{cwd:ROOT,stdio:'inherit',...options});if(r.error)throw r.error;if(r.status!==0)throw new Error(`${command} failed (${r.status})`);return r;}
 const repository=process.env.GITHUB_REPOSITORY;const commit=process.env.GITHUB_SHA;const tag=process.env.RELEASE_TAG;
 if(!['itwormz/extranjeria-cita-helper','itwormz/santacita'].includes(repository)||!/^[a-f0-9]{40}$/.test(commit??''))throw new Error('Unexpected release source');
@@ -20,3 +20,7 @@ run('gh',['release','create',tag,'--repo',repository,'--verify-tag','--target',c
 const assets=names.flatMap(name=>[join(directory,name),join(directory,`${name}.sigstore.json`)]).concat(join(directory,'SHA256SUMS'));
 run('gh',['release','upload',tag,'--repo',repository,...assets]);
 run('gh',['release','edit',tag,'--repo',repository,'--draft=false',...(prerelease?['--prerelease','--latest=false']:['--latest'])]);
+
+const published=run('gh',['api',`repos/${repository}/releases/tags/${tag}`],{stdio:'pipe',encoding:'utf8'});
+await verifyPublishedRelease(JSON.parse(published.stdout),directory,version);
+console.log(`Published immutable SantaCita ${version}: all package and proof digests match`);

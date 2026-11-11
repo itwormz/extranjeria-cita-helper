@@ -4,7 +4,7 @@
 
 - Introduce SantaCita, a new Rust desktop application with a Tauri/Svelte interface for Toma de huellas / TIE and Autorización de regreso searches. Choose an installed browser; appointment dates, CAPTCHA and final confirmation remain manual.
 - Import profiles, statistics, achievements and journals from the installed Python application while keeping the original data. Keep Telegram and webhook credential references in the system vault.
-- Offer stable and optional beta updates from the current repository, with checksum and Sigstore provenance verification before installation. Windows portable updates preserve the adjacent data folder.
+- Offer stable and optional beta updates from the current repository, with checksum and Sigstore provenance verification before installation. Windows portable updates preserve the adjacent data folder. Match the Python 0.3.8 beta preference and release ordering; cover all five package targets, draft/channel rejection and immutable asset requirements in updater contracts.
 - Publish optimized release packages for macOS Apple Silicon and Intel, Windows MSI/portable and Linux AppImage. Beta releases remain separate from the stable Python release.
 
 ## 0.3.8 — SantaCita migration and beta updates

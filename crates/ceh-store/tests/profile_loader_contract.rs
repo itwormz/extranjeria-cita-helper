@@ -123,3 +123,11 @@ fn python_beta_opt_in_is_loaded_strictly_and_survives_saving(){
         assert_eq!(read_profiles(&path,&catalog,"en").unwrap().preferences.beta_updates,expected);
     }
 }
+
+#[test]
+fn the_minimum_pause_between_attempts_no_longer_exists_whatever_the_profile_says() {
+    for block in ["", "    appointment_protection:\n      minimum_pause_minutes: 30\n", "    appointment_protection:\n      daily_target: 5\n", "    appointment_protection:\n      minimum_pause_minutes: 0\n"] {
+        let policy = loaded_with_protection(block).appointment_policy.expect(block);
+        assert_eq!(policy.minimum_pause_minutes, 0, "{block:?}");
+    }
+}

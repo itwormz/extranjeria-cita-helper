@@ -1,7 +1,7 @@
 // Check maintained documentation's local links without installing dependencies.
 import {readFile,access} from 'node:fs/promises';import {dirname,resolve,relative} from 'node:path';
 const root=resolve(import.meta.dirname,'..');
-const files=['README.md','README.ru.md','README.es.md','CHANGELOG.md','docs/BUILD.md','docs/release-pr.md','docs/PRIVACY.md','SECURITY.md','CONTRIBUTING.md'];
+const files=['README.md','README.ru.md','README.es.md','CHANGELOG.md','docs/BUILD.md','docs/PRIVACY.md','SECURITY.md','CONTRIBUTING.md'];
 let errors=0;
 for(const file of files){
  const body=await readFile(resolve(root,file),'utf8');

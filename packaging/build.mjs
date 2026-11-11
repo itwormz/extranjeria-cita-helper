@@ -2,16 +2,19 @@
 import {spawnSync} from 'node:child_process';
 import {mkdir,readdir,copyFile,chmod} from 'node:fs/promises';
 import {join} from 'node:path';
-import {ROOT,readMetadata,packageNames,writeChecksums} from './release.mjs';
+import {ROOT,readMetadata,packageNames,writeChecksums,assertNativeTarget} from './release.mjs';
 function run(command,args,options={}){const result=spawnSync(command,args,{stdio:'inherit',cwd:ROOT,...options});if(result.error)throw result.error;if(result.status!==0)throw new Error(`${command} failed (${result.status})`);}
 const [platform,arch]=process.argv.slice(2);
-if({macos:'darwin',windows:'win32',linux:'linux'}[platform]!==process.platform)throw new Error('Build on the target OS');
+const compiler=spawnSync('rustc',['-vV'],{encoding:'utf8',cwd:ROOT});
+if(compiler.error||compiler.status!==0)throw new Error('Cannot identify native Rust toolchain');
+const rustHost=/^host: (.+)$/m.exec(compiler.stdout)?.[1]?.trim();
+assertNativeTarget(platform,arch,process.platform,rustHost);
 const {version}=await readMetadata(ROOT,process.env.RELEASE_TAG||undefined);
 const names=packageNames(version,platform,arch);const output=join(ROOT,'.local/builds/releases');await mkdir(output,{recursive:true});
-const target=join(ROOT,'.local/builds/rust-target/release');
+const target=join(ROOT,'.local/builds/rust-target',rustHost,'release');
 const cli=join(ROOT,'.local/builds/work/rust-ui/node_modules/@tauri-apps/cli/tauri.js');
 // Tauri's build defaults to Cargo's release profile; --debug is deliberately absent.
-run(process.execPath,[cli,'build','--features','shell','--ci',...(platform==='windows'?['--no-bundle']:['--bundles',platform==='macos'?'dmg':'appimage']),'--','--locked'],{cwd:join(ROOT,'crates/ceh-desktop')});
+run(process.execPath,[cli,'build','--features','shell','--ci','--target',rustHost,...(platform==='windows'?['--no-bundle']:['--bundles',platform==='macos'?'dmg':'appimage']),'--','--locked'],{cwd:join(ROOT,'crates/ceh-desktop')});
 if(platform==='macos'){
  const dmg=join(target,'bundle/dmg');
  run('bash',[join(ROOT,'packaging/macos/make-dmg.sh'),dmg,join(target,'bundle/macos/SantaCita.app'),join(ROOT,'LICENSE'),join(ROOT,'assets/dmg-background.png'),join(output,names[0])]);

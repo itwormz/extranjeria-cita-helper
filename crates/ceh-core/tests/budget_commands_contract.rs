@@ -116,3 +116,18 @@ fn choices_from_another_day_are_not_carried_to_a_bound_document() {
     bound.carry_today_choices_from(&before, now, &policy);
     assert_eq!(bound.summary(now, &policy, false).manual_target, None);
 }
+
+#[test]
+fn without_a_minimum_pause_the_next_attempt_is_never_held_back_by_the_previous_one() {
+    let policy = AppointmentPolicy::default().without_minimum_pause();
+    assert_eq!(policy.minimum_pause_minutes, 0);
+    assert!(policy.is_valid(), "a policy without the pause is complete");
+    let mut budget = AppointmentBudget::default();
+    let start = utc("2026-11-03T11:00:00Z");
+    budget.submitted(start, &policy);
+    let soon = start + Duration::seconds(10);
+    assert_eq!(budget.next_submission(soon, &policy, false), soon);
+    assert_eq!(budget.summary(soon, &policy, false).wait_reason, None);
+    // Python's own default is unchanged, so the recorded Python scenarios still replay.
+    assert_eq!(AppointmentPolicy::default().minimum_pause_minutes, 15);
+}

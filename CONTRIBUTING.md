@@ -53,7 +53,7 @@ node --test desktop-ui/tests/*.test.mjs packaging/tests/*.test.mjs
 node packaging/check-docs.mjs
 ```
 
-[Build instructions](docs/BUILD.md) cover optimized native packages and isolated development data. [Release instructions](docs/release-pr.md) describe version preparation through a PR. Do not publish packages, move release tags or claim native platforms were verified by source tests alone.
+[Build instructions](docs/BUILD.md) cover optimized native packages and isolated development data. Do not publish packages, move release tags or claim native platforms were verified by source tests alone.
 
 Use fictitious profiles and synthetic browser pages. Do not run tests against the live appointment service or disrupt an open booking. Keep user-controlled manual steps and protective timings intact.
 

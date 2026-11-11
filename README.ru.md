@@ -104,7 +104,7 @@ macOS: перенесите SantaCita в Applications. Приложение бе
 
 Rust, Tauri 2, Svelte 5 и TypeScript. SQLite и совместимый формат профилей YAML. Браузерное управление через CDP / WebDriver BiDi.
 
-[Сборка и проверки](docs/BUILD.md) · [Релиз через PR](docs/release-pr.md)
+[Сборка и проверки](docs/BUILD.md)
 
 **💜 Поддержать разработку**
 

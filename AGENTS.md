@@ -39,7 +39,7 @@ node packaging/check-docs.mjs
 
 Browser/vault live checks are opt-in and require authorization. Never repeat a real booking attempt as a test side effect. Native packages must be built on their target OS; see docs/BUILD.md.
 
-Release version is declared in `.github/release-version` and prepared with `node packaging/release.mjs prepare`. Keep Cargo.toml, all workspace versions in Cargo.lock, frontend package/lock and the versioned CHANGELOG section consistent. Tags are `vX.Y.Z-beta.N` for beta, `vX.Y.Z` for stable. A release PR has final notes and versions before merge. Manual builds do not publish; normal infrastructure PRs do not tag. See docs/release-pr.md.
+Release version is declared in `.github/release-version` and prepared with `node packaging/release.mjs prepare`. Keep Cargo.toml, all workspace versions in Cargo.lock, frontend package/lock and the versioned CHANGELOG section consistent. Tags are `vX.Y.Z-beta.N` for beta, `vX.Y.Z` for stable. A release PR has final notes and versions before merge. Manual builds do not publish; normal infrastructure PRs do not tag.
 
 Keep the build workflow path `.github/workflows/build.yml`, GitHub-hosted push tag identity, exact package names and strict SHA256/Sigstore policy compatible with Python 0.3.8. Never skip verification on errors or substitute an arbitrary repository/URL.
 

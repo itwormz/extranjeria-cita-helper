@@ -104,7 +104,7 @@ If you face the same problem, record the dates of attempts, error messages and s
 
 Rust, Tauri 2, Svelte 5 and TypeScript. SQLite and compatible YAML profiles. Browser control through CDP / WebDriver BiDi.
 
-[Build and checks](docs/BUILD.md) · [Release through a PR](docs/release-pr.md)
+[Build and checks](docs/BUILD.md)
 
 **💜 Support development**
 

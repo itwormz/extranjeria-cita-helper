@@ -6,7 +6,7 @@ import DailyBudgetDialog from './DailyBudgetDialog.svelte';import ImportOfferDia
 import {promotedControl,pages,statuses,searchErrors,countdown} from './work-state';
 import {metricValue} from './statistics';
 import {SerialWrites} from './serial';
-import {PersistedValue} from './persisted-value';
+import {PersistedValue} from './persisted-value';import {LatestRequest} from './latest-request';
 import SettingsPreferences from './SettingsPreferences.svelte';
 import StatisticsPanel from './StatisticsPanel.svelte';
 import Icon from './Icon.svelte';import AboutDialog from './AboutDialog.svelte';
@@ -17,7 +17,8 @@ let data=$state<Bootstrap|null>(null);let native=$state(false);let error=$state(
 let search=$state<SearchSnapshot|null>(null);let searchBusy=$state(false);let now=$state(Date.now());let statsRefresh=$state(0);let allChecks=$state<number|null>(null);
 let idleBudget=$state<BudgetSummary|null>(null);let budgetDialog=$state(false);let notice=$state('');let confirmRequest=$state(false);
 let idleFor=$state<string|null>(null);let moreMenu=$state(false);let update=$state<UpdateStatus|null>(null);let updateState=$state<'idle'|'checking'|'failed'>('idle');let updateTried=$state(false);
-async function runUpdateCheck(){if(updateState==='checking')return;updateState='checking';try{await writes.settled();update=await checkUpdates();updateState='idle';}catch{updateState='failed';}}
+const updateChecks=new LatestRequest<UpdateStatus>();
+async function runUpdateCheck(){updateState='checking';const result=await updateChecks.run(async()=>{await writes.settled();return checkUpdates();});if(!updateChecks.isCurrent(result))return;if(result.ok){update=result.value??null;updateState='idle';}else updateState='failed';}
 /* Python: a check at start and once a day while the app runs, when automatic checks are on. */
 $effect(()=>{if(native&&automaticUpdates&&!updateTried){updateTried=true;void runUpdateCheck();}});
 $effect(()=>{if(!native||!automaticUpdates)return;const timer=setInterval(()=>void runUpdateCheck(),24*60*60*1000);return()=>clearInterval(timer);});
@@ -42,7 +43,7 @@ let importOffer=$state<string|null>(null);const importDismissedKey='santacita.im
 function importDismissed(){try{return localStorage.getItem(importDismissedKey)==='1';}catch{return false;}}
 function dismissImportOffer(){importOffer=null;try{localStorage.setItem(importDismissedKey,'1');}catch{/* Remembering is a convenience only. */}}
 async function offerImport(){if(data?.preview_source!=='installed'||data.profiles.length>0||importDismissed())return;try{const names=await legacyCandidates();if(names.length&&!data?.profiles.length)importOffer=names[0];}catch{/* No offer without a readable folder. */}}
-async function reloadProfiles(){try{const result=await bootstrap();data=result.data;if(!selected||!data.profiles.some(p=>p.id===selected))selected=data.selected_profile;error='';}catch{error='Не удалось прочитать профили';}}
+async function reloadProfiles(){try{await writes.settled();const result=await bootstrap();data=result.data;applyPreferences(data.preferences);preferenceWrites?.replace({...data.preferences});selectionWrites?.replace(data.selected_profile);updateChecks.invalidate();update=null;updateState='idle';updateTried=false;if(!selected||!data.profiles.some(p=>p.id===selected))selected=data.selected_profile;error='';}catch{error='Не удалось прочитать профили';}}
 async function showBrowser(){try{await showSearchBrowser();error='';}catch{error='Не удалось показать браузер';}}
 let currentPage=$derived(search?.page?pages[search.page]??'Неизвестная страница':'Браузер ещё не открыт');
 let searchStatus=$derived(search?.error?'Поиск остановлен с ошибкой':search?.manual?'Ручное управление':search?.paused?'Пауза':search?.attention?'Требуется участие':search?.active?(search.deadline?'Ожидание':'В работе'):'Готов к запуску');
@@ -80,7 +81,7 @@ let preferences=$derived({dark,sound,diagnostics,automatic_updates:automaticUpda
 function initializeWrites(next:Bootstrap){if(!preferenceWrites){applyPreferences(next.preferences);preferenceWrites=new PersistedValue({...next.preferences},savePreferences,writes);}if(!selectionWrites)selectionWrites=new PersistedValue<string|null>(next.selected_profile,async id=>{if(id)await selectProfile(id);},writes);}
 function applyPreferences(value:Preferences){dark=value.dark;sound=value.sound;diagnostics=value.diagnostics;automaticUpdates=value.automatic_updates;betaUpdates=value.beta_updates;language=value.language;if(data)data.preferences=value;}
 async function persistPreferences(){if(!data||!preferenceWrites)return;const controller=preferenceWrites;const result=await controller.set({...preferences});if(controller.isCurrent(result)){applyPreferences(result.value);if(!result.ok)error='Не удалось сохранить настройки';else if(error==='Не удалось сохранить настройки')error='';}}
-function changePreference(key:keyof Preferences,value:boolean|string){if(key==='dark')dark=Boolean(value);else if(key==='sound')sound=Boolean(value);else if(key==='diagnostics')diagnostics=Boolean(value);else if(key==='automatic_updates')automaticUpdates=Boolean(value);else if(key==='beta_updates'){betaUpdates=Boolean(value);update=null;updateTried=false;}else if(key==='language')language=String(value);void persistPreferences();}
+function changePreference(key:keyof Preferences,value:boolean|string){if(key==='dark')dark=Boolean(value);else if(key==='sound')sound=Boolean(value);else if(key==='diagnostics')diagnostics=Boolean(value);else if(key==='automatic_updates')automaticUpdates=Boolean(value);else if(key==='beta_updates'){betaUpdates=Boolean(value);updateChecks.invalidate();update=null;updateState='idle';updateTried=false;}else if(key==='language')language=String(value);void persistPreferences();}
 async function chooseProfile(id:string){if(!selectionWrites)return;selected=id;profileMenu=false;const controller=selectionWrites;const result=await controller.set(id);if(controller.isCurrent(result)){selected=result.value;if(!result.ok)error='Не удалось сохранить выбор профиля';else if(error==='Не удалось сохранить выбор профиля')error='';}}
 async function openFolder(){try{await openDiagnostics();}catch{error='Не удалось открыть папку диагностики';}}
 
@@ -127,7 +128,7 @@ function keyboard(event:KeyboardEvent){if(event.key==='Escape'){profileMenu=fals
  {:else if tab==='settings'}
  <div class="page-heading"><h1><Icon name="settings" size={24}/>{t('Настройки')}</h1></div>
  <section class="settings-profiles"><div class="profiles-heading"><h2><Icon name="user"/>{t('Профили')}</h2><button class="icon-button" title={t('Добавить профиль')} aria-label={t('Добавить профиль')} disabled={loadingEditor} onclick={()=>editProfile(null)}><Icon name="plus"/></button></div>{#if data?.profiles.length}<div class="profile-list">{#each data.profiles as item}<button class:chosen={selected===item.id} onclick={()=>editProfile(item.id)}><Icon name="user"/><span><strong>{item.label}</strong><small>{service(item.procedure)} · {item.province}</small></span><Icon name="pencil" size={16}/></button>{/each}</div>{:else}<div class="settings-empty"><Icon name="user" size={28}/><p>{t('Профилей пока нет')}</p></div>{/if}</section>
- <SettingsPreferences {preferences} {t} onchange={changePreference} onfolder={()=>void openFolder()} onimported={()=>void reloadProfiles()} busy={Boolean(search?.active)}/>
+ <SettingsPreferences {preferences} {t} onchange={changePreference} onfolder={()=>void openFolder()} onimported={reloadProfiles} busy={Boolean(search?.active)}/>
  {:else}
  <StatisticsPanel live={search?.active&&search.profile===(statisticsSelected??selected)?{active:true,manual:search.manual,budget:search.appointment_budget}:null} {confirmRequest} onconfirmed={()=>confirmRequest=false} revision={statsRefresh} profiles={data?.profiles??[]} selected={statisticsSelected??selected} onselect={id=>statisticsSelected=id} {t} {language} {dark}/>
  {/if}
@@ -135,7 +136,7 @@ function keyboard(event:KeyboardEvent){if(event.key==='Escape'){profileMenu=fals
 </main>
 {#if editor}<ProfileEditor model={editor} {editingId} {t} {language} onclose={()=>editor=null} onsaved={id=>{void profileSaved(id);}}/>{/if}
 {#if budgetDialog&&budget}<DailyBudgetDialog {budget} {t} onclose={()=>budgetDialog=false} onsave={saveBudget}/>{/if}
-{#if importOffer}<ImportOfferDialog name={importOffer} {t} onclose={dismissImportOffer} onimported={()=>void reloadProfiles()}/>{/if}
+{#if importOffer}<ImportOfferDialog name={importOffer} {t} onclose={dismissImportOffer} onimported={reloadProfiles}/>{/if}
 {#if about}<AboutDialog version={data?.version??'0.4.0-beta.1'} {language} {t} {update} {updateState} oncheck={()=>void runUpdateCheck()} onclose={()=>about=false}/>{/if}
 </div>
 

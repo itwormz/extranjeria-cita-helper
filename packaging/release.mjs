@@ -25,14 +25,20 @@ export function packageNames(version,platform,arch){
  if(!matrix[`${platform}-${arch}`])throw new Error('Unsupported package target');
  return matrix[`${platform}-${arch}`];
 }
+export function assertNativeTarget(platform,arch,hostOS,rustHost){
+ const hosts={'macos-arm64':'aarch64-apple-darwin','macos-x64':'x86_64-apple-darwin','windows-x64':'x86_64-pc-windows-msvc','linux-x64':'x86_64-unknown-linux-gnu'};
+ if({macos:'darwin',windows:'win32',linux:'linux'}[platform]!==hostOS||hosts[`${platform}-${arch}`]!==rustHost)throw new Error('Package target must match the native Rust host');
+ return rustHost;
+}
 export async function readMetadata(root=ROOT,tag){
  const cargo=await readFile(join(root,'Cargo.toml'),'utf8');
  const version=/^\[workspace.package\]\s*\nversion = "([^"]+)"/m.exec(cargo)?.[1];versionKey(version);
  if(tag&&tag!==`v${version}`)throw new Error('Tag does not match source version');
+ if(tag&&(await readFile(join(root,'.github/release-version'),'utf8')).trim()!==version)throw new Error('Declared release version differs from tag');
  const packageJson=JSON.parse(await readFile(join(root,'desktop-ui/package.json'),'utf8'));
  const lock=JSON.parse(await readFile(join(root,'desktop-ui/package-lock.json'),'utf8'));
  if(packageJson.version!==version||lock.version!==version||lock.packages?.['']?.version!==version)throw new Error('Frontend version mismatch');
- const cargoLock=await readFile(join(root,'Cargo.lock'),'utf8');
+ const cargoLock=(await readFile(join(root,'Cargo.lock'),'utf8')).replace(/\r\n/g,'\n');
  const crates=[...cargoLock.matchAll(/^name = "(ceh-[^"]+)"\nversion = "([^"]+)"/gm)];
  if(!crates.length||crates.some(([,name,v])=>v!==version))throw new Error('Cargo.lock workspace version mismatch');
  return {version,prerelease:version.includes('-beta.')};
@@ -81,8 +87,17 @@ export async function finalize(directory,version,{proofs=true}={}){
  for(const name of names)if(expected.get(name)!==await sha256(join(directory,name)))throw new Error('Package changed after native build');
  await writeChecksums(directory,names);return validatePackages(directory,version,{proofs});
 }
+export async function verifyPublishedRelease(release,directory,version){
+ const files=packageNames(version).flatMap(name=>[name,`${name}.sigstore.json`]).concat('SHA256SUMS');
+ if(release.tag_name!==`v${version}`||release.draft!==false||release.immutable!==true||release.prerelease!==version.includes('-beta.'))throw new Error('Published release state is not immutable or has the wrong channel');
+ if(!Array.isArray(release.assets)||release.assets.length!==files.length)throw new Error('Published asset set is incomplete');
+ for(const name of files){
+  const found=release.assets.filter(asset=>asset.name===name);
+  if(found.length!==1||found[0].state!=='uploaded'||found[0].digest!==`sha256:${await sha256(join(directory,name))}`)throw new Error(`Published asset digest mismatch: ${name}`);
+ }
+}
 export async function releaseNotes(root,version){
- versionKey(version);const notes=await readFile(join(root,'CHANGELOG.md'),'utf8');
+ versionKey(version);const notes=(await readFile(join(root,'CHANGELOG.md'),'utf8')).replace(/\r\n/g,'\n');
  const headings=[...notes.matchAll(/^## ([^\n]+)$/gm)];const heading=headings.find(h=>h[1].startsWith(`${version} — `));
  if(!heading)throw new Error('Missing release notes');
  const end=headings.find(h=>h.index>heading.index)?.index??notes.length;
@@ -94,7 +109,7 @@ export async function prepareVersion(root=ROOT){
  const requested=(await readFile(join(root,'.github/release-version'),'utf8')).trim();versionKey(requested);
  const current=(await readMetadata(root)).version;
  if(versionKey(requested)<versionKey(current))throw new Error('Release version must not go backwards');
- let notes=await readFile(join(root,'CHANGELOG.md'),'utf8');
+ let notes=(await readFile(join(root,'CHANGELOG.md'),'utf8')).replace(/\r\n/g,'\n');
  if(requested===current){try{await releaseNotes(root,requested);return;}catch{/* first release may already have the intended source version */}}
  const marker=/^## Unreleased(?: — ([^\n]+))?$/m.exec(notes);
  if(!marker)throw new Error('Add final notes under Unreleased');
@@ -103,7 +118,7 @@ export async function prepareVersion(root=ROOT){
  if(notes.split('\n').some(line=>line.startsWith(`## ${requested} — `)))throw new Error('Release notes already exist');
  notes=notes.slice(0,marker.index)+`## Unreleased\n\n## ${requested} — ${marker[1]??'Release'}\n\n${body}\n\n`+notes.slice(end);
  const cargoPath=join(root,'Cargo.toml');const cargo=(await readFile(cargoPath,'utf8')).replace(/(\[workspace.package\]\s*\nversion = ")[^"]+"/,`$1${requested}"`);
- const lockPath=join(root,'Cargo.lock');const lock=(await readFile(lockPath,'utf8')).replace(/(^name = "ceh-[^"]+"\nversion = ")[^"]+"/gm,`$1${requested}"`);
+ const lockPath=join(root,'Cargo.lock');const lock=(await readFile(lockPath,'utf8')).replace(/\r\n/g,'\n').replace(/(^name = "ceh-[^"]+"\nversion = ")[^"]+"/gm,`$1${requested}"`);
  const packagePath=join(root,'desktop-ui/package.json');const pkg=JSON.parse(await readFile(packagePath,'utf8'));pkg.version=requested;
  const npmPath=join(root,'desktop-ui/package-lock.json');const npm=JSON.parse(await readFile(npmPath,'utf8'));npm.version=requested;npm.packages[''].version=requested;
  for(const [file,content] of [[cargoPath,cargo],[lockPath,lock],[packagePath,JSON.stringify(pkg,null,2)+'\n'],[npmPath,JSON.stringify(npm,null,2)+'\n'],[join(root,'CHANGELOG.md'),notes]])await writeFile(file,content);

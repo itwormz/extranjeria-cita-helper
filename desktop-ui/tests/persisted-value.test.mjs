@@ -8,3 +8,10 @@ test('preference persistence owns an immutable snapshot while the UI continues e
  let release;const pending=new Promise(resolve=>release=resolve);let persisted;
  const controller=new PersistedValue({sound:false},async value=>{await pending;persisted=value;},new SerialWrites());const input={sound:true};const result=controller.set(input);input.sound=false;release();assert.equal((await result).value.sound,true);assert.equal(persisted.sound,true);
 });
+
+test('an imported preference snapshot becomes the rollback baseline',async()=>{
+ const queue=new SerialWrites();const controller=new PersistedValue({beta_updates:false,sound:true},async()=>{throw new Error('save failed');},queue);
+ controller.replace({beta_updates:true,sound:true});
+ const result=await controller.set({beta_updates:true,sound:false});
+ assert.equal(result.ok,false);assert.equal(result.value.beta_updates,true);assert.equal(result.value.sound,true);
+});

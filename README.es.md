@@ -104,7 +104,7 @@ Si se encuentra con este problema, anote las fechas de sus intentos, los mensaje
 
 Rust, Tauri 2, Svelte 5 y TypeScript. SQLite y perfiles YAML compatibles. Control del navegador mediante CDP / WebDriver BiDi.
 
-[Compilación y pruebas](docs/BUILD.md) · [Publicar mediante PR](docs/release-pr.md)
+[Compilación y pruebas](docs/BUILD.md)
 
 **💜 Apoyar el desarrollo**
 

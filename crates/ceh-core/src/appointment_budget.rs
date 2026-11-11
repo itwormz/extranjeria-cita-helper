@@ -34,8 +34,15 @@ impl Default for AppointmentPolicy {
 }
 
 impl AppointmentPolicy {
+    /// The policy the application runs with: no minimum pause between attempts (owner decision, 2026-11-11). The field
+    /// stays in the model so Python's recorded scenarios, which use its 15-minute default, still replay unchanged.
+    pub fn without_minimum_pause(mut self) -> Self {
+        self.minimum_pause_minutes = 0;
+        self
+    }
     pub fn is_valid(&self) -> bool {
-        [self.daily_target, self.minimum_pause_minutes].into_iter().all(|value| value > 0)
+        // The minimum pause is not a setting any more (see `without_minimum_pause`), so it is not checked.
+        self.daily_target > 0
     }
 }
 

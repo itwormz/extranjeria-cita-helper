@@ -707,6 +707,9 @@ fn main() {
         // SAFETY: nothing else runs yet; this only removes a marker for the child processes started later.
         unsafe { std::env::remove_var("CEH_AFTER_UPDATE") };
     }
+    // Fixture-only update exercise. Shipping release binaries never bypass provenance.
+    #[cfg(debug_assertions)]
+    {
     // The whole update cycle without a release: swap the program for the zip, start the new one, leave.
     let arguments: Vec<String> = std::env::args().collect();
     if let Some(zip) = ceh_desktop::local_update_request(
@@ -720,6 +723,7 @@ fn main() {
             Ok(())
         });
         std::process::exit(if outcome.is_ok() { 0 } else { 3 });
+    }
     }
     // A portable install removes what the previous update left beside it.
     if ceh_services::updates::is_portable_install()

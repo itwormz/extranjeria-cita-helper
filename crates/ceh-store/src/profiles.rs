@@ -310,7 +310,7 @@ fn parse_appointment_policy(
     if !policy.is_valid() {
         return Err(ProfileLoadError::Settings);
     }
-    Ok(policy)
+    Ok(policy.without_minimum_pause())
 }
 
 fn convert(
@@ -377,7 +377,7 @@ fn convert(
         }
     };
     let appointment_policy = match request.get("appointment_protection") {
-        None => Some(ceh_core::appointment_budget::AppointmentPolicy::default()),
+        None => Some(ceh_core::appointment_budget::AppointmentPolicy::default().without_minimum_pause()),
         Some(raw) => parse_appointment_policy(raw, budget).ok(),
     };
     if appointment_policy.is_none() {

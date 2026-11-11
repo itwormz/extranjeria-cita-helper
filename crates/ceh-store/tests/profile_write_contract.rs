@@ -350,7 +350,8 @@ mod protection {
         save_profile_changes(&path, Some("fixture"), draft(&original), &revision, &catalog(),
             ProfileEdits { protection: Some(&policy), ..Default::default() }).unwrap();
         let reloaded = decode_profiles(&std::fs::read(&path).unwrap(), &catalog(), "ru").unwrap();
-        assert_eq!(reloaded.profiles[0].appointment_policy.as_ref().unwrap(), &policy);
+        // The minimum pause between attempts is gone (owner decision): whatever is stored, it loads as no pause.
+        assert_eq!(reloaded.profiles[0].appointment_policy.as_ref().unwrap(), &policy.clone().without_minimum_pause());
         let document = ceh_store::legacy_yaml::read_document(&path).unwrap();
         let block = document.root().get("tasks").unwrap().sequence().unwrap()[0].get("request").unwrap().get("appointment_protection").unwrap().clone();
         assert_eq!(block.get("vendor_flag").unwrap().scalar_text().unwrap(), "7", "unknown policy keys are kept");
@@ -365,7 +366,6 @@ mod protection {
         let revision = decode_profiles(original.as_bytes(), &catalog(), "ru").unwrap().revision().to_owned();
         for bad in [
             AppointmentPolicy { daily_target: 0, ..Default::default() },
-            AppointmentPolicy { minimum_pause_minutes: 0, ..Default::default() },
         ] {
             let result = save_profile_changes(&path, Some("fixture"), draft(&original), &revision, &catalog(),
                 ProfileEdits { protection: Some(&bad), ..Default::default() });

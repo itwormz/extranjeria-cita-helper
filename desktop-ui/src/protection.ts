@@ -5,7 +5,6 @@ export const protectionFields:ProtectionField[]=[
  {key:'daily_target',title:'Базовый бюджет',description:'Используется без адаптации или пока нет адаптивной оценки. Бюджет только на сегодня можно изменить отдельно.',kind:'int',source:'protection'},
  {key:'adaptive_target',title:'Адаптивный бюджет',description:'Бюджет на завтра определяется числом запросов до первого ответа с cod. oper, но составляет не менее пяти попыток. Запрос с этим ответом не учитывается.',kind:'flag',source:'protection'},
  {key:'retry_after_office',title:'Повторить после офиса',description:'Если после показа офиса сайт ответит «Сит нет», можно сделать одну попытку раньше запланированного времени. Чистый проход и паузы по-прежнему обязательны.',kind:'flag',source:'protection'},
- {key:'minimum_pause_minutes',title:'Пауза между попытками',description:'Минимальное время между отправками запроса на запись, в том числе вне расписания.',kind:'int',unit:'мин',source:'protection'},
  {key:'adaptive_reload_on_429',title:'Замедлять обновление при 429',description:'Каждый новый HTTP 429 на форме заявителя добавляет 30 секунд к интервалу её обновления до конца запуска.',kind:'flag',source:'timings'},
  {key:'distribute_attempts',title:'Распределять попытки',description:'Распределять бюджет по времени дня. Вне окна чистый проход ждёт; «Попробовать сейчас» открывает ближайшее окно раньше.',kind:'flag',source:'protection'},
 ];
