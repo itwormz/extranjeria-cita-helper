@@ -1228,12 +1228,7 @@ fn run_owned(
                             wall()?,
                         )
                         .map_err(|_| "statistics_unavailable")?;
-                    let check = matches!(
-                        receipt.action,
-                        ActionKind::Request
-                            | ActionKind::RequestReload
-                            | ActionKind::ApplicantReload
-                    );
+                    let check = crate::counts_as_check(receipt.action);
                     if check {
                         stats
                             .operation(

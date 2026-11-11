@@ -98,6 +98,11 @@ pub fn closed_window_stop<T>(
 pub fn certificate_reminder_due(clicked_at_ms: Option<u64>, already_rung: bool, now_ms: u64) -> bool {
     !already_rung && clicked_at_ms.is_some_and(|at| now_ms >= at.saturating_add(5_000))
 }
+/// Python counts a check when the availability request (`Solicitar cita`, POST `acCitar`) is sent; waiting on
+/// the applicant form and reloading it is not a check.
+pub fn counts_as_check(action: ceh_core::model::ActionKind) -> bool {
+    action == ceh_core::model::ActionKind::Request
+}
 pub fn catalog() -> &'static ProfileCatalog {
     &CATALOG
 }

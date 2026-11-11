@@ -41,3 +41,13 @@ fn the_certificate_reminder_rings_once_five_seconds_after_the_click_even_if_the_
     assert!(certificate_reminder_due(Some(10_000), false, 15_000));
     assert!(!certificate_reminder_due(Some(10_000), true, 60_000), "once");
 }
+
+#[test]
+fn only_the_availability_request_counts_as_a_check_not_reloads_of_the_waiting_page() {
+    use ceh_core::model::ActionKind;
+    use ceh_desktop::counts_as_check;
+    assert!(counts_as_check(ActionKind::Request), "the submitted Solicitar cita");
+    for action in [ActionKind::RequestReload, ActionKind::ApplicantReload, ActionKind::Applicant, ActionKind::Province, ActionKind::Recovery, ActionKind::Cookie] {
+        assert!(!counts_as_check(action), "{action:?}");
+    }
+}
