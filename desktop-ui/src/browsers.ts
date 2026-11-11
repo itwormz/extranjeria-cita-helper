@@ -13,4 +13,3 @@ export function fallbackBrowser(list:InstalledBrowser[]|null,current:string):str
  if(!installed.length||installed.some(b=>b.id===current))return null;
  return installed[0].id;
 }
-export function browserName(id:string):string{return NAMES[id]??id;}
