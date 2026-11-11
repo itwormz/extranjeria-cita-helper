@@ -528,6 +528,8 @@ impl OwnedFirefox {
         if cancelled.load(Ordering::Acquire) {
             return Err(FirefoxError::Cancelled);
         }
+        // A window opened behind others reads as hidden to the page and cannot complete a click: bring it forward.
+        let _ = connection.call_before("browsingContext.activate", json!({"context":owned.context}), deadline);
         owned.connection = Some(connection);
         Ok(owned)
     }

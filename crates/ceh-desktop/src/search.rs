@@ -369,6 +369,14 @@ fn profile_age_days(root: &Path, key: &str, browser: &str) -> Option<u64> {
     let created = std::fs::metadata(marker).ok()?.created().ok()?;
     Some(std::time::SystemTime::now().duration_since(created).ok()?.as_secs() / 86_400)
 }
+/// Whether the page reports itself hidden (the window is behind other windows or minimised).
+fn window_hidden(connection: &mut ceh_browser::bidi::BidiConnection, context: &str) -> bool {
+    connection
+        .call("script.evaluate", json!({"expression":"document.visibilityState","target":{"context":context},"awaitPromise":false}))
+        .ok()
+        .and_then(|v| v["result"]["value"].as_str().map(|s| s == "hidden"))
+        .unwrap_or(false)
+}
 fn observation_retry_ms(attempt: u32) -> u64 {
     if attempt < 5 { 500 } else { 30_000 }
 }
@@ -1055,6 +1063,36 @@ fn run_owned(
                             | FlowEffect::AcceptCookies { .. }
                     )
                 }) {
+                    // Firefox cannot complete a click while its window is hidden behind other windows (the
+                    // action hangs and the search would stop): wait for the person to bring the window forward.
+                    if browser.connection().cdp_target().is_none() {
+                        let mut rung = false;
+                        while window_hidden(browser.connection(), &context) && !cancelled.load(Ordering::Acquire) {
+                            if !rung {
+                                rung = true;
+                                update(state, |s| {
+                                    s.attention = true;
+                                    s.warning = Some("browser_in_background");
+                                })?;
+                                sequence = sequence.checked_add(1).ok_or("search_unavailable")?;
+                                if let Ok(change) = presenter.update(
+                                    &driver.control(),
+                                    sequence,
+                                    mono(),
+                                    crate::session_presentation::PresentationFrame { active: true, browser_retained: manual, sound_enabled, repeat_alert: false, ..Default::default() },
+                                    &[FlowEffect::Alert],
+                                ) && let Ok(mut player) = sound.lock()
+                                {
+                                    let _ = crate::session_presentation::apply_native(window, root, &mut player, change);
+                                }
+                            }
+                            stats.heartbeat(&mut db, wall()?, mono()).map_err(|_| "statistics_unavailable")?;
+                            std::thread::sleep(Duration::from_millis(500));
+                        }
+                        if rung {
+                            update(state, |s| s.warning = None)?;
+                        }
+                    }
                     diagnostics.environment("before_action", browser.connection(), &context);
                     let bytes = uuid::Uuid::new_v4();
                     let sample = u64::from_le_bytes(
