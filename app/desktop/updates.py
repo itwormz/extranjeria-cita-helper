@@ -146,9 +146,10 @@ def beta_channel_release(fetch):
                 if bool(entry.get('prerelease'))!=('-beta.' in tag):continue
                 candidates.append((key,entry))
             if len(entries)<100:
-                if not candidates:raise HTTPError(api_url(repository,'/releases'),404,'No releases',None,None)
+                if not candidates:break
                 return repository,max(candidates,key=lambda item:item[0])[1]
         else:raise ValueError('Too many release pages')
+    raise HTTPError(api_url(REPOSITORIES[-1],'/releases'),404,'No releases',None,None)
 
 
 def release_commit(version, fetch, repository=LEGACY_REPOSITORY):

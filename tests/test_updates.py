@@ -385,3 +385,33 @@ def test_beta_package_download_receipt_and_reverification(tmp_path,monkeypatch):
         return io.BytesIO((digest+'  '+item.name+'\n').encode() if url.endswith('SHA256SUMS') else payload)
     path=download_release(item,tmp_path,threading.Event(),fetch=fetch)
     assert verify_download(path) == path
+
+
+@pytest.mark.parametrize('new_releases', [[], [dict(release('0.4.0-beta.1'), prerelease=True, draft=True)],
+                                         [dict(release('0.4.0-rc.1'), prerelease=True)]])
+def test_beta_listing_falls_back_when_new_repository_has_no_allowed_releases(new_releases):
+    import io
+    from app.desktop.updates import latest_release, select_release
+    def fetch(url):
+        entries = new_releases if '/santacita/' in url else [release('0.3.8')]
+        return io.BytesIO(json.dumps(entries).encode())
+    repository, data = latest_release(fetch, include_beta=True)
+    item = select_release(data, '0.3.7', 'windows', 'x64', repository=repository, include_beta=True)
+    assert item.version == '0.3.8'
+    assert item.repository == 'https://github.com/itwormz/extranjeria-cita-helper'
+    assert item.url == 'https://github.com/itwormz/extranjeria-cita-helper/releases/download/v0.3.8/extranjeria-cita-helper-0.3.8-windows-x64.msi'
+
+
+def test_beta_listing_reports_no_release_only_after_both_empty_repositories():
+    import io
+    from urllib.error import HTTPError
+    from app.desktop.updates import latest_release
+    requested = []
+    def fetch(url):
+        requested.append(url)
+        return io.BytesIO(b'[]')
+    with pytest.raises(HTTPError) as error:
+        latest_release(fetch, include_beta=True)
+    assert error.value.code == 404
+    assert requested == ['https://api.github.com/repos/itwormz/santacita/releases?per_page=100&page=1',
+                         'https://api.github.com/repos/itwormz/extranjeria-cita-helper/releases?per_page=100&page=1']
