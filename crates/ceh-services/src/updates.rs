@@ -99,6 +99,20 @@ fn package_names(version: &str, target: Target) -> Vec<String> {
 /// The release must be immutable, carry a `SHA256SUMS` file, and every file must be the project's own
 /// GitHub release asset.
 pub fn select_release(body: &str, current: &str, target: Target) -> Result<Option<Release>, UpdateError> {
+    select_with(body, current, |version| package_names(version, target))
+}
+/// The portable ZIP (Windows only) instead of the installer, for a portable install.
+pub fn select_portable_release(body: &str, current: &str, target: Target) -> Result<Option<Release>, UpdateError> {
+    if target.system != "windows" {
+        return Err(UpdateError::Invalid);
+    }
+    select_with(body, current, |version| vec![format!("SantaCita-{version}-windows-{}-portable.zip", target.arch)])
+}
+/// Whether this program is a portable install: Windows, with a plain `portable.flag` beside the program.
+pub fn is_portable_install() -> bool {
+    cfg!(windows) && std::env::current_exe().ok().and_then(|exe| exe.parent().map(crate::portable_update::portable_flag_in)).unwrap_or(false)
+}
+fn select_with(body: &str, current: &str, names: impl Fn(&str) -> Vec<String>) -> Result<Option<Release>, UpdateError> {
     let latest = parse_latest(body)?;
     if !newer(&latest.version, current) {
         return Ok(None);
@@ -115,7 +129,7 @@ pub fn select_release(body: &str, current: &str, target: Target) -> Result<Optio
         let url = first["browser_download_url"].as_str()?;
         (found.next().is_none() && url == format!("{base}{name}")).then(|| (url.to_owned(), first["size"].as_u64().unwrap_or(0)))
     };
-    let (name, (url, size)) = package_names(&latest.version, target)
+    let (name, (url, size)) = names(&latest.version)
         .into_iter()
         .find_map(|name| asset(&name).map(|found| (name, found)))
         .ok_or(UpdateError::Invalid)?;
@@ -205,7 +219,7 @@ pub fn download_latest(
         return Err(UpdateError::Invalid);
     }
     let target = Target::current().ok_or(UpdateError::Invalid)?;
-    let release = select_release(&body, current, target)?.ok_or(UpdateError::Invalid)?;
+    let release = if is_portable_install() { select_portable_release(&body, current, target) } else { select_release(&body, current, target) }?.ok_or(UpdateError::Invalid)?;
     let sums = get(&release.sums_url, "application/octet-stream")?.text().map_err(|_| UpdateError::Network)?;
     if sums.len() > 16 * 1024 {
         return Err(UpdateError::Invalid);

@@ -224,11 +224,29 @@ fn update_cancel(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> R
     runtime.update.cancel();
     Ok(())
 }
-/// Open the verified package (disk image, installer or AppImage); the person finishes the installation.
+/// Open the verified package (disk image, installer or AppImage); the person finishes the installation. A portable
+/// install is updated in place instead: the program file is swapped and the program restarts.
 #[tauri::command]
 async fn update_install(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<(), &'static str> {
     authorize(&window)?;
     let path = runtime.update.install_path().ok_or("update_not_ready")?;
+    if ceh_services::updates::is_portable_install() {
+        if runtime.search.snapshot()?.active {
+            return Err("search_already_running");
+        }
+        let exe = std::env::current_exe().map_err(|_| "update_install_failed")?;
+        let target = exe.clone();
+        tauri::async_runtime::spawn_blocking(move || ceh_desktop::apply_portable_update(&path, &target))
+            .await
+            .map_err(|_| "update_install_failed")??;
+        // The new program waits a moment (CEH_AFTER_UPDATE) so this one is gone before it starts.
+        std::process::Command::new(&exe)
+            .env("CEH_AFTER_UPDATE", "1")
+            .spawn()
+            .map_err(|_| "update_install_failed")?;
+        window.app_handle().exit(0);
+        return Ok(());
+    }
     tauri::async_runtime::spawn_blocking(move || ceh_desktop::notification_actions::open_installer(&path))
         .await
         .map_err(|_| "update_install_failed")?
@@ -675,6 +693,21 @@ async fn startup_report_copy(
 }
 
 fn main() {
+    // Just updated: the previous program is still shutting down; wait for it, and do not pass the marker on.
+    if std::env::var_os("CEH_AFTER_UPDATE").is_some() {
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        // SAFETY: nothing else runs yet; this only removes a marker for the child processes started later.
+        unsafe { std::env::remove_var("CEH_AFTER_UPDATE") };
+    }
+    // A portable install removes what the previous update left beside it.
+    if ceh_services::updates::is_portable_install()
+        && let Ok(exe) = std::env::current_exe()
+    {
+        ceh_services::portable_update::remove_old(&exe);
+        if let Some(directory) = exe.parent() {
+            let _ = std::fs::remove_dir_all(directory.join("update-staging"));
+        }
+    }
     tauri::Builder::default()
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

@@ -88,6 +88,33 @@ pub fn portable_data_root(program_dir: &std::path::Path) -> Option<std::path::Pa
         .is_ok_and(|meta| meta.file_type().is_file())
         .then(|| program_dir.join("data"))
 }
+/// Update a portable install in place: unpack the verified ZIP beside the program, swap the program file (the running
+/// one is renamed aside), refresh the licence, and remove the unpacked copy and the download. Nothing changes when
+/// the package is not a portable release. The caller starts the new program and exits.
+pub fn apply_portable_update(zip: &std::path::Path, exe: &std::path::Path) -> Result<(), &'static str> {
+    use ceh_services::portable_update::{extract_program, swap_program};
+    let directory = exe.parent().ok_or("update_install_failed")?;
+    let name = exe.file_name().and_then(|n| n.to_str()).ok_or("update_install_failed")?;
+    // Beside the program, so the file swap stays on one volume.
+    let staging = directory.join("update-staging");
+    let _ = std::fs::remove_dir_all(&staging);
+    let result = (|| {
+        let new_exe = extract_program(zip, &staging, name).map_err(|_| "update_install_failed")?;
+        swap_program(exe, &new_exe).map_err(|_| "update_install_failed")?;
+        let _ = std::fs::copy(staging.join("LICENSE.txt"), directory.join("LICENSE.txt"));
+        Ok(())
+    })();
+    let _ = std::fs::remove_dir_all(&staging);
+    if result.is_ok() {
+        if let Some(downloads) = zip.parent() {
+            let sum = zip.with_file_name(format!("{}.sha256", zip.file_name().and_then(|n| n.to_str()).unwrap_or("")));
+            let _ = std::fs::remove_file(zip);
+            let _ = std::fs::remove_file(sum);
+            let _ = std::fs::remove_dir(downloads);
+        }
+    }
+    result
+}
 /// First start of the installed application: when it has no profile list yet and a Python data folder exists
 /// beside it, bring that data over (merging, never overwriting; the old folder is only read). Returns the
 /// folder name on success; any problem (data in use, unreadable) leaves nothing behind and is retried next start.

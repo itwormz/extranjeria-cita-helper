@@ -110,3 +110,32 @@ mod package {
         assert_eq!(std::fs::read_dir(third.path()).unwrap().count(), 0);
     }
 }
+
+mod portable {
+    use ceh_services::updates::{select_portable_release, Target, UpdateError};
+    const WINDOWS: Target = Target { system: "windows", arch: "x64" };
+    fn api(assets: &[&str]) -> String {
+        let list: Vec<String> = assets
+            .iter()
+            .map(|name| format!(r#"{{"name":"{name}","size":1000,"browser_download_url":"https://github.com/itwormz/santacita/releases/download/v1.2.0/{name}"}}"#))
+            .collect();
+        format!(r#"{{"tag_name":"v1.2.0","draft":false,"prerelease":false,"immutable":true,"html_url":"https://github.com/itwormz/santacita/releases/tag/v1.2.0","assets":[{}]}}"#, list.join(","))
+    }
+
+    #[test]
+    fn a_portable_install_is_offered_the_portable_zip_never_the_installer() {
+        let body = api(&["SantaCita-1.2.0-windows-x64.msi", "SantaCita-1.2.0-windows-x64-portable.zip", "SHA256SUMS"]);
+        let release = select_portable_release(&body, "1.0.0", WINDOWS).unwrap().unwrap();
+        assert_eq!(release.name, "SantaCita-1.2.0-windows-x64-portable.zip");
+        assert!(release.url.ends_with("/v1.2.0/SantaCita-1.2.0-windows-x64-portable.zip"));
+        assert_eq!(select_portable_release(&body, "1.2.0", WINDOWS).unwrap(), None);
+    }
+
+    #[test]
+    fn without_a_portable_package_or_off_windows_nothing_is_guessed() {
+        let only_msi = api(&["SantaCita-1.2.0-windows-x64.msi", "SHA256SUMS"]);
+        assert_eq!(select_portable_release(&only_msi, "1.0.0", WINDOWS).err(), Some(UpdateError::Invalid));
+        let body = api(&["SantaCita-1.2.0-windows-x64-portable.zip", "SHA256SUMS"]);
+        assert_eq!(select_portable_release(&body, "1.0.0", Target { system: "macos", arch: "arm64" }).err(), Some(UpdateError::Invalid));
+    }
+}
