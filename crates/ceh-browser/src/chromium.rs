@@ -15,8 +15,15 @@ pub fn launch_arguments(profile: &Path, os: TargetOs) -> Vec<String> {
         "--no-default-browser-check".to_owned(),
         // Python's Camoufox identity is Spanish; the site is Spanish.
         "--lang=es-ES".to_owned(),
-        // `navigator.webdriver` must read false, as in a browser the person drives.
+        // `navigator.webdriver` is true whenever a debug port is open; this switch turns it off the way Chrome's own
+        // field trials do, and `--test-type` keeps Chrome from warning the person about the unsupported flag.
         "--disable-blink-features=AutomationControlled".to_owned(),
+        "--test-type".to_owned(),
+        // A window behind others or a tab in the background must keep answering input: without these Chrome
+        // throttles it and a click is never acknowledged.
+        "--disable-backgrounding-occluded-windows".to_owned(),
+        "--disable-renderer-backgrounding".to_owned(),
+        "--disable-background-timer-throttling".to_owned(),
     ];
     match os {
         // A fresh profile otherwise asks for the login keychain ("Chrome Safe Storage").

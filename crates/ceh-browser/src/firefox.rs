@@ -607,11 +607,15 @@ impl OwnedFirefox {
             return false;
         }
         let context = self.context.clone();
+        let process_alive = self.child.is_some();
         let Some(connection) = self.connection.as_mut() else { return false };
         match connection.call("browsingContext.getTree", json!({})) {
             Ok(tree) => context_is_listed(&tree, &context),
-            // A hiccup is not a closed page; a dead connection is.
-            Err(_) => connection.available(),
+            // A hiccup is not a closed page. A connection that broke while the browser process still runs
+            // (a native dialog such as the certificate or keychain prompt held a command past its timeout)
+            // is not a closed window either: the person may be typing in that browser right now, and it
+            // must never be taken down. A page the person closes ends the process or empties the target list.
+            Err(_) => connection.available() || process_alive,
         }
     }
     /// When the page this app opened is gone (the person closed it) there is nothing to preserve: quit the

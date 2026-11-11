@@ -26,8 +26,15 @@ fn no_flag_that_marks_the_browser_as_automated_or_changes_it_from_a_normal_one()
             }
         }
     }
-    // The page-visible automation switch stays off the way Chrome itself does it.
-    assert!(joined(TargetOs::Linux).contains(&"--disable-blink-features=AutomationControlled".to_owned()));
+    // The webdriver switch is off, the unsupported-flag warning bar is suppressed, and a window in the
+    // background is not throttled.
+    for os in [TargetOs::Macos, TargetOs::Windows, TargetOs::Linux] {
+        let args = joined(os);
+        assert!(args.contains(&"--disable-blink-features=AutomationControlled".to_owned()) && args.contains(&"--test-type".to_owned()));
+        for wanted in ["--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding", "--disable-background-timer-throttling"] {
+            assert!(args.contains(&wanted.to_owned()), "{wanted}");
+        }
+    }
 }
 
 #[test]
