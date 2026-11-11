@@ -277,9 +277,15 @@ impl CdpWire {
     }
     fn read(&mut self, deadline: Instant) -> Result<Value, ProtocolError> {
         loop {
-            let remaining = deadline.checked_duration_since(Instant::now()).filter(|d| !d.is_zero()).ok_or(ProtocolError::Unavailable)?;
+            // A command that outlives its time (a native dialog holds the browser) fails alone: `Rejected` does not
+            // poison the connection, and the late reply is skipped by its id. A broken socket stays `Unavailable`.
+            let remaining = deadline.checked_duration_since(Instant::now()).filter(|d| !d.is_zero()).ok_or(ProtocolError::Rejected)?;
             self.socket.get_mut().set_read_timeout(Some(remaining)).map_err(|_| ProtocolError::Unavailable)?;
-            match self.socket.read().map_err(|_| ProtocolError::Unavailable)? {
+            let message = self.socket.read().map_err(|error| match error {
+                tungstenite::Error::Io(io) if matches!(io.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => ProtocolError::Rejected,
+                _ => ProtocolError::Unavailable,
+            })?;
+            match message {
                 Message::Text(text) => return serde_json::from_str(&text).map_err(|_| ProtocolError::InvalidData),
                 Message::Ping(_) | Message::Pong(_) => continue,
                 _ => return Err(ProtocolError::InvalidData),
