@@ -3,18 +3,18 @@ import {journalMessage,journalTemplates} from '../src/journal-text.ts';
 const base={id:1,time:0,stage:'province',status:'processing',event:'visit',destination:null,offices:[],selected_office:'',submitted:false,checked:false,applicant_continue:false,deadline:null,booking_details:{}};
 const row=extra=>({...base,...extra});
 test('an unexpected page after a visit explains itself instead of repeating the status',()=>{
- const unexpected=journalMessage(row({status:'unconfirmed',destination:'procedure'}));assert.equal(unexpected.template,'Открылась другая страница → {destination}');assert.equal(unexpected.values.destination,'procedure');
- assert.equal(journalMessage(row({stage:'province',status:'unconfirmed',destination:'province'})).template,'Страница загружена заново → {destination}');
- assert.equal(journalMessage(row({status:'unconfirmed',destination:'unknown'})).template,'Результат действия не распознан → {destination}');
+ const unexpected=journalMessage(row({status:'unconfirmed',destination:'procedure'}));assert.equal(unexpected.template,'Другая страница → {destination}');assert.equal(unexpected.values.destination,'procedure');
+ assert.equal(journalMessage(row({stage:'province',status:'unconfirmed',destination:'province'})).template,'Страница обновилась');
+ assert.equal(journalMessage(row({status:'unconfirmed',destination:'unknown'})).template,'Ответ не распознан → {destination}');
 });
 test('visits tell what the bot does, sent, or confirmed per page',()=>{
  assert.equal(journalMessage(row({stage:'province'})).template,'Выбираем провинцию');
  assert.equal(journalMessage(row({stage:'province',submitted:true})).template,'Выбор провинции отправлен — ожидается ответ');
  assert.equal(journalMessage(row({stage:'request_menu',submitted:true,checked:true})).template,'Запрос проверки сит отправлен — ожидается ответ');
- assert.equal(journalMessage(row({stage:'procedure',status:'passed',destination:'applicant'})).template,'Услуга выбрана → {destination}');
- assert.equal(journalMessage(row({stage:'auth_wait',status:'passed',destination:'applicant'})).template,'Авторизация завершена → {destination}');
- assert.equal(journalMessage(row({stage:'request_no_slots',status:'checked'})).template,'После обновления сит по-прежнему нет');
- assert.equal(journalMessage(row({stage:'request_no_slots',status:'waiting',deadline:1})).template,'Сит нет — следующая проверка в {deadline}');
+ assert.equal(journalMessage(row({stage:'procedure',status:'passed',destination:'applicant'})).template,'→ {destination}');
+ assert.equal(journalMessage(row({stage:'auth_wait',status:'passed',destination:'applicant'})).template,'Вход выполнен → {destination}');
+ assert.equal(journalMessage(row({stage:'request_no_slots',status:'checked'})).template,'Сит нет');
+ assert.equal(journalMessage(row({stage:'request_no_slots',status:'waiting',deadline:1})).template,'Сит нет · следующая проверка в {deadline}');
  assert.equal(journalMessage(row({stage:'applicant_no_slots',status:'waiting',deadline:1})).template,'Следующая попытка в {deadline}');
 });
 test('offices, manual states and control rows have their own texts',()=>{

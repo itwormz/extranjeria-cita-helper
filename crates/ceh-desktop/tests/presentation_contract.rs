@@ -98,3 +98,27 @@ fn attention_timer_never_catches_up_or_restarts_after_stop() {
     assert!(timer.due(30000));
     assert!(!timer.due(99999));
 }
+
+#[test]
+fn a_large_icon_is_shrunk_by_averaging_so_small_window_icons_stay_sharp() {
+    use ceh_desktop::presentation::shrink_icon;
+    // 4x4 -> 2x2: each output pixel is the average of a 2x2 block, weighted by alpha.
+    let mut base = vec![0u8; 4 * 4 * 4];
+    for (i, pixel) in base.chunks_mut(4).enumerate() {
+        let (x, y) = (i % 4, i / 4);
+        let colour = if (x / 2 + y / 2) % 2 == 0 { [200, 0, 0, 255] } else { [0, 0, 200, 255] };
+        pixel.copy_from_slice(&colour);
+    }
+    let (out, w, h) = shrink_icon(&base, 4, 4, 2).unwrap();
+    assert_eq!((w, h, out.len()), (2, 2, 16));
+    assert_eq!(&out[0..4], &[200, 0, 0, 255]);
+    assert_eq!(&out[4..8], &[0, 0, 200, 255]);
+    // A half-transparent mix keeps the colour of the opaque pixels, not a darkened blend.
+    let mut mixed = vec![0u8; 2 * 2 * 4];
+    mixed[0..4].copy_from_slice(&[100, 100, 100, 255]);
+    let (out, _, _) = shrink_icon(&mixed, 2, 2, 2).unwrap();
+    assert_eq!(&out[0..3], &[100, 100, 100]);
+    assert_eq!(out[3], 64);
+    // Sizes that do not divide evenly, a zero factor and a short buffer are refused.
+    assert!(shrink_icon(&base, 4, 4, 3).is_err() && shrink_icon(&base, 4, 4, 0).is_err() && shrink_icon(&base[..10], 4, 4, 2).is_err());
+}

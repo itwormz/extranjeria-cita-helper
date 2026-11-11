@@ -540,6 +540,12 @@ fn run(
         }
     }
 }
+/// The browser is gone (the person closed it, or the app quit it): nothing waits for the person any more.
+fn clear_closed_browser(s: &mut SearchSnapshot) {
+    s.attention = false;
+    s.manual = false;
+    s.browser_pid = None;
+}
 #[allow(clippy::too_many_arguments)]
 fn run_session(
     root: &Path,
@@ -621,7 +627,9 @@ fn run_session(
     } else {
         (close_browser.load(Ordering::Acquire) && browser.stop().is_ok()) || browser.quit_if_page_gone()
     };
-    if !closed {
+    if closed {
+        let _ = update(state, clear_closed_browser);
+    } else {
         browser.handoff();
     }
     if let Some(request) = &restart {
@@ -1407,6 +1415,13 @@ fn run_owned(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn a_browser_the_person_closed_leaves_no_attention_manual_mode_or_process_behind() {
+        let mut state = SearchSnapshot { attention: true, manual: true, browser_pid: Some(4242), active: true, ..Default::default() };
+        clear_closed_browser(&mut state);
+        assert!(!state.attention && !state.manual && state.browser_pid.is_none());
+        assert!(state.active, "ending the search itself is another step");
+    }
     #[test]
     fn held_attention_does_not_restart_active_time_on_empty_polls() {
         assert!(attention_state(false, false, false, &[FlowEffect::Alert]));

@@ -13,6 +13,11 @@ fn chrome_starts_like_an_ordinary_browser_with_its_own_profile_and_a_loopback_de
     assert!(args.contains(&"--user-data-dir=/data/chrome-p1".to_owned()));
     assert!(args.contains(&"--no-first-run".to_owned()) && args.contains(&"--no-default-browser-check".to_owned()));
     assert!(args.contains(&"--lang=es-ES".to_owned()));
+    // Closing the last window must end the browser (Edge and Chrome otherwise keep a background process alive
+    // on Windows, and the app could not tell that the person had closed it).
+    for os in [TargetOs::Macos, TargetOs::Windows, TargetOs::Linux] {
+        assert!(joined(os).contains(&"--disable-background-mode".to_owned()), "{os:?}");
+    }
     assert_eq!(args.last().unwrap(), "about:blank");
 }
 

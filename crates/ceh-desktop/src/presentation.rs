@@ -114,6 +114,42 @@ pub fn status_pixels(
     }
     Ok(output)
 }
+/// Shrink an RGBA icon by an integer `factor` with an alpha-weighted box average. Windows scales a 512 px window
+/// icon down to 16-32 px roughly; handing it a 64 px version keeps the small icons sharp.
+pub fn shrink_icon(rgba: &[u8], width: u32, height: u32, factor: u32) -> Result<(Vec<u8>, u32, u32), &'static str> {
+    if factor == 0 || width == 0 || height == 0 || width % factor != 0 || height % factor != 0 {
+        return Err("icon_size_invalid");
+    }
+    if rgba.len() != (width as usize) * (height as usize) * 4 {
+        return Err("icon_size_invalid");
+    }
+    let (out_w, out_h) = (width / factor, height / factor);
+    let mut out = vec![0u8; (out_w as usize) * (out_h as usize) * 4];
+    let area = f64::from(factor * factor);
+    for y in 0..out_h {
+        for x in 0..out_w {
+            let (mut sums, mut alpha_sum) = ([0.0f64; 3], 0.0f64);
+            for dy in 0..factor {
+                for dx in 0..factor {
+                    let index = (((y * factor + dy) * width + x * factor + dx) as usize) * 4;
+                    let alpha = f64::from(rgba[index + 3]) / 255.0;
+                    for channel in 0..3 {
+                        sums[channel] += f64::from(rgba[index + channel]) * alpha;
+                    }
+                    alpha_sum += alpha;
+                }
+            }
+            let target = ((y * out_w + x) as usize) * 4;
+            if alpha_sum > 0.0 {
+                for channel in 0..3 {
+                    out[target + channel] = (sums[channel] / alpha_sum).round() as u8;
+                }
+            }
+            out[target + 3] = (alpha_sum / area * 255.0).round() as u8;
+        }
+    }
+    Ok((out, out_w, out_h))
+}
 /// Monotonic cadence: delayed polls produce one chime, never a burst of missed repeats.
 pub struct AttentionTimer {
     interval: u64,
@@ -150,17 +186,28 @@ pub fn apply_icon(window: &tauri::WebviewWindow, status: IconStatus) -> Result<(
         .app_handle()
         .default_window_icon()
         .ok_or("icon_unavailable")?;
-    let pixels = status_pixels(image.rgba(), image.width(), image.height(), status)?;
     #[cfg(not(target_os = "macos"))]
-    return window
-        .set_icon(tauri::image::Image::new_owned(
-            pixels,
-            image.width(),
-            image.height(),
-        ))
-        .map_err(|_| "icon_unavailable");
+    {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        // The executable carries a multi-size icon that Windows picks from by itself (sharp at 16-256 px), so
+        // the idle state leaves it alone. Only a status badge, or going back from one, sets a window icon, and
+        // then a 64 px version: a 512 px picture shrunk by the system looks soft.
+        static OVERRIDDEN: AtomicBool = AtomicBool::new(false);
+        if status == IconStatus::Idle && !OVERRIDDEN.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        let factor = (image.width() / 64).max(1);
+        let (small, width, height) = shrink_icon(image.rgba(), image.width(), image.height(), factor)
+            .unwrap_or_else(|_| (image.rgba().to_vec(), image.width(), image.height()));
+        let pixels = status_pixels(&small, width, height, status)?;
+        OVERRIDDEN.store(true, Ordering::Relaxed);
+        return window
+            .set_icon(tauri::image::Image::new_owned(pixels, width, height))
+            .map_err(|_| "icon_unavailable");
+    }
     #[cfg(target_os = "macos")]
     {
+        let pixels = status_pixels(image.rgba(), image.width(), image.height(), status)?;
         let mut bytes = Vec::new();
         {
             let mut encoder = png::Encoder::new(&mut bytes, image.width(), image.height());

@@ -24,6 +24,8 @@ pub fn launch_arguments(profile: &Path, os: TargetOs) -> Vec<String> {
         "--disable-backgrounding-occluded-windows".to_owned(),
         "--disable-renderer-backgrounding".to_owned(),
         "--disable-background-timer-throttling".to_owned(),
+        // Closing the last window ends the browser instead of leaving a background process (Windows).
+        "--disable-background-mode".to_owned(),
     ];
     match os {
         // A fresh profile otherwise asks for the login keychain ("Chrome Safe Storage").

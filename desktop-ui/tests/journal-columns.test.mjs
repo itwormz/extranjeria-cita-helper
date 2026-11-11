@@ -18,17 +18,17 @@ test('dragging a border resizes the column to its left and never below the minim
  assert.deepEqual(resizeWidths(widths,5,10),widths,'an unknown column changes nothing');
 });
 test('each journal has its own default widths',()=>{
- assert.deepEqual(defaultWidths('timeline'),[90,190,215]);
+ assert.deepEqual(defaultWidths('timeline'),[90,200]);
  assert.deepEqual(defaultWidths('offices'),[90]);
 });
 test('saved widths are used only when they are sane, otherwise the defaults',()=>{
  const memory=new Map();const storage={getItem:k=>memory.has(k)?memory.get(k):null,setItem:(k,v)=>void memory.set(k,v)};
- assert.deepEqual(loadWidths('timeline',storage),[90,190,215]);
- saveWidths('timeline',[100,250,300],storage);
- assert.deepEqual(loadWidths('timeline',storage),[100,250,300]);
- memory.set('santacita.journal-columns.timeline','not json');assert.deepEqual(loadWidths('timeline',storage),[90,190,215]);
- memory.set('santacita.journal-columns.timeline',JSON.stringify([10,99999,'x']));assert.deepEqual(loadWidths('timeline',storage),[90,190,215]);
- memory.set('santacita.journal-columns.timeline',JSON.stringify([100,200]));assert.deepEqual(loadWidths('timeline',storage),[90,190,215],'wrong number of columns');
+ assert.deepEqual(loadWidths('timeline',storage),[90,200]);
+ saveWidths('timeline',[100,260],storage);
+ assert.deepEqual(loadWidths('timeline',storage),[100,260]);
+ memory.set('santacita.journal-columns.timeline','not json');assert.deepEqual(loadWidths('timeline',storage),[90,200]);
+ memory.set('santacita.journal-columns.timeline',JSON.stringify([10,99999]));assert.deepEqual(loadWidths('timeline',storage),[90,200]);
+ memory.set('santacita.journal-columns.timeline',JSON.stringify([100,200,300]));assert.deepEqual(loadWidths('timeline',storage),[90,200],'wrong number of columns');
  const broken={getItem(){throw new Error('blocked');},setItem(){throw new Error('blocked');}};
- assert.deepEqual(loadWidths('timeline',broken),[90,190,215]);saveWidths('timeline',[1,2,3],broken);
+ assert.deepEqual(loadWidths('timeline',broken),[90,200]);saveWidths('timeline',[1,2],broken);
 });
