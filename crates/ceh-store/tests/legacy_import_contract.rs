@@ -61,7 +61,7 @@ fn existing_data_files_are_never_overwritten_and_a_second_import_changes_nothing
     write(target.path(), "data/achievements.json", b"{\"mine\":1}");
     let first = import(source.path(), target.path()).unwrap();
     assert_eq!(fs::read(target.path().join("data/achievements.json")).unwrap(), b"{\"mine\":1}");
-    assert_eq!(first.kept, vec!["data/achievements.json".to_owned()]);
+    assert_eq!(first.merged, vec!["data/achievements.json".to_owned()], "nothing to add: the file stays as it is");
     let after_first = snapshot(target.path());
     let second = import(source.path(), target.path()).unwrap();
     assert!(second.copied.is_empty());
@@ -126,4 +126,59 @@ fn candidates_are_the_known_application_folders_that_hold_profiles() {
     let found = candidates(&[support.path().to_owned()]);
     assert_eq!(found.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(), vec!["Cita Extranjeria Helper"]);
     assert_eq!(found[0].path(), support.path().join("Cita Extranjeria Helper"));
+}
+
+mod merging {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn database(path: &Path, events: &[(&str, &str)], episodes: u32) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let db = Connection::open(path).unwrap();
+        db.execute_batch(include_str!("../src/schema.sql")).unwrap();
+        for (profile, identity) in events {
+            db.execute("INSERT INTO events(profile,identity,kind,time,session,stage,mode,counted,offices,evidence) VALUES (?1,?2,'check','2026-10-01T10:00:00+00:00','s','x','auto',1,'','')", [profile, identity]).unwrap();
+        }
+        for n in 0..episodes {
+            db.execute("INSERT INTO episodes(profile,session,kind,stage,mode,document,start,end,last_seen,confirmed) VALUES ('old','s','page','x','auto',?1,'a','b','c',1)", [format!("d{n}")]).unwrap();
+        }
+        db.execute("INSERT OR IGNORE INTO baseline(profile,data) VALUES (?1,'{}')", [events.first().map_or("none", |e| e.0)]).unwrap();
+    }
+    fn count(path: &Path, table: &str) -> i64 {
+        Connection::open(path).unwrap().query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0)).unwrap()
+    }
+
+    #[test]
+    fn the_old_statistics_are_merged_into_the_new_database_once_and_the_new_one_is_backed_up() {
+        let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        write(source.path(), "tasks.yml", b"profiles: []\n");
+        database(&source.path().join("data/profile-statistics.sqlite3"), &[("old", "e1"), ("old", "e2")], 3);
+        database(&target.path().join("data/profile-statistics.sqlite3"), &[("new", "n1")], 1);
+        let report = import(source.path(), target.path()).unwrap();
+        assert!(report.merged.iter().any(|f| f.ends_with("profile-statistics.sqlite3")), "{report:?}");
+        let db = target.path().join("data/profile-statistics.sqlite3");
+        assert_eq!(count(&db, "events"), 3, "old and new events side by side");
+        assert_eq!(count(&db, "episodes"), 4);
+        assert_eq!(count(&db, "baseline"), 2);
+        assert!(target.path().join("data/profile-statistics.sqlite3.before-import").exists(), "the new database is backed up first");
+        // Importing the same folder again adds nothing.
+        import(source.path(), target.path()).unwrap();
+        assert_eq!(count(&db, "events"), 3);
+        assert_eq!(count(&db, "episodes"), 4);
+    }
+
+    #[test]
+    fn achievements_are_merged_by_id_and_the_new_file_is_backed_up() {
+        let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        write(source.path(), "tasks.yml", b"profiles: []\n");
+        write(source.path(), "data/achievements.json", br#"{"person_a":[{"id":"1","x":"old"}],"person_b":[{"id":"2"}]}"#);
+        write(target.path(), "data/achievements.json", br#"{"person_a":[{"id":"1","x":"new"},{"id":"3"}],"person_c":[{"id":"4"}]}"#);
+        import(source.path(), target.path()).unwrap();
+        let merged: serde_json::Value = serde_json::from_slice(&fs::read(target.path().join("data/achievements.json")).unwrap()).unwrap();
+        let ids = |key: &str| merged[key].as_array().unwrap().iter().map(|r| r["id"].as_str().unwrap().to_owned()).collect::<Vec<_>>();
+        assert_eq!(ids("person_a"), ["1", "3"], "an id that exists keeps the new app's record");
+        assert_eq!(ids("person_b"), ["2"]);
+        assert_eq!(ids("person_c"), ["4"]);
+        assert!(target.path().join("data/achievements.json.before-import").exists());
+    }
 }
