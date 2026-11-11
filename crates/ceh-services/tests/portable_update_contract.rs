@@ -112,3 +112,19 @@ fn only_a_plain_flag_file_beside_the_program_makes_an_install_portable() {
     fs::create_dir(other.path().join("portable.flag")).unwrap();
     assert!(!portable_flag_in(other.path()));
 }
+
+#[test]
+fn a_zip_written_by_windows_powershell_with_backslashes_is_accepted_like_any_other() {
+    // Compress-Archive of Windows PowerShell 5.1 stores `SantaCita\SantaCita.exe`; our own packaging uses it.
+    let dir = tempfile::tempdir().unwrap();
+    let zip = dir.path().join("p.zip");
+    zip_with(&zip, &[("SantaCita\\SantaCita.exe", b"new program"), ("SantaCita\\LICENSE.txt", b"licence"), ("SantaCita\\portable.flag", b"")]);
+    let staging = dir.path().join("stage");
+    let exe = extract_program(&zip, &staging, "SantaCita.exe").unwrap();
+    assert_eq!(fs::read(&exe).unwrap(), b"new program");
+    assert_eq!(fs::read(staging.join("LICENSE.txt")).unwrap(), b"licence");
+    // Backslashes do not open a way out of the folder: only the known names count.
+    let bad = dir.path().join("bad.zip");
+    zip_with(&bad, &[("SantaCita\\SantaCita.exe", b"x"), ("SantaCita\\..\\evil.exe", b"x")]);
+    assert!(extract_program(&bad, &dir.path().join("stage2"), "SantaCita.exe").is_err());
+}

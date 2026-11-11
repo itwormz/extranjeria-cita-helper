@@ -37,7 +37,8 @@ pub fn extract_program_limited(zip_path: &Path, staging: &Path, exe_name: &str, 
     let mut seen: Vec<String> = Vec::new();
     for index in 0..archive.len() {
         let entry = archive.by_index(index).map_err(|_| PortableError::Invalid)?;
-        let name = entry.name().to_owned();
+        // Windows PowerShell 5.1 (`Compress-Archive`) writes `SantaCita\\SantaCita.exe`: the same path.
+        let name = entry.name().replace('\\', "/");
         let known = [TOP, PROGRAM, LICENCE, &format!("{TOP}{FLAG}")].contains(&name.as_str());
         if !known || seen.contains(&name) || entry.is_symlink() {
             return Err(PortableError::Invalid);
@@ -52,7 +53,8 @@ pub fn extract_program_limited(zip_path: &Path, staging: &Path, exe_name: &str, 
     let mut written: Vec<PathBuf> = Vec::new();
     let result = (|| {
         let mut take = |entry_name: &str, target: &Path, max: u64| -> Result<(), PortableError> {
-            let Ok(mut entry) = archive.by_name(entry_name) else { return Ok(()) };
+            let Some(index) = (0..archive.len()).find(|i| archive.name_for_index(*i).is_some_and(|n| n.replace('\\', "/") == entry_name)) else { return Ok(()) };
+            let mut entry = archive.by_index(index).map_err(|_| PortableError::Invalid)?;
             let mut data = Vec::new();
             entry.by_ref().take(max + 1).read_to_end(&mut data).map_err(|_| PortableError::Invalid)?;
             if data.len() as u64 > max {

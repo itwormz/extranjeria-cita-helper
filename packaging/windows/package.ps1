@@ -33,7 +33,17 @@ try {
   New-Item -ItemType File -Path (Join-Path $portable 'portable.flag') | Out-Null   # data then lives in .\data beside the program
   $zip = Join-Path $Out "SantaCita-$Version-windows-x64-portable.zip"
   Remove-Item -LiteralPath $zip -ErrorAction SilentlyContinue
-  Compress-Archive -Path (Join-Path $work 'portable\SantaCita') -DestinationPath $zip
+  # Written by hand so the entry names use `/` (Compress-Archive of Windows PowerShell 5.1 stores `\`).
+  Add-Type -AssemblyName System.IO.Compression
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  $parent = Join-Path $work 'portable'
+  $archive = [IO.Compression.ZipFile]::Open($zip, 'Create')
+  try {
+    foreach ($file in Get-ChildItem (Join-Path $parent 'SantaCita') -Recurse -File) {
+      $entry = $file.FullName.Substring($parent.Length + 1).Replace('\', '/')
+      [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $entry, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+  } finally { $archive.Dispose() }
   Get-ChildItem $Out -Filter "SantaCita-$Version-*" | ForEach-Object { "{0}  {1:N1} MB" -f $_.Name, ($_.Length / 1MB) }
 }
 finally { Remove-Item -Recurse -Force -LiteralPath $work -ErrorAction SilentlyContinue }
