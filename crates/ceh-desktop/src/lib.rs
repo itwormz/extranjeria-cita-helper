@@ -241,7 +241,8 @@ pub mod notification_actions;
 
 /// Fixed preview-owned directory; never takes a caller-provided path or follows its symlink.
 pub fn diagnostics_directory(root: &Path) -> Result<std::path::PathBuf, &'static str> {
-    let path = root.join("diagnostics");
+    // Where the search writes its session folders (`sessions/<id>/timeline.jsonl`, snapshots, screenshots).
+    let path = root.join("data").join("diagnostics");
     let mut builder = std::fs::DirBuilder::new();
     builder.recursive(true);
     #[cfg(unix)]

@@ -327,7 +327,8 @@
     "Работа прервана пользователем": "Stopped by user",
     "Поиск завершён до подтверждения перехода": "Search ended before the transition was confirmed",
     "Действие прервано ошибкой — работа завершена": "Action failed — run ended",
-    "Страница загружена заново → {destination}": "The page was loaded again → {destination}"
+    "Страница загружена заново → {destination}": "The page was loaded again → {destination}",
+    "Сита найдена? После оформления подтвердите запись, чтобы сохранить данные и поделиться статистикой.": "Appointment found? After booking, confirm it to save the details and share your statistics."
   },
   "es": {
     "Всего": "Total",
@@ -657,6 +658,7 @@
     "Работа прервана пользователем": "Detenido por el usuario",
     "Поиск завершён до подтверждения перехода": "Búsqueda finalizada antes de confirmar la transición",
     "Действие прервано ошибкой — работа завершена": "Acción interrumpida por un error — ejecución finalizada",
-    "Страница загружена заново → {destination}": "La página se cargó de nuevo → {destination}"
+    "Страница загружена заново → {destination}": "La página se cargó de nuevo → {destination}",
+    "Сита найдена? После оформления подтвердите запись, чтобы сохранить данные и поделиться статистикой.": "¿Encontraste cita? Tras reservar, confírmala para guardar los datos y compartir tus estadísticas."
   }
 }

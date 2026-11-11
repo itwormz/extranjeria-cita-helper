@@ -36,6 +36,6 @@ export function observedDuration(seconds:number,language:string,t:(key:string)=>
 
 /** Rows of the overview groups: key, Russian label, icon. Counters follow the period filter. */
 export const statisticGroups:{title:string;icon:string;rows:[string,string,string][]}[]=[
- {title:'Доступность',icon:'eye',rows:[['offices_seen','Появлений офисов','office'],['unique_offices','Разных офисов','pin'],['booking_screens','Появления выбора даты','calendar_days'],['banners','«Сит нет» до запроса','clipboard'],['no_slots','Ответы «Сит нет» на запрос записи','message'],['successes','Получено сит','calendar']]},
+ {title:'Доступность',icon:'eye',rows:[['offices_seen','Появлений офисов','office'],['unique_offices','Разных офисов','pin'],['booking_screens','Появления выбора даты','calendar_days'],['banners','«Сит нет» до запроса','clipboard'],['no_slots','Ответы «Сит нет» на запрос записи','message']]},
  {title:'Ошибки и восстановление',icon:'wrench',rows:[['server_errors','Ошибок сервера','server'],['rate_limited','Ограничений HTTP 429','clock'],['blocked','Ограничения доступа','shield'],['flow_passes','Повторные проходы','restart'],['cod_oper_count','Ответы «Сит нет» с cod. oper','shield-alert']]},
 ];

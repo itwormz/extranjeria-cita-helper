@@ -68,7 +68,7 @@ async function save(){if(saving||notificationLoading)return;if(!['certificate','
  </div>{:else}{#if notificationLoading}<p role="status" class="muted">{t('Загрузка…')}</p>{:else if notifications}<NotificationPanel bind:draft={notifications} {t} {language} profile={draft.label} province={draft.province} onchange={()=>notificationsDirty=true}/>{:else}<p class="notification-error" role="alert">{notificationFailure}</p><button type="button" onclick={()=>void notificationTab()}>{t('Повторить')}</button>{/if}{/if}</fieldset></div>
  <p class="editor-note muted">{t('Пароли и подтверждения — только в браузере.')}</p>
  {#if errors.length}<div class="editor-errors" role="alert">{#each errors as error}<p>{t(error)}</p>{/each}</div>{/if}
- <div class="editor-actions"><button class="primary" type="submit" disabled={saving||notificationLoading}><Icon name="check"/>{t('Сохранить профиль')}</button><button type="button" disabled={saving} onclick={onclose}><Icon name="close"/>{t('Отмена')}</button></div>
+ <div class="editor-actions"><button type="button" disabled={saving} onclick={onclose}><Icon name="close"/>{t('Отмена')}</button><button class="primary" type="submit" disabled={saving||notificationLoading}><Icon name="check"/>{t('Сохранить профиль')}</button></div>
 </form>
 {#if budgetDialog&&budgetNote}<DailyBudgetDialog budget={budgetNote} {t} onclose={()=>budgetDialog=false} onsave={async target=>{await setDailyTarget(target,editingId);budgetNote=await loadBudget(editingId!);budgetDialog=false;}}/>{/if}
 </dialog>

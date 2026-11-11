@@ -5,7 +5,7 @@ const icons=JSON.parse(readFileSync(new URL('../src/icons.json',import.meta.url)
 const keys=group=>statisticGroups.find(g=>g.title===group).rows.map(r=>r[0]);
 
 test('availability and error groups carry the three no-slots counters in Python order',()=>{
- assert.deepEqual(keys('Доступность'),['offices_seen','unique_offices','booking_screens','banners','no_slots','successes']);
+ assert.deepEqual(keys('Доступность'),['offices_seen','unique_offices','booking_screens','banners','no_slots']);
  assert.deepEqual(keys('Ошибки и восстановление'),['server_errors','rate_limited','blocked','flow_passes','cod_oper_count']);
  const labels=Object.fromEntries(statisticGroups.flatMap(g=>g.rows.map(r=>[r[0],r[1]])));
  assert.equal(labels.banners,'«Сит нет» до запроса');assert.equal(labels.no_slots,'Ответы «Сит нет» на запрос записи');assert.equal(labels.cod_oper_count,'Ответы «Сит нет» с cod. oper');

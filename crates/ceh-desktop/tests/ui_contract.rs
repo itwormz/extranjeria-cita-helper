@@ -115,7 +115,7 @@ fn editor_exposes_validated_default_timings_without_runtime_access() {
 fn diagnostics_folder_is_scoped_private_and_does_not_create_profiles() {
     let root = tempfile::tempdir().unwrap();
     let folder = ceh_desktop::diagnostics_directory(root.path()).unwrap();
-    assert_eq!(folder, root.path().join("diagnostics"));
+    assert_eq!(folder, root.path().join("data").join("diagnostics"), "the folder the search writes its sessions to");
     assert!(folder.is_dir());
     assert!(!root.path().join("tasks.yml").exists());
     #[cfg(unix)]
@@ -136,7 +136,8 @@ fn diagnostics_folder_is_scoped_private_and_does_not_create_profiles() {
 fn diagnostics_folder_refuses_a_link_to_another_directory() {
     let root = tempfile::tempdir().unwrap();
     let external = tempfile::tempdir().unwrap();
-    std::os::unix::fs::symlink(external.path(), root.path().join("diagnostics")).unwrap();
+    std::fs::create_dir_all(root.path().join("data")).unwrap();
+    std::os::unix::fs::symlink(external.path(), root.path().join("data").join("diagnostics")).unwrap();
     assert!(ceh_desktop::diagnostics_directory(root.path()).is_err());
     assert_eq!(std::fs::read_dir(external.path()).unwrap().count(), 0);
 }
