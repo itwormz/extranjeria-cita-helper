@@ -509,12 +509,12 @@ mod protection {
     #[test]
     fn editor_exposes_defaults_for_a_new_profile_and_the_saved_policy_for_an_existing_one() {
         let root = tempfile::tempdir().unwrap();
-        assert_eq!(ceh_desktop::profile_editor(root.path(), None).unwrap().protection, AppointmentPolicy::default());
+        assert_eq!(ceh_desktop::profile_editor(root.path(), None).unwrap().protection, AppointmentPolicy::default().without_minimum_pause());
         let vault = Vault::new(Memory::default());
         let (draft, revision) = profile(root.path());
         let policy = AppointmentPolicy { distribute_attempts: true, daily_target: 11, ..Default::default() };
         let created = save_full(root.path(), None, draft, &revision, None, None, Some(&policy), &vault).unwrap();
-        assert_eq!(ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap().protection, policy);
+        assert_eq!(ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap().protection, policy.clone().without_minimum_pause());
     }
 
     #[test]
@@ -528,7 +528,7 @@ mod protection {
         let mut renamed = basic.draft.clone();
         renamed.label = "Renamed".into();
         let saved = save(root.path(), Some(&created.id), renamed, &basic.revision, None, None, &vault).unwrap();
-        assert_eq!(ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap().protection, policy);
+        assert_eq!(ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap().protection, policy.clone().without_minimum_pause(), "a stored minimum pause is ignored");
         let before = std::fs::read(root.path().join("tasks.yml")).unwrap();
         let bad = AppointmentPolicy { daily_target: 0, ..Default::default() };
         let basic = ceh_desktop::profile_editor(root.path(), Some(&created.id)).unwrap();

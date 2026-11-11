@@ -300,7 +300,8 @@ pub fn profile_editor(root: &Path, id: Option<&str>) -> Result<ProfileEditor, &'
     let protection = id
         .and_then(|id| bundle.profiles.iter().find(|p| p.validation.normalized.id == id))
         .and_then(|p| p.appointment_policy.clone())
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .without_minimum_pause();
     Ok(ProfileEditor {
         timings,
         protection,
