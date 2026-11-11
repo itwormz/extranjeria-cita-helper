@@ -48,3 +48,30 @@ fn a_database_that_is_still_in_use_postpones_the_import_without_a_trace() {
     assert_eq!(auto_import(&root, &[support.path().to_owned()], catalog()), None);
     assert!(!root.join("tasks.yml").exists());
 }
+
+mod portable {
+    use ceh_desktop::portable_data_root;
+    use std::fs;
+
+    #[test]
+    fn a_portable_flag_next_to_the_program_keeps_the_data_in_a_folder_beside_it() {
+        let program = tempfile::tempdir().unwrap();
+        assert_eq!(portable_data_root(program.path()), None, "no flag: the per-user folder is used");
+        fs::write(program.path().join("portable.flag"), "").unwrap();
+        assert_eq!(portable_data_root(program.path()), Some(program.path().join("data")));
+    }
+
+    #[test]
+    fn only_a_plain_file_counts_as_the_flag() {
+        let program = tempfile::tempdir().unwrap();
+        fs::create_dir(program.path().join("portable.flag")).unwrap();
+        assert_eq!(portable_data_root(program.path()), None);
+        #[cfg(unix)]
+        {
+            let other = tempfile::NamedTempFile::new().unwrap();
+            let program = tempfile::tempdir().unwrap();
+            std::os::unix::fs::symlink(other.path(), program.path().join("portable.flag")).unwrap();
+            assert_eq!(portable_data_root(program.path()), None, "a link is never followed");
+        }
+    }
+}

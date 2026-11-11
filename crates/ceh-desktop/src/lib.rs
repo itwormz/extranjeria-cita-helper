@@ -80,6 +80,14 @@ pub fn application_data_root(support: &std::path::Path) -> std::path::PathBuf {
 pub fn installed_data_root() -> Option<std::path::PathBuf> {
     legacy_support_dirs().first().map(|support| application_data_root(support))
 }
+/// Portable use (Windows ZIP): a plain `portable.flag` file beside the program keeps all data in `data/` next
+/// to it instead of the per-user folder.
+pub fn portable_data_root(program_dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    let flag = program_dir.join("portable.flag");
+    std::fs::symlink_metadata(flag)
+        .is_ok_and(|meta| meta.file_type().is_file())
+        .then(|| program_dir.join("data"))
+}
 /// First start of the installed application: when it has no profile list yet and a Python data folder exists
 /// beside it, bring that data over (merging, never overwriting; the old folder is only read). Returns the
 /// folder name on success; any problem (data in use, unreadable) leaves nothing behind and is retried next start.

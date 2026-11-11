@@ -731,7 +731,12 @@ fn main() {
                 ceh_desktop::preview_runtime_root(&base, source.as_deref())
                     .map_err(std::io::Error::other)?
             } else {
-                let root = ceh_desktop::installed_data_root()
+                let portable = cfg!(windows)
+                    .then(|| std::env::current_exe().ok())
+                    .flatten()
+                    .and_then(|exe| exe.parent().and_then(ceh_desktop::portable_data_root));
+                let root = portable
+                    .or_else(ceh_desktop::installed_data_root)
                     .ok_or_else(|| std::io::Error::other("data_folder_unavailable"))?;
                 std::fs::create_dir_all(&root)?;
                 // Transparent first-run import of the Python version's data (no question asked).
