@@ -260,6 +260,20 @@ impl Actions {
 pub fn open_directory(path: &std::path::Path) -> Result<(), ActionError> {
     open(path.as_os_str())
 }
+/// Open a downloaded update package: a disk image or MSI with the system, an AppImage as a program.
+pub fn open_installer(path: &std::path::Path) -> Result<(), ActionError> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = std::fs::metadata(path).map_err(|_| error("unavailable"))?.permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(path, permissions).map_err(|_| error("unavailable"))?;
+        Command::new(path).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().map_err(|_| error("unavailable"))?;
+        return Ok(());
+    }
+    #[allow(unreachable_code)]
+    open(path.as_os_str())
+}
 pub(crate) fn open(target: &std::ffi::OsStr) -> Result<(), ActionError> {
     #[cfg(target_os = "macos")]
     let mut command = Command::new("/usr/bin/open");

@@ -339,7 +339,17 @@
     "Проверить": "Check",
     "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No compatible browser was found. Install Firefox, Google Chrome or Brave, then open the profile again. You can save the profile without one, but the search will not start.",
     "Совместимый браузер не найден. Установите:": "Compatible browser not found. Install:",
-    "browser must be firefox, chrome, brave or edge": "Choose an installed browser"
+    "browser must be firefox, chrome, brave or edge": "Choose an installed browser",
+    "Скачивание обновления": "Downloading the update",
+    "Обновление скачано и проверено": "The update was downloaded and verified",
+    "Скачивание отменено": "Download cancelled",
+    "Не удалось скачать обновление. Повторите позже.": "Could not download the update. Try again later.",
+    "Не удалось подтвердить пакет обновления. Установка заблокирована.": "The update package could not be verified. Installation is blocked.",
+    "Контрольная сумма проверена. Закройте SantaCita, завершите установку и откройте приложение снова.": "Checksum verified. Close SantaCita, finish the installation and open the app again.",
+    "Не удалось выполнить действие с обновлением": "The update action failed",
+    "Установить": "Install",
+    "Скачать и проверить": "Download and verify",
+    "Страница релиза": "Release page"
   },
   "es": {
     "Всего": "Total",
@@ -681,6 +691,16 @@
     "Проверить": "Comprobar",
     "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No se encontró ningún navegador compatible. Instala Firefox, Google Chrome o Brave y vuelve a abrir el perfil. Puedes guardar el perfil sin él, pero la búsqueda no se iniciará.",
     "Совместимый браузер не найден. Установите:": "No se encontró un navegador compatible. Instala:",
-    "browser must be firefox, chrome, brave or edge": "Elegir un navegador instalado"
+    "browser must be firefox, chrome, brave or edge": "Elegir un navegador instalado",
+    "Скачивание обновления": "Descargando la actualización",
+    "Обновление скачано и проверено": "Actualización descargada y verificada",
+    "Скачивание отменено": "Descarga cancelada",
+    "Не удалось скачать обновление. Повторите позже.": "No se pudo descargar la actualización. Inténtalo más tarde.",
+    "Не удалось подтвердить пакет обновления. Установка заблокирована.": "No se pudo verificar el paquete de actualización. Instalación bloqueada.",
+    "Контрольная сумма проверена. Закройте SantaCita, завершите установку и откройте приложение снова.": "Suma de verificación comprobada. Cierra SantaCita, termina la instalación y vuelve a abrir la aplicación.",
+    "Не удалось выполнить действие с обновлением": "No se pudo realizar la acción de actualización",
+    "Установить": "Instalar",
+    "Скачать и проверить": "Descargar y verificar",
+    "Страница релиза": "Página de la versión"
   }
 }

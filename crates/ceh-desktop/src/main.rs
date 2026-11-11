@@ -9,6 +9,7 @@ struct DesktopRuntime {
     sound: std::sync::Arc<std::sync::Mutex<ceh_desktop::sound::SoundPlayback>>,
     exports: std::sync::Arc<ceh_desktop::achievement_exports::NativeExports>,
     notifications: std::sync::Arc<ceh_desktop::notification_actions::Actions>,
+    update: ceh_desktop::update_job::UpdateJob,
 }
 fn authorize(window: &WebviewWindow) -> Result<(), &'static str> {
     let url = window.url().map_err(|_| "untrusted_window")?;
@@ -204,6 +205,34 @@ async fn check_updates(window: WebviewWindow) -> Result<UpdateStatus, &'static s
         .map_err(|_| "updates_unavailable")?
         .map_err(|_| "updates_unavailable")?;
     Ok(UpdateStatus { current, available: ceh_services::updates::newer(&latest.version, current), latest: Some(latest.version) })
+}
+/// Start downloading and verifying the latest release's package (progress through `update_status`).
+#[tauri::command]
+fn update_download(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<(), &'static str> {
+    authorize(&window)?;
+    let dir = runtime.root.join("data").join("updates");
+    if runtime.update.start(env!("CARGO_PKG_VERSION"), dir) { Ok(()) } else { Err("update_busy") }
+}
+#[tauri::command]
+fn update_status(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<ceh_desktop::update_job::Status, &'static str> {
+    authorize(&window)?;
+    Ok(runtime.update.status())
+}
+#[tauri::command]
+fn update_cancel(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<(), &'static str> {
+    authorize(&window)?;
+    runtime.update.cancel();
+    Ok(())
+}
+/// Open the verified package (disk image, installer or AppImage); the person finishes the installation.
+#[tauri::command]
+async fn update_install(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<(), &'static str> {
+    authorize(&window)?;
+    let path = runtime.update.install_path().ok_or("update_not_ready")?;
+    tauri::async_runtime::spawn_blocking(move || ceh_desktop::notification_actions::open_installer(&path))
+        .await
+        .map_err(|_| "update_install_failed")?
+        .map_err(|_| "update_install_failed")
 }
 #[tauri::command]
 async fn open_public_link(
@@ -709,6 +738,7 @@ fn main() {
                 sound: std::sync::Arc::new(Default::default()),
                 exports: std::sync::Arc::new(Default::default()),
                 notifications: std::sync::Arc::new(Default::default()),
+                update: Default::default(),
             });
             let compact =
                 cfg!(debug_assertions) && std::env::var_os("CEH_PREVIEW_COMPACT").is_some();
@@ -767,6 +797,10 @@ fn main() {
             notification_action,
             open_diagnostics,
             check_updates,
+            update_download,
+            update_status,
+            update_cancel,
+            update_install,
             profile_statistics,
             profile_history,
             profile_selection,

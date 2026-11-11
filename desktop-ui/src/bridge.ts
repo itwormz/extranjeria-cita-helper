@@ -62,6 +62,11 @@ export async function loadCalendar(id:string,achievementId:string):Promise<Calen
 export async function achievementExport(id:string,achievementId:string,language:string,request:Record<string,unknown>):Promise<{result?:string}|null>{if(!isTauri())throw new Error('native_required');return invoke('achievement_export',{id,achievementId,language,request});}
 
 export interface UpdateStatus {current:string;latest:string|null;available:boolean}
+export interface UpdateJob {phase:'idle'|'downloading'|'ready'|'failed';percent:number;error:string|null}
+export async function updateDownload():Promise<void>{await invoke('update_download');}
+export async function updateStatus():Promise<UpdateJob>{return invoke('update_status');}
+export async function updateCancel():Promise<void>{await invoke('update_cancel');}
+export async function updateInstall():Promise<void>{await invoke('update_install');}
 export async function checkUpdates():Promise<UpdateStatus>{if(!isTauri())throw new Error('native_required');return invoke('check_updates');}
 export async function openPublicLink(target:'github'|'readme'|'issues'|'releases'|'firefox'|'chrome'|'brave'|'edge'|'sponsor'|'crypto',language:string):Promise<void>{if(!isTauri())throw new Error('native_required');await invoke('open_public_link',{target,language});}
 

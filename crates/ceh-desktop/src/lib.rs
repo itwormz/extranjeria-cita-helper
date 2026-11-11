@@ -7,6 +7,7 @@ pub mod notification_worker;
 pub mod presentation;
 pub mod session_presentation;
 pub mod sound;
+pub mod update_job;
 pub mod window_theme;
 use ceh_core::profiles::ProfileCatalog;
 use ceh_store::profiles::{DesktopPreferences, read_profiles};
