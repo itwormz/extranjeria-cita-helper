@@ -51,6 +51,9 @@
           "y": 190
         }
       }
+    },
+    "resources": {
+      "../../LICENSE": "LICENSE.txt"
     }
   }
 }

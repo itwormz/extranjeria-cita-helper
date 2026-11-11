@@ -121,7 +121,8 @@ mod locations {
         for expected in ["/usr/lib/chromium/chromium", "/usr/lib/chromium-browser/chromium-browser", "/usr/bin/chromium", "/usr/bin/chromium-browser"] {
             assert!(has(&chromium, expected), "{expected}");
         }
-        assert!(chromium.iter().all(|p| p.is_absolute() && !p.starts_with("/snap")), "never a snap path");
+        // Linux paths: absolute by their leading slash (on Windows a path without a drive letter is not "absolute").
+        assert!(chromium.iter().all(|p| p.to_string_lossy().starts_with('/') && !p.starts_with("/snap")), "never a snap path");
     }
 
     #[test]

@@ -1,0 +1,93 @@
+name: Prepare or tag SantaCita release PR
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [santacita-beta, main]
+    types: [closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: santacita-release-pr-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' && startsWith(github.ref_name, 'release/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Prepare source versions and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(cat .github/release-version)
+          test "$GITHUB_REF_NAME" = "release/$version"
+          node packaging/release.mjs prepare
+          node packaging/release.mjs metadata
+      - name: Commit and push prepared metadata
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TAG_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Cargo.toml Cargo.lock desktop-ui/package.json desktop-ui/package-lock.json CHANGELOG.md; then
+            exit 0
+          fi
+          : "${RELEASE_TOKEN:?Configure RELEASE_TAG_TOKEN}"
+          git add Cargo.toml Cargo.lock desktop-ui/package.json desktop-ui/package-lock.json CHANGELOG.md
+          git -c user.name="Release automation" -c user.email="release@users.noreply.github.com" commit -m "release: prepare $(cat .github/release-version)"
+          auth=$(printf 'x-access-token:%s' "$RELEASE_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "HEAD:$GITHUB_REF"
+  tag:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Validate merged release PR
+        id: release
+        env:
+          RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(cat .github/release-version)
+          test "$RELEASE_BRANCH" = "release/$version"
+          if [[ "$BASE_BRANCH" = santacita-beta ]]; then
+            [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[1-9][0-9]*$ ]]
+          else
+            [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          fi
+          RELEASE_TAG="v$version" node packaging/release.mjs metadata
+          mkdir -p .local/builds/work
+          node packaging/release.mjs notes .local/builds/work/release-notes.md
+          git merge-base --is-ancestor HEAD "origin/$BASE_BRANCH"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+      - name: Create immutable release tag
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TAG_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${RELEASE_TOKEN:?Configure RELEASE_TAG_TOKEN}"
+          git tag "$RELEASE_TAG" HEAD
+          auth=$(printf 'x-access-token:%s' "$RELEASE_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "refs/tags/$RELEASE_TAG"

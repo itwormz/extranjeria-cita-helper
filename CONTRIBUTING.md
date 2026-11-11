@@ -44,41 +44,20 @@ agreed. Small fixes and documentation improvements can be proposed directly.
 
 ## Development and checks
 
-Read [AGENTS.md](AGENTS.md) for the code map and behaviour constraints, and the
-[README](README.md#-run-from-source) for setup and platform requirements.
-The build environment uses Python 3.13 and dependencies pinned in `uv.lock`.
+SantaCita development targets `santacita-beta`; Python maintenance stays on `main` during the beta period. The repository has not been renamed. Use the pinned Rust toolchain and Node.js 24:
 
 ```sh
-uv sync --frozen --python 3.13 --extra desktop --extra build
-uv run python -m camoufox fetch
-uv run pytest
-uv run python scripts/check_privacy.py --tree .
+cargo test --workspace --locked
+node desktop-ui/scripts/prepare.mjs
+node --test desktop-ui/tests/*.test.mjs packaging/tests/*.test.mjs
+node packaging/check-docs.mjs
 ```
 
-Browser regressions run offline with intercepted requests and synthetic pages:
+[Build instructions](docs/BUILD.md) cover optimized native packages and isolated development data. [Release instructions](docs/release-pr.md) describe version preparation through a PR. Do not publish packages, move release tags or claim native platforms were verified by source tests alone.
 
-```sh
-CITA_BROWSER_TESTS=1 CITA_TEST_ENGINE=camoufox uv run pytest tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py tests/test_resource_capture_browser.py tests/test_booking_details_browser.py
-```
+Use fictitious profiles and synthetic browser pages. Do not run tests against the live appointment service or disrupt an open booking. Keep user-controlled manual steps and protective timings intact.
 
-Before a release push, run `uv run python scripts/preflight.py`; add `--bundle`
-to build and verify the native package on the current OS. The preflight includes
-version/privacy/workflow checks and the standard and offline browser suites for
-both supported services; it requires `actionlint`.
-
-The environment-variable syntax above is for a POSIX shell. Native packaging and
-platform checks are documented in [docs/BUILD.md](docs/BUILD.md).
-Use fictitious profiles. Do not run automated test suites against the live service.
-
-Keep pull requests focused. Explain the problem, resulting behaviour and checks
-performed, including which platforms were actually tested. Add a regression for a
-behavioural bug where practical. Keep English and Spanish translations aligned
-with changed interface strings, and update the three READMEs when their content
-changes. Release versions and tags are managed by the maintainer.
-
-Never include runtime files, real profiles, credentials, captures or build output.
-Review the actual diff before submitting; a privacy scan is an additional check,
-not a guarantee that every secret has been found.
+Keep PRs focused and state the resulting behavior, verification and platforms actually tested. Update English/Spanish mappings alongside Russian UI text and keep all three README files consistent. Never commit runtime data, credentials, captures or generated builds. Review the actual candidate list before staging.
 
 ## Licence and conduct
 

@@ -81,9 +81,39 @@ export async function finalize(directory,version,{proofs=true}={}){
  for(const name of names)if(expected.get(name)!==await sha256(join(directory,name)))throw new Error('Package changed after native build');
  await writeChecksums(directory,names);return validatePackages(directory,version,{proofs});
 }
+export async function releaseNotes(root,version){
+ versionKey(version);const notes=await readFile(join(root,'CHANGELOG.md'),'utf8');
+ const headings=[...notes.matchAll(/^## ([^\n]+)$/gm)];const heading=headings.find(h=>h[1].startsWith(`${version} — `));
+ if(!heading)throw new Error('Missing release notes');
+ const end=headings.find(h=>h.index>heading.index)?.index??notes.length;
+ const body=notes.slice(heading.index+heading[0].length,end).trim();
+ if(!body)throw new Error('Empty release notes');
+ return {title:heading[1].slice(version.length+3),body};
+}
+export async function prepareVersion(root=ROOT){
+ const requested=(await readFile(join(root,'.github/release-version'),'utf8')).trim();versionKey(requested);
+ const current=(await readMetadata(root)).version;
+ if(versionKey(requested)<versionKey(current))throw new Error('Release version must not go backwards');
+ let notes=await readFile(join(root,'CHANGELOG.md'),'utf8');
+ if(requested===current){try{await releaseNotes(root,requested);return;}catch{/* first release may already have the intended source version */}}
+ const marker=/^## Unreleased(?: — ([^\n]+))?$/m.exec(notes);
+ if(!marker)throw new Error('Add final notes under Unreleased');
+ const start=marker.index+marker[0].length;const next=/^## /m.exec(notes.slice(start));const end=next?start+next.index:notes.length;
+ const body=notes.slice(start,end).trim();if(!body)throw new Error('Empty unreleased notes');
+ if(notes.split('\n').some(line=>line.startsWith(`## ${requested} — `)))throw new Error('Release notes already exist');
+ notes=notes.slice(0,marker.index)+`## Unreleased\n\n## ${requested} — ${marker[1]??'Release'}\n\n${body}\n\n`+notes.slice(end);
+ const cargoPath=join(root,'Cargo.toml');const cargo=(await readFile(cargoPath,'utf8')).replace(/(\[workspace.package\]\s*\nversion = ")[^"]+"/,`$1${requested}"`);
+ const lockPath=join(root,'Cargo.lock');const lock=(await readFile(lockPath,'utf8')).replace(/(^name = "ceh-[^"]+"\nversion = ")[^"]+"/gm,`$1${requested}"`);
+ const packagePath=join(root,'desktop-ui/package.json');const pkg=JSON.parse(await readFile(packagePath,'utf8'));pkg.version=requested;
+ const npmPath=join(root,'desktop-ui/package-lock.json');const npm=JSON.parse(await readFile(npmPath,'utf8'));npm.version=requested;npm.packages[''].version=requested;
+ for(const [file,content] of [[cargoPath,cargo],[lockPath,lock],[packagePath,JSON.stringify(pkg,null,2)+'\n'],[npmPath,JSON.stringify(npm,null,2)+'\n'],[join(root,'CHANGELOG.md'),notes]])await writeFile(file,content);
+ await readMetadata(root);await releaseNotes(root,requested);
+}
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const [command,...args]=process.argv.slice(2);const {version}=await readMetadata(ROOT,process.env.RELEASE_TAG||undefined);
- if(command==='metadata')console.log(JSON.stringify({version}));
+ if(command==='prepare')await prepareVersion();
+ else if(command==='notes'){const notes=await releaseNotes(ROOT,version);await writeFile(resolve(args[0]),notes.body+'\n');}
+ else if(command==='metadata')console.log(JSON.stringify({version}));
  else if(command==='checksums'){const [platform,arch]=args;await writeChecksums(join(ROOT,'.local/builds/releases'),packageNames(version,platform,arch),`SHA256SUMS-${platform}-${arch}`);}
  else if(command==='attach-proof')await attachProof(join(ROOT,'.local/builds/releases'),version,...args);
  else if(command==='finalize')await finalize(resolve(args[0]),version,{proofs:args[1]!=='--no-proofs'});

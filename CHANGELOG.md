@@ -1,5 +1,114 @@
 # Changelog
 
+## Unreleased — First SantaCita beta
+
+- Introduce SantaCita, a new Rust desktop application with a Tauri/Svelte interface for Toma de huellas / TIE and Autorización de regreso searches. Choose an installed browser; appointment dates, CAPTCHA and final confirmation remain manual.
+- Import profiles, statistics, achievements and journals from the installed Python application while keeping the original data. Keep Telegram and webhook credential references in the system vault.
+- Offer stable and optional beta updates from the current repository, with checksum and Sigstore provenance verification before installation. Windows portable updates preserve the adjacent data folder.
+- Publish optimized release packages for macOS Apple Silicon and Intel, Windows MSI/portable and Linux AppImage. Beta releases remain separate from the stable Python release.
+
+## 0.3.8 — SantaCita migration and beta updates
+
+- Prepare the updater for the move to SantaCita. Updates from both repository names keep the same checksum and build provenance checks; previously downloaded updates remain verifiable.
+- Add **Offer beta versions**, off by default, to check stable releases and SantaCita betas. Beta versions are clearly marked, and downloading and installation remain manual.
+- Explain the upcoming rename in all three README files, show a SantaCita migration notice in the update window, and point to manual downloads if an update cannot be verified. Document the manual Windows portable update steps.
+
+## 0.3.7 — Windows search stability and interface translations
+
+- Keep the search running on Windows when the window reads the attempt budget, profiles or achievements while the search process saves them. Saving now retries briefly instead of stopping the search process with `PermissionError`.
+- Make every unexpected search-process failure produce a startup report with code locations. Failed background budget saves are logged and retried on the next save; failures in background tasks and at process start are reported instead of ending with only an exit code. Reports keep module paths, line numbers and function names, never folders or profile data.
+
+- Fix garbled English and Spanish interface text such as “Untilбавить” on the Telegram recipient button. Short dictionary entries no longer translate parts of other words, and buttons, statistics labels and search timeline messages that were missing translations are now translated.
+- Keep the Camoufox button caption visible in the light theme when control is handed over for booking; it was white on a white background.
+
+## 0.3.6 — Windows folder fixes and achievement card
+
+- Start the browser on Windows when the application or its data is in a folder with non-ASCII characters, such as a Cyrillic user name or `Загрузки`. The fingerprint model is now read through a Unicode-aware file handle, and the TLS intermediate cache loads the browser's NSS library through the folder's short Windows path. If the cache still cannot be opened, the browser starts anyway; HTTPS validation stays strict.
+
+- Update the README workflow diagrams in all three languages and both themes: refresh the applicant form while the no-appointments message is visible, restart from sign-in when it disappears, and submit only after a pass without that message.
+
+- Add Reddit to achievement sharing and include the full current statistics in prepared text posts as well as PNG cards.
+
+- Refresh the shareable booking achievement card with a celebratory header, application icons and the full current search statistics in all three languages and both themes. New achievements preserve no-appointment counters, cod. oper responses, search days and first-event durations; unavailable fields in older snapshots remain unknown.
+
+- Keep translated donation buttons and the achievement header inside narrow windows. Size the Camoufox action to its label and preserve button content space when focused.
+
+## 0.3.5 — Submission pacing and Telegram alerts
+
+- Include available office names and addresses in Telegram office-selection alerts. Repeated checks of the same office-selection page no longer send the alert again.
+- Make daily attempt scheduling opt-in, including existing profiles. Clean passes can submit after protective pauses without waiting for a calendar window; the daily budget and adaptive statistics remain available.
+- Show why a request is waiting, its deadline and a countdown. Keep today's scheduling choice when applicant details are copied from authentication and apply profile scheduling changes during the current search.
+- Make **Try now** open the next opportunity from now and start a fresh pass in the same browser session. A warning prevents submission without consuming the opportunity. Minimum submission intervals and HTTP 429 protection remain active.
+- Fit the **Continue searching** button to its translated label, icon and theme padding.
+
+## 0.3.4 — Search continuation and calendar offers
+
+- **Resume searching after the date-selection screen without clearing the browser session.** Start a new pass in the same Camoufox window while preserving cookies, the attempt budget and protective pauses. Refreshing the site alone does not resume automation.
+- Read offered dates and times from visible LIBRE cells in the appointment calendar, alongside the existing radio-button layout. Occupied, hidden and disabled cells are excluded.
+- Restore the normal Start action after the booking browser has closed.
+
+## 0.3.3 — Daily budgets and interface improvements
+
+- **Adaptive budgets now have a minimum of five attempts**, including previously saved estimates.
+- **Set a manual budget for today without disabling adaptation.** It applies from the next action and expires at midnight. Used attempts and active restriction pauses are preserved, while the adaptive algorithm continues to learn for tomorrow.
+- **Edit the daily budget from Monitor, Statistics or profile settings.** A compact pencil button opens a dialog showing the daily total, sent requests and remaining attempts. Restore the adaptive or base budget at any time.
+- **Read budget information more easily.** The budget source appears in the edit button’s tooltip, and the next probe during a possible restriction appears on a separate line.
+- **Confirm booking appears after a date selection screen has been detected.** Recording a booking remains manual. If detection was missed, use the actions menu to confirm it manually.
+- **Notification credentials are prepared before the search starts.** Sending an office or booking alert no longer reads the secret store. Telegram settings on macOS explain when the system may ask for a Keychain password.
+- Count each separate applicant page showing “No appointments”, even when the warning stays visible across refreshes. Recover earlier observations from saved journals when they can be matched to a recorded search session.
+- Telegram recipient connection links now remain valid for five minutes.
+- Stop search startup if notification credentials cannot be prepared; restore vault access or disable the affected channel before retrying.
+- Allow disabling an unreadable notification channel or saving replacement credentials without losing the existing secret reference when disabling. Report profile-read failures instead of silently cancelling startup.
+- Resume recipient detection when reusing a Telegram link after a polling error.
+- Preserve journal visits beyond the last heartbeat and retry unmatched visits when their search session becomes available.
+- Use “Try now” to bring the next attempt forward once, bypassing the budget window or `cod. oper` pause while keeping other protective delays and the clean-round check.
+- Changes to `cod. oper` pause settings recalculate an ongoing pause from its original start without restarting the search.
+- Fix repeated layout updates in a populated bot token field.
+- Keep schedule calculations responsive when a very large attempt budget is configured.
+
+## 0.3.2 — Statistics and profile settings
+
+- The “No appointments” counters now follow the Today or All time filter. The attempt budget still shows what remains today.
+- Scroll through Settings and Timings without accidentally changing a number or a selection, even when the field is focused.
+- Changes to ban protection take effect during the current search. To use your own attempt budget, turn off Adaptive budget and save the profile. The bot recalculates its attempt windows, keeps track of attempts already used today, and respects any ongoing pause after a `cod. oper` response.
+- Fix an app startup crash when a saved browser error contains braces. A damaged journal entry no longer prevents the rest of the timeline from opening.
+
+## 0.3.1 — Search and browser reliability
+
+### Search and statistics
+
+- **See today's attempt budget while the bot is running.** The Work tab shows how many attempts remain and when the next attempt or restriction check can happen.
+- **Slow down after HTTP 429.** With adaptive timing enabled, each HTTP 429 response adds 30 seconds to the wait before refreshing the applicant form.
+- **Understand “No appointments” results.** Statistics distinguish notices shown before submitting a request from replies received after submission. Replies containing `cod. oper` are counted for the selected period.
+- **Review earlier searches.** The timeline keeps recent entries across runs and app restarts. It also explains when a new pass starts to confirm that the “No appointments” notice has cleared.
+
+### Profile and startup fixes
+
+- Saved timing changes take effect during the current search and survive browser restarts.
+- Protection settings use switches with explanations on hover.
+- Pressing Enter in a profile field no longer triggers validation. Validation runs when you save the profile.
+- Camoufox retries startup on macOS if the display size prevents it from generating a browser fingerprint. This addresses the startup error reported in #23.
+
+## 0.3.0.dev13 — Local testing
+
+- Observe ICP traffic without holding page resources and increase applicant form refresh intervals after HTTP 429.
+- Show the daily budget and restriction timing in the work tab, restore the previous journal, and apply saved timing settings during the run.
+
+## 0.3.0 — Appointment pacing and restriction history
+
+- Pace desktop appointment submissions with a daily attempt budget, confirmation after a no-appointments notice and a minimum interval. Existing profiles receive the new defaults. A fresh search pass replaces result POST reloads in the desktop worker.
+- Pause after no-appointments responses with cod oper, adapt the next day’s budget from the first such response, and show daily counts and possible restriction history in Statistics.
+- Thank BCN Today and Испанский Паспорт for supporting the project in the English, Russian, and Spanish READMEs.
+
+## 0.2.5 — Responsive Windows controls
+
+- Keep the Windows control window responsive during a search. Statistics are read off the interface thread, and a status update no longer reloads them. Discard results from an outdated read, keep a range chosen during a read, and clear the previous profile's totals and history when the profile changes. On Windows, Camoufox no longer suspends its window when another window covers it.
+- Update fonttools to 4.68.0, tzdata to 2026.6 and pytest to 9.2.0, and use setup-uv 10.3.3 in CI.
+
+## 0.2.4 — AppImage packaging and updates
+
+- Rename Linux AppImages to `Cita_Extranjeria_Helper-<version>-x86_64.AppImage`, align desktop metadata, and embed AppImageUpdate information. Publish checksummed and attested `.zsync` files alongside the AppImage. **Breaking:** Linux users on 0.2.3 or earlier must download the first renamed release manually; no legacy filename is published. The system glibc 2.35 baseline is unchanged.
+
 ## 0.2.3 — Search options and booking details
 
 - Keep real-browser navigation tests on supported navigation budgets, await visible source/destination controls, and exercise a delayed Regreso POST response without resubmission. Collect all regular browser-suite failures without retries, and retain browser JUnit reports and failed Regreso traces as separate short-lived CI diagnostics.

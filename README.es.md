@@ -1,160 +1,70 @@
-# Extranjería Cita Helper
+# SantaCita · beta
 
-🇬🇧 [English](README.md) · 🇷🇺 [Русский](README.ru.md) · 🇪🇸 **Español**
+🇪🇸 **Español** · 🇬🇧 [English](README.md) · 🇷🇺 [Русский](README.ru.md)
 
-[![Última versión](https://img.shields.io/github/v/release/itwormz/extranjeria-cita-helper?sort=date&display_name=tag&label=versi%C3%B3n&color=626bdf&logo=github)](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)
+[![Última versión publicada](https://img.shields.io/github/v/release/itwormz/extranjeria-cita-helper?include_prereleases&sort=semver&label=release&color=626bdf&logo=github)](https://github.com/itwormz/extranjeria-cita-helper/releases)
 
-[Descargar](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Novedades](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Historial completo](CHANGELOG.md)
+Asistente para citas de **Toma de huellas / TIE** y **Autorización de regreso** en ICP Plus. Nueva aplicación en Rust, Tauri y Svelte.
 
-**💜 Apoyar el desarrollo**
-
-Si la aplicación te ha ayudado, agradecería una donación para apoyar su desarrollo y mantenimiento.
-
-[![Apoyar en GitHub](https://img.shields.io/badge/Apoyar%20en%20GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/itwormz)
-[![Donar con criptomonedas](https://img.shields.io/badge/Donar%20con%20criptomonedas-5b5bd6)](https://nowpayments.io/donation/itworm)
-
-<a href="docs/images/monitor-dark.png"><img src="docs/images/monitor-dark.png" alt="Monitor" width="165"></a> <a href="docs/images/profile-dark.png"><img src="docs/images/profile-dark.png" alt="Perfil" width="165"></a> <a href="docs/images/settings-dark.png"><img src="docs/images/settings-dark.png" alt="Ajustes" width="165"></a> <a href="docs/images/timings-dark.png"><img src="docs/images/timings-dark.png" alt="Intervalos" width="165"></a>
-
-Asistente de escritorio para buscar citas de Extranjería: **toma de huellas / TIE** y **autorización de regreso**. Rellena formularios en ICP Plus, comprueba la disponibilidad de citas y avisa cuando necesita su intervención.
-
-Solo se admiten estos dos trámites. Otros servicios y opciones de cita no se contemplaron ni se probaron.
+SantaCita se publica como beta. La línea estable 0.3.x corresponde a la aplicación anterior en Python. El repositorio mantiene el nombre `extranjeria-cita-helper`.
 
 ## 🚀 Inicio rápido
 
-1. **[Descargue la última versión](https://github.com/itwormz/extranjeria-cita-helper/releases/latest)**. Plataformas compatibles: **<img src="docs/images/platform-macos.svg" width="16" height="16" alt=""> macOS (Apple Silicon e Intel), <img src="docs/images/platform-windows.svg" width="16" height="16" alt=""> Windows x64 y <img src="docs/images/platform-linux.svg" width="16" height="16" alt=""> Linux x64**.
-2. Abra **Ajustes → Crear perfil**. Seleccione la provincia, el trámite y el método de autenticación, configure la introducción o copia del documento/nombre e indique teléfono y correo. Guarde el perfil.
-3. En **Seguimiento**, seleccione el perfil y pulse **Iniciar**. Complete la autenticación en Camoufox. Consulte los métodos disponibles en [Autenticación](#-autenticación).
-4. Deje Camoufox abierto detrás de otras ventanas y active las alertas sonoras. Cuando necesite intervenir, vuelva al navegador. Resuelva el CAPTCHA si aparece, elija la fecha y la hora y confirme personalmente la cita.
+1. Abra [Releases](https://github.com/itwormz/extranjeria-cita-helper/releases) y elija una SantaCita publicada con la marca **Pre-release**.
+2. Instale la aplicación y seleccione un navegador instalado: Chrome, Chromium, Brave, Edge o Firefox. El navegador no se incluye.
+3. Cree un perfil con provincia, trámite, autenticación y datos del solicitante. Inicie la búsqueda y autentíquese en el navegador.
+4. Cuando reciba un aviso, elija oficina o termine la reserva. **Fecha, hora, CAPTCHA y confirmación final siguen siendo manuales.**
 
-Paquetes: **macOS — DMG · Windows — MSI · Linux — AppImage**. El ZIP portátil opcional para Windows guarda los datos junto a la aplicación.
-
-## 🔔 Notificaciones del perfil
-
-En **Ajustes → Editar perfil → Notificaciones**, activar Telegram y/o un webhook. Elegir los eventos por separado para cada canal: autenticación, selección de oficina, selección de cita o búsqueda detenida por un error. La ausencia habitual de citas no genera mensajes.
-
-**Telegram:** crear un bot con [@BotFather](https://t.me/BotFather), pegar el token y pulsar **Comprobar**. El botón **+** junto a los destinatarios permite abrir el bot o copiar un enlace de vinculación de dos minutos para otra persona; confirmar el chat encontrado. Se admiten grupos y Chat ID/canal manual. No se desconecta ningún webhook existente de Telegram. Enviar una prueba y guardar el perfil.
-
-**Webhook:** introducir una URL HTTPS y seleccionar POST (JSON) o GET (parámetros de URL). **Parámetros avanzados** abre las cabeceras, los parámetros de URL y la plantilla JSON personalizada. Los valores son secretos por defecto; el candado cambia este modo de visualización y el ojo muestra temporalmente el valor. Variables: `{{message}}`, `{{event}}`, `{{profile}}`, `{{province}}`, `{{timestamp}}`, `{{event_id}}`. Enviar una prueba antes de guardar.
-
-Las credenciales se guardan en macOS Keychain, Windows Credential Manager o Linux Secret Service (requiere un proveedor de secretos desbloqueado). Las credenciales se leen al abrir la pestaña Notificaciones; editar otros campos del perfil no accede al almacén. No se guardan en texto plano; al trasladar un perfil a otro equipo deben introducirse de nuevo. Los mensajes incluyen el nombre del perfil y la provincia. Las alertas de cita en Telegram también incluyen la oficina/dirección actual y las fechas y horas ofrecidas explícitamente cuando se reconocen; se excluyen los filtros de búsqueda y los formatos desconocidos mantienen el aviso general. Los webhooks no cambian. No se envían identificadores del solicitante, contactos, CAPTCHA, números de confirmación ni capturas. La reserva remota no está incluida; las acciones manuales siguen realizándose en Camoufox.
-
-## Integridad de las actualizaciones
-
-El workflow con atestaciones compila los paquetes en runners alojados por GitHub y solo publica tras verificar su procedencia firmada con Sigstore. El actualizador verifica el hash, nuestro repositorio y workflow, la etiqueta y el commit; repite la verificación antes de ejecutar el instalador. Si falta la prueba o no es válida, se bloquea la instalación. No requiere GitHub CLI, cuenta ni aprobación manual de cada versión. Los paquetes y etiquetas de una versión inmutable publicada no pueden sustituirse.
-
-Las raíces de confianza se incluyen en la aplicación; no se confía en una caché local compartida de Sigstore. Las versiones antiguas mantienen la comprobación solo por SHA256 hasta actualizarse. La atestación acredita el origen de la compilación, no la seguridad del código fuente.
-
-## 🔄 Cómo funciona
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/workflow-es-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/images/workflow-es-light.svg">
-  <img src="docs/images/workflow-es-light.svg" alt="Esquema de funcionamiento" width="820">
-</picture>
-
-## 🎯 Finalidad y uso responsable
-
-Cita Extranjeria Helper es un asistente independiente para encontrar una cita de toma de huellas o autorización de regreso a través del servicio oficial. Su única finalidad es reducir las acciones repetitivas y facilitar que cada usuario consiga su propia cita.
-
-El proyecto no está vinculado a las administraciones públicas españolas, no garantiza la obtención de una cita ni está destinado a la reventa o al acaparamiento masivo de citas, al uso de credenciales ajenas, al acceso no autorizado ni a perturbar el funcionamiento del servicio público. El uso de la aplicación debe respetar la legislación vigente y las normas del servicio.
-
-Desarrollé Cita Extranjeria Helper para facilitar que cada usuario obtenga su propia cita a través del servicio oficial. Mi propósito no es infringir la legislación, acceder sin autorización, perturbar los sistemas de información públicos ni restringir el acceso de otros usuarios.
-
-Incorporé intervalos entre acciones y pausas cuando se limita la frecuencia de solicitudes para reducir la carga sobre el servicio. Estas medidas no garantizan la ausencia de consecuencias no deseadas. Si se detecta un comportamiento que perturba el servicio, debe detenerse y corregirse.
-
-Esta declaración de la finalidad del proyecto no constituye una garantía jurídica de que cualquier uso de la aplicación esté permitido.
-
-La aplicación se proporciona «tal cual». No garantizo su funcionamiento ni la obtención de una cita. La utiliza bajo su propia responsabilidad y responde de sus acciones. No me responsabilizo de las consecuencias de su uso.
-
-## 🔐 Autenticación
-
-La aplicación busca citas **con autenticación**. Sin iniciar sesión, el sitio puede mostrar «no hay citas» y sugerir que compruebe la disponibilidad con Cl@ve o un certificado.
-
-Orden recomendado por comodidad:
-
-**1. Certificado electrónico — recomendado**
-
-Permite funcionar durante periodos prolongados sin confirmaciones manuales repetidas. Un certificado vigente también funciona con una TIE caducada. Además, permite registrarse en Cl@ve.
-
-[Obtener un certificado FNMT](https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener-certificado-software)
-
-**2. Cl@ve Móvil / PIN**
-
-Confirme el acceso en la aplicación Cl@ve o con un PIN recibido por SMS. Cuando caduque la sesión, tendrá que volver a identificarse. Seleccione **Cl@ve Móvil** en el perfil.
-
-[Registrarse en Cl@ve](https://clave.gob.es/registro/como-puedo-registrarme) · [Acceder con la aplicación o SMS](https://clave.gob.es/clave-movil/uso-clave-movil)
-
-**3. Cl@ve Permanente**
-
-Acceso con una contraseña permanente; en ocasiones se requiere también un código por SMS. Cuando caduque la sesión, tendrá que volver a identificarse.
-
-[Activación y gestión de la contraseña](https://clave.gob.es/clave-permanente/procedimientos.html)
-
-**Cita para otra persona.** Quien se autentica y quien acudirá a la cita pueden ser personas distintas. Introduzca los datos del documento y el nombre del destinatario en el perfil y seleccione **Introducir datos del perfil**, en lugar de copiarlos de la página autenticada. El titular del certificado o de Cl@ve realiza personalmente el inicio de sesión.
-
-**Las contraseñas y los PIN se introducen únicamente en el sitio oficial dentro de Camoufox.** La aplicación no los intercepta ni los guarda. La fecha, la hora y la confirmación final de la cita las elige usted.
-
-## 🎛️ Controles y selección de cita
-
-Si solo hay una oficina disponible, el asistente la selecciona y continúa automáticamente. Si hay varias, espera su elección. Después rellena los datos de contacto y deja la selección de fecha y hora en sus manos.
-
-**Pausa / Continuar** pausa y reanuda las acciones automáticas. **Reiniciar sesión**, en el menú de acciones, borra la sesión del navegador y comienza el recorrido de nuevo. Cerrar la ventana de la aplicación finaliza la búsqueda y cierra Camoufox.
-
-Antes de iniciar, **Restablecer sesión** borra la sesión del navegador del perfil seleccionado sin iniciar la búsqueda ni borrar sus datos. El botón de campana de la barra superior activa y desactiva el sonido.
-
-## 📊 Estadísticas y logros del perfil
-
-La pestaña Estadísticas ofrece **Hoy / Todo el tiempo** para cada perfil: comprobaciones, tiempo acumulado de búsqueda activa, oficinas, selección de fecha, errores del servidor, HTTP 429, restricciones de acceso y recorridos repetidos. La línea temporal local distingue páginas observadas, recuperación, control manual y periodos sin observaciones; las oficinas muestran las fechas registradas de aparición. Las horas usan Europe/Madrid. Seleccionar un perfil estadístico no cambia la búsqueda en curso.
-
-Las acciones realizadas y las páginas procesadas reflejan el trabajo automático: cada activación, selección, campo rellenado o recarga completada cuenta como una acción; cada documento reconocido se cuenta una vez. Se excluyen las acciones manuales y los reconocimientos repetidos. Estos contadores empiezan con la actualización y no reconstruyen el trabajo anterior.
-
-En el perfil, en **Tiempos y reintentos**, hay dos ajustes independientes. **En el formulario del solicitante** usa **Esperar si no hay citas** por defecto: no introduce datos mientras siga el aviso. **Rellenar y continuar** permite introducir o copiar los datos pese al aviso. **Tras el resultado sin citas** usa **Mediante Salir** por defecto; también permite recargar el resultado. Salir espera y utiliza el control real del sitio, siguiendo las páginas reconocidas; si falta o es ambiguo, solicita revisión. Para la búsqueda habitual se recomienda esperar y usar Salir. El envío repetido de datos puede aumentar el riesgo de bloqueo. Los intervalos, las pausas de recuperación y la protección frente al reenvío de POST ambiguos no cambian. En modo de espera, un formulario obtenido por GET confirmado se puede recargar; tras el POST de autenticación a acEntrada se utiliza un GET independiente sin reenviar la autenticación. Otros POST o un método desconocido requieren revisión.
-
-Al iniciar se restaura el último perfil de trabajo; Estadísticas muestra inicialmente ese perfil. Los periodos Cod. Oper. continúan durante la navegación intermedia hasta un resultado normal de disponibilidad. El zoom y las actualizaciones habituales conservan la selección; cambiar el perfil estadístico o el ámbito Hoy/Todo el tiempo la borra. Una vez borrada, no se restaura automáticamente.
-
-Las estadísticas se guardan en SQLite independientemente del diagnóstico y se conservan entre reinicios. Los totales anteriores migran automáticamente manteniendo el original y una copia de seguridad; los contadores sin fecha no se convierten en un historial diario inventado. No se envían estadísticas automáticamente. Una página sin citas con Cod. Oper. se registra como estado observado, no como prueba de bloqueo por documento.
-Al pasar por la línea temporal se resalta el tramo o evento; un clic muestra su duración y contadores. Arrastrar selecciona tramos completos; **Seleccionar varios** o ⌘/Ctrl-clic combina la selección. Se excluyen los intervalos no seleccionados y los eventos no se cuentan dos veces. Arrastrar el espacio vacío o usar Alt permite desplazar la vista; se mantienen los gestos del panel táctil.
-
-Los eventos de cita reconocidos conservan localmente la oficina/dirección seleccionada y las fechas y horas ofrecidas explícitamente, incluso con el diagnóstico desactivado. Se muestran al pasar el cursor o seleccionar el marcador y en los registros de la sesión. No se duplica el contador ni se completan por suposición los eventos antiguos.
-
-El historial muestra inicialmente todos los días con observaciones; **Periodo** permite seleccionar fechas. Las fechas y duraciones se conservan por separado: el plazo anterior hasta la primera disponibilidad no es tiempo de búsqueda activa. **≥** indica un mínimo confirmado cuando el historial está incompleto.
-
-Después de confirmar la reserva en la web, marque **Cita conseguida**. Los datos de la cita se guardan localmente; **Añadir al calendario** exporta un evento privado. La tarjeta PNG pública y el texto preparado para redes sociales incluyen solo estadísticas de búsqueda, sin fecha de cita, oficina ni número de confirmación. La publicación y la imagen se adjuntan manualmente. Marcar una cita como conseguida detiene la búsqueda y mantiene Camoufox abierto para consultar o gestionar la reserva. El formulario propone la última oficina conocida del perfil; la oficina, la dirección y el número de confirmación guardados se pueden seleccionar y copiar.
-
-## ⚙️ Ajustes básicos
-
-| Ajuste | Función |
+| Sistema | Archivo |
 | --- | --- |
-| Perfil | Datos del solicitante, contactos, método de acceso y tiempos |
-| Provincia | Provincia de la cita |
-| Trámite | Toma de huellas / TIE o autorización de regreso |
-| Documento y nombre | Introducir los datos o copiarlos tras el acceso. Huellas: NIE y nacionalidad; Regreso: NIE, DNI o pasaporte |
-| Tiempos | Intervalos entre acciones, velocidad de escritura, consultas de citas y pausas de recuperación |
-| Variación aleatoria | Pausa aleatoria dentro del intervalo configurado; la variación adicional de recuperación está desactivada por defecto |
-| Sonido | Alertas repetidas cuando necesita intervenir |
-| Diagnóstico | HTML y capturas opcionales; desactivado por defecto. Durante la reserva manual se guarda HTML sin capturas de pantalla |
-| Idioma y tema | Inglés, ruso o español; apariencia clara u oscura |
+| macOS Apple Silicon | `SantaCita-<versión>-macOS-Apple-Silicon.dmg` |
+| macOS Intel | `SantaCita-<versión>-macOS-Intel.dmg` |
+| Windows x64 | `SantaCita-<versión>-windows-x64.msi` o `-portable.zip` |
+| Linux x64 | `SantaCita-<versión>-x86_64.AppImage` |
 
-Por defecto, tras un resultado habitual sin citas el asistente espera **30–60 segundos**, pulsa **Salir** y sigue la web; el perfil también permite recargar el resultado. Una página sin citas con **Aceptar** inicia un nuevo recorrido tras una pausa de **3 minutos**. Las acciones se separan **0,3–0,8 segundos** y el sonido se repite cada **3 segundos**. Configure los tiempos dentro del perfil; los cambios se aplican en el siguiente inicio. El idioma inicial sigue el del sistema; si no es compatible, se utiliza inglés.
+macOS: arrastre SantaCita a Applications. No está notarizada; si se bloquea, use Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente. Windows: los paquetes no tienen firma de editor; SmartScreen puede requerir Más información → Ejecutar de todas formas. Linux: dé permiso de ejecución al AppImage (`chmod +x archivo.AppImage`).
 
-Seguimiento muestra la página reconocida, la siguiente acción, la cuenta atrás, el número de consultas, el historial de páginas visitadas y las oficinas disponibles. Cada visita muestra su estado, acción y resultado confirmado; pulsar un botón no confirma por sí solo una transición. **Acerca de** permite buscar una nueva versión, descargar un paquete verificado e iniciar la instalación. Puede desactivar en Ajustes la búsqueda automática en GitHub Releases al iniciar y una vez al día. La instalación termina la sesión actual y conserva los perfiles y ajustes.
+## 🔄 Búsqueda y controles
 
-Las filas seleccionadas del registro se copian con **⌘C / Ctrl+C**, el botón del portapapeles o el menú contextual. Sin selección, el botón del portapapeles copia toda la pestaña actual.
+- Espera y actualiza según los ajustes mientras el formulario indica que no hay citas.
+- Cuando desaparece el mensaje, empieza un nuevo recorrido desde la autenticación y vuelve a comprobar.
+- Selecciona automáticamente una única oficina disponible; si hay varias, pide su elección.
+- Pausa, reanudación y continuación tras elegir fecha desde la aplicación. Los ajustes y tiempos del perfil se aplican durante la búsqueda.
+- Las estadísticas y el registro se conservan entre búsquedas. Puede añadir una reserva confirmada al calendario y compartir sus estadísticas.
 
-## ⚠️ Problemas conocidos
+## 🔔 Notificaciones
 
-- **Aplicaciones a pantalla completa en macOS.** Cuando otra aplicación (por ejemplo, Safari) ocupa un Space separado a pantalla completa, las acciones de Camoufox pueden quedarse esperando: los clics y la introducción de texto pueden agotar el tiempo de espera, retrasando la búsqueda o iniciando un nuevo recorrido. Solución provisional: usar la otra aplicación en una ventana normal y mantener Camoufox abierto en el mismo Space; puede permanecer detrás de otras ventanas. La causa exacta aún no está confirmada.
-- **Limitación temporal de solicitudes, incluido HTTP 429 — Too Many Requests.** Espere **5–10 minutos** y evite reinicios manuales frecuentes. Con HTTP 429, el asistente conserva la sesión y comprueba el acceso cada **3 minutos** por defecto; ante bloqueos consecutivos, las pausas antes de una sesión nueva son de **30, 60, 120, 300 y 600 segundos**. Se conservan las secuencias personalizadas.
-- **Protección contra bots.** Si se reconoce un bloqueo, la sesión debería borrarse automáticamente. Si no ocurre, pulse **Reiniciar sesión** para restablecerla manualmente.
-- **Sesiones caducadas y errores del servidor.** El asistente sigue el botón de recuperación reconocido o repite una comprobación segura tras una pausa. Una pantalla desconocida puede requerir intervención manual; con Cl@ve deberá aprobar nuevos accesos periódicamente.
+Los perfiles admiten sonido, Telegram y webhook. Telegram se configura con token de bot, destinatarios y eventos. El webhook requiere dirección HTTPS y eventos; cabeceras y plantilla son opcionales.
 
-## 🗂️ Diagnóstico y datos locales
+Los secretos se guardan en el almacén de credenciales del sistema. macOS puede pedir la contraseña del Llavero para acceder al token de Telegram.
 
-Los perfiles, preferencias y sesiones del navegador se guardan localmente. Con el diagnóstico activado, el HTML sigue guardándose durante la reserva manual y su confirmación; los diálogos JavaScript de confirmación no se guardan como páginas HTML independientes. Los archivos JavaScript de ICP ya cargados se guardan una vez por versión de contenido y se vinculan al HTML, sin peticiones adicionales; se excluyen los scripts de autenticación externa. En Ajustes puede activar o desactivar las capturas y abrir la carpeta de diagnóstico. Cada sesión registrada tiene su propia carpeta; el historial de acciones se guarda independientemente de las capturas.
+## 🗂️ Importar datos
 
-El diagnóstico puede contener datos personales. Elimine la información sensible antes de compartir registros o capturas. Consulte las [notas de privacidad](docs/PRIVACY.md).
+Al iniciarse por primera vez, SantaCita busca la aplicación Python instalada y copia perfiles, estadísticas, logros y registros. Los originales se conservan; SantaCita usa una carpeta de datos `SantaCita` independiente. La importación desde Ajustes añade datos que faltan sin sustituir sus perfiles actuales.
 
-Si el navegador no se inicia, pulsar **Copiar informe** en el panel de error y enviar el texto al autor o a GitHub Issues. El informe contiene detalles técnicos del fallo, sin ajustes del perfil ni contenido de las páginas; no se envía nada automáticamente.
+Cierre Python antes de importar. Debe autenticarse de nuevo en el navegador. La carpeta portable antigua no se detecta automáticamente: conserve su carpeta `data` y use una copia separada para migrar.
+
+**Windows portable:** extraiga el ZIP completo. `portable.flag` guarda los datos en la carpeta `data` junto al programa. Para migrar datos portable anteriores, copie la antigua carpeta `data` a la nueva carpeta portable antes del primer inicio y conserve el original.
+
+## ⬆️ Actualizaciones
+
+Comprobación en Acerca de, o automáticamente al iniciar y una vez al día. **Ofrecer versiones beta** incluye versiones estables y betas; está desactivado por defecto y se importa desde Python 0.3.8.
+
+La descarga e instalación requieren su acción. Se verifican SHA256 y la procedencia Sigstore de la compilación, también antes de instalar. Un fallo de verificación bloquea la instalación. Windows portable sustituye el programa y se reinicia conservando `data`.
+
+## ⚠️ Limitaciones de la beta
+
+- Requiere un navegador compatible instalado y acceso al almacén de credenciales para las notificaciones configuradas.
+- Windows usa WebView2. Si falta, instale [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/).
+- Linux se compila en Ubuntu 22.04 y requiere bibliotecas y un entorno gráfico compatibles.
+- Pueden producirse errores del sitio, límites HTTP 429 y nuevas autenticaciones. No se garantiza obtener cita.
+- [Diagnóstico y privacidad](docs/PRIVACY.md). Elimine datos personales antes de compartir informes.
+
+## 🎯 Finalidad
+
+Proyecto independiente para obtener una cita propia, sin vinculación con las autoridades españolas. No está destinado a revender citas ni a acapararlas masivamente.
+
+Se ofrece tal cual, sin garantía de funcionamiento ni de obtener cita. El usuario es responsable de cumplir la legislación y las reglas del servicio.
 
 ## 📣 Un mensaje a las autoridades responsables
 
@@ -190,82 +100,25 @@ Estos comunicados describen investigaciones y detenciones, no acreditan la exist
 
 Si se encuentra con este problema, anote las fechas de sus intentos, los mensajes de error y las consultas al soporte. Describa su propia experiencia con precisión y preséntela por los canales oficiales. Las quejas documentadas ayudan a mostrar la magnitud del problema. No publique números de NIE, DNI o pasaporte, certificados, cookies ni otros datos personales.
 
-## 🧰 Tecnologías utilizadas
+## 🧰 Desarrollo
 
-Las versiones de las dependencias están fijadas en [`uv.lock`](uv.lock). Los paquetes se generan con Python 3.13; para ejecutar desde el código se necesita Python 3.12 o posterior.
+Rust, Tauri 2, Svelte 5 y TypeScript. SQLite y perfiles YAML compatibles. Control del navegador mediante CDP / WebDriver BiDi.
 
-| Componente | Versión | Función |
-| --- | --- | --- |
-| Python | 3.13 | Lógica de la aplicación y automatización |
-| PySide6 / Qt | 6.12.0 | Interfaz de escritorio nativa |
-| Paquete Python de Camoufox | 0.5.7 | Inicio y configuración del navegador |
-| Playwright | 1.62.0 | Control del navegador y análisis de páginas |
-| cryptography | 50.0.2 | Verificación de certificados TLS |
-| PyYAML | 6.0.3 | Configuración local de perfiles |
-| PyInstaller | 6.22.3 | Empaquetado de la aplicación independiente |
+[Compilación y pruebas](docs/BUILD.md) · [Publicar mediante PR](docs/release-pr.md)
 
-## 💻 Ejecutar desde el código
+**💜 Apoyar el desarrollo**
 
-### 1. Prepare las herramientas
+Si la aplicación te ha ayudado, agradecería una donación para apoyar su desarrollo y mantenimiento.
 
-Necesita conexión a internet, un terminal y un entorno gráfico. Instale [Git](https://git-scm.com/install/) siguiendo las instrucciones de su sistema y compruebe:
+[![Apoyar en GitHub](https://img.shields.io/badge/Apoyar%20en%20GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/itwormz)
+[![Donar con criptomonedas](https://img.shields.io/badge/Donar%20con%20criptomonedas-5b5bd6)](https://nowpayments.io/donation/itworm)
 
-```sh
-git --version
-```
+## 💜 Agradecimientos
 
-Instale [uv](https://docs.astral.sh/uv/getting-started/installation/). En un terminal de macOS/Linux o dentro de WSL:
+Gracias por ayudar a difundir el proyecto:
 
-```sh
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-En Windows, ejecute los comandos en el terminal Linux de WSL. Las ventanas de la aplicación y del navegador requieren un entorno gráfico, como [WSLg](https://learn.microsoft.com/en-us/windows/wsl/tutorials/gui-apps).
-
-Cierre y vuelva a abrir el terminal para actualizar PATH y compruebe la instalación:
-
-```sh
-uv --version
-```
-
-No es necesario instalar Python, pip ni un entorno virtual por separado: uv preparará Python y las dependencias.
-
-### 2. Descargue el proyecto
-
-En el terminal, vaya al directorio donde quiera guardar el proyecto y ejecute:
-
-```sh
-git clone https://github.com/itwormz/extranjeria-cita-helper.git
-cd extranjeria-cita-helper
-```
-
-### 3. Instale Python, dependencias y navegador
-
-Ejecute todos los comandos siguientes desde el directorio del proyecto:
-
-```sh
-uv python install 3.13
-uv sync --frozen --python 3.13 --extra desktop
-uv run python -m camoufox fetch
-```
-
-uv crea un entorno local `.venv` e instala las versiones de dependencias fijadas en `uv.lock`. El último comando descarga Camoufox; no necesita instalar Firefox ni Chrome por separado.
-
-Linux también requiere bibliotecas del navegador. En las distribuciones compatibles con Playwright, instálelas con el comando siguiente; puede solicitar permisos de administrador. Consulte la [documentación de dependencias del sistema](https://playwright.dev/python/docs/browsers#install-system-dependencies).
-
-```sh
-uv run python -m playwright install-deps firefox
-```
-
-### 4. Abra la aplicación
-
-```sh
-uv run python -m app.main desktop
-```
-
-La primera vez, abra **Ajustes → Crear perfil**. Introduzca los datos y tiempos desde la interfaz; el uso normal no requiere preparar archivos YAML ni variables de entorno. Para identificarse, tenga acceso a Cl@ve o un certificado electrónico disponible en Camoufox mediante el sistema o importado en el navegador.
-
-En los siguientes inicios, abra un terminal en el directorio del proyecto y ejecute el mismo comando. No hace falta activar `.venv` manualmente.
+- <a href="https://t.me/bcn_today"><img src="docs/images/bcn_today.png" width="32" height="32" alt=""> BCN Today</a>
+- <a href="https://t.me/spain_pass"><img src="docs/images/spain_pass.png" width="32" height="32" alt=""> Испанский Паспорт</a>
 
 ## 📄 Licencia
 

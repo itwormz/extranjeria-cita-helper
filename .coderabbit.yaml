@@ -23,7 +23,6 @@ reviews:
     - "!**/*.lock"
     - "!.local/**"
     - "!data/**"
-    - "!catalogs/snapshot-*.json"
     - "!tests/fixtures/**"
     - "!target/**"
     - "!desktop-ui/node_modules/**"
@@ -52,7 +51,7 @@ reviews:
       mode: off
     title:
       mode: warning
-      requirements: "Use fix:, test:, docs:, release: or chore:; keep under 72 characters."
+      requirements: "Start with fix:, test:, docs:, release: or chore: (case-insensitive, colon required). Keep the title under 72 characters."
     description:
       mode: off
     issue_assessment:
@@ -67,14 +66,15 @@ reviews:
       enabled: false
 
   auto_review:
-    enabled: true
+    enabled: false
+    labels:
+      - "coderabbit-ready"
     drafts: false
-    auto_incremental_review: true
+    auto_incremental_review: false
     auto_pause_after_reviewed_commits: 2
     ignore_title_keywords:
-      - "WIP"
+      - "[WIP]"
       - "[skip review]"
-      - "release:"
     ignore_usernames:
       - "dependabot[bot]"
       - "github-actions[bot]"

@@ -1,103 +1,52 @@
-# Working on Extranjería Cita Helper
+# Working on SantaCita
 
-## Scope and behaviour
+This is the Rust/Tauri/Svelte line for **Toma de huellas / TIE** and **Autorización de regreso** on ICP Plus. Python 0.3.x remains on `main` during beta testing; SantaCita targets `santacita-beta`. Do not merge or rename branches, publish, tag or push without the user's instruction. The repository name stays `itwormz/extranjeria-cita-helper` until a separate rename.
 
-This is a Python desktop assistant for **Toma de huellas / TIE** appointments
-and **Autorización de regreso** appointments on ICP Plus. Other appointment
-procedures are outside the supported scope.
-Read `README.md`, `CHANGELOG.md` and the relevant modules before making changes.
+Read README.md, CHANGELOG.md and relevant modules before changing behavior.
 
-- Appointment date/time, CAPTCHA and final booking confirmation remain manual.
-- When handing control to the user, stop form actions and preserve their scroll,
-  input and open browser page. Manual mode and pause must not capture screenshots.
-- Exactly one available office can be selected automatically; multiple offices
-  require user choice. Fill applicant data before requesting an appointment.
-- Recognize the current document before acting. An embedded expired-session
-  message takes precedence over the surrounding form; follow its recovery control.
-- A sent action is not a confirmed transition. Do not replay an ambiguous POST.
-  Preserve rate-limit cooldowns and configurable timings instead of tight retries.
-- Keep the browser usable behind other windows. Test visibility/lock changes
-  separately; do not assume a headless test proves native background behaviour.
-- Keep the normal browser configuration unchanged when fixing input failures.
-  macOS locked-session keyboard handling lives in `app/desktop_session.py` and
-  `app/site.py`; other platforms must not be reported as verified by that test.
+## Behavior boundaries
+
+- Date/time, CAPTCHA and final booking confirmation remain manual. Preserve the user's scroll, input and current page during handoff and pause; do not capture screenshots then.
+- Exactly one valid office can be selected automatically; multiple offices require user choice. Fill applicant data before requesting an appointment.
+- Recognize the actual document before acting. Embedded session-expiry messages take precedence over surrounding forms.
+- A dispatched action is not proof of navigation. Never replay an ambiguous POST or discard protective timings in favor of tight retries.
+- Browser behavior is tested separately from native window visibility and lock behavior. Do not claim Windows/Linux/macOS native verification from source or headless tests.
+- Keep profiles, credentials, browser data and real diagnostics out of Git. Use synthetic profiles in tests and preserve any active booking.
 
 ## Code map
 
-| Area | Files |
+| Area | Location |
 | --- | --- |
-| CLI / desktop startup | `app/main.py`, `app/desktop/__init__.py` |
-| Page recognition, actions and recovery | `app/assist_flow.py`, `app/site.py`, `app/page_inspection.py` |
-| Public booking offers / notifications | `app/booking_details.py`, `app/notifications.py`, `app/desktop/notification_delivery.py` |
-| Browser lifecycle and visibility | `app/assist_runtime.py`, `app/browser_visibility.py`, `app/desktop_session.py` |
-| Worker / controller communication | `app/desktop/worker.py`, `process.py`, `protocol.py`, `app/assist_control.py` |
-| UI, themes and translations | `app/desktop/window.py`, `theme.py`, `i18n.py`, `assets/translations.json` |
-| Profiles, timings and counters | `app/desktop/profiles.py`, `statistics.py`, `app/config.py`, `app/timings.py` |
-| Persistent statistics / history | `app/desktop/statistics.py`, `statistics_session.py`, `statistics_timeline.py`, `statistics_history.py`, `statistics_selection.py` |
-| User timeline / page diagnostics | `app/assist_journal.py`, `app/diagnostics.py`, `app/logging_utils.py` |
-| Updates / TLS intermediates | `app/desktop/updates.py`, `certificates.py` |
-| Public dictionaries | `catalogs/snapshot-2026-08-12.json`, `catalogs/README.md` |
-| Native builds and releases | `scripts/`, `.github/workflows/build.yml`, `docs/BUILD.md` |
+| Flow, recognition, timing, budgets | `crates/ceh-core/` |
+| Installed browser discovery, CDP/BiDi, input and page capture | `crates/ceh-browser/` |
+| YAML profiles, SQLite, history and Python import | `crates/ceh-store/` |
+| Notifications, native vault, exports and verified updates | `crates/ceh-services/` |
+| Desktop commands, search controller and view models | `crates/ceh-desktop/` |
+| Svelte interface, translations and UI contracts | `desktop-ui/`, `assets/translations.json` |
+| Public resources and contract fixtures | `assets/`, `contracts/fixtures/`, `catalogs/` |
+| Native packaging, release metadata and workflows | `packaging/`, `.github/workflows/` |
 
-Short filenames in this table refer to the directory of the preceding full path.
+## Checks and release preparation
 
-## Setup and checks
-
-Commands below use a POSIX shell; source usage on Windows is documented through WSL.
-Python dependencies are pinned in `uv.lock`; build environments use Python 3.13.
+Use `rust-toolchain.toml`, Node 24, locked Cargo/npm dependencies. Run checks appropriate to the changed behavior, once per meaningful completed block:
 
 ```sh
-uv python install 3.13
-uv sync --frozen --python 3.13 --extra desktop --extra build
-uv run python -m camoufox fetch
-uv run python -m app.main desktop
+cargo test --workspace --locked
+node desktop-ui/scripts/prepare.mjs
+node --test desktop-ui/tests/*.test.mjs packaging/tests/*.test.mjs
+node packaging/check-docs.mjs
 ```
 
-Before a release push, run `uv run python scripts/preflight.py` (add `--bundle` for a native bundle check); see `docs/BUILD.md`.
+Browser/vault live checks are opt-in and require authorization. Never repeat a real booking attempt as a test side effect. Native packages must be built on their target OS; see docs/BUILD.md.
 
-Run tests appropriate to the changed behaviour. Add regressions for meaningful
-bugs; browser tests are opt-in and intercept website requests with synthetic pages.
+Release version is declared in `.github/release-version` and prepared with `node packaging/release.mjs prepare`. Keep Cargo.toml, all workspace versions in Cargo.lock, frontend package/lock and the versioned CHANGELOG section consistent. Tags are `vX.Y.Z-beta.N` for beta, `vX.Y.Z` for stable. A release PR has final notes and versions before merge. Manual builds do not publish; normal infrastructure PRs do not tag. See docs/release-pr.md.
 
-```sh
-uv run pytest
-CITA_BROWSER_TESTS=1 CITA_TEST_ENGINE=camoufox uv run pytest tests/test_local_assist_browser.py tests/test_contact_fields_browser.py
-uv run python scripts/check_privacy.py --tree .
-```
+Keep the build workflow path `.github/workflows/build.yml`, GitHub-hosted push tag identity, exact package names and strict SHA256/Sigstore policy compatible with Python 0.3.8. Never skip verification on errors or substitute an arbitrary repository/URL.
 
-`check_privacy.py --personal-source PATH` compares against a local configuration
-without printing its values. Never treat a clean scan as proof against unknown
-secrets. Native package checks and installer commands are in `docs/BUILD.md`.
-Build on the target OS; do not present cross-platform source tests as native GUI
-or installer validation. Preserve an active browser session when rebuilding.
+## UI, data and documentation
 
-## UI and documentation
+Reuse existing components, spacing and theme variables. Update English/Spanish mappings in desktop-ui/src/messages.json or assets/translations.json with Russian source labels. Keep all three README files consistent and screenshots fictitious. Public booking details enrich the original event without changing its time or recounting it; hidden IDs, CAPTCHA and confirmation numbers are not public statistics.
 
-- Profile search choices are independent: `request.applicant_no_slots_mode` defaults to `wait` (or `continue`), while `request.no_slots_mode` defaults to `salir` (or `reload`). Preserve both on edits; timings and POST safety are separate.
-- Booking details enrich the existing exact profile/session/document event without recounting or moving its detection time. Only recognized public office/address and explicit offered slots belong in statistics/logs; never CAPTCHA, hidden IDs or confirmation numbers. Keep these records independent of diagnostics.
-- Keep colours in `theme.py`. Keep user logs focused on pages, actions and outcomes;
-  raw capture/debug events belong in diagnostics. Do not translate site data.
-- Update English and Spanish mappings when changing a translatable UI string.
-- Keep the three README files consistent. Use only fictitious data in screenshots,
-  with the same rectangular dimensions for the gallery.
-- Version changes must agree in `app/version.py`, `pyproject.toml`, `uv.lock`,
-  and `CHANGELOG.md`. Use MAJOR.MINOR.PATCH. README headers show the latest
-  published release through a dynamic badge; do not replace it with the source version.
+Preserve original Python data when importing. Native secrets retain compatible references; there is no plaintext fallback. Runtime and preview artifacts belong in ignored `.local/builds/`; preparation notes and audits belong under `.local/`. `tasks.yml` is private UI-managed storage, not a shipped sample.
 
-## Privacy and repository hygiene
-
-- Use fictitious profiles for tests. Live-site testing requires user authorization;
-  do not close, refresh or submit an open booking as a side effect of a test.
-- Never commit real applicant data, credentials, certificates, browser profiles,
-  captures, logs, environment files or build output. See `docs/PRIVACY.md`.
-- `tasks.yml` is private runtime storage managed through the UI, not a shipped
-  sample or prerequisite users should create manually.
-- Keep preparation notes, audits and temporary design material under ignored
-  `.local/`. Keep public documentation limited to maintained project information.
-- Review the actual Git candidate list before staging. Do not commit, push, tag
-  or publish unless requested. Do not alter Git author identity implicitly.
-- Project code uses PolyForm Noncommercial 1.0.0. Preserve its notice and the
-  separate licences/notices of bundled third-party components.
-
-## Local preview artifacts
-
-Local preview builds, their isolated runtime, verification logs and screenshots belong in `.local/builds/`. Reuse that location; do not create numbered preview/build directories elsewhere in `.local/`. Keep active builds and runtime data intact when replacing artifacts.
+Review actual candidate files before staging. Do not change Git author identity implicitly, clean up unrelated worktrees, overwrite parallel edits or commit other work. Preserve PolyForm Noncommercial 1.0.0 and third-party licence notices.

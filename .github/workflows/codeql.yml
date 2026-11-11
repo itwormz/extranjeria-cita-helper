@@ -1,25 +1,27 @@
 name: CodeQL
-
 on:
   push:
-    branches: [main]
+    branches: [santacita-beta, main]
   pull_request:
-    branches: [main]
+    branches: [santacita-beta, main]
   schedule:
     - cron: '23 6 * * 1'
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
-  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  group: santacita-codeql-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
+  scope:
+    uses: ./.github/workflows/scope.yml
+    with:
+      base: ${{ github.event.pull_request.base.sha || github.event.before }}
+      head: ${{ github.event.pull_request.head.sha || github.sha }}
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-22.04
+    needs: scope
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -27,18 +29,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [python, actions]
+        language: [rust, javascript-typescript, actions]
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Documentation-only exemption
+        if: needs.scope.outputs.mode == 'docs'
+        run: echo 'Documentation-only change; CodeQL compilation scan is exempt.'
       - name: Initialize CodeQL
+        if: needs.scope.outputs.mode != 'docs'
         uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
         with:
           languages: ${{ matrix.language }}
           build-mode: none
       - name: Analyze
+        if: needs.scope.outputs.mode != 'docs'
         uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
         with:
           category: /language:${{ matrix.language }}

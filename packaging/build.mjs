@@ -11,7 +11,7 @@ const names=packageNames(version,platform,arch);const output=join(ROOT,'.local/b
 const target=join(ROOT,'.local/builds/rust-target/release');
 const cli=join(ROOT,'.local/builds/work/rust-ui/node_modules/@tauri-apps/cli/tauri.js');
 // Tauri's build defaults to Cargo's release profile; --debug is deliberately absent.
-run(process.execPath,[cli,'build','--features','shell','--ci',...(platform==='windows'?['--no-bundle']:['--bundles',platform==='macos'?'dmg':'appimage'])],{cwd:join(ROOT,'crates/ceh-desktop')});
+run(process.execPath,[cli,'build','--features','shell','--ci',...(platform==='windows'?['--no-bundle']:['--bundles',platform==='macos'?'dmg':'appimage']),'--','--locked'],{cwd:join(ROOT,'crates/ceh-desktop')});
 if(platform==='macos'){
  const dmg=join(target,'bundle/dmg');
  run('bash',[join(ROOT,'packaging/macos/make-dmg.sh'),dmg,join(target,'bundle/macos/SantaCita.app'),join(ROOT,'LICENSE'),join(ROOT,'assets/dmg-background.png'),join(output,names[0])]);

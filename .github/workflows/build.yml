@@ -110,3 +110,34 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+
+  publish-release:
+    name: Publish complete release
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          toolchain=$(node -e "process.stdout.write(require('fs').readFileSync('rust-toolchain.toml','utf8').match(/^channel = \"([^\"]+)\"/m)[1])")
+          rustup toolchain install "$toolchain" --profile minimal
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: package-*
+          path: .local/builds/release-assets
+          merge-multiple: true
+      - name: Verify provenance, upload draft, then publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node packaging/publish.mjs .local/builds/release-assets

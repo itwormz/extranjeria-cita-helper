@@ -1,27 +1,19 @@
 version: 2
 updates:
-  - package-ecosystem: "uv"
+  - package-ecosystem: "cargo"
     directory: "/"
+    target-branch: "santacita-beta"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Europe/Madrid"
     open-pull-requests-limit: 5
-    # Camoufox 0.5.x currently requires Playwright <1.63. Revisit together
-    # with a Camoufox upgrade; vulnerability alerts remain enabled.
-    ignore:
-      - dependency-name: "playwright"
-        versions: [">=1.63"]
-    groups:
-      minor-and-patch:
-        applies-to: "version-updates"
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
+  - package-ecosystem: "npm"
+    directory: "/desktop-ui"
+    target-branch: "santacita-beta"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
   - package-ecosystem: "github-actions"
+    target-branch: "santacita-beta"
     directory: "/"
     schedule:
       interval: "weekly"

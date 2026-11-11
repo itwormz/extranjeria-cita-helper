@@ -1,0 +1,33 @@
+name: Classify change scope
+on:
+  workflow_call:
+    inputs:
+      base:
+        type: string
+        required: false
+      head:
+        type: string
+        required: false
+    outputs:
+      mode:
+        value: ${{ jobs.scope.outputs.mode }}
+permissions:
+  contents: read
+jobs:
+  scope:
+    runs-on: ubuntu-24.04
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - id: scope
+        env:
+          BASE_SHA: ${{ inputs.base }}
+          HEAD_SHA: ${{ inputs.head }}
+        run: echo "mode=$(node packaging/ci-scope.mjs "$BASE_SHA" "$HEAD_SHA")" >> "$GITHUB_OUTPUT"

@@ -1,86 +1,45 @@
 # Privacy and local data
 
-Profiles, settings, browser sessions, appointment-check counters and the action
-timeline are stored on your computer. The assistant has no usage telemetry and
-does not automatically upload profiles, logs or page captures.
+SantaCita stores profiles, statistics, browser sessions and journals on your computer. It has no usage telemetry and does not automatically upload profiles, logs or captures.
 
-Packaged applications keep these files separately from the installation:
+## Data locations and migration
 
-- macOS: `~/Library/Application Support/Cita Extranjeria Helper/`
-- Windows: `%LOCALAPPDATA%\Cita Extranjeria Helper\`
-- Linux: `$XDG_DATA_HOME/Cita Extranjeria Helper/`, or
-  `~/.local/share/Cita Extranjeria Helper/` when that variable is unset.
+- macOS: `~/Library/Application Support/SantaCita/`.
+- Windows installed app: `%LOCALAPPDATA%\SantaCita\`.
+- Linux: `$XDG_DATA_HOME/SantaCita/` or `~/.local/share/SantaCita/`.
+- Windows portable: `data` beside the program when `portable.flag` is present.
+- Development: `CEH_DATA_DIR` can select a separate runtime, preferably under `.local/builds/`.
 
-Authentication takes place on the official website in Camoufox. The application
-does not intercept or store passwords, PINs or authentication confirmation data.
-Browser profiles can retain cookies and other session data; treat them as private.
+The first-run importer reads the installed Python application's `Cita Extranjeria Helper` folder and copies supported data into SantaCita's separate folder. The original remains in place. Repeated imports add missing profiles, statistics and achievements and back up changed destination files. Close Python before importing its statistics. Browser profiles, certificates and screenshots are not imported. An arbitrary old portable location is not searched automatically.
 
-## Diagnostics and sharing
+Authentication takes place on the official website in the selected installed browser. The application does not save authentication passwords or PINs. App-owned browser profiles retain session data and must be treated as private.
 
-Page diagnostics are **off by default**. When enabled, they save local HTML,
-screenshots and error details in a separate folder for each recorded session.
-During manual control, pause and macOS screen lock, only HTML and navigation responses are captured;
-screenshots are suspended so capture does not interfere with the browser.
-The action timeline is recorded independently. External authentication pages are
-excluded from HTML and screenshot captures; only limited navigation metadata is
-retained.
+## Diagnostics and reports
 
-Appointment-site captures may contain NIE, DNI or passport numbers, names,
-phone/email and session identifiers. Prefer a timeline line when reporting a problem. Inspect and redact
-any files before sharing them. The application does not upload diagnostics to
-GitHub or an issue service.
+Diagnostics are optional and local. Saved HTML, screenshots and browser/site resources may contain document numbers, names, contacts, cookies or session identifiers. Screenshots stop during manual control and pause. Review and redact any diagnostic material before sharing it; prefer a short timeline excerpt when reporting a problem.
 
-Startup failures also save a small technical report in `startup-errors/` inside
-the application data directory, independently of page diagnostics. Reports contain
-application/OS versions, architecture, browser executable availability and a sanitized
-exception with stack frame locations (without source lines). For unexpected worker
-exits, up to 32 KiB of stderr is inspected in memory only to extract the exception
-type and a missing Python module name; arbitrary stderr text is not saved. They do not collect profile settings, cookies or page
-contents. Known applicant values and home-directory paths are masked. Only the
-latest ten reports are retained. On macOS, reports also contain sanitized bundle
-paths and resource-link targets, filesystem error codes, quarantine presence
-(without its metadata), and bounded read-only code-signature verification results.
-Signature integrity does not imply notarization or Gatekeeper approval. If the
-worker exits before it can report an error, the GUI fallback skips external
-commands and marks those checks as not performed to keep the interface responsive. **Copy report** copies the report to the clipboard;
-it does not send it anywhere. Review the text before sharing it.
+Startup reports contain bounded technical error information and code locations, not full applicant profiles. **Copy report** copies to the clipboard and does not submit it. Inspect reports before posting.
 
-## Statistics and achievements
+Statistics and journals persist across searches. They contain counters, timing, page/action outcomes and recognized public office/appointment offers. The runtime also contains private profile fields and, for manually confirmed bookings, appointment details. Treat the entire data directory and SQLite sidecars as private, not as a public sharing format.
 
-Per-profile statistics are collected locally in `data/profile-statistics.sqlite3` even when page diagnostics are disabled. They retain session/version/platform context, public province/service/authentication categories, typed page/action/error observations, active-time intervals, public office appearances, and the selected office/address with explicit offered dates/times on recognized booking events. These booking details also appear in the user journal and session timeline; they are recorded even when page diagnostics are off. Document identities and unknown-page structure fingerprints are hashed; arbitrary page text, URLs, form values, NIE/DNI/passport, contacts, passwords, tokens, CAPTCHA, operation codes and appointment confirmation numbers are not included in this database. Observation gaps remain explicit. The database and any SQLite sidecar files are private local data; they are not a public sharing format.
+Public achievement images and prepared social posts contain statistics rather than private booking details or profile names. Calendar exports intentionally include appointment time and office/address, excluding the confirmation number. Opening Google Calendar can transmit these event fields to Google. Social actions prepare content and open a service; publication and attaching an image remain manual.
 
-Existing JSON totals migrate transactionally once. The original remains unchanged and `profile-statistics.json.bak` preserves a backup. Undated historical totals do not imply exact daily or page history. Statistics are not uploaded automatically; diagnostic archive conversion is not a product feature. Local history is currently retained without automatic eviction. Manually confirmed achievements separately store the appointment date, time, office, address and confirmation number locally.
+## Notifications
 
-Public PNG cards and prepared social posts exclude private appointment details and profile names. Calendar exports intentionally contain the appointment date/time and office/address, but exclude the confirmation number. Explicit Google Calendar actions transmit the same event fields to Google; importing an event into a cloud calendar can share those details with its provider. Social buttons open the selected service and prepare text, but never publish posts or upload images automatically.
+Telegram and webhooks are optional and configured per profile. Events can send the profile display name, province and action message; Telegram office/booking alerts can include recognized public office/address and offered dates/times. Avoid personal details in display names if they should not be shared. Applicant documents, contact fields, passwords, CAPTCHA and booking confirmation numbers are not notification payloads.
 
-## Optional notifications
+Tokens and webhook connection settings stay in macOS Keychain, Windows Credential Manager or Linux Secret Service. Profile YAML stores opaque references. A file copy between computers does not transfer vault secrets. Notification credentials are prepared before searching; if the vault is inaccessible, restore access or disable the affected channel. There is no plaintext-secret fallback.
 
-Telegram and outgoing webhooks are off by default and configured per profile. When enabled, selected events send the profile display name, province, event time and a short action message to the configured recipients. Telegram booking alerts can additionally include the current office/address and explicit available date/time offers from the known visible ICP radio layout. Search filters and hidden fields are excluded; unsupported layouts and read failures retain the general alert. Webhook payloads do not include these booking details. Avoid personal details in profile names if they should not be shared. Applicant documents, contacts, passwords, PINs, page captures and appointment confirmation numbers are not sent.
+Telegram pairing reads updates to match an expiring random code and requires approval of the recipient. It never deletes an existing bot webhook. Test actions explicitly contact the configured provider. Delivery success means provider acceptance, not that the recipient read the message.
 
-Bot tokens and the complete webhook configuration (URL, headers, parameters and body template) are stored in the native credential service: macOS Keychain, Windows Credential Manager or Linux Secret Service. The profile editor reads these credentials only when the Notifications tab is opened; saving other fields without opening that tab preserves existing references without reading or rewriting secrets. Notification delivery still reads credentials when needed. Profile YAML contains opaque references; copying it does not transfer secrets. An unavailable credential service causes an explicit error, without a plaintext fallback. Header values are excluded from diagnostics even when visually unmasked. All header values are visually masked by default; the lock affects display only. Custom webhook fields are explicitly transmitted to the chosen endpoint.
+## Updates and HTTPS
 
-Telegram pairing temporarily reads bot updates to match an expiring, random code. Only the matching chat is shown for explicit approval. The application never deletes an existing Telegram webhook. A pairing link grants an opportunity to request connection, not access to the bot token or browser session. Test buttons intentionally contact the selected provider before settings are saved. Delivery is best effort; success means the provider accepted the request, not that the recipient read it or heard a sound.
+Update checks contact GitHub Releases, revealing ordinary network metadata to GitHub, but no applicant profiles. Both exact project repository names are allowed during migration. Downloading and installation require user action.
 
-## Updates and certificates
+Packages must match the release checksum and signed Sigstore provenance for the exact repository, build workflow, tag, source commit and filename. Verification runs offline against the trust root embedded in the pinned library, without GitHub credentials or a mutable trust cache. Packages are checked again before installation; failed verification blocks installation.
 
-Automatic update checks can be disabled in Settings. Checks contact GitHub
-Releases; package downloads use GitHub release assets and are verified against
-the published SHA256 checksums and signed build provenance. The updater also reads the public tag commit from GitHub. Sigstore verification is offline against roots shipped with the application; no signing credentials, GitHub token or account are required. No applicant data is sent to GitHub. Downloading
-and installation require a button press; installation ends the active browser
-session and preserves profiles and settings.
+The browser's HTTPS verification remains enabled. Public intermediate certificate preparation is restricted to the application's browser configuration; the application does not install root certificates into the system store.
 
-At browser startup, the application checks the appointment site's TLS chain.
-Verified intermediate certificates are cached locally and imported only into the
-selected Camoufox profile. It does not install root certificates, change the
-system certificate store or disable browser HTTPS verification.
+## Repository hygiene
 
-## Public repository
-
-The repository contains application code, synthetic tests, public dictionaries,
-build scripts and documentation. Personal profiles, credentials, certificates,
-browser profiles, captures, logs and build output are excluded. Build scripts
-bundle explicit public resources rather than the project directory.
-
-Automated effort counters retain only typed completion events and hashed document/event identities: unique recognized pages and completed activations, option selections, field fills or reloads. They do not store selectors, field contents or individual keystrokes, and do not count manual work. A local tracking-start timestamp distinguishes newly collected metrics from unmeasured historical activity.
-
-When diagnostics are enabled, already-loaded JavaScript responses under the official `/icpplus/` and `/icpplustieb/` contexts can be saved privately. Identical bytes share a gzip object in `debug/resources/`; session `resources.json` manifests and snapshot resource references identify the captured versions. Query strings, fragments and path session parameters are omitted from saved resource URLs; exact request references are hashed. Authentication-domain scripts, cookies, authorization headers and request bodies are not archived by this mechanism. Only status and JavaScript content type are recorded from response metadata. It makes no additional requests. Individual scripts are limited to 2 MiB, with bounded background capture and a response-body timeout; skipped or not-yet-captured resources are marked missing. Retention removes unreferenced script objects after old sessions are removed. JavaScript and saved HTML remain private diagnostic material and must be reviewed before sharing.
+Only source, public resources, licences and synthetic/public verification fixtures belong in Git. Never commit runtime folders, real applicant data, vault values, browser profiles, diagnostic captures or build output. A privacy scan is useful evidence, not proof that no unknown secret exists.

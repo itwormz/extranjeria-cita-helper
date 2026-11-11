@@ -29,7 +29,7 @@ Please avoid testing against other people's data or the live appointment service
 
 ## Supported versions and response
 
-I maintain the latest stable release. Reports about older releases are welcome,
+I maintain the latest stable Python release and the current SantaCita beta. Reports about older releases are welcome,
 but fixes may be provided only through an update to the latest version. See
 [Releases](https://github.com/itwormz/extranjeria-cita-helper/releases).
 
