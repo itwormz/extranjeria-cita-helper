@@ -336,7 +336,8 @@
     "Установлена актуальная версия": "You have the latest version",
     "Ещё не проверена": "Not checked yet",
     "Открыть страницу релиза": "Open the release page",
-    "Проверить": "Check"
+    "Проверить": "Check",
+    "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No compatible browser was found. Install Firefox, Google Chrome or Brave, then open the profile again. You can save the profile without one, but the search will not start."
   },
   "es": {
     "Всего": "Total",
@@ -675,6 +676,7 @@
     "Установлена актуальная версия": "Tienes la última versión",
     "Ещё не проверена": "Aún sin comprobar",
     "Открыть страницу релиза": "Abrir la página de la versión",
-    "Проверить": "Comprobar"
+    "Проверить": "Comprobar",
+    "Не найден ни один совместимый браузер. Установите Firefox, Google Chrome или Brave, затем откройте профиль снова. Профиль можно сохранить и без него, но поиск не запустится.": "No se encontró ningún navegador compatible. Instala Firefox, Google Chrome o Brave y vuelve a abrir el perfil. Puedes guardar el perfil sin él, pero la búsqueda no se iniciará."
   }
 }
