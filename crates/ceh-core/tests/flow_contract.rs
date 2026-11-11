@@ -1105,3 +1105,13 @@ fn fresh_pass_never_lets_a_submitted_action_replay_on_the_same_document() {
         "the already submitted document must not be filled or submitted again: {effects:?}"
     );
 }
+
+#[test]
+fn a_fresh_pass_navigation_can_be_acknowledged_by_the_worker() {
+    let mut e = engine();
+    e.observe(observation(PageKind::ApplicantNoSlots), 0).unwrap();
+    let effects = e.fresh_pass(10).unwrap();
+    let [FlowEffect::Recover { guard, .. }] = effects.as_slice() else { panic!("{effects:?}") };
+    // The worker reports the navigation it dispatched: the engine must know this command.
+    e.acknowledge_dispatch(guard, ActionKind::Recovery, DispatchOutcome::Dispatched).expect("the fresh pass is a recorded dispatch");
+}

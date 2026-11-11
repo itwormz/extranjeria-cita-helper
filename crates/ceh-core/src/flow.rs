@@ -364,6 +364,8 @@ impl FlowEngine {
         self.round_saw_banner = false;
         self.phase = Some(Phase::Dispatched);
         let guard = self.guard(&current);
+        // The worker reports the navigation back like any other recovery: the command must be on record.
+        self.dispatches.push(DispatchRecord { guard: guard.clone(), action: ActionKind::Recovery, outcome: None });
         Ok(vec![FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }])
     }
     /// What Python keeps in its control object across new sessions of one search run.

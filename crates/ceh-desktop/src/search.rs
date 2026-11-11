@@ -57,6 +57,8 @@ enum LiveCommand {
     Budget(BudgetCommand),
     /// Start a new pass from the entry page in the same session (Try now).
     FreshPass,
+    /// "Restart session" (Python `restart`): the browser is closed, its profile cleared, a new one started at once.
+    ManualRestart,
     /// The person asked to continue searching after the booking handoff.
     Resume,
     Timings(ceh_core::timings::AssistTimings),
@@ -185,9 +187,9 @@ impl SearchController {
         self.send_live(LiveCommand::Timings(timings))?;
         self.send_live(LiveCommand::Budget(BudgetCommand::ApplyPolicy(policy)))
     }
-    /// Start a new pass from the entry page in the running browser session (Python `restart`).
+    /// A new browser session with a cleared profile (Python `restart`: `ручной перезапуск`, immediate).
     pub fn restart(&self) -> Result<(), &'static str> {
-        self.send_live(LiveCommand::FreshPass)
+        self.send_live(LiveCommand::ManualRestart)
     }
     fn send_live(&self, command: LiveCommand) -> Result<(), &'static str> {
         let handle = self.handle.lock().map_err(|_| "search_unavailable")?;
@@ -852,6 +854,15 @@ fn run_owned(
                             driver.request_fresh_pass();
                         }
                     }
+                    LiveCommand::ManualRestart => {
+                        if !manual {
+                            return Ok(SessionEnd::NewSession(crate::restart::RestartRequest {
+                                reason: "ручной перезапуск",
+                                clear_profile: true,
+                                reopen: true,
+                            }));
+                        }
+                    }
                     LiveCommand::Timings(next) => {
                         let samples = ceh_browser::session_driver::SessionSamples {
                             first_bootstrap: unit_sample(),
@@ -1464,6 +1475,14 @@ mod live_command_tests {
         assert!(commands.try_recv().is_err());
         assert_eq!(controller.budget_command(BudgetCommand::SetDailyTarget(Some(i32::MAX as u32))), Ok(()));
         assert!(commands.try_recv().is_ok());
+    }
+
+    #[test]
+    fn restart_session_asks_for_a_new_browser_session_not_a_new_pass() {
+        let (controller, commands, _messages) = running(false);
+        assert_eq!(controller.restart(), Ok(()));
+        assert!(matches!(commands.try_recv(), Ok(LiveCommand::ManualRestart)));
+        assert!(commands.try_recv().is_err());
     }
 
     #[test]
