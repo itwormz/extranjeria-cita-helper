@@ -315,6 +315,12 @@ impl BidiConnection {
         if method=="session.new"{self.native_select_commit=result["capabilities"]["browserName"]=="firefox";}
         Ok(result)
     }
+    /// The time one command may take (a hidden window completes a click slowly); applies to the next commands.
+    pub fn set_command_timeout(&mut self, timeout: Duration) {
+        if !timeout.is_zero() && timeout <= Duration::from_secs(60) {
+            self.timeout = timeout;
+        }
+    }
     /// A poisoned transport must never be retried or reused.
     pub fn available(&self) -> bool {
         !self.failed

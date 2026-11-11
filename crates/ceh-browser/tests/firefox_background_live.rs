@@ -27,8 +27,14 @@ fn a_hidden_firefox_still_completes_a_click() {
     let connection = browser.connection();
     connection.call("browsingContext.navigate", json!({"context":context,"url":format!("http://127.0.0.1:{port}/"),"wait":"complete"})).unwrap();
     // Hide the browser's own process (Cmd+H equivalent).
-    let hide = format!("tell application \"System Events\" to set visible of (first process whose unix id is {pid}) to false");
-    let _ = std::process::Command::new("osascript").args(["-e", &hide]).status();
+    if std::env::var("COVER").is_ok() {
+        // Cover the whole screen with a Finder window instead of hiding the browser.
+        let cover = "tell application \"Finder\" to make new Finder window\ntell application \"Finder\" to set bounds of front window to {0, 0, 4000, 3000}\ntell application \"Finder\" to activate";
+        let _ = std::process::Command::new("osascript").args(["-e", cover]).status();
+    } else {
+        let hide = format!("tell application \"System Events\" to set visible of (first process whose unix id is {pid}) to false");
+        let _ = std::process::Command::new("osascript").args(["-e", &hide]).status();
+    }
     std::thread::sleep(std::time::Duration::from_millis(1500));
     let node = connection.call("script.callFunction", json!({"functionDeclaration":"()=>document.getElementById('b')","target":{"context":context},"awaitPromise":false,"arguments":[]})).unwrap();
     let shared = node["result"]["sharedId"].as_str().unwrap().to_owned();
@@ -36,6 +42,11 @@ fn a_hidden_firefox_still_completes_a_click() {
     let result = connection.call("input.performActions", json!({"context":context,"actions":[{"type":"pointer","id":"p","parameters":{"pointerType":"mouse"},"actions":[
         {"type":"pointerMove","duration":50,"x":0,"y":0,"origin":{"type":"element","element":{"sharedId":shared}}},{"type":"pointerDown","button":0},{"type":"pointerUp","button":0}]}]}));
     println!("hidden click: {:?} after {} ms", result.is_ok(), started.elapsed().as_millis());
+    let state = connection.call("script.evaluate", json!({"expression":"document.visibilityState+':'+document.hasFocus()","target":{"context":context},"awaitPromise":false}));
+    println!("state while covered: {:?}", state.map(|v| v["result"]["value"].clone()));
+    if std::env::var("COVER").is_ok() {
+        let _ = std::process::Command::new("osascript").args(["-e", "tell application \"Finder\" to close front window"]).status();
+    }
     let _ = browser.stop();
     assert!(result.is_ok(), "the click did not complete while the window was hidden");
 }

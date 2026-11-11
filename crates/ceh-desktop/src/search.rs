@@ -711,6 +711,7 @@ fn run_owned(
     let mut diagnostics = crate::search_diagnostics::SearchDiagnostics::new(root, session.as_str().to_owned(), profile);
     let mut presenter = crate::session_presentation::SessionPresentation::new(session.clone(), 3000);
     let mut certificate_clicked: Option<u64> = None;
+    let mut hidden_before_action = false;
     let mut certificate_rung = false;
     let mut sequence = 0u64;
     let context = browser.context().to_owned();
@@ -1063,35 +1064,11 @@ fn run_owned(
                             | FlowEffect::AcceptCookies { .. }
                     )
                 }) {
-                    // Firefox cannot complete a click while its window is hidden behind other windows (the
-                    // action hangs and the search would stop): wait for the person to bring the window forward.
-                    if browser.connection().cdp_target().is_none() {
-                        let mut rung = false;
-                        while window_hidden(browser.connection(), &context) && !cancelled.load(Ordering::Acquire) {
-                            if !rung {
-                                rung = true;
-                                update(state, |s| {
-                                    s.attention = true;
-                                    s.warning = Some("browser_in_background");
-                                })?;
-                                sequence = sequence.checked_add(1).ok_or("search_unavailable")?;
-                                if let Ok(change) = presenter.update(
-                                    &driver.control(),
-                                    sequence,
-                                    mono(),
-                                    crate::session_presentation::PresentationFrame { active: true, browser_retained: manual, sound_enabled, repeat_alert: false, ..Default::default() },
-                                    &[FlowEffect::Alert],
-                                ) && let Ok(mut player) = sound.lock()
-                                {
-                                    let _ = crate::session_presentation::apply_native(window, root, &mut player, change);
-                                }
-                            }
-                            stats.heartbeat(&mut db, wall()?, mono()).map_err(|_| "statistics_unavailable")?;
-                            std::thread::sleep(Duration::from_millis(500));
-                        }
-                        if rung {
-                            update(state, |s| s.warning = None)?;
-                        }
+                    // A hidden Firefox window (another app in front, another Space) is slow to complete a click
+                    // (macOS throttles it): give the action more time instead of stopping the search.
+                    hidden_before_action = browser.connection().cdp_target().is_none() && window_hidden(browser.connection(), &context);
+                    if hidden_before_action {
+                        browser.connection().set_command_timeout(Duration::from_secs(25));
                     }
                     diagnostics.environment("before_action", browser.connection(), &context);
                     let bytes = uuid::Uuid::new_v4();
@@ -1126,7 +1103,12 @@ fn run_owned(
                     certificate_clicked = Some(mono());
                     certificate_rung = false;
                 }
-                let after = match driver.execute(browser.connection(), step) {
+                let executed = driver.execute(browser.connection(), step);
+                if hidden_before_action {
+                    browser.connection().set_command_timeout(Duration::from_secs(5));
+                    hidden_before_action = false;
+                }
+                let after = match executed {
                     Ok(after) => after,
                     Err(ceh_browser::BrowserError::Paused) => {
                         // Nothing was sent: the counted attempt goes back.
@@ -1161,6 +1143,10 @@ fn run_owned(
                     }
                     Err(_) => {
                         diagnostics.step(crate::session_timeline::step_error_row(&effects, action_delay_ms, executing_since.elapsed().as_millis() as u64, "browser_action_failed"));
+                        // A click that never completed while the window was hidden says so instead of a generic failure.
+                        if browser.connection().cdp_target().is_none() && window_hidden(browser.connection(), &context) {
+                            return Err("browser_in_background");
+                        }
                         return Err("browser_action_failed");
                     }
                 };
