@@ -1,12 +1,7 @@
-name: Build desktop packages
+name: Build SantaCita packages
 
 on:
   workflow_dispatch:
-    inputs:
-      portable:
-        description: Include optional Windows portable ZIP
-        type: boolean
-        default: true
   push:
     tags: ['v*']
 
@@ -14,17 +9,18 @@ permissions:
   contents: read
 
 concurrency:
-  group: packages-${{ github.workflow }}-${{ github.ref }}
+  group: santacita-packages-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build:
+    name: Package (${{ matrix.platform }}-${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     permissions:
       contents: read
       id-token: write
       attestations: write
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: ${{ matrix.runner == 'macos-15-intel' && 90 || 60 }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,163 +28,85 @@ jobs:
           - runner: macos-15
             platform: macos
             arch: arm64
-            bundle: data/dist/Cita Extranjeria Helper.app
           - runner: macos-15-intel
             platform: macos
             arch: x64
-            bundle: data/dist/Cita Extranjeria Helper.app
-          - runner: ubuntu-22.04
-            platform: linux
-            arch: x64
-            bundle: data/dist/Cita Extranjeria Helper
           - runner: windows-2022
             platform: windows
             arch: x64
-            bundle: data/dist/Cita Extranjeria Helper
+          - runner: ubuntu-22.04
+            platform: linux
+            arch: x64
     defaults:
       run:
         shell: bash
     env:
-      QT_QPA_PLATFORM: offscreen
-      PYTHONUTF8: '1'
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: '0'
+      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          python-version: '3.13'
-      - name: Install dependencies
-        run: uv sync --frozen --extra desktop --extra build
-      - name: Install Linux native libraries
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Install Linux build libraries
         if: runner.os == 'Linux'
         run: |
-          uv run python -m playwright install-deps firefox
           sudo apt-get update
-          sudo apt-get install -y libgl1 libegl1 libxcb-cursor0 libxkbcommon-x11-0 libpulse0 libxcb-keysyms1 libxcb-icccm4 desktop-file-utils
-      - name: Check release metadata
-        run: uv run python scripts/preflight.py --metadata-only
-      - name: Check tag version
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: uv run python scripts/package_release.py --platform '${{ matrix.platform }}' --arch '${{ matrix.arch }}' --check-tag "$RELEASE_TAG"
-      - name: Check source privacy
-        run: uv run python scripts/check_privacy.py --tree .
-      - name: Test
-        timeout-minutes: 15
-        run: uv run pytest -v -s -o addopts= --tb=short -o faulthandler_timeout=120
-      - name: Fetch public browser
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev build-essential libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2 file
+      - name: Install pinned Rust toolchain
         run: |
-          uv run python -m camoufox fetch
-          uv run python -c "from camoufox.pkgman import launch_path; print(launch_path())"
-      - name: Offline macOS locked-session input
-        if: runner.os == 'macOS'
-        env:
-          CITA_BROWSER_TESTS: '1'
-          CITA_TEST_ENGINE: camoufox
-          PYTHONUNBUFFERED: '1'
-        run: uv run pytest -x -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 --junitxml=.local/builds/test-artifacts/locked-input.xml tests/test_local_assist_browser.py -k locked_desktop
-      - name: Offline browser flow regressions
-        env:
-          CITA_BROWSER_TESTS: '1'
-          CITA_TEST_ENGINE: camoufox
-          PYTHONUNBUFFERED: '1'
-        run: uv run pytest -v -o addopts='' --tb=short --durations=10 -o faulthandler_timeout=120 --junitxml=.local/builds/test-artifacts/browser-flow.xml tests/test_local_assist_browser.py tests/test_contact_fields_browser.py tests/test_procedure_groups_browser.py tests/test_regreso_browser.py tests/test_resource_capture_browser.py tests/test_booking_details_browser.py -k 'not locked_desktop'
-      - name: Upload browser failure diagnostics
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: browser-failure-${{ matrix.platform }}-${{ matrix.arch }}
-          path: .local/builds/test-artifacts/
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
-      - name: Build native application
-        run: uv run python scripts/build_desktop_app.py
-      - name: Verify macOS signature
-        if: runner.os == 'macOS'
-        run: codesign --verify --deep --strict 'data/dist/Cita Extranjeria Helper.app'
-      - name: Offline packaged browser and worker IPC
-        run: uv run python scripts/verify_bundle.py '${{ matrix.bundle }}'
-      - name: Verify preinstalled .NET build tools
-        if: runner.os == 'Windows'
-        shell: pwsh
+          toolchain=$(node -e "process.stdout.write(require('fs').readFileSync('rust-toolchain.toml','utf8').match(/^channel = \"([^\"]+)\"/m)[1])")
+          rustup toolchain install "$toolchain" --profile minimal
+          rustc --version
+      - name: Validate release metadata
+        run: node packaging/release.mjs metadata
+      - name: Prepare locked frontend and icons
+        run: node desktop-ui/scripts/prepare.mjs
+      - name: Test Rust and frontend
         run: |
-          # windows-2022 supplies .NET 8; avoid downloading another SDK through aka.ms.
-          $sdks = dotnet --list-sdks
-          if ($LASTEXITCODE -ne 0 -or -not ($sdks -match '^8\.0\.\d+\s')) {
-            throw 'Windows runner must provide a .NET 8 SDK'
-          }
-          $runtimes = dotnet --list-runtimes
-          if ($LASTEXITCODE -ne 0 -or -not ($runtimes -match '^Microsoft\.NETCore\.App 8\.0\.\d+\s')) {
-            throw 'Windows runner must provide a .NET 8 runtime'
-          }
-          dotnet --info
-          if ($LASTEXITCODE -ne 0) { throw 'dotnet diagnostics failed' }
-      - name: Install MSI build tools
+          cargo test --workspace --locked
+          node --test desktop-ui/tests/*.test.mjs packaging/tests/*.test.mjs
+      - name: Install pinned MSI tools
         if: runner.os == 'Windows'
         env:
           DOTNET_ROLL_FORWARD: Major
         run: dotnet tool install --global wix --version 4.0.6
-      - name: Prepare AppImage tool
-        if: runner.os == 'Linux'
-        run: uv run python scripts/prepare_appimage.py data/build-appimage-tools
-      - name: Package and checksum
+      - name: Compile optimized release and package
         env:
           DOTNET_ROLL_FORWARD: Major
-        run: uv run python scripts/package_release.py --platform '${{ matrix.platform }}' --arch '${{ matrix.arch }}'
-      - name: Verify final AppImage
+        run: node packaging/build.mjs '${{ matrix.platform }}' '${{ matrix.arch }}'
+      - name: Check AppImage contents
         if: runner.os == 'Linux'
         run: |
-          for image in data/releases/*.AppImage; do
-            uv run python scripts/verify_appimage.py "$image"
-          done
-      - name: Optional Windows portable ZIP
-        if: runner.os == 'Windows' && (startsWith(github.ref, 'refs/tags/') || inputs.portable == true)
-        run: uv run python scripts/package_release.py --platform windows --arch x64 --portable
-      - name: Attest final release packages
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+          mkdir -p .local/builds/work/appimage-check
+          cd .local/builds/work/appimage-check
+          image=$(find ../../releases -maxdepth 1 -name '*.AppImage' -print -quit)
+          "$image" --appimage-extract > /dev/null
+          test -x squashfs-root/usr/bin/ceh-desktop
+          find squashfs-root -name '*.desktop' -exec grep -l '^Name=SantaCita$' {} + | grep -q .
+      - name: Attest final package names
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: |
-            data/releases/*.dmg
-            data/releases/*.msi
-            data/releases/*.AppImage
-            data/releases/*-portable.zip
-      - name: Attach verification bundles
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+            .local/builds/releases/*.dmg
+            .local/builds/releases/*.msi
+            .local/builds/releases/*.AppImage
+            .local/builds/releases/*-portable.zip
+      - name: Attach provenance bundles
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         env:
           ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
-        run: uv run python scripts/attest_release.py data/releases --bundle "$ATTESTATION_BUNDLE"
+        run: node packaging/release.mjs attach-proof '${{ matrix.platform }}' '${{ matrix.arch }}' "$ATTESTATION_BUNDLE"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: package-${{ matrix.platform }}-${{ matrix.arch }}
-          path: data/releases/*
+          path: .local/builds/releases/*
+          include-hidden-files: true
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
-
-  publish-release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: build
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-        with:
-          python-version: '3.13'
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          pattern: package-*
-          path: release-assets
-          merge-multiple: true
-      - name: Verify checksums, upload packages and publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: uv run --frozen --extra desktop python scripts/create_draft_release.py release-assets --publish

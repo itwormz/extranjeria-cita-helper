@@ -620,7 +620,7 @@ fn reset_session(
         return Ok("restarted");
     }
     // The profile may have been used with any of the browsers it could choose; reset each one's own copy.
-    for kind in [ceh_browser::firefox::ProfileKind::Firefox, ceh_browser::firefox::ProfileKind::Chrome, ceh_browser::firefox::ProfileKind::Brave, ceh_browser::firefox::ProfileKind::Edge] {
+    for kind in [ceh_browser::firefox::ProfileKind::Firefox, ceh_browser::firefox::ProfileKind::Chrome, ceh_browser::firefox::ProfileKind::Brave, ceh_browser::firefox::ProfileKind::Edge, ceh_browser::firefox::ProfileKind::Chromium] {
         ceh_browser::firefox::ProfileLease::reset_persistent_kind(&runtime.root, &id, kind).map_err(|error| match error {
             ceh_browser::firefox::FirefoxError::ProfileBusy => "browser_profile_busy",
             _ => "browser_profile_unavailable",

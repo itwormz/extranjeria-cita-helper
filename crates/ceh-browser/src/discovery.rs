@@ -12,6 +12,7 @@ pub enum BrowserFamily {
     Chrome,
     Brave,
     Edge,
+    Chromium,
     Safari,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,6 +30,7 @@ impl BrowserFamily {
             Self::Chrome => "chrome",
             Self::Brave => "brave",
             Self::Edge => "edge",
+            Self::Chromium => "chromium",
             Self::Safari => "safari",
         }
     }
@@ -50,11 +52,12 @@ pub struct InstalledBrowser {
     pub executable: PathBuf,
     pub support: Support,
 }
-const KNOWN: [(BrowserFamily, &str, &str); 5] = [
+const KNOWN: [(BrowserFamily, &str, &str); 6] = [
     (BrowserFamily::Firefox, "Firefox", "firefox"),
     (BrowserFamily::Chrome, "Google Chrome", "Google Chrome"),
     (BrowserFamily::Brave, "Brave Browser", "Brave Browser"),
     (BrowserFamily::Edge, "Microsoft Edge", "Microsoft Edge"),
+    (BrowserFamily::Chromium, "Chromium", "Chromium"),
     (BrowserFamily::Safari, "Safari", "Safari"),
 ];
 /// Browsers the app can drive on this machine: macOS from the application bundles, other systems from the
@@ -71,6 +74,7 @@ pub fn discover_installed() -> Vec<InstalledBrowser> {
         (BrowserFamily::Chrome, crate::firefox::ProfileKind::Chrome, "Google Chrome"),
         (BrowserFamily::Brave, crate::firefox::ProfileKind::Brave, "Brave Browser"),
         (BrowserFamily::Edge, crate::firefox::ProfileKind::Edge, "Microsoft Edge"),
+        (BrowserFamily::Chromium, crate::firefox::ProfileKind::Chromium, "Chromium"),
     ] {
         if family == BrowserFamily::Edge && !cfg!(target_os = "windows") {
             continue;
@@ -80,6 +84,20 @@ pub fn discover_installed() -> Vec<InstalledBrowser> {
         }
     }
     found
+}
+/// Whether `path` is a snap package or the launcher stub of one (Ubuntu's `chromium-browser` and `firefox`). A snap
+/// cannot read the hidden folder the app keeps its browser profile in, so such a browser is never started.
+pub fn is_snap_install(path: &Path) -> bool {
+    if path.starts_with("/snap") || path.canonicalize().is_ok_and(|real| real.starts_with("/snap")) {
+        return true;
+    }
+    let Ok(meta) = fs::metadata(path) else { return false };
+    if !meta.is_file() || meta.len() > 16 * 1024 {
+        return false;
+    }
+    let Ok(bytes) = fs::read(path) else { return false };
+    let text = String::from_utf8_lossy(&bytes);
+    text.starts_with("#!") && text.contains("/snap/")
 }
 pub fn system_roots() -> Vec<PathBuf> {
     let mut roots = vec![PathBuf::from("/Applications")];
@@ -140,8 +158,8 @@ pub fn discover_browsers(roots: &[PathBuf]) -> Vec<InstalledBrowser> {
                     name: bundle.into(),
                     version: bundle_version(&contents),
                     executable: binary,
-                    // Chrome and Brave are driven over CDP; other Chromium browsers are not yet.
-                    support: if matches!(family, BrowserFamily::Chrome | BrowserFamily::Brave) { Support::Supported } else { Support::Planned },
+                    // Chrome, Brave and Chromium are driven over CDP; Edge only on Windows.
+                    support: if matches!(family, BrowserFamily::Chrome | BrowserFamily::Brave | BrowserFamily::Chromium) { Support::Supported } else { Support::Planned },
                 },
             };
             found.push(entry);

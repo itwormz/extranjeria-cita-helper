@@ -355,7 +355,8 @@
     "Свернуть": "Collapse",
     "Ожидаем повторную попытку": "Waiting for another attempt",
     "Шагов: {count} → {destination}": "Steps: {count} → {destination}",
-    "Сайт вернул на выбор провинции": "The site went back to the province choice"
+    "Сайт вернул на выбор провинции": "The site went back to the province choice",
+    "Версии из snap не подходят: установите браузер из репозитория дистрибутива или с сайта разработчика.": "Snap versions do not work: install the browser from your distribution’s repository or from the developer’s website."
   },
   "es": {
     "Всего": "Total",
@@ -713,6 +714,7 @@
     "Свернуть": "Contraer",
     "Ожидаем повторную попытку": "Esperando otro intento",
     "Шагов: {count} → {destination}": "Pasos: {count} → {destination}",
-    "Сайт вернул на выбор провинции": "El sitio volvió a la elección de provincia"
+    "Сайт вернул на выбор провинции": "El sitio volvió a la elección de provincia",
+    "Версии из snap не подходят: установите браузер из репозитория дистрибутива или с сайта разработчика.": "Las versiones snap no sirven: instala el navegador desde el repositorio de tu distribución o desde la web del desarrollador."
   }
 }

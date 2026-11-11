@@ -88,3 +88,18 @@ fn reddit_is_an_accepted_share_network_and_unknown_networks_are_not() {
     let unknown: Result<ExportAction, _> = serde_json::from_value(serde_json::json!({"action":"prepare_text","network":"mastodon","text":"hello"}));
     assert!(unknown.is_err());
 }
+
+#[test]
+fn every_supported_browser_has_a_public_download_page() {
+    use ceh_desktop::achievement_exports::{PublicLink, public_link};
+    for (link, host) in [
+        (PublicLink::Firefox, "mozilla.org"),
+        (PublicLink::Chrome, "google.com"),
+        (PublicLink::Brave, "brave.com"),
+        (PublicLink::Edge, "microsoft.com"),
+        (PublicLink::Chromium, "chromium.org"),
+    ] {
+        let url = public_link(link, "ru").unwrap();
+        assert!(url.starts_with("https://") && url.contains(host), "{url}");
+    }
+}

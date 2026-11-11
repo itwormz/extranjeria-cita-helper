@@ -11,6 +11,8 @@ default = []
 native-vault = ["dep:keyring-core", "dep:apple-native-keyring-store", "dep:windows-native-keyring-store", "dep:zbus-secret-service-keyring-store"]
 
 [dependencies]
+serde.workspace = true
+sigstore-verify = { version = "=0.16.0", default-features = false, features = ["aws-lc-rs"] }
 serde_json.workspace = true
 ceh-core = { path = "../ceh-core" }
 regex.workspace = true

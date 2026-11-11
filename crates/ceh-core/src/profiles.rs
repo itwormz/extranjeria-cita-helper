@@ -126,7 +126,7 @@ pub fn validate_profile(mut value: ProfileDraft, catalog: &ProfileCatalog) -> Va
     value.email = value.email.trim_matches(is_space).to_owned();
     let mut errors = Vec::new();
     let mut reject = |message: &str| errors.push(message.to_owned());
-    if !matches!(value.browser.as_str(), "firefox" | "chrome" | "brave" | "edge") {
+    if !matches!(value.browser.as_str(), "firefox" | "chrome" | "brave" | "edge" | "chromium") {
         reject("browser must be firefox, chrome, brave or edge");
     }
     if ProfileId::new(&value.id).is_err() {

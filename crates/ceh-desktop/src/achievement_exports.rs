@@ -285,6 +285,7 @@ pub enum PublicLink {
     Chrome,
     Brave,
     Edge,
+    Chromium,
     Sponsor,
     Crypto,
 }
@@ -306,6 +307,7 @@ pub fn public_link(target: PublicLink, lang: &str) -> Result<String, &'static st
         PublicLink::Chrome => "https://www.google.com/chrome/".into(),
         PublicLink::Brave => "https://brave.com/download/".into(),
         PublicLink::Edge => "https://www.microsoft.com/edge/download".into(),
+        PublicLink::Chromium => "https://www.chromium.org/getting-involved/download-chromium/".into(),
         PublicLink::Releases => format!("{repo}/releases/latest"),
         PublicLink::Sponsor => "https://github.com/sponsors/itwormz".into(),
         PublicLink::Crypto => "https://nowpayments.io/donation/itworm".into(),

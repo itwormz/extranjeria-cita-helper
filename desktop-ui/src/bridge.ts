@@ -68,7 +68,7 @@ export async function updateStatus():Promise<UpdateJob>{return invoke('update_st
 export async function updateCancel():Promise<void>{await invoke('update_cancel');}
 export async function updateInstall():Promise<void>{await invoke('update_install');}
 export async function checkUpdates():Promise<UpdateStatus>{if(!isTauri())throw new Error('native_required');return invoke('check_updates');}
-export async function openPublicLink(target:'github'|'readme'|'issues'|'releases'|'firefox'|'chrome'|'brave'|'edge'|'sponsor'|'crypto',language:string):Promise<void>{if(!isTauri())throw new Error('native_required');await invoke('open_public_link',{target,language});}
+export async function openPublicLink(target:'github'|'readme'|'issues'|'releases'|'firefox'|'chrome'|'brave'|'edge'|'chromium'|'sponsor'|'crypto',language:string):Promise<void>{if(!isTauri())throw new Error('native_required');await invoke('open_public_link',{target,language});}
 
 export interface SearchRow {id:number;time:number;stage:string|null;status:string;event:string;destination:string|null;offices:string[];selected_office:string;submitted:boolean;checked:boolean;applicant_continue:boolean;booking_details:{office?:string|null;offers?:{date?:string;time?:string}[]};deadline:number|null}
 export interface SearchSnapshot {profile:string|null;active:boolean;paused:boolean;manual:boolean;browser_pid:number|null;page:string|null;deadline:number|null;attention:boolean;error:string|null;warning:string|null;report_id:string|null;rows:SearchRow[];counters:{checks:number};appointment_budget:BudgetSummary|null;revision:number}

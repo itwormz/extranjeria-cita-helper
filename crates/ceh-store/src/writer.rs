@@ -282,7 +282,7 @@ impl<'a> StatisticsWriter<'a> {
             ("no_slots_mode", &["salir", "reload"]),
             ("applicant_no_slots_mode", &["wait", "continue"]),
             ("procedure", &["huellas", "regreso"]),
-            ("browser", &["firefox", "chrome", "brave", "edge", "camoufox"]),
+            ("browser", &["firefox", "chrome", "brave", "edge", "chromium", "camoufox"]),
             ("app_version", &["historical"]),
         ] {
             if let Some(value) = context[key].as_str()

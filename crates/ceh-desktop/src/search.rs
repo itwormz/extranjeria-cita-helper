@@ -363,6 +363,7 @@ fn profile_age_days(root: &Path, key: &str, browser: &str) -> Option<u64> {
     let prefix = match Engine::of(browser) {
         Some(Engine::Chromium(ceh_browser::firefox::ProfileKind::Brave)) => "brave",
         Some(Engine::Chromium(ceh_browser::firefox::ProfileKind::Edge)) => "edge",
+        Some(Engine::Chromium(ceh_browser::firefox::ProfileKind::Chromium)) => "chromium",
         Some(Engine::Chromium(_)) => "chrome",
         _ => "firefox",
     };
@@ -460,7 +461,7 @@ fn update(
     Ok(())
 }
 #[allow(clippy::too_many_arguments)]
-/// The browser a search profile drives: Firefox over WebDriver BiDi, Chrome or Brave over CDP.
+/// The browser a search profile drives: Firefox over WebDriver BiDi, Chrome, Brave, Chromium or Edge over CDP.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
     Firefox,
@@ -473,6 +474,7 @@ impl Engine {
             "firefox" => Some(Self::Firefox),
             "chrome" => Some(Self::Chromium(ProfileKind::Chrome)),
             "brave" => Some(Self::Chromium(ProfileKind::Brave)),
+            "chromium" => Some(Self::Chromium(ProfileKind::Chromium)),
             "edge" if cfg!(target_os = "windows") => Some(Self::Chromium(ProfileKind::Edge)),
             _ => None,
         }
@@ -1415,6 +1417,14 @@ fn run_owned(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn every_supported_browser_id_has_an_engine_and_an_unknown_one_has_none() {
+        use ceh_browser::firefox::ProfileKind;
+        assert!(Engine::of("firefox") == Some(Engine::Firefox));
+        assert!(Engine::of("chromium") == Some(Engine::Chromium(ProfileKind::Chromium)));
+        assert!(Engine::of("chrome") == Some(Engine::Chromium(ProfileKind::Chrome)));
+        assert!(Engine::of("netscape").is_none());
+    }
     #[test]
     fn a_browser_the_person_closed_leaves_no_attention_manual_mode_or_process_behind() {
         let mut state = SearchSnapshot { attention: true, manual: true, browser_pid: Some(4242), active: true, ..Default::default() };

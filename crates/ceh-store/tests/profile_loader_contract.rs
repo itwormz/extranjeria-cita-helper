@@ -107,3 +107,16 @@ fn non_boolean_distribute_attempts_is_rejected() {
     assert!(loaded.appointment_policy.is_none());
     assert!(loaded.validation.errors.iter().any(|e| e == "Invalid appointment protection settings"));
 }
+
+#[test]
+fn python_beta_opt_in_is_loaded_strictly_and_survives_saving(){
+    let catalog=ProfileCatalog{provinces:vec![],nationalities:vec![],barcelona_offices:vec![],timezones:vec!["Europe/Madrid".into()]};
+    for (value,expected) in [("true",true),("false",false),("'false'",false),("1",false),("null",false)]{
+        let dir=tempfile::tempdir().unwrap();let path=dir.path().join("tasks.yml");
+        std::fs::write(&path,format!("tasks: []\ndesktop: {{beta_updates: {value}}}\n")).unwrap();
+        let prefs=read_profiles(&path,&catalog,"en").unwrap().preferences;
+        assert_eq!(prefs.beta_updates,expected);
+        ceh_store::profile_write::save_preferences(&path,&prefs,&catalog).unwrap();
+        assert_eq!(read_profiles(&path,&catalog,"en").unwrap().preferences.beta_updates,expected);
+    }
+}

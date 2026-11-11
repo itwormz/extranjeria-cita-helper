@@ -102,3 +102,6 @@ regex.workspace = true
 [[example]]
 name = "measure"
 required-features = ["bidi"]
+
+[target."cfg(windows)".dependencies]
+winreg = "=0.56.0"

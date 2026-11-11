@@ -22,3 +22,12 @@ num-bigint = "=0.4.8"
 
 rusqlite = { version = "=0.41.1", default-features = false, features = ["bundled", "backup", "functions"] }
 chrono-tz = "=0.10.4"
+
+# Native distributions: optimized code without debug/symbol payloads.
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+debug = 0
+incremental = false

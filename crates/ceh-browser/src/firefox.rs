@@ -64,6 +64,10 @@ pub struct FirefoxInstallation {
 }
 impl FirefoxInstallation {
     pub fn from_executable(path: &Path) -> Result<Self, FirefoxError> {
+        // A snap cannot read the app's profile folder (confinement), so it is never started.
+        if crate::discovery::is_snap_install(path) {
+            return Err(FirefoxError::InvalidInstallation);
+        }
         let executable = path
             .canonicalize()
             .map_err(|_| FirefoxError::NotInstalled)?;
@@ -147,6 +151,12 @@ impl FirefoxInstallation {
                     candidates.push(PathBuf::from(root).join("Mozilla Firefox/firefox.exe"));
                 }
             }
+            // Wherever the installer put it (another drive, a custom folder): Windows keeps the path in the registry.
+            candidates.extend(
+                crate::chromium::registry_app_paths("firefox.exe")
+                    .into_iter()
+                    .filter(|p| p.file_name().is_some_and(|n| n.eq_ignore_ascii_case("firefox.exe"))),
+            );
         }
         #[cfg(target_os = "linux")]
         {
@@ -181,6 +191,7 @@ pub enum ProfileKind {
     Chrome,
     Brave,
     Edge,
+    Chromium,
 }
 impl ProfileKind {
     fn prefix(self) -> &'static str {
@@ -189,6 +200,7 @@ impl ProfileKind {
             Self::Chrome => "chrome",
             Self::Brave => "brave",
             Self::Edge => "edge",
+            Self::Chromium => "chromium",
         }
     }
     fn marker(self) -> &'static [u8] {
@@ -197,6 +209,7 @@ impl ProfileKind {
             Self::Chrome => b"CEH Chrome profile v1\n",
             Self::Brave => b"CEH Brave profile v1\n",
             Self::Edge => b"CEH Edge profile v1\n",
+            Self::Chromium => b"CEH Chromium profile v1\n",
         }
     }
 }

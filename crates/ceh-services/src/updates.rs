@@ -1,64 +1,77 @@
-//! Check the public GitHub releases of the project for a newer stable version. Only the check: the person
-//! opens the release page; nothing is downloaded or installed here.
-
-const API: &str = "https://api.github.com/repos/itwormz/santacita/releases/latest";
-const PAGE_PREFIX: &str = "https://github.com/itwormz/santacita/releases/";
-
+//! Public releases, optional beta channel and verified native package downloads.
+use crate::release_versions::version_key;
+use serde_json::Value;
+use std::io::Read;
+pub const REPOSITORIES: [&str;2] = ["https://github.com/itwormz/santacita", "https://github.com/itwormz/extranjeria-cita-helper"];
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UpdateError {
-    Invalid,
-    Network,
-    Cancelled,
-}
+pub enum UpdateError { Invalid, Network, Cancelled }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Latest {
-    pub version: String,
-    pub url: String,
+pub struct Latest { pub version: String, pub url: String, pub repository: String }
+pub fn api_url(repository: &str, suffix: &str) -> Result<String,UpdateError> {
+    if !REPOSITORIES.contains(&repository) { return Err(UpdateError::Invalid); }
+    Ok(format!("https://api.github.com/repos/{}{suffix}",repository.strip_prefix("https://github.com/").ok_or(UpdateError::Invalid)?))
 }
-fn numbers(version: &str) -> Option<[u64; 3]> {
-    let core = version.split(['-', '+']).next()?;
-    let mut parts = core.split('.').map(|p| p.parse::<u64>().ok());
-    let found = [parts.next()??, parts.next()??, parts.next()??];
-    parts.next().is_none().then_some(found)
+fn parse_entry(raw: &Value, include_beta: bool, expected: Option<&str>) -> Result<Latest,UpdateError> {
+    let tag=raw["tag_name"].as_str().ok_or(UpdateError::Invalid)?;
+    let version=tag.strip_prefix('v').ok_or(UpdateError::Invalid)?;
+    let key=version_key(version).ok_or(UpdateError::Invalid)?;
+    let beta=key.1==1;
+    if raw["draft"]==true || raw["prerelease"].as_bool().unwrap_or(false)!=beta || (beta&&!include_beta) { return Err(UpdateError::Invalid); }
+    let url=raw["html_url"].as_str().ok_or(UpdateError::Invalid)?;
+    let repository=REPOSITORIES.into_iter().find(|repo| url==format!("{repo}/releases/tag/{tag}")).ok_or(UpdateError::Invalid)?;
+    if expected.is_some_and(|r|r!=repository) { return Err(UpdateError::Invalid); }
+    Ok(Latest{version:version.into(),url:url.into(),repository:repository.into()})
 }
-/// The stable release named by a GitHub "latest release" answer.
-pub fn parse_latest(body: &str) -> Result<Latest, UpdateError> {
-    let raw: serde_json::Value = serde_json::from_str(body).map_err(|_| UpdateError::Invalid)?;
-    let tag = raw["tag_name"].as_str().ok_or(UpdateError::Invalid)?;
-    let url = raw["html_url"].as_str().ok_or(UpdateError::Invalid)?;
-    let version = tag.strip_prefix('v').ok_or(UpdateError::Invalid)?;
-    let stable = raw["draft"] != true && raw["prerelease"] != true && !version.contains(['-', '+']);
-    if !stable || numbers(version).is_none() || !url.starts_with(PAGE_PREFIX) || url.len() > 300 {
-        return Err(UpdateError::Invalid);
-    }
-    Ok(Latest { version: version.to_owned(), url: url.to_owned() })
+pub fn parse_latest(body: &str) -> Result<Latest,UpdateError> {
+    parse_entry(&serde_json::from_str(body).map_err(|_|UpdateError::Invalid)?,false,None)
 }
-/// Whether `latest` is newer than `current`; a development build (`1.0.0-dev.3`) is older than the release of
-/// its own number.
+pub fn parse_release_list(body: &str, include_beta: bool, repository: &str) -> Result<Option<Latest>,UpdateError> {
+    let raw:Value=serde_json::from_str(body).map_err(|_|UpdateError::Invalid)?;
+    Ok(raw.as_array().ok_or(UpdateError::Invalid)?.iter().filter_map(|raw|parse_entry(raw,include_beta,Some(repository)).ok()).max_by_key(|entry|version_key(&entry.version)))
+}
 pub fn newer(latest: &str, current: &str) -> bool {
-    let (Some(a), Some(b)) = (numbers(latest), numbers(current)) else { return false };
-    a > b || (a == b && current.contains("-dev"))
+    let current=version_key(current).or_else(||{let(core,dev)=current.split_once("-dev.")?;if dev.parse::<u32>().ok()?==0{return None;}let mut key=version_key(core)?;key.1=0;Some(key)});
+    matches!((version_key(latest),current),(Some(a),Some(b)) if a>b)
 }
-/// Ask GitHub for the latest release (blocking, bounded, no credentials).
-pub fn fetch_latest() -> Result<Latest, UpdateError> {
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .user_agent("SantaCita")
-        .https_only(true)
-        .build()
-        .map_err(|_| UpdateError::Network)?;
-    let response = client
-        .get(API)
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .and_then(reqwest::blocking::Response::error_for_status)
-        .map_err(|_| UpdateError::Network)?;
-    let body = response.bytes().map_err(|_| UpdateError::Network)?;
-    if body.len() > 1024 * 1024 {
-        return Err(UpdateError::Invalid);
+fn client() -> Result<reqwest::blocking::Client,UpdateError> {
+    reqwest::blocking::Client::builder().connect_timeout(std::time::Duration::from_secs(15)).timeout(std::time::Duration::from_secs(3600)).user_agent("SantaCita").https_only(true).build().map_err(|_|UpdateError::Network)
+}
+fn response_bytes(response: reqwest::blocking::Response, limit:u64) -> Result<Vec<u8>,UpdateError> {
+    let mut raw=Vec::new();response.take(limit+1).read_to_end(&mut raw).map_err(|_|UpdateError::Network)?;
+    if raw.len() as u64>limit { return Err(UpdateError::Invalid); } Ok(raw)
+}
+fn get(client:&reqwest::blocking::Client,url:&str,limit:u64) -> Result<Vec<u8>,UpdateError> {
+    let response=client.get(url).send().and_then(reqwest::blocking::Response::error_for_status).map_err(|_|UpdateError::Network)?;
+    response_bytes(response,limit)
+}
+fn find_release(client:&reqwest::blocking::Client,include_beta:bool) -> Result<Option<(Latest,String)>,UpdateError> {
+    for repository in REPOSITORIES {
+        let mut best:Option<(Latest,String)>=None;
+        for page in 1..=10 {
+            let suffix=if include_beta { format!("/releases?per_page=100&page={page}") } else { "/releases/latest".into() };
+            let response=client.get(api_url(repository,&suffix)?).header("Accept","application/vnd.github+json").timeout(std::time::Duration::from_secs(15)).send().map_err(|_|UpdateError::Network)?;
+            if response.status()==reqwest::StatusCode::NOT_FOUND && page==1 {break;}
+            let raw=response_bytes(response.error_for_status().map_err(|_|UpdateError::Network)?,8*1024*1024)?;
+            let body=String::from_utf8(raw).map_err(|_|UpdateError::Invalid)?;
+            let entries:Value=serde_json::from_str(&body).map_err(|_|UpdateError::Invalid)?;
+            if !include_beta { return Ok(Some((parse_entry(&entries,false,Some(repository))?,body))); }
+            let list=entries.as_array().ok_or(UpdateError::Invalid)?;
+            for entry in list {
+                if let Ok(candidate)=parse_entry(entry,true,Some(repository)) {
+                    if best.as_ref().is_none_or(|(old,_)|version_key(&candidate.version)>version_key(&old.version)) {best=Some((candidate,entry.to_string()));}
+                }
+            }
+            if list.len()<100 {break;}
+            if page==10 {return Err(UpdateError::Invalid);}
+        }
+        if best.is_some(){return Ok(best);}
     }
-    parse_latest(std::str::from_utf8(&body).map_err(|_| UpdateError::Invalid)?)
+    Ok(None)
 }
+pub fn fetch_latest_for(include_beta:bool) -> Result<Option<Latest>,UpdateError> {
+    Ok(find_release(&client()?,include_beta)?.map(|(latest,_)|latest))
+}
+pub fn fetch_latest() -> Result<Latest,UpdateError> { fetch_latest_for(false)?.ok_or(UpdateError::Invalid) }
 
 /// The system and CPU the running app was built for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,38 +95,43 @@ pub struct Release {
     pub url: String,
     pub sums_url: String,
     pub size: u64,
+    pub attestation_url: String,
+    pub repository: String,
 }
 pub const MAX_PACKAGE: u64 = 2 * 1024 * 1024 * 1024;
-const DOWNLOAD_PREFIX: &str = "https://github.com/itwormz/santacita/releases/download/";
 fn package_names(version: &str, target: Target) -> Vec<String> {
     match (target.system, target.arch) {
         ("macos", arch) => {
             let chip = if arch == "arm64" { "Apple-Silicon" } else { "Intel" };
-            vec![format!("SantaCita-{version}-macOS-{chip}.dmg"), format!("extranjeria-cita-helper-{version}-macos-{arch}.dmg")]
+            vec![format!("SantaCita-{version}-macOS-{chip}.dmg")]
         }
-        ("windows", arch) => vec![format!("SantaCita-{version}-windows-{arch}.msi"), format!("extranjeria-cita-helper-{version}-windows-{arch}.msi")],
-        _ => vec![format!("SantaCita-{version}-x86_64.AppImage"), format!("Cita_Extranjeria_Helper-{version}-x86_64.AppImage")],
+        ("windows", arch) => vec![format!("SantaCita-{version}-windows-{arch}.msi")],
+        _ => vec![format!("SantaCita-{version}-x86_64.AppImage")],
     }
 }
 /// The package for `target` when the latest release is newer than `current`; `None` when it is not.
 /// The release must be immutable, carry a `SHA256SUMS` file, and every file must be the project's own
 /// GitHub release asset.
 pub fn select_release(body: &str, current: &str, target: Target) -> Result<Option<Release>, UpdateError> {
-    select_with(body, current, |version| package_names(version, target))
+    select_channel_release(body,current,target,false,false)
 }
 /// The portable ZIP (Windows only) instead of the installer, for a portable install.
 pub fn select_portable_release(body: &str, current: &str, target: Target) -> Result<Option<Release>, UpdateError> {
     if target.system != "windows" {
         return Err(UpdateError::Invalid);
     }
-    select_with(body, current, |version| vec![format!("SantaCita-{version}-windows-{}-portable.zip", target.arch)])
+    select_channel_release(body,current,target,true,false)
 }
 /// Whether this program is a portable install: Windows, with a plain `portable.flag` beside the program.
 pub fn is_portable_install() -> bool {
     cfg!(windows) && std::env::current_exe().ok().and_then(|exe| exe.parent().map(crate::portable_update::portable_flag_in)).unwrap_or(false)
 }
-fn select_with(body: &str, current: &str, names: impl Fn(&str) -> Vec<String>) -> Result<Option<Release>, UpdateError> {
-    let latest = parse_latest(body)?;
+pub fn select_channel_release(body:&str,current:&str,target:Target,portable:bool,include_beta:bool)->Result<Option<Release>,UpdateError>{
+    if portable && target.system!="windows" {return Err(UpdateError::Invalid);}
+    if !matches!((target.system,target.arch),("macos","arm64"|"x64")|("windows"|"linux","x64")){return Err(UpdateError::Invalid);}
+    let raw:Value=serde_json::from_str(body).map_err(|_|UpdateError::Invalid)?;
+    let latest=parse_entry(&raw,include_beta,None)?;
+    let names=if portable {vec![format!("SantaCita-{}-windows-{}-portable.zip",latest.version,target.arch)]} else {package_names(&latest.version,target)};
     if !newer(&latest.version, current) {
         return Ok(None);
     }
@@ -121,7 +139,7 @@ fn select_with(body: &str, current: &str, names: impl Fn(&str) -> Vec<String>) -
     if raw["immutable"] != true {
         return Err(UpdateError::Invalid);
     }
-    let base = format!("{DOWNLOAD_PREFIX}v{}/", latest.version);
+    let base = format!("{}/releases/download/v{}/", latest.repository, latest.version);
     let assets = raw["assets"].as_array().ok_or(UpdateError::Invalid)?;
     let asset = |name: &str| -> Option<(String, u64)> {
         let mut found = assets.iter().filter(|a| a["name"] == name);
@@ -129,15 +147,15 @@ fn select_with(body: &str, current: &str, names: impl Fn(&str) -> Vec<String>) -
         let url = first["browser_download_url"].as_str()?;
         (found.next().is_none() && url == format!("{base}{name}")).then(|| (url.to_owned(), first["size"].as_u64().unwrap_or(0)))
     };
-    let (name, (url, size)) = names(&latest.version)
-        .into_iter()
+    let (name, (url, size)) = names.into_iter()
         .find_map(|name| asset(&name).map(|found| (name, found)))
         .ok_or(UpdateError::Invalid)?;
     let (sums_url, _) = asset("SHA256SUMS").ok_or(UpdateError::Invalid)?;
     if size == 0 || size > MAX_PACKAGE {
         return Err(UpdateError::Invalid);
     }
-    Ok(Some(Release { version: latest.version, name, url, sums_url, size }))
+    let (attestation_url, _) = asset(&format!("{name}.sigstore.json")).ok_or(UpdateError::Invalid)?;
+    Ok(Some(Release { version: latest.version, name, url, sums_url, size, attestation_url, repository:latest.repository }))
 }
 /// The checksum of `name` in a `SHA256SUMS` file; the file must name it exactly once.
 pub fn checksum_for(text: &str, name: &str) -> Result<String, UpdateError> {
@@ -198,33 +216,52 @@ pub fn stream_verified(
     let _ = std::fs::remove_file(&partial);
     result
 }
-/// Fetch the latest release, pick the package, download and verify it (checksum from the release's own
-/// `SHA256SUMS`). Provenance (Sigstore) is not checked yet: it depends on the release workflow of this app.
-pub fn download_latest(
-    current: &str,
-    dir: &std::path::Path,
-    cancel: &std::sync::atomic::AtomicBool,
-    progress: impl FnMut(u8),
-) -> Result<std::path::PathBuf, UpdateError> {
-    let client = reqwest::blocking::Client::builder()
-        .connect_timeout(std::time::Duration::from_secs(15))
-        .timeout(std::time::Duration::from_secs(3600))
-        .user_agent("SantaCita")
-        .https_only(true)
-        .build()
-        .map_err(|_| UpdateError::Network)?;
-    let get = |url: &str, accept: &str| client.get(url).header("Accept", accept).send().and_then(reqwest::blocking::Response::error_for_status).map_err(|_| UpdateError::Network);
-    let body = get(API, "application/vnd.github+json")?.text().map_err(|_| UpdateError::Network)?;
-    if body.len() > 1024 * 1024 {
-        return Err(UpdateError::Invalid);
+/// Download and verify a stable release (compatibility wrapper).
+pub fn download_latest(current:&str,dir:&std::path::Path,cancel:&std::sync::atomic::AtomicBool,progress:impl FnMut(u8))->Result<std::path::PathBuf,UpdateError>{
+    download_channel(current,dir,cancel,progress,false)
+}
+pub fn download_channel(current:&str,dir:&std::path::Path,cancel:&std::sync::atomic::AtomicBool,progress:impl FnMut(u8),include_beta:bool)->Result<std::path::PathBuf,UpdateError>{
+    use std::sync::atomic::Ordering;
+    if cancel.load(Ordering::Acquire){return Err(UpdateError::Cancelled);}
+    let client=client()?;
+    let (_,body)=find_release(&client,include_beta)?.ok_or(UpdateError::Invalid)?;
+    let release=select_channel_release(&body,current,Target::current().ok_or(UpdateError::Invalid)?,is_portable_install(),include_beta)?.ok_or(UpdateError::Invalid)?;
+    let sums=get(&client,&release.sums_url,16*1024)?;
+    let digest=checksum_for(std::str::from_utf8(&sums).map_err(|_|UpdateError::Invalid)?,&release.name)?;
+    let response=client.get(&release.url).send().and_then(reqwest::blocking::Response::error_for_status).map_err(|_|UpdateError::Network)?;
+    let path=stream_verified(response,release.size,&digest,&release.name,dir,cancel,progress)?;
+    let result=(||{
+        let commit=release_commit(&client,&release.repository,&release.version)?;
+        let proof=get(&client,&release.attestation_url,crate::attestations::MAX_BUNDLE)?;
+        crate::attestations::verify(&proof,&release.name,&digest,&release.version,&release.repository,&commit)?;
+        if cancel.load(Ordering::Acquire){return Err(UpdateError::Cancelled);}
+        let receipt=serde_json::json!({"version":release.version,"repository":release.repository,"commit":commit,"bundle":serde_json::from_slice::<Value>(&proof).map_err(|_|UpdateError::Invalid)?});
+        std::fs::write(path.with_file_name(format!("{}.provenance.json",release.name)),receipt.to_string()).map_err(|_|UpdateError::Invalid)?;
+        Ok(path.clone())
+    })();
+    if result.is_err(){let _=std::fs::remove_file(&path);let _=std::fs::remove_file(path.with_file_name(format!("{}.sha256",release.name)));}
+    result
+}
+fn release_commit(client:&reqwest::blocking::Client,repository:&str,version:&str)->Result<String,UpdateError>{
+    let mut url=api_url(repository,&format!("/git/ref/tags/v{version}"))?;
+    for _ in 0..4{
+        let raw=get(client,&url,16384)?;let value:Value=serde_json::from_slice(&raw).map_err(|_|UpdateError::Invalid)?;
+        let object=&value["object"];let sha=object["sha"].as_str().ok_or(UpdateError::Invalid)?;
+        if sha.len()!=40||!sha.bytes().all(|b|b.is_ascii_hexdigit()){return Err(UpdateError::Invalid);}
+        match object["type"].as_str(){Some("commit")=>return Ok(sha.into()),Some("tag")=>url=api_url(repository,&format!("/git/tags/{sha}"))?,_=>return Err(UpdateError::Invalid)}
     }
-    let target = Target::current().ok_or(UpdateError::Invalid)?;
-    let release = if is_portable_install() { select_portable_release(&body, current, target) } else { select_release(&body, current, target) }?.ok_or(UpdateError::Invalid)?;
-    let sums = get(&release.sums_url, "application/octet-stream")?.text().map_err(|_| UpdateError::Network)?;
-    if sums.len() > 16 * 1024 {
-        return Err(UpdateError::Invalid);
-    }
-    let digest = checksum_for(&sums, &release.name)?;
-    let response = get(&release.url, "application/octet-stream")?;
-    stream_verified(response, release.size, &digest, &release.name, dir, cancel, progress)
+    Err(UpdateError::Invalid)
+}
+pub fn verify_download(path:&std::path::Path,include_beta:bool)->Result<(),UpdateError>{
+    use sha2::{Digest,Sha256};
+    let name=path.file_name().and_then(|v|v.to_str()).ok_or(UpdateError::Invalid)?;
+    let read=|suffix:&str,limit:u64|->Result<Vec<u8>,UpdateError>{let file=std::fs::File::open(path.with_file_name(format!("{name}{suffix}"))).map_err(|_|UpdateError::Invalid)?;let mut data=Vec::new();file.take(limit+1).read_to_end(&mut data).map_err(|_|UpdateError::Invalid)?;if data.len()as u64>limit{return Err(UpdateError::Invalid);}Ok(data)};
+    let sums=read(".sha256",16384)?;let digest=checksum_for(std::str::from_utf8(&sums).map_err(|_|UpdateError::Invalid)?,name)?;
+    let receipt=read(".provenance.json",crate::attestations::MAX_BUNDLE+4096)?;
+    let value:Value=serde_json::from_slice(&receipt).map_err(|_|UpdateError::Invalid)?;
+    let version=value["version"].as_str().ok_or(UpdateError::Invalid)?;
+    if version_key(version).ok_or(UpdateError::Invalid)?.1==1&&!include_beta{return Err(UpdateError::Invalid);}
+    let mut source=std::fs::File::open(path).map_err(|_|UpdateError::Invalid)?;let mut hash=Sha256::new();std::io::copy(&mut source,&mut hash).map_err(|_|UpdateError::Invalid)?;
+    if format!("{:x}",hash.finalize())!=digest{return Err(UpdateError::Invalid);}
+    crate::attestations::verify(value["bundle"].to_string().as_bytes(),name,&digest,version,value["repository"].as_str().ok_or(UpdateError::Invalid)?,value["commit"].as_str().ok_or(UpdateError::Invalid)?)
 }

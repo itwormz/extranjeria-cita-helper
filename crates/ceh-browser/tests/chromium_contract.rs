@@ -97,3 +97,89 @@ fn the_windows_version_comes_from_the_numbered_folder_beside_the_executable() {
     }
     assert_eq!(ceh_browser::chromium::version_from_install_folder(numbers.path()), Some("1000.0.0.1".to_owned()));
 }
+
+mod locations {
+    use ceh_browser::chromium::{app_path_from_value, candidate_paths, registry_path_fits};
+    use ceh_browser::discovery::is_snap_install;
+    use ceh_browser::firefox::{ProfileKind, ProfileLease};
+    use ceh_browser::launch::TargetOs;
+    use std::path::{Path, PathBuf};
+
+    fn has(paths: &[PathBuf], expected: &str) -> bool {
+        paths.iter().any(|p| p == Path::new(expected))
+    }
+
+    #[test]
+    fn linux_looks_at_the_real_program_and_at_the_usual_links() {
+        let chrome = candidate_paths(ProfileKind::Chrome, TargetOs::Linux, &[]);
+        assert!(has(&chrome, "/usr/bin/google-chrome") && has(&chrome, "/usr/bin/google-chrome-stable") && has(&chrome, "/opt/google/chrome/chrome"));
+        let brave = candidate_paths(ProfileKind::Brave, TargetOs::Linux, &[]);
+        assert!(has(&brave, "/usr/bin/brave-browser") && has(&brave, "/opt/brave.com/brave/brave-browser"));
+        let edge = candidate_paths(ProfileKind::Edge, TargetOs::Linux, &[]);
+        assert!(has(&edge, "/usr/bin/microsoft-edge") && has(&edge, "/opt/microsoft/msedge/microsoft-edge"));
+        let chromium = candidate_paths(ProfileKind::Chromium, TargetOs::Linux, &[]);
+        for expected in ["/usr/lib/chromium/chromium", "/usr/lib/chromium-browser/chromium-browser", "/usr/bin/chromium", "/usr/bin/chromium-browser"] {
+            assert!(has(&chromium, expected), "{expected}");
+        }
+        assert!(chromium.iter().all(|p| p.is_absolute() && !p.starts_with("/snap")), "never a snap path");
+    }
+
+    #[test]
+    fn windows_and_macos_use_their_install_folders_including_chromium() {
+        let bases = [PathBuf::from("C:/Program Files"), PathBuf::from("C:/Users/x/AppData/Local")];
+        let chromium = candidate_paths(ProfileKind::Chromium, TargetOs::Windows, &bases);
+        assert!(has(&chromium, "C:/Users/x/AppData/Local/Chromium/Application/chrome.exe") && has(&chromium, "C:/Program Files/Chromium/Application/chrome.exe"));
+        let chrome = candidate_paths(ProfileKind::Chrome, TargetOs::Windows, &bases);
+        assert!(has(&chrome, "C:/Users/x/AppData/Local/Google/Chrome/Application/chrome.exe"), "a per-user Chrome");
+        assert!(has(&candidate_paths(ProfileKind::Chromium, TargetOs::Macos, &[]), "/Applications/Chromium.app/Contents/MacOS/Chromium"));
+    }
+
+    #[test]
+    fn the_windows_registry_value_is_a_path_possibly_quoted_and_nothing_else() {
+        assert_eq!(app_path_from_value("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"), Some(PathBuf::from("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe")));
+        assert_eq!(app_path_from_value("\"D:\\Apps\\Brave\\brave.exe\""), Some(PathBuf::from("D:\\Apps\\Brave\\brave.exe")));
+        assert_eq!(app_path_from_value("  \"D:\\x\\msedge.exe\"  "), Some(PathBuf::from("D:\\x\\msedge.exe")));
+        for bad in ["", "chrome.exe", "..\\chrome.exe", "C:\\x\\..\\chrome.exe", "C:\\x\\readme.txt", "\"C:\\x\\chrome.exe --evil\"", "C:\\x\\chrome.exe --remote-debugging-port=1"] {
+            assert_eq!(app_path_from_value(bad), None, "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn a_registry_path_is_trusted_only_for_the_browser_it_belongs_to() {
+        // Chrome and Chromium both register chrome.exe: each kind takes only its own folder.
+        let google = Path::new("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe");
+        let chromium = Path::new("C:\\Users\\x\\AppData\\Local\\Chromium\\Application\\chrome.exe");
+        assert!(registry_path_fits(ProfileKind::Chrome, google) && !registry_path_fits(ProfileKind::Chrome, chromium));
+        assert!(registry_path_fits(ProfileKind::Chromium, chromium) && !registry_path_fits(ProfileKind::Chromium, google));
+        assert!(registry_path_fits(ProfileKind::Brave, Path::new("D:\\BraveSoftware\\Brave-Browser\\Application\\brave.exe")));
+        assert!(registry_path_fits(ProfileKind::Edge, Path::new("C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe")));
+        assert!(!registry_path_fits(ProfileKind::Edge, google));
+    }
+
+    #[test]
+    fn a_snap_package_or_its_wrapper_is_recognised_so_it_is_never_started() {
+        assert!(is_snap_install(Path::new("/snap/chromium/current/usr/lib/chromium-browser/chrome")));
+        let dir = tempfile::tempdir().unwrap();
+        let wrapper = dir.path().join("chromium-browser");
+        std::fs::write(&wrapper, "#!/bin/sh\n# Ubuntu: the deb is a stub for the snap\nexec /snap/bin/chromium \"$@\"\n").unwrap();
+        assert!(is_snap_install(&wrapper), "Ubuntu's chromium-browser is a snap launcher script");
+        let real = dir.path().join("chromium");
+        std::fs::write(&real, vec![0x7f, b'E', b'L', b'F', 0, 1, 2, 3]).unwrap();
+        assert!(!is_snap_install(&real), "a real program");
+        let plain_script = dir.path().join("plain");
+        std::fs::write(&plain_script, "#!/bin/sh\nexec /usr/lib/chromium/chromium \"$@\"\n").unwrap();
+        assert!(!is_snap_install(&plain_script), "Debian's launcher script is fine");
+    }
+
+    #[test]
+    fn chromium_has_its_own_profile_that_no_other_browser_opens() {
+        let runtime = tempfile::tempdir().unwrap();
+        let chromium = ProfileLease::persistent_kind(runtime.path(), "p1", ProfileKind::Chromium).unwrap();
+        assert!(chromium.path().ends_with("chromium-p1"));
+        drop(chromium);
+        let marker = std::fs::read(runtime.path().join("browser-profiles/chromium-p1/ceh-owned-profile")).unwrap();
+        assert_eq!(marker, b"CEH Chromium profile v1\n");
+        // The same folder name is refused for another browser kind.
+        assert!(ProfileLease::persistent_kind(runtime.path(), "p1", ProfileKind::Chrome).map(|l| l.path().to_owned()).map_or(true, |p| !p.ends_with("chromium-p1")));
+    }
+}

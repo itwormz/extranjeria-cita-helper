@@ -26,3 +26,10 @@ test('a missing current browser is not offered once the installed list is known'
  assert.deepEqual(browserChoices(null,'firefox').options.map(o=>o.value),['firefox'],'while loading the current value is shown');
  assert.deepEqual(browserChoices([],'firefox').options.map(o=>o.value),['firefox'],'no browser at all: keep the value so the note can explain');
 });
+
+test('Chromium is a browser of its own with a readable name',()=>{
+ const chromium=[{id:'chromium',name:'Chromium',version:'142.0.7444.1',support:'supported'}];
+ assert.deepEqual(browserChoices(chromium,'chromium').options,[{value:'chromium',label:'Chromium 142.0.7444.1'}]);
+ assert.deepEqual(browserChoices(null,'chromium').options,[{value:'chromium',label:'Chromium'}]);
+ assert.equal(fallbackBrowser(chromium,'firefox'),'chromium');
+});

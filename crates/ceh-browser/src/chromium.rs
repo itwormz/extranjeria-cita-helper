@@ -67,6 +67,95 @@ pub fn version_from_install_folder(application: &Path) -> Option<String> {
         .map(|(_, name)| name)
 }
 
+/// Where each system keeps each browser: the program itself, not only the usual links to it.
+pub fn candidate_paths(kind: ProfileKind, os: crate::launch::TargetOs, windows_bases: &[PathBuf]) -> Vec<PathBuf> {
+    use crate::launch::TargetOs;
+    match os {
+        TargetOs::Macos => match kind {
+            ProfileKind::Chrome => vec!["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".into()],
+            ProfileKind::Brave => vec!["/Applications/Brave Browser.app/Contents/MacOS/Brave Browser".into()],
+            ProfileKind::Edge => vec!["/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge".into()],
+            ProfileKind::Chromium => vec!["/Applications/Chromium.app/Contents/MacOS/Chromium".into()],
+            ProfileKind::Firefox => Vec::new(),
+        },
+        TargetOs::Windows => {
+            let relative = match kind {
+                ProfileKind::Chrome => "Google/Chrome/Application/chrome.exe",
+                ProfileKind::Brave => "BraveSoftware/Brave-Browser/Application/brave.exe",
+                ProfileKind::Edge => "Microsoft/Edge/Application/msedge.exe",
+                ProfileKind::Chromium => "Chromium/Application/chrome.exe",
+                ProfileKind::Firefox => return Vec::new(),
+            };
+            windows_bases.iter().map(|base| base.join(relative)).collect()
+        }
+        TargetOs::Linux => {
+            let paths: &[&str] = match kind {
+                ProfileKind::Chrome => &["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/opt/google/chrome/chrome", "/opt/google/chrome/google-chrome"],
+                ProfileKind::Brave => &["/usr/bin/brave-browser", "/usr/bin/brave", "/opt/brave.com/brave/brave-browser", "/opt/brave.com/brave/brave"],
+                ProfileKind::Edge => &["/usr/bin/microsoft-edge", "/usr/bin/microsoft-edge-stable", "/opt/microsoft/msedge/microsoft-edge", "/opt/microsoft/msedge/msedge"],
+                // Ubuntu's `chromium-browser` is a stub for the snap: `is_snap_install` turns it away.
+                ProfileKind::Chromium => &["/usr/lib/chromium/chromium", "/usr/lib/chromium-browser/chromium-browser", "/usr/bin/chromium", "/usr/bin/chromium-browser"],
+                ProfileKind::Firefox => &[],
+            };
+            paths.iter().map(PathBuf::from).collect()
+        }
+    }
+}
+/// The program path out of a Windows `App Paths` value: an absolute `X:\...\name.exe`, possibly quoted, with no `..`,
+/// no arguments and nothing else.
+pub fn app_path_from_value(raw: &str) -> Option<PathBuf> {
+    let trimmed = raw.trim();
+    let inner = trimmed.strip_prefix('"').and_then(|rest| rest.strip_suffix('"')).unwrap_or(trimmed);
+    let bytes = inner.as_bytes();
+    let drive = bytes.len() > 3 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' && (bytes[2] == b'\\' || bytes[2] == b'/');
+    let clean = !inner.contains('"') && inner.to_ascii_lowercase().ends_with(".exe") && !inner.split(['\\', '/']).any(|part| part == "..");
+    (drive && clean).then(|| PathBuf::from(inner))
+}
+/// Chrome and Chromium both register `chrome.exe`: a registered path counts only for the browser whose folder it is.
+pub fn registry_path_fits(kind: ProfileKind, path: &Path) -> bool {
+    let text = path.to_string_lossy().to_ascii_lowercase().replace('\\', "/");
+    match kind {
+        ProfileKind::Chrome => text.contains("/google/") && !text.contains("chromium"),
+        ProfileKind::Chromium => text.contains("/chromium/"),
+        ProfileKind::Brave => text.contains("brave"),
+        ProfileKind::Edge => text.contains("/microsoft/edge"),
+        ProfileKind::Firefox => false,
+    }
+}
+/// The program paths Windows has registered under `App Paths` for `exe` (HKLM 64 and 32 bit, then HKCU).
+pub fn registry_app_paths(exe: &str) -> Vec<PathBuf> {
+    #[cfg(windows)]
+    {
+        use winreg::{RegKey, enums::*};
+        let sub = format!("Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\{exe}");
+        let mut found = Vec::new();
+        for (hive, flags) in [(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY), (HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_32KEY), (HKEY_CURRENT_USER, KEY_READ)] {
+            if let Ok(key) = RegKey::predef(hive).open_subkey_with_flags(&sub, flags)
+                && let Ok(value) = key.get_value::<String, _>("")
+                && let Some(path) = app_path_from_value(&value)
+                && !found.contains(&path)
+            {
+                found.push(path);
+            }
+        }
+        found
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = exe;
+        Vec::new()
+    }
+}
+fn registered_paths(kind: ProfileKind) -> Vec<PathBuf> {
+    let exe = match kind {
+        ProfileKind::Chrome | ProfileKind::Chromium => "chrome.exe",
+        ProfileKind::Brave => "brave.exe",
+        ProfileKind::Edge => "msedge.exe",
+        ProfileKind::Firefox => return Vec::new(),
+    };
+    registry_app_paths(exe).into_iter().filter(|path| registry_path_fits(kind, path)).collect()
+}
+
 pub struct ChromiumInstallation {
     kind: ProfileKind,
     executable: PathBuf,
@@ -75,6 +164,10 @@ pub struct ChromiumInstallation {
 impl ChromiumInstallation {
     pub fn from_executable(kind: ProfileKind, path: &Path) -> Result<Self, FirefoxError> {
         if kind == ProfileKind::Firefox {
+            return Err(FirefoxError::InvalidInstallation);
+        }
+        // A snap cannot read the app's profile folder (confinement), so it is never started.
+        if crate::discovery::is_snap_install(path) {
             return Err(FirefoxError::InvalidInstallation);
         }
         let executable = path.canonicalize().map_err(|_| FirefoxError::NotInstalled)?;
@@ -94,36 +187,19 @@ impl ChromiumInstallation {
         };
         Ok(Self { kind, executable, version })
     }
-    /// Fixed known install locations only; never inspect the person's browser profiles.
+    /// Fixed known install locations (plus, on Windows, where the installer registered the program); never inspect the
+    /// person's browser profiles and never search `PATH`.
     pub fn discover(kind: ProfileKind) -> Result<Self, FirefoxError> {
-        let mut candidates: Vec<PathBuf> = Vec::new();
-        if cfg!(target_os = "macos") {
-            candidates.push(
-                match kind {
-                    ProfileKind::Chrome => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                    ProfileKind::Brave => "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-                    _ => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-                }
-                .into(),
-            );
-        } else if cfg!(target_os = "windows") {
+        let os = crate::launch::TargetOs::current();
+        let mut bases: Vec<PathBuf> = Vec::new();
+        if cfg!(target_os = "windows") {
             for variable in ["ProgramFiles", "ProgramFiles(x86)", "LocalAppData"] {
-                if let Some(base) = std::env::var_os(variable) {
-                    let base = PathBuf::from(base);
-                    candidates.push(match kind {
-                        ProfileKind::Chrome => base.join("Google/Chrome/Application/chrome.exe"),
-                        ProfileKind::Brave => base.join("BraveSoftware/Brave-Browser/Application/brave.exe"),
-                        _ => base.join("Microsoft/Edge/Application/msedge.exe"),
-                    });
-                }
+                bases.extend(std::env::var_os(variable).map(PathBuf::from));
             }
-        } else {
-            let names: &[&str] = match kind {
-                ProfileKind::Chrome => &["google-chrome", "google-chrome-stable"],
-                ProfileKind::Brave => &["brave-browser", "brave"],
-                _ => &["microsoft-edge", "microsoft-edge-stable"],
-            };
-            candidates.extend(names.iter().map(|n| PathBuf::from("/usr/bin").join(n)));
+        }
+        let mut candidates = candidate_paths(kind, os, &bases);
+        if cfg!(target_os = "windows") {
+            candidates.extend(registered_paths(kind));
         }
         candidates.iter().find_map(|path| Self::from_executable(kind, path).ok()).ok_or(FirefoxError::NotInstalled)
     }
