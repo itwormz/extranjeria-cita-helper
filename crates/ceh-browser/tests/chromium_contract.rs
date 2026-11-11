@@ -72,3 +72,23 @@ fn a_new_profile_asks_for_spanish_pages_and_an_existing_one_is_left_as_it_is() {
     seed_preferences(dir.path()).unwrap();
     assert_eq!(std::fs::read_to_string(dir.path().join("Default/Preferences")).unwrap(), "{\"kept\":true}");
 }
+
+#[test]
+fn the_windows_version_comes_from_the_numbered_folder_beside_the_executable() {
+    // chrome.exe / msedge.exe print nothing for --version on Windows; their version is the folder name next to them.
+    let application = tempfile::tempdir().unwrap();
+    for name in ["156.0.7501.3", "157.0.4341.46", "Installer", "SetupMetrics", "99.1"] {
+        std::fs::create_dir(application.path().join(name)).unwrap();
+    }
+    std::fs::write(application.path().join("msedge.exe"), "").unwrap();
+    std::fs::write(application.path().join("200.0.0.1"), "a file is not a version folder").unwrap();
+    assert_eq!(ceh_browser::chromium::version_from_install_folder(application.path()), Some("157.0.4341.46".to_owned()));
+    let empty = tempfile::tempdir().unwrap();
+    assert_eq!(ceh_browser::chromium::version_from_install_folder(empty.path()), None);
+    // Numeric comparison, not text: 99.x is older than 157.x.
+    let numbers = tempfile::tempdir().unwrap();
+    for name in ["99.0.1.1", "157.0.1.1", "1000.0.0.1"] {
+        std::fs::create_dir(numbers.path().join(name)).unwrap();
+    }
+    assert_eq!(ceh_browser::chromium::version_from_install_folder(numbers.path()), Some("1000.0.0.1".to_owned()));
+}

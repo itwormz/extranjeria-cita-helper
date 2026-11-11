@@ -49,6 +49,22 @@ pub fn parse_version(line: &str) -> Option<String> {
     (last.chars().next()?.is_ascii_digit() && last.contains('.') && last.len() <= 32 && last.chars().all(|c| c.is_ascii_digit() || c == '.')).then(|| last.to_owned())
 }
 
+/// Windows: `chrome.exe`/`msedge.exe` print nothing for `--version`, but the installation keeps the
+/// version in a numbered folder beside the executable (`Application\157.0.4341.46\`); the highest wins.
+pub fn version_from_install_folder(application: &Path) -> Option<String> {
+    std::fs::read_dir(application)
+        .ok()?
+        .flatten()
+        .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .filter_map(|name| {
+            let parts: Vec<u64> = name.split('.').map(|p| p.parse().ok()).collect::<Option<_>>()?;
+            (parts.len() == 4 && name.len() <= 32).then_some((parts, name))
+        })
+        .max()
+        .map(|(_, name)| name)
+}
+
 pub struct ChromiumInstallation {
     kind: ProfileKind,
     executable: PathBuf,
@@ -63,13 +79,17 @@ impl ChromiumInstallation {
         if !executable.is_file() {
             return Err(FirefoxError::InvalidInstallation);
         }
-        let output = std::process::Command::new(&executable)
-            .arg("--version")
-            .stdin(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .output()
-            .map_err(|_| FirefoxError::InvalidInstallation)?;
-        let version = parse_version(&String::from_utf8_lossy(&output.stdout)).ok_or(FirefoxError::InvalidInstallation)?;
+        let version = if cfg!(windows) {
+            executable.parent().and_then(version_from_install_folder).ok_or(FirefoxError::InvalidInstallation)?
+        } else {
+            let output = std::process::Command::new(&executable)
+                .arg("--version")
+                .stdin(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .output()
+                .map_err(|_| FirefoxError::InvalidInstallation)?;
+            parse_version(&String::from_utf8_lossy(&output.stdout)).ok_or(FirefoxError::InvalidInstallation)?
+        };
         Ok(Self { kind, executable, version })
     }
     /// Fixed known install locations only; never inspect the person's browser profiles.

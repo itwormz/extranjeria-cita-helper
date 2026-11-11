@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Per-user installer without questions: no administrator rights, no folder or licence pages, only the progress bar.
-     Same shape as the Python version's MSI. Built with WiX 4: wix build SantaCita.wxs -arch x64 -d Version=0.4.0.1 -d SourceDir=<folder> -->
+     Same shape as the Python version's MSI. Built with WiX 4: wix build SantaCita.wxs -arch x64 -d Version=0.4.0.1 -d SourceDir=<folder> -d IconFile=<icon.ico> -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="SantaCita" Manufacturer="itwormz" Version="$(Version)"
            UpgradeCode="42DDB187-3A0C-5D7D-BC5B-DB5BA305900E" Scope="perUser" InstallerVersion="500">
@@ -10,7 +10,8 @@
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Property Id="ARPCOMMENTS" Value="Appointment helper for Extranjería: fingerprinting and autorización de regreso" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/itwormz/santacita" />
-    <Icon Id="AppIcon" SourceFile="$(SourceDir)\SantaCita.exe" />
+    <!-- A small .ico, not the program itself: using the exe here would embed a second copy of it in the MSI. -->
+    <Icon Id="AppIcon" SourceFile="$(IconFile)" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
 
     <StandardDirectory Id="LocalAppDataFolder">

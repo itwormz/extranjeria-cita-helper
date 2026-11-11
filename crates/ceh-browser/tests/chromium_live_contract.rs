@@ -1,4 +1,4 @@
-//! Real Chrome on a local page (no site): run with `-- --ignored`. Checks the CDP wire answers the BiDi
+//! Real Chrome, Brave or Edge on a local page (no site): run with `-- --ignored`. Checks the CDP wire answers the BiDi
 //! commands the driver uses.
 use ceh_browser::chromium::ChromiumInstallation;
 use ceh_browser::firefox::{OwnedFirefox, ProfileKind, ProfileLease};
@@ -29,12 +29,15 @@ fn string(result: &Value) -> String {
     result["result"]["value"].as_str().map(str::to_owned).unwrap_or_else(|| result["result"]["value"].to_string())
 }
 
-#[test]
-#[ignore = "launches the installed Chrome"]
-fn the_cdp_wire_serves_navigation_scripts_nodes_input_frames_and_events() {
-    let Ok(installation) = ChromiumInstallation::discover(ProfileKind::Chrome) else { return };
+fn exercise(kind: ProfileKind) {
+    let Ok(installation) = ChromiumInstallation::discover(kind) else {
+        // A machine that is meant to have the browser sets CEH_REQUIRE_BROWSER, so "not found" cannot pass silently.
+        assert!(std::env::var_os("CEH_REQUIRE_BROWSER").is_none(), "{kind:?} was not found");
+        eprintln!("not installed: nothing to check");
+        return;
+    };
     let runtime = tempfile::tempdir().unwrap();
-    let lease = ProfileLease::temporary_kind(runtime.path(), ProfileKind::Chrome).unwrap();
+    let lease = ProfileLease::temporary_kind(runtime.path(), kind).unwrap();
     let mut browser = OwnedFirefox::start_chromium(&installation, lease, &AtomicBool::new(false)).unwrap();
     assert!(browser.page_open());
     let context = browser.context().to_owned();
@@ -127,4 +130,20 @@ fn the_cdp_wire_serves_navigation_scripts_nodes_input_frames_and_events() {
     std::thread::sleep(std::time::Duration::from_millis(500));
     assert!(!browser.page_open());
     let _ = browser.stop();
+}
+
+#[test]
+#[ignore = "launches the installed Chrome"]
+fn the_cdp_wire_serves_navigation_scripts_nodes_input_frames_and_events() {
+    exercise(ProfileKind::Chrome);
+}
+#[test]
+#[ignore = "launches the installed Brave"]
+fn the_same_wire_works_in_brave() {
+    exercise(ProfileKind::Brave);
+}
+#[test]
+#[ignore = "launches the installed Edge (Windows)"]
+fn the_same_wire_works_in_edge() {
+    exercise(ProfileKind::Edge);
 }
