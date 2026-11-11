@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {drawCard,fitText,wrapLines} from '../src/card-draw.ts';
-const fixture=JSON.parse(readFileSync(new URL('../../tests/contracts/fixtures/achievement-card-0.3.6.json',import.meta.url),'utf8'));
+const fixture=JSON.parse(readFileSync(new URL('../../contracts/fixtures/achievement-card-0.3.6.json',import.meta.url),'utf8'));
 /** Recording canvas stand-in: every character is half a pixel-size wide. */
 function fake(){const calls=[];const ctx={font:'400 24px Plex',fillStyle:'',strokeStyle:'',lineWidth:1,textAlign:'left',textBaseline:'alphabetic',
  measureText(text){const size=Number(/(\d+)px/.exec(this.font)[1]);return {width:[...text].length*size/2};}};

@@ -3,7 +3,7 @@ use serde_json::Value;
 #[test]
 fn rust_public_booking_data_matches_python_goldens() {
     let corpus: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/booking-offers.json"
+        "../../../contracts/fixtures/booking-offers.json"
     ))
     .unwrap();
     for case in corpus["cases"].as_array().unwrap() {

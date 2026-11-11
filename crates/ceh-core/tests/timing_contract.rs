@@ -13,7 +13,7 @@ fn floats(value: Value) -> Value {
 #[test]
 fn timing_validation_matches_python_defaults_bounds_and_legacy_upgrade() {
     let corpus: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/timings.json"
+        "../../../contracts/fixtures/timings.json"
     ))
     .unwrap();
     for case in corpus["cases"].as_array().unwrap() {

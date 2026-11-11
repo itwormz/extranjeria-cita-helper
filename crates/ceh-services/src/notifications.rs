@@ -632,7 +632,7 @@ impl Pairing {
 
 static TRANSLATIONS: LazyLock<Value> = LazyLock::new(|| {
     serde_json::from_str(include_str!(
-        "../../../app/desktop/assets/translations.json"
+        "../../../assets/translations.json"
     ))
     .expect("shipped translation catalog")
 });

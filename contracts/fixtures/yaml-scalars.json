@@ -1,0 +1,316 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "scalar_0",
+      "source": "",
+      "expected": {
+        "kind": "NoneType",
+        "text": "None"
+      }
+    },
+    {
+      "id": "scalar_1",
+      "source": "yes",
+      "expected": {
+        "kind": "bool",
+        "text": "True"
+      }
+    },
+    {
+      "id": "scalar_2",
+      "source": "Yes",
+      "expected": {
+        "kind": "bool",
+        "text": "True"
+      }
+    },
+    {
+      "id": "scalar_3",
+      "source": "NO",
+      "expected": {
+        "kind": "bool",
+        "text": "False"
+      }
+    },
+    {
+      "id": "scalar_4",
+      "source": "On",
+      "expected": {
+        "kind": "bool",
+        "text": "True"
+      }
+    },
+    {
+      "id": "scalar_5",
+      "source": "off",
+      "expected": {
+        "kind": "bool",
+        "text": "False"
+      }
+    },
+    {
+      "id": "scalar_6",
+      "source": "true",
+      "expected": {
+        "kind": "bool",
+        "text": "True"
+      }
+    },
+    {
+      "id": "scalar_7",
+      "source": "False",
+      "expected": {
+        "kind": "bool",
+        "text": "False"
+      }
+    },
+    {
+      "id": "scalar_8",
+      "source": "'false'",
+      "expected": {
+        "kind": "str",
+        "text": "false"
+      }
+    },
+    {
+      "id": "scalar_9",
+      "source": "\"on\"",
+      "expected": {
+        "kind": "str",
+        "text": "on"
+      }
+    },
+    {
+      "id": "scalar_10",
+      "source": "'0123'",
+      "expected": {
+        "kind": "str",
+        "text": "0123"
+      }
+    },
+    {
+      "id": "scalar_11",
+      "source": "0123",
+      "expected": {
+        "kind": "int",
+        "text": "83"
+      }
+    },
+    {
+      "id": "scalar_12",
+      "source": "0",
+      "expected": {
+        "kind": "int",
+        "text": "0"
+      }
+    },
+    {
+      "id": "scalar_13",
+      "source": "-0",
+      "expected": {
+        "kind": "int",
+        "text": "0"
+      }
+    },
+    {
+      "id": "scalar_14",
+      "source": "0b101",
+      "expected": {
+        "kind": "int",
+        "text": "5"
+      }
+    },
+    {
+      "id": "scalar_15",
+      "source": "-0xF",
+      "expected": {
+        "kind": "int",
+        "text": "-15"
+      }
+    },
+    {
+      "id": "scalar_16",
+      "source": "1_000",
+      "expected": {
+        "kind": "int",
+        "text": "1000"
+      }
+    },
+    {
+      "id": "scalar_17",
+      "source": "1:02",
+      "expected": {
+        "kind": "int",
+        "text": "62"
+      }
+    },
+    {
+      "id": "scalar_18",
+      "source": "1:00:01",
+      "expected": {
+        "kind": "int",
+        "text": "3601"
+      }
+    },
+    {
+      "id": "scalar_19",
+      "source": "2.5",
+      "expected": {
+        "kind": "float",
+        "text": "2.5"
+      }
+    },
+    {
+      "id": "scalar_20",
+      "source": "-.5",
+      "expected": {
+        "kind": "str",
+        "text": "-.5"
+      }
+    },
+    {
+      "id": "scalar_21",
+      "source": ".5",
+      "expected": {
+        "kind": "float",
+        "text": "0.5"
+      }
+    },
+    {
+      "id": "scalar_22",
+      "source": "2.5e3",
+      "expected": {
+        "kind": "str",
+        "text": "2.5e3"
+      }
+    },
+    {
+      "id": "scalar_23",
+      "source": "2.5e+3",
+      "expected": {
+        "kind": "float",
+        "text": "2500.0"
+      }
+    },
+    {
+      "id": "scalar_24",
+      "source": "1.0e-07",
+      "expected": {
+        "kind": "float",
+        "text": "1e-07"
+      }
+    },
+    {
+      "id": "scalar_25",
+      "source": ".inf",
+      "expected": {
+        "kind": "float",
+        "text": "inf"
+      }
+    },
+    {
+      "id": "scalar_26",
+      "source": "-.INF",
+      "expected": {
+        "kind": "float",
+        "text": "-inf"
+      }
+    },
+    {
+      "id": "scalar_27",
+      "source": ".NaN",
+      "expected": {
+        "kind": "float",
+        "text": "nan"
+      }
+    },
+    {
+      "id": "scalar_28",
+      "source": "2001-12-15",
+      "expected": {
+        "kind": "date",
+        "text": "2001-12-15"
+      }
+    },
+    {
+      "id": "scalar_29",
+      "source": "2001-12-15T02:59:43.1Z",
+      "expected": {
+        "kind": "datetime",
+        "text": "2001-12-15 02:59:43.100000+00:00"
+      }
+    },
+    {
+      "id": "scalar_30",
+      "source": "2001-1-2 3:04:05 -2:30",
+      "expected": {
+        "kind": "datetime",
+        "text": "2001-01-02 03:04:05-02:30"
+      }
+    },
+    {
+      "id": "scalar_31",
+      "source": "!!str on",
+      "expected": {
+        "kind": "str",
+        "text": "on"
+      }
+    },
+    {
+      "id": "scalar_32",
+      "source": "!!int 0o12",
+      "expected": {
+        "kind": "int",
+        "text": "10"
+      }
+    },
+    {
+      "id": "scalar_33",
+      "source": "!!float 2.5e3",
+      "expected": {
+        "kind": "float",
+        "text": "2500.0"
+      }
+    },
+    {
+      "id": "scalar_34",
+      "source": "null",
+      "expected": {
+        "kind": "NoneType",
+        "text": "None"
+      }
+    },
+    {
+      "id": "scalar_35",
+      "source": "'null'",
+      "expected": {
+        "kind": "str",
+        "text": "null"
+      }
+    },
+    {
+      "id": "scalar_36",
+      "source": "~",
+      "expected": {
+        "kind": "NoneType",
+        "text": "None"
+      }
+    },
+    {
+      "id": "scalar_37",
+      "source": "'unicode 🚀'",
+      "expected": {
+        "kind": "str",
+        "text": "unicode 🚀"
+      }
+    },
+    {
+      "id": "scalar_38",
+      "source": "2000-02-30",
+      "expected": {
+        "error": true
+      }
+    }
+  ]
+}

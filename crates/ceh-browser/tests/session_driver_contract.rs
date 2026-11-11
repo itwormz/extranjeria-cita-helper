@@ -2,7 +2,7 @@ use ceh_browser::{BrowserError, DispatchGate, session_driver::SessionDriver};
 use ceh_core::{flow::FlowEffect, model::*, profiles::ProfileDraft, timings::AssistTimings};
 fn profile() -> ProfileDraft {
     let v: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/profile-validation.json"
+        "../../../contracts/fixtures/profile-validation.json"
     ))
     .unwrap();
     serde_json::from_value(v["cases"][0]["expected"]["normalized"].clone()).unwrap()

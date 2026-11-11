@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
 
 fn fixture() -> Value {
-    serde_json::from_str(include_str!("../../../tests/contracts/fixtures/budget-observer-0.3.6.json")).unwrap()
+    serde_json::from_str(include_str!("../../../contracts/fixtures/budget-observer-0.3.6.json")).unwrap()
 }
 
 fn flags(observer: &BudgetObserver) -> Value {

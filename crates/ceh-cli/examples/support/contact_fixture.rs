@@ -21,7 +21,7 @@ const RESULT: &str = "/icpplus/rust-fixture-contact-result";
 const PAGE: &str = "<body><input type='hidden' id='hidden-phone'><form method='post' action='/icpplus/rust-fixture-contact-result'><input id='txtTelefonoCitado' type='tel' name='phone'><input id='emailUNO' type='email' name='email1'><input id='emailDOS' type='email' name='email2'><button id='btnSiguiente' onclick='if(!event.isTrusted)event.preventDefault()'>Siguiente</button></form><script>for(const el of document.querySelectorAll('form input')){el.onpaste=event=>{window.pastes=(window.pastes||0)+1;event.preventDefault()};el.oninput=event=>{if(!event.isTrusted)el.value='';else window.trustedInputs=(window.trustedInputs||0)+1};}</script></body>";
 fn profile() -> Result<ProfileDraft> {
     let cases: Value = serde_json::from_str(include_str!(
-        "../../../../tests/contracts/fixtures/profile-validation.json"
+        "../../../../contracts/fixtures/profile-validation.json"
     ))?;
     let mut p: ProfileDraft =
         serde_json::from_value(cases["cases"][0]["expected"]["normalized"].clone())?;

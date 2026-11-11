@@ -1,7 +1,7 @@
 #[test]
 fn serial_timeline_matches_python_without_mutating_facts() {
     let data: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/timeline.json"
+        "../../../contracts/fixtures/timeline.json"
     ))
     .unwrap();
     for case in data["cases"].as_array().unwrap() {

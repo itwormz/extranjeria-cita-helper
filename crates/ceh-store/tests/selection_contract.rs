@@ -1,11 +1,11 @@
 #[test]
 fn selected_intervals_match_python_union_counts_and_evidence() {
     let corpus: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/selection.json"
+        "../../../contracts/fixtures/selection.json"
     ))
     .unwrap();
     let timelines: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/timeline.json"
+        "../../../contracts/fixtures/timeline.json"
     ))
     .unwrap();
     for case in corpus["cases"].as_array().unwrap() {

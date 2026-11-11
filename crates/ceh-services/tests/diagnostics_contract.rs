@@ -341,7 +341,7 @@ fn retention_does_not_follow_resource_symlink() {
 fn diagnostic_cleaning_matches_python_contract() {
     use ceh_services::diagnostics::Sanitizer;
     let data: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/diagnostics.json"
+        "../../../contracts/fixtures/diagnostics.json"
     ))
     .unwrap();
     for case in data["cases"].as_array().unwrap() {

@@ -51,7 +51,7 @@ fn only_local_main_window_may_invoke() {
 fn bootstrap_summaries_exclude_applicant_contact_and_secrets() {
     let directory = tempfile::tempdir().unwrap();
     let corpus: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/legacy-profiles.json"
+        "../../../contracts/fixtures/legacy-profiles.json"
     ))
     .unwrap();
     let case = corpus["cases"]

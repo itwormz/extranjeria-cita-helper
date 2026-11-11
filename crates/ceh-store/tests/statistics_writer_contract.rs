@@ -88,7 +88,7 @@ fn live_phase_heartbeat_extends_same_page_and_loading_does_not_clear_error() {
 #[test]
 fn stored_events_and_serial_episodes_match_python() {
     let corpus: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/statistics-writes.json"
+        "../../../contracts/fixtures/statistics-writes.json"
     ))
     .unwrap();
     for case in corpus["cases"].as_array().unwrap() {

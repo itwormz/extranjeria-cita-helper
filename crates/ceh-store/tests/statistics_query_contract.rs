@@ -73,7 +73,7 @@ fn office_history_preserves_times_sessions_and_unknown_legacy_count() {
 #[test]
 fn read_queries_match_independent_python_fixtures() {
     let fixtures: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/statistics-queries.json"
+        "../../../contracts/fixtures/statistics-queries.json"
     ))
     .unwrap();
     for case in fixtures["cases"].as_array().unwrap() {

@@ -57,7 +57,7 @@ fn pairing_matches_code_type_and_expires() {
 fn notification_payloads_match_python_in_three_languages() {
     use ceh_services::notifications::{make_event_with_metadata, telegram_message};
     let data: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/notifications.json"
+        "../../../contracts/fixtures/notifications.json"
     ))
     .unwrap();
     for case in data["cases"].as_array().unwrap() {

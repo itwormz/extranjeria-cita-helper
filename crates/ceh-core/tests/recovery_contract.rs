@@ -3,7 +3,7 @@ use serde_json::{Value, json};
 #[test]
 fn recovery_matches_python_fixtures() {
     let data: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/flow-actions.json"
+        "../../../contracts/fixtures/flow-actions.json"
     ))
     .unwrap();
     let cases = data["cases"]

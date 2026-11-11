@@ -31,7 +31,7 @@ mod tests {
     }
 }
 
-const SOUND: &[u8] = include_bytes!("../../../app/desktop/assets/attention.wav");
+const SOUND: &[u8] = include_bytes!("../../../assets/attention.wav");
 pub fn ensure_sound(root: &std::path::Path) -> Result<std::path::PathBuf, &'static str> {
     let directory = root.join("data");
     if directory

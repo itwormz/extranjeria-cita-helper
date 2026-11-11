@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync,readdirSync} from 'node:fs';
 const read=path=>JSON.parse(readFileSync(new URL(path,import.meta.url),'utf8'));
-const catalog=read('../../app/desktop/assets/translations.json'),additions=read('../src/messages.json');
+const catalog=read('../../assets/translations.json'),additions=read('../src/messages.json');
 const sources=new URL('../src/',import.meta.url);
 /** Strings that are identical in every language (protocol names, brand and network names). */
 const SAME=new Set(['CAPTCHA','HTTP 429','Telegram','X','Facebook','Instagram','Reddit','Webhook','TIE','ICP','cod. oper']);

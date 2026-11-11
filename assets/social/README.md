@@ -1,0 +1,1 @@
+Social logos: Simple Icons 15.0.0 (https://github.com/simple-icons/simple-icons/tree/15.0.0), CC0-1.0; see LICENSE.txt. SVG fill set to white for coloured buttons. Brand trademarks remain owned by their respective owners.

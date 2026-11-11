@@ -290,7 +290,7 @@ pub enum PublicLink {
 }
 pub fn public_link(target: PublicLink, lang: &str) -> Result<String, &'static str> {
     language(lang)?;
-    let repo = "https://github.com/itwormz/extranjeria-cita-helper";
+    let repo = "https://github.com/itwormz/santacita";
     Ok(match target {
         PublicLink::Github => repo.into(),
         PublicLink::Readme => format!(

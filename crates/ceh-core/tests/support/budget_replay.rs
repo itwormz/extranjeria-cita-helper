@@ -3,7 +3,7 @@ use ceh_core::appointment_budget::{AppointmentBudget, AppointmentPolicy, BudgetE
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
-pub const FIXTURE: &str = include_str!("../../../../tests/contracts/fixtures/budget-0.3.6.json");
+pub const FIXTURE: &str = include_str!("../../../../contracts/fixtures/budget-0.3.6.json");
 
 pub fn scenarios_in_group(group: &str) -> Vec<Value> {
     let data: Value = serde_json::from_str(FIXTURE).unwrap();

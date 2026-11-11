@@ -25,7 +25,7 @@ const SUCCESS: &str = "<body><form method='post' action='/icpplus/rust-fixture-r
 const EMPTY: &str = "<body>No hay citas disponibles</body>";
 fn profile() -> Result<ProfileDraft> {
     let corpus: Value = serde_json::from_str(include_str!(
-        "../../../../tests/contracts/fixtures/profile-validation.json"
+        "../../../../contracts/fixtures/profile-validation.json"
     ))?;
     Ok(serde_json::from_value(
         corpus["cases"][0]["expected"]["normalized"].clone(),

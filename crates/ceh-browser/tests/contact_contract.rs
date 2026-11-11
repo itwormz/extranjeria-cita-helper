@@ -3,7 +3,7 @@ use ceh_core::profiles::ProfileDraft;
 use serde_json::Value;
 fn profile() -> ProfileDraft {
     let cases: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/profile-validation.json"
+        "../../../contracts/fixtures/profile-validation.json"
     ))
     .unwrap();
     {

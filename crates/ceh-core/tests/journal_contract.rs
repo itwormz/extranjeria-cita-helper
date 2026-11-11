@@ -9,7 +9,7 @@ fn document(value: &Value) -> DocumentId {
 #[test]
 fn journal_matches_existing_python_stable_facts() {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/journal.json"
+        "../../../contracts/fixtures/journal.json"
     ))
     .unwrap();
     assert_eq!(fixture["cases"].as_array().unwrap().len(), 18);

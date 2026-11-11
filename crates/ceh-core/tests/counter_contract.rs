@@ -9,7 +9,7 @@ fn scope(profile: &str, session: &str) -> EventScope {
 #[test]
 fn counters_match_existing_python_session_and_store_facts() {
     let data: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/counters.json"
+        "../../../contracts/fixtures/counters.json"
     ))
     .unwrap();
     assert_eq!(data["cases"].as_array().unwrap().len(), 6);

@@ -4,7 +4,7 @@ use serde_json::Value;
 #[test]
 fn rust_recognition_matches_real_python_priorities() {
     let corpus: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/recognition.json"
+        "../../../contracts/fixtures/recognition.json"
     ))
     .unwrap();
     for case in corpus["cases"].as_array().unwrap() {

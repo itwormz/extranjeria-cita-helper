@@ -142,7 +142,7 @@ fn constructing_native_backend_does_not_initialize_storage() {
 #[test]
 fn saved_python_entries_decode_identically() {
     let data: serde_json::Value =
-        serde_json::from_str(include_str!("../../../tests/contracts/fixtures/vault.json")).unwrap();
+        serde_json::from_str(include_str!("../../../contracts/fixtures/vault.json")).unwrap();
     for case in data["cases"].as_array().unwrap() {
         let backend = Memory::default();
         for (key, value) in case["input"]["entries"].as_object().unwrap() {

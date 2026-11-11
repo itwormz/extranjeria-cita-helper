@@ -24,7 +24,7 @@ fn event(step: &Value) -> Value {
 
 #[test]
 fn network_journal_rows_match_python() {
-    let data: Value = serde_json::from_str(include_str!("../../../tests/contracts/fixtures/network-journal-0.3.6.json")).unwrap();
+    let data: Value = serde_json::from_str(include_str!("../../../contracts/fixtures/network-journal-0.3.6.json")).unwrap();
     let wall = data["wall"].as_str().unwrap();
     for scenario in data["scenarios"].as_array().unwrap() {
         let mut journal = IcpNetworkJournal::new();

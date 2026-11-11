@@ -39,7 +39,7 @@ fn calendar_escapes_folds_and_omits_confirmation() {
 fn check_exports_against_python(op: &str) {
     use ceh_services::exports::public_card;
     let data: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/exports.json"
+        "../../../contracts/fixtures/exports.json"
     ))
     .unwrap();
     let now = chrono::DateTime::parse_from_rfc3339("2026-10-30T12:00:00Z")
@@ -165,7 +165,7 @@ fn detailed_post_never_leaks_private_appointment_fields() {
 #[test]
 fn card_layout_matches_python_draw_calls() {
     let data: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/achievement-card-0.3.6.json"
+        "../../../contracts/fixtures/achievement-card-0.3.6.json"
     ))
     .unwrap();
     let cases = data["cases"].as_array().unwrap();

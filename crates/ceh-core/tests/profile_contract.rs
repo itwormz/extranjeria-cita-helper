@@ -4,7 +4,7 @@ use serde_json::Value;
 #[test]
 fn rust_profile_validation_matches_python_golden_cases() {
     let corpus: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/profile-validation.json"
+        "../../../contracts/fixtures/profile-validation.json"
     ))
     .unwrap();
     let catalog: ProfileCatalog = serde_json::from_value(corpus["catalog"].clone()).unwrap();

@@ -13,7 +13,7 @@ fn catalog() -> ProfileCatalog {
 }
 fn source() -> String {
     let corpus: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/legacy-profiles.json"
+        "../../../contracts/fixtures/legacy-profiles.json"
     ))
     .unwrap();
     corpus["cases"]

@@ -1,0 +1,490 @@
+{
+ "scenarios": [
+  {
+   "name": "request_response_failed_rows",
+   "rows": [
+    {
+     "endpoint": "index.html",
+     "event": "request",
+     "method": "GET",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "index.html",
+     "event": "response",
+     "method": "GET",
+     "resource_type": "document",
+     "status": 200,
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": true,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acVerFormulario",
+     "event": "failed",
+     "method": "GET",
+     "resource_type": "script",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "app.js",
+     "event": "request",
+     "method": "GET",
+     "redirected": false,
+     "resource_type": "script",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "data",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "xhr",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "other",
+     "event": "request",
+     "method": "GET",
+     "redirected": false,
+     "resource_type": "fetch",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "logo.png",
+     "event": "request",
+     "method": "GET",
+     "redirected": false,
+     "resource_type": "image",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "site.css",
+     "event": "request",
+     "method": "GET",
+     "redirected": false,
+     "resource_type": "stylesheet",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "font.woff",
+     "event": "request",
+     "method": "GET",
+     "redirected": false,
+     "resource_type": "font",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "misc",
+     "event": "request",
+     "method": "GET",
+     "redirected": false,
+     "resource_type": "other",
+     "time": "2026-11-10T10:00:00+01:00"
+    }
+   ],
+   "steps": [
+    {
+     "at": 0,
+     "method": "GET",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/index.html"
+    },
+    {
+     "at": 1,
+     "method": "GET",
+     "op": "response",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/index.html"
+    },
+    {
+     "at": 2,
+     "method": "POST",
+     "op": "request",
+     "redirected": true,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar;jsessionid=ABC"
+    },
+    {
+     "at": 3,
+     "method": "GET",
+     "op": "failed",
+     "redirected": false,
+     "resource_type": "script",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acVerFormulario/"
+    },
+    {
+     "at": 4,
+     "method": "GET",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "script",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/static/app.js"
+    },
+    {
+     "at": 5,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "xhr",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/api/data"
+    },
+    {
+     "at": 6,
+     "method": "GET",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "fetch",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/api/other"
+    },
+    {
+     "at": 7,
+     "method": "GET",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "image",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/logo.png"
+    },
+    {
+     "at": 8,
+     "method": "GET",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "stylesheet",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/site.css"
+    },
+    {
+     "at": 9,
+     "method": "GET",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "font",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/font.woff"
+    },
+    {
+     "at": 10,
+     "method": "GET",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "other",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/misc"
+    }
+   ]
+  },
+  {
+   "name": "foreign_hosts_are_ignored",
+   "rows": [
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    }
+   ],
+   "steps": [
+    {
+     "at": 0,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://example.com/icpplus/acCitar"
+    },
+    {
+     "at": 1,
+     "method": "POST",
+     "op": "response",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 429,
+     "url": "https://example.com/icpplus/acCitar"
+    },
+    {
+     "at": 2,
+     "method": "GET",
+     "op": "failed",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://pasarela.clave.gob.es/x"
+    },
+    {
+     "at": 3,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    }
+   ]
+  },
+  {
+   "name": "rate_limit_counts_requests_by_minutes",
+   "rows": [
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "response",
+     "method": "POST",
+     "requests_by_minutes": {
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 5,
+      "5": 6
+     },
+     "resource_type": "document",
+     "status": 429,
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "request",
+     "method": "POST",
+     "redirected": false,
+     "resource_type": "document",
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "response",
+     "method": "POST",
+     "requests_by_minutes": {
+      "1": 2,
+      "2": 3,
+      "3": 4,
+      "4": 5,
+      "5": 6
+     },
+     "resource_type": "document",
+     "status": 429,
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "response",
+     "method": "POST",
+     "requests_by_minutes": {
+      "1": 0,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 4
+     },
+     "resource_type": "document",
+     "status": 429,
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "response",
+     "method": "POST",
+     "requests_by_minutes": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0
+     },
+     "resource_type": "document",
+     "status": 429,
+     "time": "2026-11-10T10:00:00+01:00"
+    },
+    {
+     "endpoint": "acCitar",
+     "event": "response",
+     "method": "POST",
+     "resource_type": "document",
+     "status": 200,
+     "time": "2026-11-10T10:00:00+01:00"
+    }
+   ],
+   "steps": [
+    {
+     "at": 0,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 30,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 61,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 125,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 190,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 250,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 251,
+     "method": "POST",
+     "op": "response",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 429,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 299,
+     "method": "POST",
+     "op": "request",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 300,
+     "method": "POST",
+     "op": "response",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 429,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 361,
+     "method": "POST",
+     "op": "response",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 429,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 900,
+     "method": "POST",
+     "op": "response",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 429,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    },
+    {
+     "at": 901,
+     "method": "POST",
+     "op": "response",
+     "redirected": false,
+     "resource_type": "document",
+     "status": 200,
+     "url": "https://icp.administracionelectronica.gob.es/icpplus/acCitar"
+    }
+   ]
+  }
+ ],
+ "schema": 1,
+ "source": "v0.3.6",
+ "wall": "2026-11-10T10:00:00+01:00"
+}

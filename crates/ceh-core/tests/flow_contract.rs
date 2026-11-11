@@ -221,7 +221,7 @@ fn completion_from_old_page_is_rejected() {
 fn normal_flow_intents_match_existing_python_fixtures() {
     use serde_json::{Value, json};
     let data: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/flow-actions.json"
+        "../../../contracts/fixtures/flow-actions.json"
     ))
     .unwrap();
     let cases = data["cases"]

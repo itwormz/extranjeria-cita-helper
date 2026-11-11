@@ -1,8 +1,8 @@
 //! Check the public GitHub releases of the project for a newer stable version. Only the check: the person
 //! opens the release page; nothing is downloaded or installed here.
 
-const API: &str = "https://api.github.com/repos/itwormz/extranjeria-cita-helper/releases/latest";
-const PAGE_PREFIX: &str = "https://github.com/itwormz/extranjeria-cita-helper/releases/";
+const API: &str = "https://api.github.com/repos/itwormz/santacita/releases/latest";
+const PAGE_PREFIX: &str = "https://github.com/itwormz/santacita/releases/";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UpdateError {
@@ -84,7 +84,7 @@ pub struct Release {
     pub size: u64,
 }
 pub const MAX_PACKAGE: u64 = 2 * 1024 * 1024 * 1024;
-const DOWNLOAD_PREFIX: &str = "https://github.com/itwormz/extranjeria-cita-helper/releases/download/";
+const DOWNLOAD_PREFIX: &str = "https://github.com/itwormz/santacita/releases/download/";
 fn package_names(version: &str, target: Target) -> Vec<String> {
     match (target.system, target.arch) {
         ("macos", arch) => {

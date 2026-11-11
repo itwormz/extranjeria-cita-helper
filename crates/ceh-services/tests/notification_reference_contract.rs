@@ -5,7 +5,7 @@ use ceh_services::notifications::{
 use serde_json::{Value, json};
 
 fn fixture() -> Value {
-    serde_json::from_str(include_str!("../../../tests/contracts/fixtures/notifications-0.3.6.json")).unwrap()
+    serde_json::from_str(include_str!("../../../contracts/fixtures/notifications-0.3.6.json")).unwrap()
 }
 
 fn expected(value: &Value) -> Option<&str> {

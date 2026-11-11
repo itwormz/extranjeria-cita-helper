@@ -62,7 +62,7 @@ pub fn run(client: &mut Client, context: &str) -> Result<()> {
   ];
         fixture.navigate(client, context, ENTRY)?;
         let cases: Value = serde_json::from_str(include_str!(
-            "../../../../tests/contracts/fixtures/profile-validation.json"
+            "../../../../contracts/fixtures/profile-validation.json"
         ))?;
         let mut profile: ProfileDraft =
             serde_json::from_value(cases["cases"][0]["expected"]["normalized"].clone())?;

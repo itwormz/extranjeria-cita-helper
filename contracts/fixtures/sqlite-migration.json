@@ -1,0 +1,4683 @@
+{
+  "schema_version": 1,
+  "scope": "Current Python schema/indexes and legacy baseline/provenance from synthetic JSON, no user data",
+  "cases": [
+    {
+      "id": "fresh",
+      "source": null,
+      "expected": {
+        "baseline": {},
+        "provenance": {},
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "integer_total",
+      "source": "{\"fixture\": 7}",
+      "expected": {
+        "baseline": {
+          "fixture": {
+            "checks": 7,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 0,
+            "booking_screens": 0,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 0,
+            "pages_processed": 0,
+            "active_seconds": 0,
+            "started_at": null,
+            "first_available_at": null,
+            "first_available_seconds": null,
+            "_offices": [],
+            "_observations": [],
+            "_last_office": ""
+          }
+        },
+        "provenance": {
+          "fixture": {
+            "known": [
+              "checks"
+            ],
+            "positive": [],
+            "active_seconds": null,
+            "legacy_first_available_at": null,
+            "legacy_first_available_elapsed_seconds": null
+          }
+        },
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "partial_totals",
+      "source": "{\"fixture\": {\"checks\": 11, \"actions_performed\": 25}}",
+      "expected": {
+        "baseline": {
+          "fixture": {
+            "checks": 11,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 0,
+            "booking_screens": 0,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 25,
+            "pages_processed": 0,
+            "active_seconds": 0,
+            "started_at": null,
+            "first_available_at": null,
+            "first_available_seconds": null,
+            "_offices": [],
+            "_observations": [],
+            "_last_office": ""
+          }
+        },
+        "provenance": {
+          "fixture": {
+            "known": [
+              "checks",
+              "actions_performed"
+            ],
+            "positive": [],
+            "active_seconds": null,
+            "legacy_first_available_at": null,
+            "legacy_first_available_elapsed_seconds": null
+          }
+        },
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "full_legacy",
+      "source": "{\"fixture\": {\"checks\": 12, \"active_seconds\": 90, \"started_at\": \"2026-10-10T10:20:30+02:00\", \"first_available_at\": \"2026-10-11T00:00:00Z\", \"first_available_seconds\": 20, \"_offices\": [\"CNP TEST\"], \"_observations\": [\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"invalid\"], \"_last_office\": \"CNP TEST\", \"private\": \"SHOULD_NOT_COPY\"}}",
+      "expected": {
+        "baseline": {
+          "fixture": {
+            "checks": 12,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 0,
+            "booking_screens": 0,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 0,
+            "pages_processed": 0,
+            "active_seconds": 90,
+            "started_at": "2026-10-10T08:20:30+00:00",
+            "first_available_at": "2026-10-11T00:00:00+00:00",
+            "first_available_seconds": 20,
+            "_offices": [
+              "CNP TEST"
+            ],
+            "_observations": [
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ],
+            "_last_office": "CNP TEST"
+          }
+        },
+        "provenance": {
+          "fixture": {
+            "known": [
+              "checks",
+              "active_seconds",
+              "started_at",
+              "first_available_at",
+              "first_available_seconds",
+              "_offices"
+            ],
+            "positive": [
+              "offices_seen"
+            ],
+            "active_seconds": 90,
+            "legacy_first_available_at": "2026-10-11T00:00:00+00:00",
+            "legacy_first_available_elapsed_seconds": 20
+          }
+        },
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "booking_provenance",
+      "source": "{\"fixture\": {\"booking_screens\": 1, \"first_available_at\": \"2026-10-11T03:00:00+00:00\"}}",
+      "expected": {
+        "baseline": {
+          "fixture": {
+            "checks": 0,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 0,
+            "booking_screens": 1,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 0,
+            "pages_processed": 0,
+            "active_seconds": 0,
+            "started_at": null,
+            "first_available_at": "2026-10-11T03:00:00+00:00",
+            "first_available_seconds": null,
+            "_offices": [],
+            "_observations": [],
+            "_last_office": ""
+          }
+        },
+        "provenance": {
+          "fixture": {
+            "known": [
+              "booking_screens",
+              "first_available_at"
+            ],
+            "positive": [
+              "booking_screens"
+            ],
+            "active_seconds": null,
+            "legacy_first_available_at": "2026-10-11T03:00:00+00:00",
+            "legacy_first_available_elapsed_seconds": null
+          }
+        },
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "offices_only",
+      "source": "{\"fixture\": {\"_offices\": [\"CNP TEST\"]}}",
+      "expected": {
+        "baseline": {
+          "fixture": {
+            "checks": 0,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 0,
+            "booking_screens": 0,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 0,
+            "pages_processed": 0,
+            "active_seconds": 0,
+            "started_at": null,
+            "first_available_at": null,
+            "first_available_seconds": null,
+            "_offices": [
+              "CNP TEST"
+            ],
+            "_observations": [],
+            "_last_office": ""
+          }
+        },
+        "provenance": {
+          "fixture": {
+            "known": [
+              "_offices"
+            ],
+            "positive": [
+              "offices_seen"
+            ],
+            "active_seconds": null,
+            "legacy_first_available_at": null,
+            "legacy_first_available_elapsed_seconds": null
+          }
+        },
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "ambiguous_first_date",
+      "source": "{\"fixture\": {\"first_available_at\": \"2026-10-11T03:00:00+00:00\"}}",
+      "expected": {
+        "baseline": {
+          "fixture": {
+            "checks": 0,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 0,
+            "booking_screens": 0,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 0,
+            "pages_processed": 0,
+            "active_seconds": 0,
+            "started_at": null,
+            "first_available_at": "2026-10-11T03:00:00+00:00",
+            "first_available_seconds": null,
+            "_offices": [],
+            "_observations": [],
+            "_last_office": ""
+          }
+        },
+        "provenance": {
+          "fixture": {
+            "known": [
+              "first_available_at"
+            ],
+            "positive": [
+              "offices_seen",
+              "booking_screens"
+            ],
+            "active_seconds": null,
+            "legacy_first_available_at": "2026-10-11T03:00:00+00:00",
+            "legacy_first_available_elapsed_seconds": null
+          }
+        },
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "multiple_profiles",
+      "source": "{\"fixture\": 3, \"other\": {\"checks\": 8, \"blocked\": 2}}",
+      "expected": {
+        "baseline": {
+          "fixture": {
+            "checks": 3,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 0,
+            "booking_screens": 0,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 0,
+            "pages_processed": 0,
+            "active_seconds": 0,
+            "started_at": null,
+            "first_available_at": null,
+            "first_available_seconds": null,
+            "_offices": [],
+            "_observations": [],
+            "_last_office": ""
+          },
+          "other": {
+            "checks": 8,
+            "offices_seen": 0,
+            "server_errors": 0,
+            "rate_limited": 0,
+            "blocked": 2,
+            "booking_screens": 0,
+            "expired_sessions": 0,
+            "flow_passes": 0,
+            "actions_performed": 0,
+            "pages_processed": 0,
+            "active_seconds": 0,
+            "started_at": null,
+            "first_available_at": null,
+            "first_available_seconds": null,
+            "_offices": [],
+            "_observations": [],
+            "_last_office": ""
+          }
+        },
+        "provenance": {
+          "fixture": {
+            "known": [
+              "checks"
+            ],
+            "positive": [],
+            "active_seconds": null,
+            "legacy_first_available_at": null,
+            "legacy_first_available_elapsed_seconds": null
+          },
+          "other": {
+            "known": [
+              "checks",
+              "blocked"
+            ],
+            "positive": [],
+            "active_seconds": null,
+            "legacy_first_available_at": null,
+            "legacy_first_available_elapsed_seconds": null
+          }
+        },
+        "metadata": {
+          "activity_days_ready": "1",
+          "baseline_provenance_ready": "1",
+          "baseline_provenance_v2_ready": "1",
+          "migrated": "1",
+          "schema_version": "1"
+        },
+        "schema": {
+          "active": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "seconds",
+              "REAL",
+              0,
+              null,
+              0
+            ]
+          ],
+          "activity_days": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "day",
+              "TEXT",
+              0,
+              null,
+              2
+            ]
+          ],
+          "applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "document",
+              "TEXT",
+              0,
+              null,
+              3
+            ],
+            [
+              3,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "baseline": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "baseline_provenance": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "data",
+              "TEXT",
+              1,
+              null,
+              0
+            ],
+            [
+              2,
+              "migrated_at",
+              "TEXT",
+              1,
+              null,
+              0
+            ]
+          ],
+          "episodes": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "document",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "confirmed",
+              "INTEGER",
+              0,
+              "0",
+              0
+            ],
+            [
+              11,
+              "recognition",
+              "TEXT",
+              0,
+              "'known'",
+              0
+            ],
+            [
+              12,
+              "evidence",
+              "TEXT",
+              0,
+              "'[]'",
+              0
+            ],
+            [
+              13,
+              "variant",
+              "TEXT",
+              0,
+              "''",
+              0
+            ]
+          ],
+          "events": [
+            [
+              0,
+              "id",
+              "INTEGER",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "identity",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "kind",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "time",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "stage",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              7,
+              "mode",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              8,
+              "counted",
+              "INTEGER",
+              0,
+              null,
+              0
+            ],
+            [
+              9,
+              "offices",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              10,
+              "evidence",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "metadata": [
+            [
+              0,
+              "key",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "value",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "observed_active": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ],
+          "pending_applicant_notices": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "document",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              3
+            ]
+          ],
+          "sessions": [
+            [
+              0,
+              "profile",
+              "TEXT",
+              0,
+              null,
+              1
+            ],
+            [
+              1,
+              "session",
+              "TEXT",
+              0,
+              null,
+              2
+            ],
+            [
+              2,
+              "start",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              3,
+              "end",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              4,
+              "last_seen",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              5,
+              "reason",
+              "TEXT",
+              0,
+              null,
+              0
+            ],
+            [
+              6,
+              "context",
+              "TEXT",
+              0,
+              null,
+              0
+            ]
+          ]
+        },
+        "indexes": [
+          [
+            "active_identity",
+            "active",
+            "CREATE UNIQUE INDEX active_identity ON active(profile,session,start,end)"
+          ],
+          [
+            "active_profile_range",
+            "active",
+            "CREATE INDEX active_profile_range ON active(profile,start,end)"
+          ],
+          [
+            "applicant_notices_profile_time",
+            "applicant_notices",
+            "CREATE INDEX applicant_notices_profile_time ON applicant_notices(profile,start)"
+          ],
+          [
+            "episodes_open",
+            "episodes",
+            "CREATE INDEX episodes_open ON episodes(profile,session,kind,end)"
+          ],
+          [
+            "episodes_profile_range",
+            "episodes",
+            "CREATE INDEX episodes_profile_range ON episodes(profile,start,last_seen)"
+          ],
+          [
+            "events_profile_kind_time",
+            "events",
+            "CREATE INDEX events_profile_kind_time ON events(profile,kind,time)"
+          ],
+          [
+            "events_profile_time",
+            "events",
+            "CREATE INDEX events_profile_time ON events(profile,time)"
+          ],
+          [
+            "observed_active_profile_range",
+            "observed_active",
+            "CREATE INDEX observed_active_profile_range ON observed_active(profile,start,end)"
+          ]
+        ],
+        "unchanged": true
+      }
+    },
+    {
+      "id": "bool_invalid",
+      "source": "{\"fixture\": true}",
+      "expected": {
+        "error": true,
+        "unchanged": true
+      }
+    },
+    {
+      "id": "negative_invalid",
+      "source": "{\"fixture\": {\"checks\": -1}}",
+      "expected": {
+        "error": true,
+        "unchanged": true
+      }
+    },
+    {
+      "id": "root_invalid",
+      "source": "[]",
+      "expected": {
+        "error": true,
+        "unchanged": true
+      }
+    },
+    {
+      "id": "nonfinite_invalid",
+      "source": "{\"fixture\": {\"active_seconds\": NaN}}",
+      "expected": {
+        "error": true,
+        "unchanged": true
+      }
+    },
+    {
+      "id": "observation_shape_invalid",
+      "source": "{\"fixture\": {\"_observations\": [5]}}",
+      "expected": {
+        "error": true,
+        "unchanged": true
+      }
+    },
+    {
+      "id": "time_invalid",
+      "source": "{\"fixture\": {\"started_at\": \"not a timestamp\"}}",
+      "expected": {
+        "error": true,
+        "unchanged": true
+      }
+    }
+  ]
+}

@@ -8,7 +8,7 @@ export interface Preferences {dark:boolean;diagnostics:boolean;sound:boolean;lan
 export interface Bootstrap {preview_source?:string;version:string;profiles:ProfileSummary[];preferences:Preferences;selected_profile:string|null;browser_connected:boolean}
 export async function bootstrap():Promise<{data:Bootstrap;native:boolean}>{
  if(isTauri())return {data:await invoke<Bootstrap>('desktop_bootstrap'),native:true};
- return {native:false,data:{version:'0.0.0-dev.1',profiles:[],preferences:{dark:true,diagnostics:false,sound:true,language:'ru',automatic_updates:false},selected_profile:null,browser_connected:false}};
+ return {native:false,data:{version:'0.4.0-beta.1',profiles:[],preferences:{dark:true,diagnostics:false,sound:true,language:'ru',automatic_updates:false},selected_profile:null,browser_connected:false}};
 }
 export interface ProfileDraft {id:string;label:string;enabled:boolean;procedure:string;province:string;office:string;document_type:string;document_number:string;full_name:string;nationality:string;phone:string;email:string;access_mode:string;clave_method:string;fill_mode:string;no_slots_mode:string;applicant_no_slots_mode:string;subprocedure:string|null;timezone:string;browser_session:string;browser?:string}
 export interface AppointmentProtection {confirm_new_round:boolean;daily_target:number;adaptive_target:boolean;distribute_attempts:boolean;retry_after_office:boolean;minimum_pause_minutes:number;first_cod_pause_minutes:number;next_cod_pause_minutes:number}

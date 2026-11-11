@@ -1,0 +1,778 @@
+{
+  "schema_version": 1,
+  "source_commit": "e9212924bbbb0dc86e1f1596059147a9a50edac8",
+  "cases": [
+    {
+      "id": "parse_valid",
+      "operation": "parse",
+      "input": [
+        "Día: 28/10/2026 Hora:12:30"
+      ],
+      "expected": [
+        {
+          "date": "2026-10-28",
+          "time": "12:30"
+        }
+      ]
+    },
+    {
+      "id": "parse_filter",
+      "operation": "parse",
+      "input": [
+        "a partir de las 09:00"
+      ],
+      "expected": []
+    },
+    {
+      "id": "parse_nonlist",
+      "operation": "parse",
+      "input": null,
+      "expected": []
+    },
+    {
+      "id": "parse_malformed_rows",
+      "operation": "parse",
+      "input": [
+        null,
+        "not offer",
+        "Día: 31/02/2026 Hora:12:30",
+        "DÍA: 28/10/2026 HORA:12:30"
+      ],
+      "expected": [
+        {
+          "date": "2026-10-28",
+          "time": "12:30"
+        }
+      ]
+    },
+    {
+      "id": "parse_duplicate",
+      "operation": "parse",
+      "input": [
+        "Día: 28/10/2026 Hora:12:30",
+        "Día: 28/10/2026 Hora:12:30"
+      ],
+      "expected": [
+        {
+          "date": "2026-10-28",
+          "time": "12:30"
+        }
+      ]
+    },
+    {
+      "id": "parse_maximum",
+      "operation": "parse",
+      "input": [
+        "Día: 28/10/2026 Hora:12:00",
+        "Día: 28/10/2026 Hora:12:01",
+        "Día: 28/10/2026 Hora:12:02",
+        "Día: 28/10/2026 Hora:12:03",
+        "Día: 28/10/2026 Hora:12:04",
+        "Día: 28/10/2026 Hora:12:05",
+        "Día: 28/10/2026 Hora:12:06",
+        "Día: 28/10/2026 Hora:12:07",
+        "Día: 28/10/2026 Hora:12:08",
+        "Día: 28/10/2026 Hora:12:09",
+        "Día: 28/10/2026 Hora:12:10",
+        "Día: 28/10/2026 Hora:12:11"
+      ],
+      "expected": [
+        {
+          "date": "2026-10-28",
+          "time": "12:00"
+        },
+        {
+          "date": "2026-10-28",
+          "time": "12:01"
+        },
+        {
+          "date": "2026-10-28",
+          "time": "12:02"
+        },
+        {
+          "date": "2026-10-28",
+          "time": "12:03"
+        },
+        {
+          "date": "2026-10-28",
+          "time": "12:04"
+        },
+        {
+          "date": "2026-10-28",
+          "time": "12:05"
+        },
+        {
+          "date": "2026-10-28",
+          "time": "12:06"
+        },
+        {
+          "date": "2026-10-28",
+          "time": "12:07"
+        }
+      ]
+    },
+    {
+      "id": "parse_label_limit",
+      "operation": "parse",
+      "input": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxDía: 28/10/2026 Hora:12:30"
+      ],
+      "expected": []
+    },
+    {
+      "id": "parse_row_limit",
+      "operation": "parse",
+      "input": [
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "not offer",
+        "Día: 28/10/2026 Hora:12:30"
+      ],
+      "expected": []
+    },
+    {
+      "id": "parse_bad_hour",
+      "operation": "parse",
+      "input": [
+        "Día: 28/10/2026 Hora:24:00"
+      ],
+      "expected": []
+    },
+    {
+      "id": "parse_leap",
+      "operation": "parse",
+      "input": [
+        "Día: 29/02/2024 Hora:00:00"
+      ],
+      "expected": [
+        {
+          "date": "2024-02-29",
+          "time": "00:00"
+        }
+      ]
+    },
+    {
+      "id": "parse_nonleap",
+      "operation": "parse",
+      "input": [
+        "Día: 29/02/2026 Hora:12:30"
+      ],
+      "expected": []
+    },
+    {
+      "id": "parse_trailing_digit",
+      "operation": "parse",
+      "input": [
+        "Día: 28/10/2026 Hora:12:300"
+      ],
+      "expected": []
+    },
+    {
+      "id": "normalize_none",
+      "operation": "normalize",
+      "input": null,
+      "expected": {}
+    },
+    {
+      "id": "lines_none",
+      "operation": "lines",
+      "input": null,
+      "expected": []
+    },
+    {
+      "id": "normalize_office_only",
+      "operation": "normalize",
+      "input": {
+        "office": "  Fixture   office "
+      },
+      "expected": {
+        "office": "Fixture office"
+      }
+    },
+    {
+      "id": "lines_office_only",
+      "operation": "lines",
+      "input": {
+        "office": "  Fixture   office "
+      },
+      "expected": [
+        "Fixture office"
+      ]
+    },
+    {
+      "id": "normalize_slots_only",
+      "operation": "normalize",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_slots_only",
+      "operation": "lines",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": [
+        "28.10.2026 — 12:30"
+      ]
+    },
+    {
+      "id": "normalize_malformed",
+      "operation": "normalize",
+      "input": {
+        "office": 123,
+        "offers": [
+          null,
+          {},
+          {
+            "date": "2026-02-31",
+            "time": "12:30"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "24:00"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:30",
+            "token": "fixture-secret"
+          }
+        ],
+        "captcha": "fixture-private"
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_malformed",
+      "operation": "lines",
+      "input": {
+        "office": 123,
+        "offers": [
+          null,
+          {},
+          {
+            "date": "2026-02-31",
+            "time": "12:30"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "24:00"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:30",
+            "token": "fixture-secret"
+          }
+        ],
+        "captcha": "fixture-private"
+      },
+      "expected": [
+        "28.10.2026 — 12:30"
+      ]
+    },
+    {
+      "id": "normalize_duplicates",
+      "operation": "normalize",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_duplicates",
+      "operation": "lines",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": [
+        "28.10.2026 — 12:30"
+      ]
+    },
+    {
+      "id": "normalize_maximum",
+      "operation": "normalize",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:00"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:01"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:02"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:03"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:04"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:05"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:06"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:07"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:08"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:09"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:10"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:11"
+          }
+        ]
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:00"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:01"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:02"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:03"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:04"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:05"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:06"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:07"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_maximum",
+      "operation": "lines",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:00"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:01"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:02"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:03"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:04"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:05"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:06"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:07"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:08"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:09"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:10"
+          },
+          {
+            "date": "2026-10-28",
+            "time": "12:11"
+          }
+        ]
+      },
+      "expected": [
+        "28.10.2026 — 12:00",
+        "28.10.2026 — 12:01",
+        "28.10.2026 — 12:02",
+        "28.10.2026 — 12:03",
+        "28.10.2026 — 12:04",
+        "28.10.2026 — 12:05",
+        "28.10.2026 — 12:06",
+        "28.10.2026 — 12:07"
+      ]
+    },
+    {
+      "id": "normalize_compact_date",
+      "operation": "normalize",
+      "input": {
+        "offers": [
+          {
+            "date": "20261028",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_compact_date",
+      "operation": "lines",
+      "input": {
+        "offers": [
+          {
+            "date": "20261028",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": [
+        "28.10.2026 — 12:30"
+      ]
+    },
+    {
+      "id": "normalize_week_date",
+      "operation": "normalize",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-W44-3",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "12:30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_week_date",
+      "operation": "lines",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-W44-3",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": [
+        "28.10.2026 — 12:30"
+      ]
+    },
+    {
+      "id": "normalize_week_monday",
+      "operation": "normalize",
+      "input": {
+        "offers": [
+          {
+            "date": "2026W44",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-26",
+            "time": "12:30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_week_monday",
+      "operation": "lines",
+      "input": {
+        "offers": [
+          {
+            "date": "2026W44",
+            "time": "12:30"
+          }
+        ]
+      },
+      "expected": [
+        "26.10.2026 — 12:30"
+      ]
+    },
+    {
+      "id": "normalize_bad_types",
+      "operation": "normalize",
+      "input": {
+        "office": true,
+        "offers": 123
+      },
+      "expected": {}
+    },
+    {
+      "id": "lines_bad_types",
+      "operation": "lines",
+      "input": {
+        "office": true,
+        "offers": 123
+      },
+      "expected": []
+    },
+    {
+      "id": "normalize_long_office",
+      "operation": "normalize",
+      "input": {
+        "office": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "expected": {
+        "office": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      }
+    },
+    {
+      "id": "lines_long_office",
+      "operation": "lines",
+      "input": {
+        "office": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "expected": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ]
+    },
+    {
+      "id": "normalize_empty_office",
+      "operation": "normalize",
+      "input": {
+        "office": "  "
+      },
+      "expected": {}
+    },
+    {
+      "id": "lines_empty_office",
+      "operation": "lines",
+      "input": {
+        "office": "  "
+      },
+      "expected": []
+    },
+    {
+      "id": "normalize_unicode_hour",
+      "operation": "normalize",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "1٠:3٠"
+          }
+        ]
+      },
+      "expected": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "1٠:3٠"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lines_unicode_hour",
+      "operation": "lines",
+      "input": {
+        "offers": [
+          {
+            "date": "2026-10-28",
+            "time": "1٠:3٠"
+          }
+        ]
+      },
+      "expected": [
+        "28.10.2026 — 1٠:3٠"
+      ]
+    },
+    {
+      "id": "parse_arabic_date",
+      "operation": "parse",
+      "input": [
+        "Día: ٠١/٠١/٢٠٢٧ Hora: ١٠:٠٠"
+      ],
+      "expected": []
+    },
+    {
+      "id": "parse_later_candidate",
+      "operation": "parse",
+      "input": [
+        "Día: 01/01/2027 Hora: 10:001 Día: 02/01/2027 Hora: 11:00"
+      ],
+      "expected": [
+        {
+          "date": "2027-01-02",
+          "time": "11:00"
+        }
+      ]
+    },
+    {
+      "id": "parse_ascii_leading_unicode_tail",
+      "operation": "parse",
+      "input": [
+        "Día: 1٠/01/2027 Hora: 10:0٠"
+      ],
+      "expected": [
+        {
+          "date": "2027-01-10",
+          "time": "10:00"
+        }
+      ]
+    },
+    {
+      "id": "parse_unicode_year",
+      "operation": "parse",
+      "input": [
+        "Día: 01/01/٢٠٢٧ Hora: 10:00"
+      ],
+      "expected": [
+        {
+          "date": "2027-01-01",
+          "time": "10:00"
+        }
+      ]
+    },
+    {
+      "id": "parse_arabic_month",
+      "operation": "parse",
+      "input": [
+        "Día: 01/٠١/2027 Hora: 10:00"
+      ],
+      "expected": []
+    }
+  ]
+}

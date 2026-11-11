@@ -108,7 +108,7 @@ fn snapshot(path: &std::path::Path) -> Value {
 #[test]
 fn migration_matches_current_python_schema_and_legacy_provenance() {
     let data: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/sqlite-migration.json"
+        "../../../contracts/fixtures/sqlite-migration.json"
     ))
     .unwrap();
     assert_eq!(data["cases"].as_array().unwrap().len(), 14);

@@ -1,14 +1,14 @@
 use ceh_services::updates::{newer, parse_latest, UpdateError};
 
 fn release(tag: &str, extra: &str) -> String {
-    format!(r#"{{"tag_name":"{tag}","draft":false,"prerelease":false,"html_url":"https://github.com/itwormz/extranjeria-cita-helper/releases/tag/{tag}"{extra}}}"#)
+    format!(r#"{{"tag_name":"{tag}","draft":false,"prerelease":false,"html_url":"https://github.com/itwormz/santacita/releases/tag/{tag}"{extra}}}"#)
 }
 
 #[test]
 fn a_higher_stable_release_is_offered_with_its_public_page() {
     let latest = parse_latest(&release("v1.2.0", "")).unwrap();
     assert_eq!(latest.version, "1.2.0");
-    assert_eq!(latest.url, "https://github.com/itwormz/extranjeria-cita-helper/releases/tag/v1.2.0");
+    assert_eq!(latest.url, "https://github.com/itwormz/santacita/releases/tag/v1.2.0");
     assert!(newer("1.2.0", "1.1.9"));
     assert!(newer("1.10.0", "1.9.0"), "numbers, not text");
     assert!(!newer("1.2.0", "1.2.0"));
@@ -25,10 +25,10 @@ fn a_development_build_is_older_than_every_release_of_its_number() {
 #[test]
 fn drafts_prereleases_odd_tags_and_foreign_pages_are_refused() {
     for bad in [
-        r#"{"tag_name":"v1.2.0","draft":true,"prerelease":false,"html_url":"https://github.com/itwormz/extranjeria-cita-helper/releases/tag/v1.2.0"}"#,
-        r#"{"tag_name":"v1.2.0","draft":false,"prerelease":true,"html_url":"https://github.com/itwormz/extranjeria-cita-helper/releases/tag/v1.2.0"}"#,
-        r#"{"tag_name":"1.2.0","draft":false,"prerelease":false,"html_url":"https://github.com/itwormz/extranjeria-cita-helper/releases/tag/1.2.0"}"#,
-        r#"{"tag_name":"v1.2","draft":false,"prerelease":false,"html_url":"https://github.com/itwormz/extranjeria-cita-helper/releases/tag/v1.2"}"#,
+        r#"{"tag_name":"v1.2.0","draft":true,"prerelease":false,"html_url":"https://github.com/itwormz/santacita/releases/tag/v1.2.0"}"#,
+        r#"{"tag_name":"v1.2.0","draft":false,"prerelease":true,"html_url":"https://github.com/itwormz/santacita/releases/tag/v1.2.0"}"#,
+        r#"{"tag_name":"1.2.0","draft":false,"prerelease":false,"html_url":"https://github.com/itwormz/santacita/releases/tag/1.2.0"}"#,
+        r#"{"tag_name":"v1.2","draft":false,"prerelease":false,"html_url":"https://github.com/itwormz/santacita/releases/tag/v1.2"}"#,
         r#"{"tag_name":"v1.2.0","draft":false,"prerelease":false,"html_url":"https://evil.example/releases/tag/v1.2.0"}"#,
         r#"{"tag_name":"v1.2.0","draft":false,"prerelease":false,"html_url":"https://github.com/other/repo/releases/tag/v1.2.0"}"#,
         "not json",
@@ -45,9 +45,9 @@ mod package {
     fn api(version: &str, assets: &[(&str, u64)], immutable: bool) -> String {
         let list: Vec<String> = assets
             .iter()
-            .map(|(name, size)| format!(r#"{{"name":"{name}","size":{size},"browser_download_url":"https://github.com/itwormz/extranjeria-cita-helper/releases/download/v{version}/{name}"}}"#))
+            .map(|(name, size)| format!(r#"{{"name":"{name}","size":{size},"browser_download_url":"https://github.com/itwormz/santacita/releases/download/v{version}/{name}"}}"#))
             .collect();
-        format!(r#"{{"tag_name":"v{version}","draft":false,"prerelease":false,"immutable":{immutable},"html_url":"https://github.com/itwormz/extranjeria-cita-helper/releases/tag/v{version}","assets":[{}]}}"#, list.join(","))
+        format!(r#"{{"tag_name":"v{version}","draft":false,"prerelease":false,"immutable":{immutable},"html_url":"https://github.com/itwormz/santacita/releases/tag/v{version}","assets":[{}]}}"#, list.join(","))
     }
     const MAC_ARM: Target = Target { system: "macos", arch: "arm64" };
 
@@ -75,7 +75,7 @@ mod package {
         assert_eq!(select_release(&no_sums, "1.0.0", MAC_ARM).err(), Some(UpdateError::Invalid));
         let huge = api("1.2.0", &[("SantaCita-1.2.0-macOS-Apple-Silicon.dmg", 3 * 1024 * 1024 * 1024), ("SHA256SUMS", 300)], true);
         assert_eq!(select_release(&huge, "1.0.0", MAC_ARM).err(), Some(UpdateError::Invalid));
-        let foreign = body.replace("https://github.com/itwormz/extranjeria-cita-helper/releases/download", "https://evil.example/download");
+        let foreign = body.replace("https://github.com/itwormz/santacita/releases/download", "https://evil.example/download");
         assert_eq!(select_release(&foreign, "1.0.0", MAC_ARM).err(), Some(UpdateError::Invalid), "assets must come from the project's releases");
     }
 

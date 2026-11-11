@@ -85,7 +85,7 @@ fn parsed_snapshot_can_cross_runtime_threads_without_exposing_values() {
 fn legacy_scalar_schema_matches_actual_python_yaml() {
     use serde_json::{Value, json};
     let data: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/yaml-scalars.json"
+        "../../../contracts/fixtures/yaml-scalars.json"
     ))
     .unwrap();
     for case in data["cases"].as_array().unwrap() {

@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 #[test]
 fn read_only_profiles_match_existing_desktop_store() {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/legacy-profiles.json"
+        "../../../contracts/fixtures/legacy-profiles.json"
     ))
     .unwrap();
     let catalog: ProfileCatalog = serde_json::from_value(fixture["catalog"].clone()).unwrap();
@@ -72,7 +72,7 @@ fn missing_file_is_a_clean_first_start_without_creating_it() {
 
 fn loaded_with_protection(protection: &str) -> LoadedProfile {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../tests/contracts/fixtures/legacy-profiles.json"
+        "../../../contracts/fixtures/legacy-profiles.json"
     ))
     .unwrap();
     let catalog: ProfileCatalog = serde_json::from_value(fixture["catalog"].clone()).unwrap();

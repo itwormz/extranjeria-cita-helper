@@ -1423,7 +1423,7 @@ mod boundary_tests {
     #[test]
     fn superseded_resume_does_not_abort_newer_pause() {
         let fixture: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../tests/contracts/fixtures/profile-validation.json"
+            "../../../contracts/fixtures/profile-validation.json"
         ))
         .unwrap();
         let profile =
