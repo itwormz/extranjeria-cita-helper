@@ -352,7 +352,9 @@
     "Страница релиза": "Release page",
     "Найдены данные прошлой версии": "Data from the previous version found",
     "Профили, статистику и достижения из «{name}» можно перенести в SantaCita. Старые файлы не изменятся.": "Profiles, statistics and achievements from “{name}” can be moved into SantaCita. The old files are not changed.",
-    "Не сейчас": "Not now"
+    "Не сейчас": "Not now",
+    "Потяните, чтобы изменить ширину. Двойной щелчок — по умолчанию": "Drag to change the width. Double-click for the default",
+    "Ширина столбца": "Column width"
   },
   "es": {
     "Всего": "Total",
@@ -707,6 +709,8 @@
     "Страница релиза": "Página de la versión",
     "Найдены данные прошлой версии": "Datos de la versión anterior encontrados",
     "Профили, статистику и достижения из «{name}» можно перенести в SantaCita. Старые файлы не изменятся.": "Los perfiles, estadísticas y logros de «{name}» se pueden pasar a SantaCita. Los archivos antiguos no se modifican.",
-    "Не сейчас": "Ahora no"
+    "Не сейчас": "Ahora no",
+    "Потяните, чтобы изменить ширину. Двойной щелчок — по умолчанию": "Arrastra para cambiar el ancho. Doble clic para el valor predeterminado",
+    "Ширина столбца": "Ancho de columna"
   }
 }
