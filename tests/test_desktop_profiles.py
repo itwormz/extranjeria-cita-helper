@@ -175,3 +175,13 @@ def test_applicant_warning_mode_migrates_and_roundtrips_independently(tmp_path,c
     assert task.applicant_no_slots_mode=='continue' and task.no_slots_mode==result_mode
     raw['request']['applicant_no_slots_mode']='invalid'
     with pytest.raises(ProfileValidationError):store.save_profile(profile,raw,revision=store.revision())
+
+
+@pytest.mark.parametrize('value', [False, 'false', 'true', 1, 0, None, True])
+def test_beta_updates_require_explicit_boolean_opt_in(tmp_path, catalog_path, value):
+    path = tmp_path/'tasks.yml'
+    path.write_text(yaml.safe_dump({'tasks': [], 'desktop': {'beta_updates': value}}), encoding='utf-8')
+    store = ProfileStore(path, catalog_path)
+    assert store.preferences()['beta_updates'] is (value is True)
+    store.save_preferences(dark=False, diagnostics=False, sound=True)
+    assert ProfileStore(path, catalog_path).preferences()['beta_updates'] is (value is True)

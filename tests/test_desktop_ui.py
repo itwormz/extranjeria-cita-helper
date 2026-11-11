@@ -1567,7 +1567,7 @@ def test_promoted_toolbar_button_keeps_visible_caption(dark, hover):
     assert caption > 50, f'caption invisible: {caption} contrasting pixels'
 
 
-@pytest.mark.parametrize(('reason', 'blocked'), [('provenance', True), ('failed', False)])
+@pytest.mark.parametrize(('reason', 'blocked'), [('provenance', True), ('failed', False), ('network', False)])
 def test_failed_update_points_to_manual_download(window, reason, blocked):
     from PySide6.QtWidgets import QLabel
     window.set_language('en'); window.show_about()

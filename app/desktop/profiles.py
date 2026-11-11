@@ -177,7 +177,7 @@ class ProfileStore:
                     diagnostics=bool(desktop.get('diagnostics', diagnostics)), sound=bool(desktop.get('sound', True)),
                     language=desktop.get('language') if desktop.get('language') in {'ru','en','es'} else system_language(),
                     automatic_updates=bool(desktop.get('automatic_updates',True)),
-                    beta_updates=bool(desktop.get('beta_updates',False)))
+                    beta_updates=desktop.get('beta_updates',False) is True)
 
     def save_preferences(self, *, dark, diagnostics, sound, language=None, automatic_updates=None, beta_updates=None):
         revision = self.revision()
@@ -190,6 +190,6 @@ class ProfileStore:
         if beta_updates is None:
             beta_updates=(raw.get('desktop') or {}).get('beta_updates',False)
         desktop=dict(raw.get('desktop') or {})
-        desktop.update(dark=bool(dark), diagnostics=bool(diagnostics), sound=bool(sound),language=language,automatic_updates=bool(automatic_updates),beta_updates=bool(beta_updates))
+        desktop.update(dark=bool(dark), diagnostics=bool(diagnostics), sound=bool(sound),language=language,automatic_updates=bool(automatic_updates),beta_updates=beta_updates is True)
         raw['desktop']=desktop
         self._write(raw, revision)
