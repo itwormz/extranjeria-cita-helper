@@ -1723,9 +1723,9 @@ class DesktopWindow(QMainWindow):
     def update_failed(self,reason):
         self.update_install_requested=False
         if reason=='provenance':self.update_path=None
-        self.update_message={'provenance':'Не удалось подтвердить происхождение обновления. Установка заблокирована.',
+        self.update_message={'provenance':'Не удалось подтвердить происхождение обновления. Установка заблокирована. Скачайте новую версию вручную со страницы релизов.',
                              'no_release':'Релиз ещё не опубликован','cancelled':'Скачивание отменено',
-                             'network':'Не удалось проверить обновления. Повторить попытку позже.'}.get(reason,'Не удалось проверить или скачать обновление. Повторить попытку позже.')
+                             'network':'Не удалось проверить обновления. Повторить попытку позже.'}.get(reason,'Не удалось проверить или скачать обновление. Скачайте новую версию вручную со страницы релизов.')
         self.render_updates()
 
     def update_progress(self,percent):
@@ -1743,7 +1743,11 @@ class DesktopWindow(QMainWindow):
         if not isValid(dialog):return
         version=' · '+self.update_release.version if self.update_release else ''
         latest.setText(self.t(self.update_message)+version)
-        blocked=self.update_message=='Не удалось подтвердить происхождение обновления. Установка заблокирована.'
+        from .updates import version_tuple
+        if self.update_release and version_tuple(self.update_release.version)>=(0,4,0):
+            # Releases from 0.4.0 on are the SantaCita application.
+            latest.setText(latest.text()+'\n'+self.t('Это новое приложение SantaCita. Данные текущей версии оно перенесёт при первом запуске.'))
+        blocked=self.update_message=='Не удалось подтвердить происхождение обновления. Установка заблокирована. Скачайте новую версию вручную со страницы релизов.'
         tone='danger' if blocked else 'normal'
         frame=dialog.findChild(QFrame,'aboutUpdates')
         for widget in (frame,latest):

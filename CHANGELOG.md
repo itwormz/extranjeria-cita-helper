@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Prepare for the project's move to SantaCita: updates are accepted from the renamed `itwormz/santacita` repository as well as the current one, with the same build provenance checks.
+
 ## 0.3.7 — Windows search stability and interface translations
 
 - Keep the search running on Windows when the window reads the attempt budget, profiles or achievements while the search process saves them. Saving now retries briefly instead of stopping the search process with `PermissionError`.

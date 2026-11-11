@@ -1565,3 +1565,26 @@ def test_promoted_toolbar_button_keeps_visible_caption(dark, hover):
     caption = sum(1 for value in pixels if abs(value - background) > 60)
     host.close()
     assert caption > 50, f'caption invisible: {caption} contrasting pixels'
+
+
+@pytest.mark.parametrize(('reason', 'blocked'), [('provenance', True), ('failed', False)])
+def test_failed_update_points_to_manual_download(window, reason, blocked):
+    from PySide6.QtWidgets import QLabel
+    window.set_language('en'); window.show_about()
+    window.update_failed(reason)
+    label = window.about_dialog.findChild(QLabel, 'latestVersion')
+    assert 'Download the new version manually from the releases page.' in label.text()
+    assert (label.property('tone') == 'danger') is blocked
+    window.about_dialog.close()
+
+
+@pytest.mark.parametrize(('version', 'note'), [('0.3.9', False), ('0.4.0', True), ('1.0.0', True)])
+def test_santacita_release_explains_data_import(window, version, note):
+    from PySide6.QtWidgets import QLabel
+    from app.desktop.updates import Release
+    window.set_language('en'); window.show_about()
+    window.update_checked(Release(version, 'app.msi', 'u', 's', 7, 'a'))
+    text = window.about_dialog.findChild(QLabel, 'latestVersion').text()
+    assert version in text
+    assert ('This is the new SantaCita app.' in text) is note
+    window.about_dialog.close()
