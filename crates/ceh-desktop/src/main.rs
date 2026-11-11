@@ -195,23 +195,24 @@ struct UpdateStatus {
     latest: Option<String>,
     available: bool,
 }
-/// Ask the project's public releases whether a newer stable version exists (check only; the person opens the page).
+/// Check the selected update channel; no package is installed automatically.
 #[tauri::command]
-async fn check_updates(window: WebviewWindow) -> Result<UpdateStatus, &'static str> {
+async fn check_updates(window: WebviewWindow,runtime:State<'_,DesktopRuntime>)->Result<UpdateStatus,&'static str>{
     authorize(&window)?;
-    let current = env!("CARGO_PKG_VERSION");
-    let latest = tauri::async_runtime::spawn_blocking(ceh_services::updates::fetch_latest)
-        .await
-        .map_err(|_| "updates_unavailable")?
-        .map_err(|_| "updates_unavailable")?;
-    Ok(UpdateStatus { current, available: ceh_services::updates::newer(&latest.version, current), latest: Some(latest.version) })
+    let root=runtime.root.clone();let current=env!("CARGO_PKG_VERSION");
+    let latest=tauri::async_runtime::spawn_blocking(move||{
+        let include_beta=ceh_desktop::bootstrap(&root,"ru")?.preferences.beta_updates;
+        ceh_services::updates::fetch_latest_for(include_beta).map_err(|_|"updates_unavailable")
+    }).await.map_err(|_|"updates_unavailable")??;
+    Ok(UpdateStatus{current,available:latest.as_ref().is_some_and(|latest|ceh_services::updates::newer(&latest.version,current)),latest:latest.map(|latest|latest.version)})
 }
 /// Start downloading and verifying the latest release's package (progress through `update_status`).
 #[tauri::command]
 fn update_download(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<(), &'static str> {
     authorize(&window)?;
     let dir = runtime.root.join("data").join("updates");
-    if runtime.update.start(env!("CARGO_PKG_VERSION"), dir) { Ok(()) } else { Err("update_busy") }
+    let include_beta=ceh_desktop::bootstrap(&runtime.root,"ru")?.preferences.beta_updates;
+    if runtime.update.start_channel(env!("CARGO_PKG_VERSION"), dir,include_beta) { Ok(()) } else { Err("update_busy") }
 }
 #[tauri::command]
 fn update_status(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<ceh_desktop::update_job::Status, &'static str> {
@@ -230,6 +231,10 @@ fn update_cancel(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> R
 async fn update_install(window: WebviewWindow, runtime: State<'_, DesktopRuntime>) -> Result<(), &'static str> {
     authorize(&window)?;
     let path = runtime.update.install_path().ok_or("update_not_ready")?;
+    let include_beta=ceh_desktop::bootstrap(&runtime.root,"ru")?.preferences.beta_updates;
+    let to_verify=path.clone();
+    tauri::async_runtime::spawn_blocking(move||ceh_services::updates::verify_download(&to_verify,include_beta))
+        .await.map_err(|_|"update_install_failed")?.map_err(|_|"update_install_failed")?;
     if ceh_services::updates::is_portable_install() {
         if runtime.search.snapshot()?.active {
             return Err("search_already_running");
@@ -410,6 +415,8 @@ async fn save_preferences(
     preferences: ceh_store::profiles::DesktopPreferences,
 ) -> Result<(), &'static str> {
     authorize(&window)?;
+    let channel_changed=ceh_desktop::bootstrap(&runtime.root,"ru")?.preferences.beta_updates!=preferences.beta_updates;
+    if channel_changed && runtime.update.status().phase==ceh_desktop::update_job::Phase::Downloading{return Err("update_busy");}
     let dark = preferences.dark;
     let sound_enabled = preferences.sound;
     let player = runtime.sound.clone();
@@ -420,6 +427,7 @@ async fn save_preferences(
     .await
     .map_err(|_| "preferences_failed")?
     .map_err(|_| "preferences_failed")?;
+    if channel_changed{runtime.update.clear_ready();}
     if !sound_enabled && let Ok(mut playback) = player.lock() {
         let _ = playback.stop();
     }

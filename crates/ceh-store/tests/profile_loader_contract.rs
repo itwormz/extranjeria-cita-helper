@@ -22,7 +22,10 @@ fn read_only_profiles_match_existing_desktop_store() {
             }
             Err(error) => json!({"error":error.code(),"unchanged":source==before}),
         };
-        assert_eq!(actual, case["expected"], "{}", case["id"]);
+        let mut expected=case["expected"].clone();
+        // The Python reference predates the explicitly opt-in beta setting.
+        if let Some(prefs)=expected.get_mut("preferences").and_then(Value::as_object_mut){prefs.insert("beta_updates".into(),json!(false));}
+        assert_eq!(actual, expected, "{}", case["id"]);
     }
 }
 #[test]

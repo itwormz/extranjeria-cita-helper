@@ -356,7 +356,12 @@
     "Ожидаем повторную попытку": "Waiting for another attempt",
     "Шагов: {count} → {destination}": "Steps: {count} → {destination}",
     "Сайт вернул на выбор провинции": "The site went back to the province choice",
-    "Версии из snap не подходят: установите браузер из репозитория дистрибутива или с сайта разработчика.": "Snap versions do not work: install the browser from your distribution’s repository or from the developer’s website."
+    "Версии из snap не подходят: установите браузер из репозитория дистрибутива или с сайта разработчика.": "Snap versions do not work: install the browser from your distribution’s repository or from the developer’s website.",
+    "Предлагать бета-версии": "Offer beta versions",
+    "Проверять обновления при запуске и раз в сутки. Скачивание и установка — по кнопке.": "Check at startup and once a day. Download and installation require your confirmation.",
+    "Показывать стабильные и тестовые версии. В бета-версиях возможны ошибки. Скачивание и установка — по кнопке.": "Offer stable and beta versions. Betas may contain bugs. Download and installation require your confirmation.",
+    "Бета-версия: возможны ошибки.": "Beta version: bugs are possible.",
+    "Контрольная сумма и происхождение пакета проверены. Установка запускается по кнопке.": "Package checksum and provenance verified. Start installation with the button."
   },
   "es": {
     "Всего": "Total",
@@ -715,6 +720,11 @@
     "Ожидаем повторную попытку": "Esperando otro intento",
     "Шагов: {count} → {destination}": "Pasos: {count} → {destination}",
     "Сайт вернул на выбор провинции": "El sitio volvió a la elección de provincia",
-    "Версии из snap не подходят: установите браузер из репозитория дистрибутива или с сайта разработчика.": "Las versiones snap no sirven: instala el navegador desde el repositorio de tu distribución o desde la web del desarrollador."
+    "Версии из snap не подходят: установите браузер из репозитория дистрибутива или с сайта разработчика.": "Las versiones snap no sirven: instala el navegador desde el repositorio de tu distribución o desde la web del desarrollador.",
+    "Предлагать бета-версии": "Ofrecer versiones beta",
+    "Проверять обновления при запуске и раз в сутки. Скачивание и установка — по кнопке.": "Comprobar al iniciar y una vez al día. La descarga e instalación requieren confirmación.",
+    "Показывать стабильные и тестовые версии. В бета-версиях возможны ошибки. Скачивание и установка — по кнопке.": "Ofrecer versiones estables y beta. Las betas pueden contener errores. La descarga e instalación requieren confirmación.",
+    "Бета-версия: возможны ошибки.": "Versión beta: puede contener errores.",
+    "Контрольная сумма и происхождение пакета проверены. Установка запускается по кнопке.": "Suma de comprobación y procedencia del paquete verificadas. Inicia la instalación con el botón."
   }
 }

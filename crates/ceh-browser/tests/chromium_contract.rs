@@ -183,3 +183,34 @@ mod locations {
         assert!(ProfileLease::persistent_kind(runtime.path(), "p1", ProfileKind::Chrome).map(|l| l.path().to_owned()).map_or(true, |p| !p.ends_with("chromium-p1")));
     }
 }
+
+#[cfg(windows)]
+mod windows_registry {
+    use ceh_browser::chromium::registry_app_paths;
+    use winreg::{RegKey, enums::*};
+
+    /// Reads a real registry key (a throw-away `App Paths` entry of the current user) the way installed browsers are found.
+    #[test]
+    fn an_app_paths_entry_in_the_registry_is_read_and_bad_values_are_ignored() {
+        let name = "ceh-registry-test-program.exe";
+        let sub = format!("Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\{name}");
+        let user = RegKey::predef(HKEY_CURRENT_USER);
+        let (key, _) = user.create_subkey(&sub).unwrap();
+        key.set_value("", &"\"D:\\Programs\\Test Browser\\ceh-registry-test-program.exe\"").unwrap();
+        assert_eq!(registry_app_paths(name), vec![std::path::PathBuf::from("D:\\Programs\\Test Browser\\ceh-registry-test-program.exe")]);
+        key.set_value("", &"relative\\program.exe").unwrap();
+        assert!(registry_app_paths(name).is_empty(), "a value that is not an absolute program path is ignored");
+        drop(key);
+        user.delete_subkey_all(&sub).unwrap();
+        assert!(registry_app_paths(name).is_empty());
+    }
+
+    #[test]
+    fn the_browser_that_windows_ships_is_found_through_the_registry_when_it_is_installed() {
+        // Edge is part of Windows 11; where it is missing there is nothing to check.
+        let registered = registry_app_paths("msedge.exe");
+        if let Some(path) = registered.first() {
+            assert!(path.is_absolute() && path.is_file(), "{path:?}");
+        }
+    }
+}

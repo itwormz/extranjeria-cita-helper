@@ -503,6 +503,7 @@ pub fn save_preferences(
         ("diagnostics", preferences.diagnostics),
         ("sound", preferences.sound),
         ("automatic_updates", preferences.automatic_updates),
+        ("beta_updates", preferences.beta_updates),
     ] {
         set(&mut root, &["desktop", key], RawValue::Bool(value))?;
     }

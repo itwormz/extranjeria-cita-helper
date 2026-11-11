@@ -56,6 +56,8 @@ pub struct DesktopPreferences {
     pub sound: bool,
     pub language: String,
     pub automatic_updates: bool,
+    #[serde(default)]
+    pub beta_updates: bool,
 }
 pub struct LoadedProfile {
     pub validation: ValidationReport,
@@ -457,6 +459,7 @@ fn load_document(
         sound: bool_field(desktop, "sound", true),
         language,
         automatic_updates: bool_field(desktop, "automatic_updates", true),
+        beta_updates: matches!(desktop.get("beta_updates"),Some(RawValue::Bool(true))),
     };
     let last_profile_id = match desktop.get("last_profile_id") {
         Some(RawValue::String(s)) => Some(s.clone()),

@@ -88,8 +88,15 @@ impl UpdateJob {
         });
         true
     }
+    pub fn clear_ready(&self) {
+        let mut inner=self.inner.lock().expect("update state");
+        if inner.phase!=Some(Phase::Downloading){*inner=Inner::default();}
+    }
     /// Download and verify the latest release for this system into `dir`.
     pub fn start(&self, current: &'static str, dir: PathBuf) -> bool {
-        self.start_with(move |cancel, progress| ceh_services::updates::download_latest(current, &dir, cancel, progress))
+        self.start_channel(current,dir,false)
+    }
+    pub fn start_channel(&self,current:&'static str,dir:PathBuf,include_beta:bool)->bool{
+        self.start_with(move |cancel,progress|ceh_services::updates::download_channel(current,&dir,cancel,progress,include_beta))
     }
 }

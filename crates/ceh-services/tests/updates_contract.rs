@@ -43,10 +43,13 @@ mod package {
     use std::sync::atomic::AtomicBool;
 
     fn api(version: &str, assets: &[(&str, u64)], immutable: bool) -> String {
-        let list: Vec<String> = assets
+        let mut list: Vec<String> = assets
             .iter()
             .map(|(name, size)| format!(r#"{{"name":"{name}","size":{size},"browser_download_url":"https://github.com/itwormz/santacita/releases/download/v{version}/{name}"}}"#))
             .collect();
+        for (name,_) in assets.iter().filter(|(name,_)|*name!="SHA256SUMS") {
+            list.push(format!(r#"{{"name":"{name}.sigstore.json","size":1000,"browser_download_url":"https://github.com/itwormz/santacita/releases/download/v{version}/{name}.sigstore.json"}}"#));
+        }
         format!(r#"{{"tag_name":"v{version}","draft":false,"prerelease":false,"immutable":{immutable},"html_url":"https://github.com/itwormz/santacita/releases/tag/v{version}","assets":[{}]}}"#, list.join(","))
     }
     const MAC_ARM: Target = Target { system: "macos", arch: "arm64" };
@@ -115,10 +118,13 @@ mod portable {
     use ceh_services::updates::{select_portable_release, Target, UpdateError};
     const WINDOWS: Target = Target { system: "windows", arch: "x64" };
     fn api(assets: &[&str]) -> String {
-        let list: Vec<String> = assets
+        let mut list: Vec<String> = assets
             .iter()
             .map(|name| format!(r#"{{"name":"{name}","size":1000,"browser_download_url":"https://github.com/itwormz/santacita/releases/download/v1.2.0/{name}"}}"#))
             .collect();
+        for name in assets.iter().filter(|name|**name!="SHA256SUMS") {
+            list.push(format!(r#"{{"name":"{name}.sigstore.json","size":1000,"browser_download_url":"https://github.com/itwormz/santacita/releases/download/v1.2.0/{name}.sigstore.json"}}"#));
+        }
         format!(r#"{{"tag_name":"v1.2.0","draft":false,"prerelease":false,"immutable":true,"html_url":"https://github.com/itwormz/santacita/releases/tag/v1.2.0","assets":[{}]}}"#, list.join(","))
     }
 
