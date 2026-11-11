@@ -90,3 +90,15 @@ test('a single row is not expandable and has no icon unless it is a warning',()=
  const shown=displayRows(buildEntries([row('province','passed','procedure'),row('applicant','interrupted','expired')]),ctx());
  assert.deepEqual(shown.map(r=>[r.expandable,r.icon]),[[false,'alert'],[false,null]]);
 });
+
+test('every displayed row has its own key, also when a collapsed entry is opened (the first child shares its id with the entry)',()=>{
+ next=1;
+ const rows=[row('applicant_no_slots','passed','applicant_no_slots',{deadline:1}),row('applicant_no_slots','passed','applicant_no_slots',{deadline:2}),row('province','passed','procedure'),row('procedure','passed','auth')];
+ const entries=buildEntries(rows);
+ const open=displayRows(entries,ctx({expanded:entries.map(e=>e.id)}));
+ const keys=open.map(r=>r.key);
+ assert.ok(keys.every(k=>typeof k==='string'&&k.length>0));
+ assert.equal(new Set(keys).size,keys.length,keys.join(','));
+ assert.ok(open.some(r=>r.kind==='child'));
+ assert.deepEqual(open.filter(r=>r.kind!=='child').map(r=>r.entryId),entries.map(e=>e.id),'the toggle still addresses the entry');
+});

@@ -48,7 +48,7 @@ export function buildEntries(rows:SearchRow[]):Entry[]{
  return out.reverse();
 }
 
-export interface DisplayRow{id:number;kind:'row'|'wait'|'run'|'pass'|'child';cells:string[];icon:'alert'|'clock'|'restart'|null;expandable:boolean;open:boolean}
+export interface DisplayRow{key:string;entryId:number;kind:'row'|'wait'|'run'|'pass'|'child';cells:string[];icon:'alert'|'clock'|'restart'|null;expandable:boolean;open:boolean}
 export interface ViewContext{
  time:(ms:number)=>string;minute:(ms:number)=>string;clock:(ms:number)=>string;
  page:(stage:string|null)=>string;what:(row:SearchRow)=>string;t:(key:string)=>string;
@@ -70,20 +70,20 @@ export function displayRows(entries:Entry[],ctx:ViewContext):DisplayRow[]{
   if(entry.kind==='pass'){
    const reason=entry.reason==='site_reset'?ctx.fill(ctx.t('сайт вернул на «{destination}»'),{destination:ctx.page(entry.destination)}):entry.reason==='error'?ctx.t('после ошибки сайта'):entry.reason==='restart'?ctx.t('перезапуск'):'';
    const title=ctx.fill(ctx.t('Новый проход {number}'),{number:String(entry.number)});
-   out.push({id:entry.id,kind:'pass',cells:[ctx.time(entry.time),'',reason?`${title} · ${reason}`:title],icon:'restart',expandable:false,open:false});
+   out.push({key:`e${entry.id}`,entryId:entry.id,kind:'pass',cells:[ctx.time(entry.time),'',reason?`${title} · ${reason}`:title],icon:'restart',expandable:false,open:false});
   }else if(entry.kind==='wait'){
    const next=entry.deadline?ctx.clock(entry.deadline):'';
    const text=entry.count>1
     ?(next?ctx.fill(ctx.t('Сит нет · проверок: {count} · дальше в {deadline}'),{count:String(entry.count),deadline:next}):ctx.fill(ctx.t('Сит нет · проверок: {count}'),{count:String(entry.count)}))
     :(next?ctx.fill(ctx.t('Сит нет · следующая проверка в {deadline}'),{deadline:next}):ctx.t('Сит нет'));
-   out.push({id:entry.id,kind:'wait',cells:[range(entry.first,entry.last,ctx),stageLabel(entry.last,ctx),text],icon:'clock',expandable:entry.count>1,open});
+   out.push({key:`e${entry.id}`,entryId:entry.id,kind:'wait',cells:[range(entry.first,entry.last,ctx),stageLabel(entry.last,ctx),text],icon:'clock',expandable:entry.count>1,open});
   }else if(entry.kind==='run'){
-   out.push({id:entry.id,kind:'run',cells:[range(entry.first,entry.last,ctx),stageLabel(entry.first,ctx),'→ '+entry.stages.slice(1).map(s=>ctx.page(s)).join(' → ')],icon:null,expandable:true,open});
+   out.push({key:`e${entry.id}`,entryId:entry.id,kind:'run',cells:[range(entry.first,entry.last,ctx),stageLabel(entry.first,ctx),'→ '+entry.stages.slice(1).map(s=>ctx.page(s)).join(' → ')],icon:null,expandable:true,open});
   }else{
-   out.push({id:entry.id,kind:'row',cells:[ctx.time(entry.row.time),stageLabel(entry.row,ctx),ctx.what(entry.row)],icon:isWarn(entry.row)?'alert':null,expandable:false,open:false});
+   out.push({key:`e${entry.id}`,entryId:entry.id,kind:'row',cells:[ctx.time(entry.row.time),stageLabel(entry.row,ctx),ctx.what(entry.row)],icon:isWarn(entry.row)?'alert':null,expandable:false,open:false});
   }
   if(open&&(entry.kind==='wait'||entry.kind==='run')){
-   for(const row of [...entry.rows].reverse())out.push({id:row.id,kind:'child',cells:[ctx.time(row.time),stageLabel(row,ctx),ctx.what(row)],icon:isWarn(row)?'alert':null,expandable:false,open:false});
+   for(const row of [...entry.rows].reverse())out.push({key:`c${entry.id}-${row.id}`,entryId:entry.id,kind:'child',cells:[ctx.time(row.time),stageLabel(row,ctx),ctx.what(row)],icon:isWarn(row)?'alert':null,expandable:false,open:false});
   }
  }
  return out;
