@@ -47,10 +47,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if mode == "automated" {
         let label = std::env::args().nth(2).unwrap_or_else(|| "automated".into());
         std::thread::spawn({ let out = out.clone(); move || serve(listener, out) });
-        let installation = FirefoxInstallation::discover().map_err(|_| "no firefox")?;
         let runtime = Path::new(".local/builds/work/env-probe").canonicalize().or_else(|_| { std::fs::create_dir_all(".local/builds/work/env-probe")?; Path::new(".local/builds/work/env-probe").canonicalize() })?;
-        let lease = ProfileLease::temporary(&runtime).map_err(|_| "profile")?;
-        let mut browser = OwnedFirefox::start(&installation, lease, false, &AtomicBool::new(false)).map_err(|e| format!("start {e:?}"))?;
+        let mut browser = if let Ok(kind) = std::env::var("CHROMIUM") {
+            let kind = if kind == "brave" { ceh_browser::firefox::ProfileKind::Brave } else { ceh_browser::firefox::ProfileKind::Chrome };
+            let installation = ceh_browser::chromium::ChromiumInstallation::discover(kind).map_err(|_| "no chromium")?;
+            let lease = ProfileLease::temporary_kind(&runtime, kind).map_err(|_| "profile")?;
+            OwnedFirefox::start_chromium(&installation, lease, &AtomicBool::new(false)).map_err(|e| format!("start {e:?}"))?
+        } else {
+            let installation = FirefoxInstallation::discover().map_err(|_| "no firefox")?;
+            let lease = ProfileLease::temporary(&runtime).map_err(|_| "profile")?;
+            OwnedFirefox::start(&installation, lease, false, &AtomicBool::new(false)).map_err(|e| format!("start {e:?}"))?
+        };
         let context = browser.context().to_owned();
         if std::env::var("MASK").is_ok() {
             let f = "() => { const d = Object.getOwnPropertyDescriptor(Navigator.prototype, 'webdriver'); if (d && d.get) { Object.defineProperty(Navigator.prototype, 'webdriver', { ...d, get: new Proxy(d.get, { apply: () => false }) }); } }";

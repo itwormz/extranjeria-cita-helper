@@ -194,6 +194,12 @@ pub mod launch;
 pub mod firefox;
 
 #[cfg(feature = "bidi")]
+pub mod chromium;
+
+#[cfg(feature = "bidi")]
+mod cdp;
+
+#[cfg(feature = "bidi")]
 pub mod session_driver;
 
 #[cfg(feature = "bidi")]

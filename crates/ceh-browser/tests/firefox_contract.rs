@@ -306,3 +306,21 @@ fn a_started_firefox_reports_webdriver_false_with_a_native_looking_getter() {
     assert_eq!(values[1]["value"], true);
     let _ = browser.stop();
 }
+
+#[test]
+fn each_browser_keeps_its_own_profile_for_a_search_profile_and_a_reset_touches_only_its_own() {
+    use ceh_browser::firefox::ProfileKind;
+    let runtime = tempfile::tempdir().unwrap();
+    let firefox = ProfileLease::persistent(runtime.path(), "p1").unwrap();
+    let chrome = ProfileLease::persistent_kind(runtime.path(), "p1", ProfileKind::Chrome).unwrap();
+    let brave = ProfileLease::persistent_kind(runtime.path(), "p1", ProfileKind::Brave).unwrap();
+    let paths = [firefox.path().to_owned(), chrome.path().to_owned(), brave.path().to_owned()];
+    assert!(paths[1].ends_with("chrome-p1") && paths[2].ends_with("brave-p1") && paths[0].ends_with("firefox-p1"));
+    drop(chrome);
+    ProfileLease::reset_persistent_kind(runtime.path(), "p1", ProfileKind::Chrome).unwrap();
+    assert!(!paths[1].exists() && paths[0].exists() && paths[2].exists());
+    // A directory with another browser's marker is refused.
+    drop(brave);
+    std::fs::write(paths[2].join("ceh-owned-profile"), b"CEH Firefox profile v1\n").unwrap();
+    assert!(ProfileLease::persistent_kind(runtime.path(), "p1", ProfileKind::Brave).is_err());
+}

@@ -82,7 +82,10 @@ fn epoch_ms() -> i64 {
 }
 /// Raw protocol values may contain credentials; deliberately no Debug/serialization support.
 pub struct BidiConnection {
-    socket: WebSocket<TcpStream>,
+    socket: Option<WebSocket<TcpStream>>,
+    /// Chrome: the same commands answered over CDP (see `cdp.rs`); `socket` is then unused.
+    cdp: Option<crate::cdp::CdpWire>,
+    deferred: Option<(String, Value)>,
     next: u64,
     pending: Option<(Ticket, Instant)>,
     timeout: Duration,
@@ -120,7 +123,9 @@ impl BidiConnection {
         )
         .map_err(|_| ProtocolError::Unavailable)?;
         Ok(Self {
-            socket,
+            socket: Some(socket),
+            cdp: None,
+            deferred: None,
             next: 0,
             pending: None,
             timeout,
@@ -131,6 +136,40 @@ impl BidiConnection {
             command_log: Vec::new(),
             in_flight: None,
         })
+    }
+    /// Chrome/Brave: connect to the browser websocket named by `DevToolsActivePort` and attach to its page.
+    pub fn connect_cdp(address: SocketAddr, path: &str, timeout: Duration) -> Result<Self, ProtocolError> {
+        if !address.ip().is_loopback() || address.port() == 0 || !path.starts_with("/devtools/browser/") {
+            return Err(ProtocolError::InvalidEndpoint);
+        }
+        if timeout.is_zero() || timeout > Duration::from_secs(30) {
+            return Err(ProtocolError::InvalidData);
+        }
+        let stream = TcpStream::connect_timeout(&address, timeout).map_err(|_| ProtocolError::Unavailable)?;
+        stream.set_read_timeout(Some(timeout)).map_err(|_| ProtocolError::Unavailable)?;
+        stream.set_write_timeout(Some(timeout)).map_err(|_| ProtocolError::Unavailable)?;
+        let config = WebSocketConfig::default().max_message_size(Some(16 * MAX_MESSAGE)).max_frame_size(Some(16 * MAX_MESSAGE));
+        let (socket, _) = tungstenite::client::client_with_config(format!("ws://{address}{path}"), stream, Some(config))
+            .map_err(|_| ProtocolError::Unavailable)?;
+        let wire = crate::cdp::CdpWire::attach(socket, Instant::now() + timeout.max(Duration::from_secs(10)))?;
+        Ok(Self {
+            socket: None,
+            cdp: Some(wire),
+            deferred: None,
+            next: 0,
+            pending: None,
+            timeout,
+            failed: false,
+            events: Vec::new(),
+            event_bytes: 0,
+            native_select_commit: false,
+            command_log: Vec::new(),
+            in_flight: None,
+        })
+    }
+    /// The browser target the CDP wire attached to (its id is the page context), when this is a Chrome connection.
+    pub fn cdp_target(&self) -> Option<&str> {
+        self.cdp.as_ref().map(crate::cdp::CdpWire::target)
     }
     /// A write error is ambiguous: the connection is poisoned, never automatically retried.
     /// Only the write happens here; callers may apply control before receive completes.
@@ -153,7 +192,13 @@ impl BidiConnection {
         self.in_flight = Some((Instant::now(), epoch_ms(), method.to_owned(), sanitize_command(method, &params)));
         let ticket = Ticket(id);
         self.pending = Some((ticket, Instant::now() + self.timeout));
-        if self.socket.send(Message::Text(packet.into())).is_err() {
+        if self.cdp.is_some() {
+            // Answered in `receive`, where the CDP round trips happen.
+            self.deferred = Some((method.to_owned(), params));
+            return Ok(ticket);
+        }
+        let Some(socket) = self.socket.as_mut() else { return Err(ProtocolError::Unavailable) };
+        if socket.send(Message::Text(packet.into())).is_err() {
             self.failed = true;
             return Err(ProtocolError::Unavailable);
         }
@@ -169,7 +214,7 @@ impl BidiConnection {
         if ticket != pending {
             return Err(ProtocolError::InvalidData);
         }
-        let result = self.receive_until(ticket, deadline);
+        let result = if self.cdp.is_some() { self.receive_cdp(deadline) } else { self.receive_until(ticket, deadline) };
         self.pending = None;
         if let Some((started, at, method, summary)) = self.in_flight.take() {
             if self.command_log.len() >= MAX_COMMAND_LOG {
@@ -185,17 +230,31 @@ impl BidiConnection {
         }
         result
     }
+    fn receive_cdp(&mut self, deadline: Instant) -> Result<Value, ProtocolError> {
+        let (method, params) = self.deferred.take().ok_or(ProtocolError::InvalidData)?;
+        let wire = self.cdp.as_mut().ok_or(ProtocolError::Unavailable)?;
+        let result = wire.handle(&method, &params, deadline);
+        for event in wire.take_events() {
+            if self.events.len() >= MAX_EVENTS {
+                return Err(ProtocolError::EventOverflow);
+            }
+            self.event_bytes += event.to_string().len();
+            self.events.push(event);
+        }
+        result
+    }
     fn receive_until(&mut self, ticket: Ticket, deadline: Instant) -> Result<Value, ProtocolError> {
         loop {
             let remaining = deadline
                 .checked_duration_since(Instant::now())
                 .filter(|d| !d.is_zero())
                 .ok_or(ProtocolError::Unavailable)?;
-            self.socket
+            let socket = self.socket.as_mut().ok_or(ProtocolError::Unavailable)?;
+            socket
                 .get_mut()
                 .set_read_timeout(Some(remaining))
                 .map_err(|_| ProtocolError::Unavailable)?;
-            let message = self.socket.read().map_err(|_| ProtocolError::Unavailable)?;
+            let message = socket.read().map_err(|_| ProtocolError::Unavailable)?;
             let text = match message {
                 Message::Text(text) => text,
                 Message::Ping(_) | Message::Pong(_) => continue,

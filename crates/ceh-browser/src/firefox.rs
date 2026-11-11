@@ -164,6 +164,30 @@ impl FirefoxInstallation {
             .ok_or(FirefoxError::NotInstalled)
     }
 }
+/// Which browser an owned profile directory belongs to; the directory name and marker differ so a profile of one
+/// browser is never opened by another.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProfileKind {
+    Firefox,
+    Chrome,
+    Brave,
+}
+impl ProfileKind {
+    fn prefix(self) -> &'static str {
+        match self {
+            Self::Firefox => "firefox",
+            Self::Chrome => "chrome",
+            Self::Brave => "brave",
+        }
+    }
+    fn marker(self) -> &'static [u8] {
+        match self {
+            Self::Firefox => b"CEH Firefox profile v1\n",
+            Self::Chrome => b"CEH Chrome profile v1\n",
+            Self::Brave => b"CEH Brave profile v1\n",
+        }
+    }
+}
 pub struct ProfileLease {
     path: PathBuf,
     lock: Option<File>,
@@ -188,40 +212,48 @@ impl ProfileLease {
         Ok(root)
     }
     pub fn temporary(runtime: &Path) -> Result<Self, FirefoxError> {
+        Self::temporary_kind(runtime, ProfileKind::Firefox)
+    }
+    pub fn temporary_kind(runtime: &Path, kind: ProfileKind) -> Result<Self, FirefoxError> {
         let temporary = tempfile::Builder::new()
-            .prefix("firefox-session-")
+            .prefix(&format!("{}-session-", kind.prefix()))
             .tempdir_in(Self::root(runtime)?)
             .map_err(|_| FirefoxError::InvalidProfile)?;
         let path = temporary.path().to_owned();
-        Self::lease(path, Some(temporary))
+        Self::lease(path, Some(temporary), kind)
     }
     pub fn persistent(runtime: &Path, key: &str) -> Result<Self, FirefoxError> {
+        Self::persistent_kind(runtime, key, ProfileKind::Firefox)
+    }
+    pub fn persistent_kind(runtime: &Path, key: &str, kind: ProfileKind) -> Result<Self, FirefoxError> {
         ceh_core::model::ProfileId::new(key).map_err(|_| FirefoxError::InvalidProfile)?;
-        let path = Self::root(runtime)?.join(format!("firefox-{key}"));
+        let path = Self::root(runtime)?.join(format!("{}-{key}", kind.prefix()));
         match fs::create_dir(&path) {
             Ok(()) => {
-                fs::write(path.join("ceh-owned-profile"), b"CEH Firefox profile v1\n")
+                fs::write(path.join("ceh-owned-profile"), kind.marker())
                     .map_err(|_| FirefoxError::InvalidProfile)?;
             }
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
                 let meta = fs::symlink_metadata(&path).map_err(|_| FirefoxError::InvalidProfile)?;
                 if meta.file_type().is_symlink()
                     || !meta.is_dir()
-                    || fs::read(path.join("ceh-owned-profile")).ok().as_deref()
-                        != Some(b"CEH Firefox profile v1\n")
+                    || fs::read(path.join("ceh-owned-profile")).ok().as_deref() != Some(kind.marker())
                 {
                     return Err(FirefoxError::InvalidProfile);
                 }
             }
             Err(_) => return Err(FirefoxError::InvalidProfile),
         }
-        Self::lease(path, None)
+        Self::lease(path, None, kind)
     }
     /// Delete the app-owned persistent browser profile `key` (Python `reset_browser_profile`). Refuses a
     /// profile in use, a foreign or symlinked directory, and an invalid key; a missing profile is fine.
     pub fn reset_persistent(runtime: &Path, key: &str) -> Result<(), FirefoxError> {
+        Self::reset_persistent_kind(runtime, key, ProfileKind::Firefox)
+    }
+    pub fn reset_persistent_kind(runtime: &Path, key: &str, kind: ProfileKind) -> Result<(), FirefoxError> {
         ceh_core::model::ProfileId::new(key).map_err(|_| FirefoxError::InvalidProfile)?;
-        let path = Self::root(runtime)?.join(format!("firefox-{key}"));
+        let path = Self::root(runtime)?.join(format!("{}-{key}", kind.prefix()));
         let meta = match fs::symlink_metadata(&path) {
             Ok(meta) => meta,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
@@ -229,17 +261,17 @@ impl ProfileLease {
         };
         if meta.file_type().is_symlink()
             || !meta.is_dir()
-            || fs::read(path.join("ceh-owned-profile")).ok().as_deref() != Some(b"CEH Firefox profile v1\n")
+            || fs::read(path.join("ceh-owned-profile")).ok().as_deref() != Some(kind.marker())
         {
             return Err(FirefoxError::InvalidProfile);
         }
         // Holding the lease proves no browser of this app uses the profile while it is removed.
-        let lease = Self::lease(path.clone(), None)?;
+        let lease = Self::lease(path.clone(), None, kind)?;
         drop(lease);
         // Move the profile aside first: the key is free at once, and a deletion that fails midway (files
         // still held by a dying browser) can never leave an unmarked half profile under the key.
         let parent = path.parent().ok_or(FirefoxError::InvalidProfile)?.to_owned();
-        let prefix = format!("firefox-{key}.deleting-");
+        let prefix = format!("{}-{key}.deleting-", kind.prefix());
         if let Ok(entries) = fs::read_dir(&parent) {
             for entry in entries.flatten() {
                 if entry.file_name().to_string_lossy().starts_with(&prefix) {
@@ -275,12 +307,34 @@ impl ProfileLease {
             false
         }
     }
-    fn lease(path: PathBuf, temporary: Option<tempfile::TempDir>) -> Result<Self, FirefoxError> {
+    /// Chromium's own `SingletonLock` symlink (`host-pid`) belongs to a live browser, like Firefox's `lock`.
+    fn chromium_running_in(path: &Path) -> bool {
+        #[cfg(unix)]
+        {
+            let Ok(target) = fs::read_link(path.join("SingletonLock")) else { return false };
+            let Some(pid) = target.to_str().and_then(|t| t.rsplit_once('-')).and_then(|(_, pid)| pid.parse::<u32>().ok()) else {
+                return false;
+            };
+            return std::process::Command::new("kill")
+                .args(["-0", &pid.to_string()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|status| status.success());
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = path;
+            false
+        }
+    }
+    fn lease(path: PathBuf, temporary: Option<tempfile::TempDir>, kind: ProfileKind) -> Result<Self, FirefoxError> {
         let lock_path = path.join("ceh-owner.lock");
         if fs::symlink_metadata(&lock_path).is_ok_and(|m| m.file_type().is_symlink()) {
             return Err(FirefoxError::InvalidProfile);
         }
-        if Self::firefox_running_in(&path) {
+        let running = if kind == ProfileKind::Firefox { Self::firefox_running_in(&path) } else { Self::chromium_running_in(&path) };
+        if running {
             return Err(FirefoxError::ProfileBusy);
         }
         let lock = OpenOptions::new()
@@ -474,6 +528,69 @@ impl OwnedFirefox {
         if cancelled.load(Ordering::Acquire) {
             return Err(FirefoxError::Cancelled);
         }
+        owned.connection = Some(connection);
+        Ok(owned)
+    }
+    /// Chrome or Brave as the owned browser: the same handle as Firefox, over the CDP wire (see `cdp.rs`).
+    /// The system certificate store serves HTTPS, so there is no chain to prepare.
+    pub fn start_chromium(
+        installation: &crate::chromium::ChromiumInstallation,
+        profile: ProfileLease,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, FirefoxError> {
+        if cancelled.load(Ordering::Acquire) {
+            return Err(FirefoxError::Cancelled);
+        }
+        let port_file = profile.path().join("DevToolsActivePort");
+        if fs::symlink_metadata(&port_file).is_ok_and(|m| m.file_type().is_symlink()) {
+            return Err(FirefoxError::InvalidProfile);
+        }
+        let _ = fs::remove_file(&port_file);
+        crate::chromium::seed_preferences(profile.path()).map_err(|_| FirefoxError::InvalidProfile)?;
+        let mut command = Command::new(installation.executable());
+        command
+            .args(crate::chromium::launch_arguments(profile.path(), crate::launch::TargetOs::current()))
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        let child = command.spawn().map_err(|_| FirefoxError::Unavailable)?;
+        let mut owned = Self {
+            child: Some(child),
+            profile: Some(profile),
+            connection: None,
+            context: String::new(),
+            endpoint: SocketAddr::from(([127, 0, 0, 1], 0)),
+            manual: false,
+            certificate_cache: CertificateCache::Ready(0),
+        };
+        let deadline = Instant::now() + Duration::from_secs(20);
+        let (port, path) = loop {
+            if cancelled.load(Ordering::Acquire) {
+                return Err(FirefoxError::Cancelled);
+            }
+            if owned.child.as_mut().ok_or(FirefoxError::Unavailable)?.try_wait().map_err(|_| FirefoxError::Unavailable)?.is_some() {
+                return Err(FirefoxError::Unavailable);
+            }
+            if Instant::now() >= deadline {
+                return Err(FirefoxError::StartupTimeout);
+            }
+            if let Some(found) = fs::read_to_string(&port_file).ok().and_then(|t| crate::chromium::parse_devtools_active_port(&t)) {
+                break found;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        };
+        owned.endpoint = SocketAddr::from(([127, 0, 0, 1], port));
+        // The first window may still be opening when the port is announced: attach once its page exists.
+        let mut connection = loop {
+            match BidiConnection::connect_cdp(owned.endpoint, &path, Duration::from_secs(5)) {
+                Ok(connection) => break connection,
+                Err(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(200)),
+                Err(_) => return Err(FirefoxError::Unavailable),
+            }
+        };
+        connection.call_before("session.new", json!({"capabilities":{}}), deadline).map_err(|_| FirefoxError::Unavailable)?;
+        connection.call_before("session.subscribe", json!({"events":[]}), deadline).map_err(|_| FirefoxError::Unavailable)?;
+        owned.context = connection.cdp_target().ok_or(FirefoxError::Unavailable)?.to_owned();
         owned.connection = Some(connection);
         Ok(owned)
     }
