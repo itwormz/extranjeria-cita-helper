@@ -609,7 +609,8 @@ impl AchievementStore {
         loop {
             match fs2::FileExt::try_lock_exclusive(&file) {
                 Ok(()) => return Ok(file),
-                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock
+                    || error.raw_os_error() == fs2::lock_contended_error().raw_os_error() => {
                     if std::time::Instant::now() >= deadline {
                         return Err(ExportError::Busy);
                     }

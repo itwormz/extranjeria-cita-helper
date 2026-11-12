@@ -154,7 +154,8 @@ impl ScriptArchive {
         loop {
             match file.try_lock_exclusive() {
                 Ok(()) => return Ok(file),
-                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock
+                    || error.raw_os_error() == fs2::lock_contended_error().raw_os_error() => {
                     if Instant::now() >= deadline {
                         return Err(DiagnosticError::Busy);
                     }
