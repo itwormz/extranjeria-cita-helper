@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — First SantaCita beta
+## Unreleased
+
+## 0.4.0-beta.1 — First SantaCita beta
 
 - Introduce SantaCita, a new desktop application built with Rust, Tauri and Svelte for Toma de huellas / TIE and Autorización de regreso searches.
 - Use an installed Chrome, Chromium, Brave or Firefox, or Edge on Windows, in a separate browser profile. A browser is no longer bundled. Linux snap versions of Firefox and Chromium are not supported.
