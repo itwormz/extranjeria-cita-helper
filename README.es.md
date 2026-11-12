@@ -15,6 +15,8 @@ SantaCita se publica como beta. La línea estable 0.3.x corresponde a la aplicac
 3. Cree un perfil con provincia, trámite, autenticación y datos del solicitante. Inicie la búsqueda y autentíquese en el navegador.
 4. Cuando reciba un aviso, elija oficina o termine la reserva. **Fecha, hora, CAPTCHA y confirmación final siguen siendo manuales.**
 
+SantaCita abre un perfil separado del navegador seleccionado; no utiliza su perfil habitual ni sus pestañas. Edge solo es compatible en Windows. En Linux no se admiten las versiones snap de Firefox y Chromium; utilice una instalación que no sea snap.
+
 | Sistema | Archivo |
 | --- | --- |
 | macOS Apple Silicon | `SantaCita-<versión>-macOS-Apple-Silicon.dmg` |
