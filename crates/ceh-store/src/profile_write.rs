@@ -373,7 +373,7 @@ fn lock_profile(path: &Path) -> Result<std::fs::File, ProfileWriteError> {
         .map_err(|_| ProfileWriteError::Unavailable)?;
     let deadline = Instant::now() + Duration::from_millis(100);
     loop {
-        match fs2::FileExt::try_lock_exclusive(&lock) {
+        match crate::file_lock::try_exclusive(&lock) {
             Ok(()) => break,
             Err(error)
                 if error.kind() == std::io::ErrorKind::WouldBlock && Instant::now() < deadline =>

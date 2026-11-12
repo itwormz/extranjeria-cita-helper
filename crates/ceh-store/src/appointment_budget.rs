@@ -132,7 +132,7 @@ impl BudgetStore {
 
 fn lock(path: &Path) -> io::Result<File> {
     let file = OpenOptions::new().create(true).truncate(false).read(true).write(true).open(path)?;
-    fs2::FileExt::try_lock_exclusive(&file)?;
+    crate::file_lock::try_exclusive(&file)?;
     Ok(file)
 }
 
