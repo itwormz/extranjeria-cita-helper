@@ -15,6 +15,8 @@ SantaCita is released as a beta. The stable 0.3.x line is the previous Python ap
 3. Create a profile with the province, service, authentication and applicant details. Start the search and sign in through the browser.
 4. When notified, choose an office or complete the booking. **Date, time, CAPTCHA and final confirmation remain manual.**
 
+SantaCita opens a separate profile in the selected browser; your everyday tabs and profile are not used. Edge is supported only on Windows. On Linux, snap versions of Firefox and Chromium are not supported; use a non-snap installation.
+
 | System | File |
 | --- | --- |
 | macOS Apple Silicon | `SantaCita-<version>-macOS-Apple-Silicon.dmg` |
