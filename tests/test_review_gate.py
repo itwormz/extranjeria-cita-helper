@@ -412,3 +412,34 @@ def test_automatic_branch_sweep_continues_after_label_write_error(monkeypatch):
     with pytest.raises(RuntimeError):
         gate.request_ready_reviews('owner/repo', 'main', request=True)
     assert [call.args[1] for call in requests.call_args_list] == [1, 2]
+
+
+@pytest.mark.parametrize('base,expected', [('santacita-beta', {'Tests', 'Analyze (rust)', 'Analyze (javascript-typescript)', 'Analyze (actions)'}), ('other', set())])
+def test_beta_has_explicit_ci_requirements_without_branch_protection(monkeypatch, base, expected):
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[{'protected': False}, [[]]]))
+    assert gate.required_check_names('owner/repo', 42, base) == expected
+
+
+def test_empty_required_checks_response_is_recognized_without_hiding_api_errors(monkeypatch):
+    arguments = ['pr', 'checks', '42', '--json', 'name,bucket', '--required']
+    runner = Mock(return_value=Mock(returncode=1, stdout='', stderr="no required checks reported on the 'release/0.4.0-beta.1' branch"))
+    monkeypatch.setattr(gate.subprocess, 'run', runner)
+    assert gate.gh_json(arguments, allowed_codes=(0, 1, 8)) == []
+    runner.return_value.stderr = 'Resource not accessible by integration'
+    with pytest.raises(RuntimeError, match='Resource not accessible'):
+        gate.gh_json(arguments, allowed_codes=(0, 1, 8))
+
+
+def test_beta_gate_checks_rust_ci_even_when_gh_required_checks_is_empty(monkeypatch):
+    pr, reviews, threads, _ = ready_state()
+    pr['baseRefName'] = 'santacita-beta'
+    names = {'Tests', 'Analyze (rust)', 'Analyze (javascript-typescript)', 'Analyze (actions)'}
+    checks = [{'name': name, 'bucket': 'pass'} for name in names]
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[]], [], checks, pr]))
+    monkeypatch.setattr(gate, 'review_threads', lambda *_: [])
+    monkeypatch.setattr(gate, 'required_check_names', lambda *_: names)
+    gate.request_review('owner/repo', 42)
+    checks[0]['bucket'] = 'pending'
+    monkeypatch.setattr(gate, 'gh_json', Mock(side_effect=[pr, [reviews], [[]], [], checks]))
+    with pytest.raises(gate.NotReady, match='pending'):
+        gate.request_review('owner/repo', 42)
