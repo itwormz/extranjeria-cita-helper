@@ -196,7 +196,7 @@ def request_ready_reviews(repository, base, *, request=False):
                 request_review(repository, number, request=request, automatic=True)
             except NotReady as exc:
                 print(f'PR #{number}: waiting: {exc}')
-            except RuntimeError as exc:
+            except (RuntimeError, subprocess.CalledProcessError) as exc:
                 errors.append(f'PR #{number}: {exc}')
     if errors:
         raise RuntimeError('\n'.join(errors))
@@ -219,7 +219,7 @@ def main():
             for base in dict.fromkeys(args.base or ['main']):
                 try:
                     request_ready_reviews(args.repo, base, request=args.request)
-                except RuntimeError as exc:
+                except (RuntimeError, subprocess.CalledProcessError) as exc:
                     errors.append(f'{base}: {exc}')
             if errors:
                 raise RuntimeError('\n'.join(errors))
