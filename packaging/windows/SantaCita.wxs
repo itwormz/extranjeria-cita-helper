@@ -9,7 +9,7 @@
     <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." AllowSameVersionUpgrades="yes" Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Property Id="ARPCOMMENTS" Value="Appointment helper for Extranjería: fingerprinting and autorización de regreso" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/itwormz/santacita" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/itwormz/extranjeria-cita-helper" />
     <!-- A small .ico, not the program itself: using the exe here would embed a second copy of it in the MSI. -->
     <Icon Id="AppIcon" SourceFile="$(IconFile)" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />

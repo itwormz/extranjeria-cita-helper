@@ -1,1 +1,0 @@
-"""Cita Bot tests."""

@@ -103,3 +103,14 @@ fn every_supported_browser_has_a_public_download_page() {
         assert!(url.starts_with("https://") && url.contains(host), "{url}");
     }
 }
+
+#[test]
+fn beta_public_links_use_the_current_repository_and_beta_documentation() {
+    use ceh_desktop::achievement_exports::{PublicLink, public_link};
+    let repo = "https://github.com/itwormz/extranjeria-cita-helper";
+    assert_eq!(public_link(PublicLink::Github, "en").unwrap(), repo);
+    assert_eq!(public_link(PublicLink::Releases, "en").unwrap(), format!("{repo}/releases"));
+    for (lang, file) in [("en", "README.md"), ("ru", "README.ru.md"), ("es", "README.es.md")] {
+        assert_eq!(public_link(PublicLink::Readme, lang).unwrap(), format!("{repo}/blob/santacita-beta/{file}"));
+    }
+}

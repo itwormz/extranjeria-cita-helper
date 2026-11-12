@@ -291,11 +291,11 @@ pub enum PublicLink {
 }
 pub fn public_link(target: PublicLink, lang: &str) -> Result<String, &'static str> {
     language(lang)?;
-    let repo = "https://github.com/itwormz/santacita";
+    let repo = "https://github.com/itwormz/extranjeria-cita-helper";
     Ok(match target {
         PublicLink::Github => repo.into(),
         PublicLink::Readme => format!(
-            "{repo}/blob/main/{}",
+            "{repo}/blob/santacita-beta/{}",
             match lang {
                 "ru" => "README.ru.md",
                 "es" => "README.es.md",
@@ -308,7 +308,7 @@ pub fn public_link(target: PublicLink, lang: &str) -> Result<String, &'static st
         PublicLink::Brave => "https://brave.com/download/".into(),
         PublicLink::Edge => "https://www.microsoft.com/edge/download".into(),
         PublicLink::Chromium => "https://www.chromium.org/getting-involved/download-chromium/".into(),
-        PublicLink::Releases => format!("{repo}/releases/latest"),
+        PublicLink::Releases => format!("{repo}/releases"),
         PublicLink::Sponsor => "https://github.com/sponsors/itwormz".into(),
         PublicLink::Crypto => "https://nowpayments.io/donation/itworm".into(),
     })
