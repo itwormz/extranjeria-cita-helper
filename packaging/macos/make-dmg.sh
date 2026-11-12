@@ -6,7 +6,10 @@
 # Usage: make-dmg.sh <tauri dmg dir> <SantaCita.app> <LICENSE file> <background.png> <output.dmg>
 set -euo pipefail
 tool_dir=$1; app=$2; license=$3; background=$4; output=$5
-[[ -x $tool_dir/bundle_dmg.sh && -f $tool_dir/icon.icns && -d $app && -f $license && -f $background ]] || { echo "missing input" >&2; exit 2; }
+for input in "$tool_dir/bundle_dmg.sh" "$tool_dir/icon.icns" "$app" "$license" "$background"; do
+  [[ -e $input ]] || { echo "missing input: $input" >&2; exit 2; }
+done
+[[ -x $tool_dir/bundle_dmg.sh && -f $tool_dir/icon.icns && -d $app && -f $license && -f $background ]] || { echo "invalid DMG input type or tool permissions" >&2; exit 2; }
 # bundle_dmg.sh runs from other directories: every path must be absolute.
 abs() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
 tool_dir=$(abs "$tool_dir"); app=$(abs "$app"); license=$(abs "$license"); background=$(abs "$background"); output=$(abs "$output")

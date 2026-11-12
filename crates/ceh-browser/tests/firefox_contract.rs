@@ -332,5 +332,5 @@ fn the_places_where_linux_distributions_keep_firefox_are_all_searched() {
     for expected in ["/usr/lib/firefox/firefox", "/usr/lib64/firefox/firefox", "/opt/firefox/firefox", "/usr/lib/firefox-esr/firefox-esr", "/usr/lib/firefox-esr/firefox"] {
         assert!(places.iter().any(|p| p == std::path::Path::new(expected)), "{expected} in {places:?}");
     }
-    assert!(places.iter().all(|p| p.is_absolute()), "only fixed locations, never a search of the user's PATH");
+    assert!(places.iter().all(|p| p.has_root()), "rooted Linux locations, even when this test runs on Windows");
 }

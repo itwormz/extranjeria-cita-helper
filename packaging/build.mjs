@@ -13,8 +13,9 @@ const {version}=await readMetadata(ROOT,process.env.RELEASE_TAG||undefined);
 const names=packageNames(version,platform,arch);const output=join(ROOT,'.local/builds/releases');await mkdir(output,{recursive:true});
 const target=join(ROOT,'.local/builds/rust-target',rustHost,'release');
 const cli=join(ROOT,'.local/builds/work/rust-ui/node_modules/@tauri-apps/cli/tauri.js');
+// Keep the .app explicitly: a dmg-only Tauri build deletes it before our final image is composed.
 // Tauri's build defaults to Cargo's release profile; --debug is deliberately absent.
-run(process.execPath,[cli,'build','--features','shell','--ci','--target',rustHost,...(platform==='windows'?['--no-bundle']:['--bundles',platform==='macos'?'dmg':'appimage']),'--','--locked'],{cwd:join(ROOT,'crates/ceh-desktop')});
+run(process.execPath,[cli,'build','--features','shell','--ci','--target',rustHost,...(platform==='windows'?['--no-bundle']:['--bundles',platform==='macos'?'app,dmg':'appimage']),'--','--locked'],{cwd:join(ROOT,'crates/ceh-desktop')});
 if(platform==='macos'){
  const dmg=join(target,'bundle/dmg');
  run('bash',[join(ROOT,'packaging/macos/make-dmg.sh'),dmg,join(target,'bundle/macos/SantaCita.app'),join(ROOT,'LICENSE'),join(ROOT,'assets/dmg-background.png'),join(output,names[0])]);
