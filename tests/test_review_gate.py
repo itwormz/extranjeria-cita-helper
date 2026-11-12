@@ -367,3 +367,22 @@ def test_failed_label_removal_does_not_send_a_second_request(monkeypatch):
     with pytest.raises(subprocess.CalledProcessError):
         gate.request_review('owner/repo', 34, request=True)
     assert post.call_count == 1
+
+
+@pytest.mark.parametrize('broken_base', [None, 'main'])
+def test_automatic_cli_sweeps_default_and_beta_once_without_hiding_errors(monkeypatch, broken_base):
+    import sys
+    calls = []
+    def sweep(repository, base, *, request=False):
+        calls.append((repository, base, request))
+        if base == broken_base:
+            raise RuntimeError('API unavailable')
+    monkeypatch.setattr(gate, 'request_ready_reviews', sweep)
+    monkeypatch.setattr(sys, 'argv', ['gate', '--repo', 'owner/repo', '--automatic',
+        '--base', 'main', '--base', 'santacita-beta', '--base', 'main', '--request'])
+    if broken_base:
+        with pytest.raises(SystemExit, match='API unavailable'):
+            gate.main()
+    else:
+        gate.main()
+    assert calls == [('owner/repo', 'main', True), ('owner/repo', 'santacita-beta', True)]
