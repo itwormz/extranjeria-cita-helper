@@ -16,7 +16,13 @@ tool_dir=$(abs "$tool_dir"); app=$(abs "$app"); license=$(abs "$license"); backg
 staging=$(mktemp -d); trap 'rm -rf "$staging"' EXIT
 ditto "$app" "$staging/$(basename "$app")"   # keeps the signature intact
 rm -f "$output"
-"$tool_dir/bundle_dmg.sh" \
+# Finder/Spotlight can hold the freshly arranged volume beyond the upstream 2+4 second retries.
+# Keep the upstream EBUSY-only backoff, extending it to at most 62 seconds without forced ejects.
+retry_tool="$tool_dir/santacita_bundle_dmg.sh"
+grep -q '^MAXIMUM_UNMOUNTING_ATTEMPTS=3$' "$tool_dir/bundle_dmg.sh" || { echo "unexpected DMG retry policy" >&2; exit 2; }
+sed 's/^MAXIMUM_UNMOUNTING_ATTEMPTS=3$/MAXIMUM_UNMOUNTING_ATTEMPTS=6/' "$tool_dir/bundle_dmg.sh" > "$retry_tool"
+chmod +x "$retry_tool"
+"$retry_tool" \
   --volname "SantaCita" --volicon "$tool_dir/icon.icns" \
   --background "$background" --window-size 600 460 --icon-size 110 \
   --icon "$(basename "$app")" 150 190 --hide-extension "$(basename "$app")" \
