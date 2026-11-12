@@ -367,3 +367,48 @@ def test_failed_label_removal_does_not_send_a_second_request(monkeypatch):
     with pytest.raises(subprocess.CalledProcessError):
         gate.request_review('owner/repo', 34, request=True)
     assert post.call_count == 1
+
+
+@pytest.mark.parametrize('broken_base', [None, 'main'])
+def test_automatic_cli_sweeps_default_and_beta_once_without_hiding_errors(monkeypatch, broken_base):
+    import sys
+    calls = []
+    def sweep(repository, base, *, request=False):
+        calls.append((repository, base, request))
+        if base == broken_base:
+            raise RuntimeError('API unavailable')
+    monkeypatch.setattr(gate, 'request_ready_reviews', sweep)
+    monkeypatch.setattr(sys, 'argv', ['gate', '--repo', 'owner/repo', '--automatic',
+        '--base', 'main', '--base', 'santacita-beta', '--base', 'main', '--request'])
+    if broken_base:
+        with pytest.raises(SystemExit, match='API unavailable'):
+            gate.main()
+    else:
+        gate.main()
+    assert calls == [('owner/repo', 'main', True), ('owner/repo', 'santacita-beta', True)]
+
+
+def test_automatic_sweeps_continue_after_label_write_errors(monkeypatch):
+    import subprocess
+    import sys
+    failure = subprocess.CalledProcessError(1, ['gh', 'api', 'labels'])
+    sweep = Mock(side_effect=[failure, None])
+    monkeypatch.setattr(gate, 'request_ready_reviews', sweep)
+    monkeypatch.setattr(sys, 'argv', ['gate', '--repo', 'owner/repo', '--automatic',
+        '--base', 'main', '--base', 'santacita-beta', '--request'])
+    with pytest.raises(SystemExit):
+        gate.main()
+    assert [call.args[1] for call in sweep.call_args_list] == ['main', 'santacita-beta']
+
+
+
+def test_automatic_branch_sweep_continues_after_label_write_error(monkeypatch):
+    import subprocess
+    failure = subprocess.CalledProcessError(1, ['gh', 'api', 'labels'])
+    monkeypatch.setattr(gate, 'gh_json', Mock(return_value=[[{'number': 1, 'draft': False},
+                                                          {'number': 2, 'draft': False}]]))
+    requests = Mock(side_effect=[failure, None])
+    monkeypatch.setattr(gate, 'request_review', requests)
+    with pytest.raises(RuntimeError):
+        gate.request_ready_reviews('owner/repo', 'main', request=True)
+    assert [call.args[1] for call in requests.call_args_list] == [1, 2]

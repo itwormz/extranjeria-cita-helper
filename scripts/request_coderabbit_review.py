@@ -196,7 +196,7 @@ def request_ready_reviews(repository, base, *, request=False):
                 request_review(repository, number, request=request, automatic=True)
             except NotReady as exc:
                 print(f'PR #{number}: waiting: {exc}')
-            except RuntimeError as exc:
+            except (RuntimeError, subprocess.CalledProcessError) as exc:
                 errors.append(f'PR #{number}: {exc}')
     if errors:
         raise RuntimeError('\n'.join(errors))
@@ -208,14 +208,21 @@ def main():
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument('--pr', type=int)
     target.add_argument('--automatic', action='store_true', help='Check ready open PRs; add --request to apply the review label')
-    parser.add_argument('--base', default='main', help='Target branch for the automatic sweep')
+    parser.add_argument('--base', action='append', help='Target branch for the automatic sweep; repeat for multiple branches (default: main)')
     parser.add_argument('--request', action='store_true', help='Apply the CodeRabbit opt-in label')
     args = parser.parse_args()
     if (args.pr is not None and args.pr < 1) or len(args.repo.split('/')) != 2:
         parser.error('Use a positive PR number and owner/repository')
     try:
         if args.automatic:
-            request_ready_reviews(args.repo, args.base, request=args.request)
+            errors = []
+            for base in dict.fromkeys(args.base or ['main']):
+                try:
+                    request_ready_reviews(args.repo, base, request=args.request)
+                except (RuntimeError, subprocess.CalledProcessError) as exc:
+                    errors.append(f'{base}: {exc}')
+            if errors:
+                raise RuntimeError('\n'.join(errors))
         else:
             request_review(args.repo, args.pr, request=args.request)
     except (RuntimeError, KeyError, ValueError) as exc:
