@@ -31,7 +31,15 @@ def gh_json(arguments, *, allowed_codes=(0,)):
         operation = ' '.join(arguments[:2])
         message = result.stderr.strip() or 'GitHub request failed'
         raise RuntimeError(f'{operation}: {message}')
-    return json.loads(result.stdout)
+    if (result.returncode == 1 and arguments[:2] == ['pr', 'checks']
+            and '--required' in arguments and not result.stdout.strip()
+            and result.stderr.strip().startswith('no required checks reported on the ')):
+        return []
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        operation = ' '.join(arguments[:2])
+        raise RuntimeError(f'{operation}: {result.stderr.strip() or "Invalid GitHub JSON response"}') from exc
 
 
 def review_threads(repository, number):
@@ -80,6 +88,8 @@ def required_check_names(repository, number, base):
         for entry in page:
             if entry['type'] == 'required_status_checks':
                 names.update(check['context'] for check in entry['parameters']['required_status_checks'])
+    if base == 'santacita-beta':
+        names.update({'Tests', 'Analyze (rust)', 'Analyze (javascript-typescript)', 'Analyze (actions)'})
     return names
 
 
@@ -155,10 +165,11 @@ def request_review(repository, number, *, request=False, automatic=False):
     check_arguments = ['pr', 'checks', str(number), '--repo', repository, '--json', 'name,bucket']
     checks = gh_json([*check_arguments, '--required'], allowed_codes=(0, 1, 8))
     all_checks = gh_json(check_arguments, allowed_codes=(0, 1, 8))
+    required_names = required_check_names(repository, number, pull_request['baseRefName'])
     checks += [check for check in all_checks
-               if check['name'].lower().startswith(('greptile', 'coderabbit'))]
+               if check['name'] in required_names or check['name'].lower().startswith(('greptile', 'coderabbit'))]
     reasons = blockers(pull_request, reviews, review_threads(repository, number), checks,
-                       required_check_names(repository, number, pull_request['baseRefName']),
+                       required_names,
                        summary_head=summary_head, second_stage=started or requested)
     if reasons:
         raise NotReady('\n'.join(reasons))
