@@ -8,7 +8,8 @@ use serde_json::{Value, json};
 use std::{
     cell::{Cell, RefCell},
     collections::BTreeMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
+    time::Duration,
 };
 
 fn office(document: &str, attention: bool) -> NotificationStateInput {
@@ -36,24 +37,30 @@ fn settings() -> LiveSettings {
     }
 }
 type Sent = Arc<Mutex<Vec<(String, String)>>>;
-fn live(sent: &Sent) -> LiveNotifications {
+fn live(sent: &Sent) -> (LiveNotifications, mpsc::Receiver<()>) {
     let log = sent.clone();
     let prepared = prepare_notifications("p", &json!({}), &Vault::new(Locked::default()), None).unwrap();
-    LiveNotifications::start(
+    let (completed, receipt) = mpsc::channel();
+    let notifications = LiveNotifications::start(
         settings(),
         prepared,
         move |intent, _| {
             log.lock().unwrap().push((intent.channel().into(), intent.message().into()));
             Ok(DeliveryOutcome::TelegramAccepted)
         },
-        |_, _| {},
-    )
+        move |_, _| { let _ = completed.send(()); },
+    );
+    (notifications, receipt)
 }
 
 #[test]
 fn one_office_alert_per_document_lists_offices_and_names_the_browser() {
     let sent: Sent = Default::default();
-    let mut notifications = live(&sent);
+    let (mut notifications, completed) = live(&sent);
+    notifications.observe(office("d1", true));
+    // d2 intentionally invalidates queued d1 alerts. Confirm delivery before changing documents;
+    // otherwise this deduplication test depends on which thread the OS schedules first.
+    completed.recv_timeout(Duration::from_secs(5)).expect("first office alert completes");
     for step in [office("d1", true), office("d1", false), office("d1", true), office("d1", false), office("d1", true)] {
         notifications.observe(step);
     }
@@ -71,7 +78,7 @@ fn one_office_alert_per_document_lists_offices_and_names_the_browser() {
 #[test]
 fn a_failed_search_sends_one_error_alert_to_the_webhook() {
     let sent: Sent = Default::default();
-    let mut notifications = live(&sent);
+    let (mut notifications, _completed) = live(&sent);
     notifications.observe(NotificationStateInput { failed: true, page: PageKind::Unknown, ..Default::default() });
     notifications.observe(NotificationStateInput { failed: true, page: PageKind::Unknown, ..Default::default() });
     drop(notifications);
