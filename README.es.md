@@ -6,6 +6,14 @@
 
 [Descargar](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Novedades](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Historial completo](CHANGELOG.md)
 
+<h3><img src="docs/images/santacita-icon.svg" width="36" height="36" align="absmiddle" alt=""> ¡Prueba SantaCita, la nueva generación de la aplicación!</h3>
+
+- Más pequeña y rápida.
+- Funciona con tu navegador habitual.
+- Importa tus perfiles e historial de la versión actual.
+
+[Descargar la beta de SantaCita](https://github.com/itwormz/extranjeria-cita-helper/releases)
+
 **💜 Apoyar el desarrollo**
 
 Si la aplicación te ha ayudado, agradecería una donación para apoyar su desarrollo y mantenimiento.
@@ -22,7 +30,7 @@ Asistente para buscar citas de **Toma de huellas / TIE** y **Autorización de re
 - Guarda el historial de búsqueda y las estadísticas.
 - La fecha, el CAPTCHA y la confirmación de la cita se completan manualmente en Camoufox.
 
-El proyecto se prepara para convertirse en **SantaCita**, con una nueva versión en Rust. Python 0.3.8 prepara el actualizador para el cambio de nombre del repositorio y permite recibir versiones beta de forma opcional.
+La versión estable sigue en Python 0.3.x; SantaCita en Rust está disponible por separado como beta. Python 0.3.8 permite recibir versiones beta de forma opcional. El repositorio todavía no ha cambiado de nombre.
 
 ## 🚀 Inicio rápido
 

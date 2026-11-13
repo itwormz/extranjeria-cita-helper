@@ -6,6 +6,14 @@
 
 [Download](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [What’s new](https://github.com/itwormz/extranjeria-cita-helper/releases/latest) · [Full changelog](CHANGELOG.md)
 
+<h3><img src="docs/images/santacita-icon.svg" width="36" height="36" align="absmiddle" alt=""> Try SantaCita — the next generation of the app!</h3>
+
+- Smaller and faster.
+- Works with your usual browser.
+- Imports your profiles and history from the current version.
+
+[Download the SantaCita beta](https://github.com/itwormz/extranjeria-cita-helper/releases)
+
 **💜 Support development**
 
 If the app helped you, I would appreciate a donation to support its development and maintenance.
@@ -22,7 +30,7 @@ An assistant for finding **Toma de huellas / TIE** and **Autorización de regres
 - Keeps search history and statistics.
 - Date selection, CAPTCHA and booking confirmation stay manual in Camoufox.
 
-The project is preparing to become **SantaCita**, with a new Rust-based version. Python 0.3.8 prepares the updater for the repository rename and offers optional beta updates.
+The stable version remains on Python 0.3.x; SantaCita on Rust is available separately as a beta. Python 0.3.8 offers optional beta updates. The repository has not been renamed yet.
 
 ## 🚀 Quick start
 
