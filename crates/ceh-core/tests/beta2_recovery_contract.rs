@@ -257,3 +257,77 @@ fn slow_failed_or_unknown_preparation_gets_a_full_wait_after_its_completion() {
         );
     }
 }
+
+#[test]
+fn unsent_no_slots_aliases_retry_instead_of_holding_and_remain_bounded() {
+    for (mode, own_control, action) in [
+        (NoSlotsMode::Salir, true, ActionKind::NoSlotsSalir),
+        (NoSlotsMode::Reload, false, ActionKind::Recovery),
+    ] {
+        let mut e = FlowEngine::new(
+            SessionId::new("s").unwrap(),
+            SearchOptions {
+                no_slots_mode: mode,
+                ..SearchOptions::default()
+            },
+        );
+        let o = observation(PageKind::RequestNoSlots);
+        let f = PageFacts {
+            appointment_ready_at: Some(0),
+            recovery: RecoveryFacts {
+                official_site: true,
+                own_control,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert_eq!(
+            e.observe_with_facts(o.clone(), f, 0).unwrap(),
+            vec![FlowEffect::WaitUntil(30000)]
+        );
+        for (at, retry_at, next_at) in [
+            (30000, 32000, 62000),
+            (62000, 67000, 97000),
+            (97000, 102000, 107000),
+        ] {
+            let effects = e.observe_with_facts(o.clone(), f, at).unwrap();
+            let guard = match &effects[0] {
+                FlowEffect::Activate {
+                    guard,
+                    action: actual,
+                } => {
+                    assert_eq!(*actual, action);
+                    guard.clone()
+                }
+                FlowEffect::Recover {
+                    guard,
+                    action: RecoveryAction::GetEntry,
+                } => {
+                    assert_eq!(action, ActionKind::Recovery);
+                    guard.clone()
+                }
+                other => panic!("expected retry intent, got {other:?}"),
+            };
+            e.acknowledge_dispatch_at(&guard, action, DispatchOutcome::NotDispatched, at)
+                .unwrap();
+            assert_eq!(
+                e.observe_with_facts(o.clone(), f, at + 1).unwrap(),
+                vec![FlowEffect::WaitUntil(retry_at)]
+            );
+            assert_eq!(
+                e.observe_with_facts(o.clone(), f, retry_at).unwrap(),
+                vec![FlowEffect::WaitUntil(next_at)]
+            );
+        }
+        assert!(matches!(
+            e.observe_with_facts(o.clone(), f, 107000)
+                .unwrap()
+                .as_slice(),
+            [FlowEffect::Recover {
+                action: RecoveryAction::GetEntry,
+                ..
+            }]
+        ));
+        assert!(e.observe_with_facts(o, f, 107001).unwrap().is_empty());
+    }
+}

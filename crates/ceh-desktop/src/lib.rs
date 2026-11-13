@@ -146,9 +146,16 @@ pub fn auto_import(
     )?;
     ceh_store::legacy_import::preflight(found.path()).ok()?;
     std::fs::create_dir_all(root).ok()?;
-    let mut options=std::fs::OpenOptions::new();options.create(true).truncate(true).write(true);
-    #[cfg(unix)] {use std::os::unix::fs::OpenOptionsExt;options.mode(0o600);}
-    {use std::io::Write;let mut file=options.open(&marker).ok()?;file.write_all(found.name.as_bytes()).ok()?;file.sync_all().ok()?;}
+    // A valid retry marker already identifies this source. Never truncate it: an
+    // interrupted retry must still be discoverable after tasks.yml has been copied.
+    if pending.is_none() {
+        use std::io::Write;
+        let mut file=tempfile::NamedTempFile::new_in(root).ok()?;
+        file.write_all(found.name.as_bytes()).ok()?;
+        file.as_file().sync_all().ok()?;
+        ceh_core::file_replace::replace(file, |file| file.persist(&marker)
+            .map(|_| ()).map_err(|error|(error.file,error.error))).ok()?;
+    }
     match ceh_store::legacy_import::import(found.path(),root,catalog) {
         Ok(_)=>{std::fs::remove_file(marker).ok()?;Some(found.name)},
         Err(_)=>None,

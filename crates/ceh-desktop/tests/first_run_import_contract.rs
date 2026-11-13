@@ -195,6 +195,13 @@ fn incomplete_auto_import_retries_after_a_late_io_failure_without_replacing_exis
     assert!(root.join("tasks.yml").exists(),"the late failure happened after profiles copied");
     assert!(root.join(".legacy-import-incomplete").is_file());
     assert_eq!(fs::read_to_string(root.join("debug")).unwrap(),"existing unrelated file");
+    let marker=root.join(".legacy-import-incomplete");
+    let stamp=std::time::SystemTime::UNIX_EPOCH+std::time::Duration::from_secs(946684800);
+    fs::OpenOptions::new().write(true).open(&marker).unwrap().set_modified(stamp).unwrap();
+    let before=fs::metadata(&marker).unwrap().modified().unwrap();
+    assert_eq!(auto_import(&root,&[support.path().to_owned()],catalog()),None);
+    assert_eq!(fs::metadata(&marker).unwrap().modified().unwrap(),before,"a retry never truncates or rewrites its valid pending marker");
+    assert!(ceh_desktop::import_incomplete(&root));
     fs::remove_file(root.join("debug")).unwrap();
     assert_eq!(auto_import(&root,&[support.path().to_owned()],catalog()),Some("Cita Extranjeria Helper".into()));
     assert!(root.join("debug/sessions/fixture/journal.jsonl").is_file());

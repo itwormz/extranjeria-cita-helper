@@ -2,7 +2,7 @@
 use ceh_core::{appointment_budget::AppointmentBudget, model::ProfileId, profiles::ProfileDraft};
 use hmac::{Hmac, KeyInit, Mac};
 use sha2_budget::{Digest, Sha256};
-use std::{fs::{self, File, OpenOptions}, io::{self, Write}, path::{Path, PathBuf}};
+use std::{fs::{self, File, OpenOptions}, io::{self, Read, Write}, path::{Path, PathBuf}};
 
 pub struct BudgetStore {
     path: PathBuf,
@@ -79,30 +79,22 @@ impl BudgetStore {
     pub fn open_saved(data: &Path, profile: &ProfileDraft) -> io::Result<Self> {
         if profile.fill_mode == "copy" {
             let id = ProfileId::new(&profile.id).map_err(io::Error::other)?;
-            if let Some(key) = Self::profile_key(&data.join("appointment-budget"), id.as_str())? {
-                let root=data.join("appointment-budget");
-                let mapping:serde_json::Value=serde_json::from_slice(&fs::read(root.join(format!("profile-{}.json",id.as_str())))?)?;
-                let keys=mapping_keys(&mapping)?;
-                let locks=keys.iter().map(|key|lock(&data.join(format!(".budget-{key}.lock")))).collect::<io::Result<Vec<_>>>()?;
-                let store=Self { path:root.join(format!("{key}.json")),_locks:locks,aliases:keys.into_iter().filter(|k|k!=&key).map(|k|root.join(format!("{k}.json"))).collect() };
-                consolidate_imports(&store.path,&store.aliases)?;
-                return Ok(store);
+            let root=data.join("appointment-budget");
+            if let Some(mapping)=read_profile_mapping(&root,id.as_str())? {
+                return Self::open_saved_mapping(data,&root,mapping);
             }
         }
         Self::open(data, profile)
     }
 
-    fn profile_key(root: &Path, id: &str) -> io::Result<Option<String>> {
-        let mapping: serde_json::Value = match fs::read(root.join(format!("profile-{id}.json"))) {
-            Ok(bytes) => serde_json::from_slice(&bytes)?,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-            Err(error) => return Err(error),
+    fn open_saved_mapping(data:&Path,root:&Path,mapping:SavedMapping)->io::Result<Self> {
+        let locks=mapping.keys.iter().map(|key|lock(&data.join(format!(".budget-{key}.lock")))).collect::<io::Result<Vec<_>>>()?;
+        let store=Self {
+            path:root.join(format!("{}.json",mapping.primary)),_locks:locks,
+            aliases:mapping.keys.into_iter().filter(|key|key!=&mapping.primary).map(|key|root.join(format!("{key}.json"))).collect()
         };
-        mapping["key"]
-            .as_str()
-            .filter(|key| key.len() == 64 && key.bytes().all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c)))
-            .map(|key| Some(key.to_owned()))
-            .ok_or_else(|| io::ErrorKind::InvalidData.into())
+        consolidate_imports(&store.path,&store.aliases)?;
+        Ok(store)
     }
 
     pub fn exists(&self) -> bool {
@@ -120,17 +112,12 @@ impl BudgetStore {
     pub fn load_profile(data: &Path, id: &str) -> io::Result<Option<AppointmentBudget>> {
         let id = ProfileId::new(id).map_err(io::Error::other)?;
         let root = data.join("appointment-budget");
-        let map_path = root.join(format!("profile-{}.json", id.as_str()));
-        let mapping: serde_json::Value = match fs::read(map_path) {
-            Ok(bytes) => serde_json::from_slice(&bytes)?,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-            Err(error) => return Err(error),
-        };
-        let keys=mapping_keys(&mapping)?;
-        let key=mapping["key"].as_str().ok_or(io::ErrorKind::InvalidData)?;
+        let Some(mapping)=read_profile_mapping(&root,id.as_str())? else {return Ok(None)};
+        let key=mapping.primary;
+        let keys=mapping.keys;
         let path=root.join(format!("{key}.json"));
         if !path.is_file() {return Ok(None);}
-        let aliases=keys.into_iter().filter(|k|k!=key).map(|k|root.join(format!("{k}.json"))).collect::<Vec<_>>();
+        let aliases=keys.into_iter().filter(|k|k!=&key).map(|k|root.join(format!("{k}.json"))).collect::<Vec<_>>();
         load_merged(&path,&aliases).map(Some)
     }
 
@@ -163,6 +150,23 @@ fn document_key(secret:&[u8],identity:&str)->io::Result<String> {
     if secret.len()!=32 {return Err(io::ErrorKind::InvalidData.into());}
     let mut mac=Hmac::<Sha256>::new_from_slice(secret).map_err(io::Error::other)?;mac.update(identity.as_bytes());
     Ok(mac.finalize().into_bytes().iter().map(|b|format!("{b:02x}")).collect())
+}
+struct SavedMapping { primary:String, keys:Vec<String> }
+fn read_profile_mapping(root:&Path,id:&str)->io::Result<Option<SavedMapping>> {
+    let path=root.join(format!("profile-{id}.json"));
+    match fs::symlink_metadata(&path) {
+        Ok(metadata) if !metadata.file_type().is_file() || metadata.len()>16*1024=>return Err(io::ErrorKind::InvalidData.into()),
+        Err(error) if error.kind()==io::ErrorKind::NotFound=>return Ok(None),
+        Err(error)=>return Err(error),
+        _=>{}
+    }
+    let mut bytes=Vec::new();fs::File::open(path)?.take(16*1024+1).read_to_end(&mut bytes)?;
+    if bytes.len()>16*1024 {return Err(io::ErrorKind::InvalidData.into());}
+    let value:serde_json::Value=serde_json::from_slice(&bytes)?;
+    let keys=mapping_keys(&value)?;
+    // Primary and complete lock set are derived from one immutable file snapshot.
+    let primary=value["key"].as_str().ok_or(io::ErrorKind::InvalidData)?.to_owned();
+    Ok(Some(SavedMapping {primary,keys}))
 }
 fn mapping_keys(mapping:&serde_json::Value)->io::Result<Vec<String>> {
     let key=mapping["key"].as_str().filter(|v|valid_key(v)).ok_or(io::ErrorKind::InvalidData)?;
@@ -308,4 +312,25 @@ fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
     file.write_all(bytes)?;
     file.as_file().sync_all()?;
     ceh_core::file_replace::replace(file, |file| file.persist(path).map(|_| ()).map_err(|e| (e.file, e.error)))
+}
+
+
+#[cfg(test)]
+mod saved_mapping_tests {
+    use super::*;
+    #[test]
+    fn replacing_mapping_after_read_cannot_mix_an_old_path_with_new_locks() {
+        let data=tempfile::tempdir().unwrap();let root=data.path().join("appointment-budget");fs::create_dir_all(&root).unwrap();
+        let (a,b,c)=("a".repeat(64),"b".repeat(64),"c".repeat(64));
+        atomic_write(&root.join("profile-fixture.json"),&serde_json::to_vec(&serde_json::json!({"key":a,"aliases":[c]})).unwrap()).unwrap();
+        for key in [&a,&c] {atomic_write(&root.join(format!("{key}.json")),&serde_json::to_vec(&serde_json::json!({"day":"2026-11-12","sent":if key==&a {1}else{0}})).unwrap()).unwrap();}
+        let snapshot=read_profile_mapping(&root,"fixture").unwrap().unwrap();
+        // Exactly the race of a different profile rebinding the mapping via atomic replacement.
+        atomic_write(&root.join("profile-fixture.json"),&serde_json::to_vec(&serde_json::json!({"key":b})).unwrap()).unwrap();
+        let store=BudgetStore::open_saved_mapping(data.path(),&root,snapshot).unwrap();
+        assert_eq!(store.load().unwrap().sent(),1);
+        assert!(lock(&data.path().join(format!(".budget-{a}.lock"))).is_err());
+        assert!(lock(&data.path().join(format!(".budget-{c}.lock"))).is_err());
+        assert!(lock(&data.path().join(format!(".budget-{b}.lock"))).is_ok(),"new mapping was not accidentally mixed into old snapshot");
+    }
 }

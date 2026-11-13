@@ -364,6 +364,29 @@ mod beta2_regressions {
         assert_eq!(own.load().unwrap().sent(),1);drop(own);
         import(source.path(),target.path()).unwrap();let own=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut result=own.load().unwrap();assert_eq!(result.sent(),3);assert_eq!(result.summary(at,&policy,false).manual_target,Some(40));
     }
+    #[test]
+    fn episode_merge_uses_real_instants_for_offsets_fractions_and_nullable_times() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",b"profiles: []\n");let old=db(source.path(),false);let current=db(target.path(),false);
+        let cases=[
+            (Some("2026-11-12T10:00:00Z"),Some("2026-11-12T10:00:00.500000+00:00"),Some("2026-11-12T10:00:00.500000+00:00")),
+            (Some("2026-11-12T12:00:00+02:00"),Some("2026-11-12T10:00:01Z"),Some("2026-11-12T10:00:01Z")),
+            (Some("2026-11-12T10:00:01+00:00"),Some("2026-11-12T10:00:00.500000Z"),Some("2026-11-12T10:00:01+00:00")),
+            (None,Some("2026-11-12T10:00:00Z"),Some("2026-11-12T10:00:00Z")),
+            (Some("2026-11-12T10:00:00Z"),None,Some("2026-11-12T10:00:00Z")),
+            (None,None,None),
+        ];
+        for (index,(before,incoming,_)) in cases.iter().enumerate() {
+            for (database,value) in [(&current,before),(&old,incoming)] {
+                database.execute("INSERT INTO episodes(profile,session,kind,stage,mode,document,start,end,last_seen) VALUES ('p','s','page','no_slots','auto',?1,'2026-11-12T09:00:00Z',?2,?2)",rusqlite::params![format!("d{index}"),value]).unwrap();
+            }
+        }
+        import(source.path(),target.path()).unwrap();
+        for (index,(_,_,expected)) in cases.iter().enumerate() {
+            let times:(Option<String>,Option<String>)=current.query_row("SELECT end,last_seen FROM episodes WHERE document=?1",[format!("d{index}")],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+            assert_eq!(times,(expected.map(str::to_owned),expected.map(str::to_owned)),"case {index}");
+        }
+    }
     fn db(root: &Path, rich: bool) -> Connection {
         fs::create_dir_all(root.join("data")).unwrap();
         let db = Connection::open(root.join("data/profile-statistics.sqlite3")).unwrap();

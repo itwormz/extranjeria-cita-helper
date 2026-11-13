@@ -594,27 +594,32 @@ impl FlowEngine {
                         && facts.recovery.endpoint == RecoveryEndpoint::Availability
                         && facts.recovery.pending_action.or(facts.recovery.last_action)
                             == Some(ActionKind::Request));
-                (
-                    ActionKind::RequestReload,
-                    if self.options.no_slots_mode == NoSlotsMode::Salir {
-                        if facts.recovery.own_control {
-                            FlowEffect::Activate {
-                                guard,
-                                action: ActionKind::NoSlotsSalir,
-                            }
-                        } else if facts.appointment_ready_at.is_some() && facts.recovery.official_site {
-                            FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }
-                        } else {
-                            FlowEffect::Hold
+                let effect = if self.options.no_slots_mode == NoSlotsMode::Salir {
+                    if facts.recovery.own_control {
+                        FlowEffect::Activate {
+                            guard,
+                            action: ActionKind::NoSlotsSalir,
                         }
                     } else if facts.appointment_ready_at.is_some() && facts.recovery.official_site {
                         FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }
-                    } else if safe_reload {
-                        FlowEffect::Reload { guard }
                     } else {
                         FlowEffect::Hold
-                    },
-                )
+                    }
+                } else if facts.appointment_ready_at.is_some() && facts.recovery.official_site {
+                    FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }
+                } else if safe_reload {
+                    FlowEffect::Reload { guard }
+                } else {
+                    FlowEffect::Hold
+                };
+                // The planning reservation must use the same key as its publication receipt.
+                // A proven-unsent Salir or entry GET can then release exactly its own reservation.
+                let key = match &effect {
+                    FlowEffect::Activate { action, .. } => *action,
+                    FlowEffect::Recover { .. } => ActionKind::Recovery,
+                    _ => ActionKind::RequestReload,
+                };
+                (key, effect)
             }
             _ => (ActionKind::RequestReload, FlowEffect::Hold),
         }

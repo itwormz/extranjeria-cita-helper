@@ -220,15 +220,29 @@ fn merge_episodes(db: &rusqlite::Connection) -> rusqlite::Result<()> {
     for row in mapped {
         let (v, confirmed, recognition, evidence, variant) = row?;
         let identity = params![v[0],v[1],v[2],v[3],v[4],v[5],v[6]];
-        let old: Option<(i64,String)> = db.query_row("SELECT id,COALESCE(evidence,'[]') FROM main.episodes WHERE profile IS ?1 AND session IS ?2 AND kind IS ?3 AND stage IS ?4 AND mode IS ?5 AND document IS ?6 AND start IS ?7 ORDER BY id LIMIT 1", identity, |r|Ok((r.get(0)?,r.get(1)?))).optional()?;
-        if let Some((id, current_evidence)) = old {
+        let old: Option<(i64,String,Option<String>,Option<String>)> = db.query_row("SELECT id,COALESCE(evidence,'[]'),end,last_seen FROM main.episodes WHERE profile IS ?1 AND session IS ?2 AND kind IS ?3 AND stage IS ?4 AND mode IS ?5 AND document IS ?6 AND start IS ?7 ORDER BY id LIMIT 1", identity, |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
+        if let Some((id, current_evidence, current_end, current_seen)) = old {
             let merged = merge_evidence(&current_evidence, &evidence);
-            db.execute("UPDATE main.episodes SET end=CASE WHEN ?1 IS NOT NULL AND (end IS NULL OR ?1>end) THEN ?1 ELSE end END,last_seen=CASE WHEN ?2 IS NOT NULL AND (last_seen IS NULL OR ?2>last_seen) THEN ?2 ELSE last_seen END,confirmed=MAX(COALESCE(confirmed,0),?3),recognition=CASE WHEN recognition IS NULL OR recognition='' OR recognition='known' THEN ?4 ELSE recognition END,evidence=?5,variant=CASE WHEN variant IS NULL OR variant='' THEN ?6 ELSE variant END WHERE id=?7",params![v[7],v[8],confirmed,recognition,merged,variant,id])?;
+            let end=later_episode_time(current_end.as_deref(),v[7].as_deref())?;
+            let seen=later_episode_time(current_seen.as_deref(),v[8].as_deref())?;
+            db.execute("UPDATE main.episodes SET end=?1,last_seen=?2,confirmed=MAX(COALESCE(confirmed,0),?3),recognition=CASE WHEN recognition IS NULL OR recognition='' OR recognition='known' THEN ?4 ELSE recognition END,evidence=?5,variant=CASE WHEN variant IS NULL OR variant='' THEN ?6 ELSE variant END WHERE id=?7",params![end,seen,confirmed,recognition,merged,variant,id])?;
         } else {
             db.execute("INSERT INTO main.episodes(profile,session,kind,stage,mode,document,start,end,last_seen,confirmed,recognition,evidence,variant) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",params![v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],confirmed,recognition,evidence,variant])?;
         }
     }
     Ok(())
+}
+fn later_episode_time(current:Option<&str>,incoming:Option<&str>)->rusqlite::Result<Option<String>> {
+    let chosen=match (current,incoming) {
+        (Some(old),Some(new)) if old!=new=>{
+            let old_time=crate::migrate::parse_time(old).map_err(|_|rusqlite::Error::InvalidQuery)?;
+            let new_time=crate::migrate::parse_time(new).map_err(|_|rusqlite::Error::InvalidQuery)?;
+            if new_time>old_time {Some(new)}else{Some(old)}
+        }
+        (Some(old),_)=>Some(old),
+        (None,new)=>new,
+    };
+    Ok(chosen.map(str::to_owned))
 }
 fn hex(bytes:&[u8])->String {bytes.iter().map(|b|format!("{b:02x}")).collect()}
 fn merge_evidence(current: &str, incoming: &str) -> String {
