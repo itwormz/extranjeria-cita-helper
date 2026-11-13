@@ -225,6 +225,71 @@ mod beta2_regressions {
         ceh_store::profiles::read_profiles(&root.join("tasks.yml"), &catalog(), "en").unwrap().profiles[0].validation.normalized.clone()
     }
     #[test]
+    fn older_day_import_preserves_active_restriction_without_replacing_todays_budget() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());
+        let person=profile(source.path());let policy=AppointmentPolicy::default();
+        let yesterday="2026-11-12T20:00:00Z".parse().unwrap();let today="2026-11-13T10:00:00Z".parse().unwrap();
+        let old=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut history=old.load().unwrap();
+        history.submitted(yesterday,&policy);history.cod_oper(yesterday,&policy);
+        history.office_during_restriction(yesterday,vec!["Synthetic office".into()]);old.save(&history).unwrap();drop(old);
+        let own=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut current=own.load().unwrap();
+        for _ in 0..2 {current.submitted(today,&policy);}current.set_daily_target(Some(40),today,&policy).unwrap();own.save(&current).unwrap();drop(own);
+        import(source.path(),target.path()).unwrap();
+        for _ in 0..2 {
+            let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut budget=store.load().unwrap();
+            let summary=budget.summary(today,&policy,false);
+            assert!(summary.restricted,"active restriction survives midnight and consumed-snapshot reopen");
+            assert_eq!(summary.first_cod_oper,Some(yesterday));assert_eq!(summary.last_cod_oper,Some(yesterday));
+            assert_eq!(summary.sent,2);assert_eq!(summary.manual_target,Some(40));
+            assert_eq!(budget.offices_during_restriction,1);assert_eq!(summary.episode_offices.len(),1);
+        }
+    }
+    #[test]
+    fn newer_day_import_respects_recovery_history_and_keeps_a_genuinely_new_restriction() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());
+        let person=profile(source.path());let policy=AppointmentPolicy::default();
+        let yesterday="2026-11-12T20:00:00Z".parse().unwrap();let today="2026-11-13T10:00:00Z".parse().unwrap();
+        let recovered="2026-11-13T09:00:00Z".parse().unwrap();
+        for root in [source.path(),target.path()] {
+            let store=BudgetStore::open(&root.join("data"),&person).unwrap();let mut budget=store.load().unwrap();
+            budget.submitted(yesterday,&policy);budget.cod_oper(yesterday,&policy);
+            budget.office_during_restriction(yesterday,vec!["Old office".into()]);
+            if root==source.path() {budget.submitted(today,&policy);} else {budget.ordinary_result(recovered);}
+            store.save(&budget).unwrap();
+        }
+        import(source.path(),target.path()).unwrap();
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut merged=store.load().unwrap();
+        assert!(!merged.restricted(),"newer daily snapshot cannot revive an already recovered restriction");
+        assert!(merged.episode_offices.is_empty());assert_eq!(merged.episode_history.len(),1);
+        assert_eq!(merged.summary(today,&policy,false).sent,1);drop(store);
+        let store=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut updated=store.load().unwrap();
+        updated.cod_oper(today,&policy);store.save(&updated).unwrap();drop(store);
+        import(source.path(),target.path()).unwrap();
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut merged=store.load().unwrap();
+        assert!(merged.restricted());assert_eq!(merged.summary(today,&policy,false).last_cod_oper,Some(today));
+        assert_eq!(merged.summary(today,&policy,false).first_cod_oper,Some(today));
+        assert!(merged.episode_offices.is_empty(),"offices before local recovery belong to the closed episode");
+    }
+    #[test]
+    fn recovery_from_an_older_daily_snapshot_closes_the_current_active_episode() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());
+        let person=profile(source.path());let policy=AppointmentPolicy::default();
+        let yesterday="2026-11-12T20:00:00Z".parse().unwrap();let today="2026-11-13T10:00:00Z".parse().unwrap();
+        for root in [source.path(),target.path()] {
+            let store=BudgetStore::open(&root.join("data"),&person).unwrap();let mut budget=store.load().unwrap();
+            budget.submitted(yesterday,&policy);budget.cod_oper(yesterday,&policy);
+            if root==source.path() {budget.ordinary_result(today);} else {budget.submitted(today,&policy);}
+            store.save(&budget).unwrap();
+        }
+        import(source.path(),target.path()).unwrap();
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut merged=store.load().unwrap();
+        assert!(!merged.restricted());assert!(merged.episode_offices.is_empty());
+        assert_eq!(merged.episode_history.len(),1);assert_eq!(merged.summary(today,&policy,false).sent,1);
+    }
+    #[test]
     fn mixed_budget_keys_keep_imported_document_state_reachable_without_replacing_current_state() {
         let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
         write(source.path(), "tasks.yml", profiles_yaml(&["old"], "").as_bytes());

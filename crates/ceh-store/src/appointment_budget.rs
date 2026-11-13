@@ -229,30 +229,68 @@ fn load_merged(path:&Path,aliases:&[PathBuf])->io::Result<AppointmentBudget> {
 // Imported states may share old history with the current app. Maximum observations preserve the
 // known lower bound without double-counting every repeated import; manual choices stay local.
 fn merge_observations(current:&mut serde_json::Value,incoming:&serde_json::Value) {
-    for key in ["episode_history"] {union_array(current,incoming,key);}
+    // A saved day scopes counters and manual choices, not a restriction episode. Compute
+    // lasting facts before selecting either daily snapshot, so neither direction loses them.
+    let restriction = merged_restriction(current, incoming);
+    let last_submission = if budget_time(&incoming["last_submission"]) > budget_time(&current["last_submission"]) {
+        incoming["last_submission"].clone()
+    } else { current["last_submission"].clone() };
     let day=current["day"].as_str().unwrap_or("");let other_day=incoming["day"].as_str().unwrap_or("");
     if other_day>day {
-        let history=current["episode_history"].clone();*current=incoming.clone();
-        let old=serde_json::json!({"episode_history":history});union_array(current,&old,"episode_history");return;
+        *current=incoming.clone();
+    } else if day==other_day {
+        let prior_sent=current["sent"].clone();
+        for key in ["sent","banners","no_slots","cod_oper_count"] {
+            let max=current[key].as_u64().unwrap_or(0).max(incoming[key].as_u64().unwrap_or(0));current[key]=max.into();
+        }
+        for key in ["target_override","next_target"] {if current[key].is_null(){current[key]=incoming[key].clone();}}
+        if current["sent"]!=prior_sent {current["windows"]=serde_json::json!([]);}
     }
-    if day!=other_day {return;}
-    let prior_sent=current["sent"].clone();let prior_submission=current["last_submission"].clone();
-    for key in ["sent","banners","no_slots","cod_oper_count","offices_during_restriction"] {
-        let max=current[key].as_u64().unwrap_or(0).max(incoming[key].as_u64().unwrap_or(0));current[key]=max.into();
+    if current["last_submission"]!=last_submission {current["windows"]=serde_json::json!([]);}
+    current["last_submission"]=last_submission;
+    for key in ["episode_history","first_cod_oper","last_cod_oper","restriction_until","episode_offices","offices_during_restriction"] {
+        current[key]=restriction[key].clone();
     }
-    if incoming["last_submission"].as_str().unwrap_or("")>current["last_submission"].as_str().unwrap_or(""){current["last_submission"]=incoming["last_submission"].clone();}
-    let time=|value:&serde_json::Value|value.as_str().and_then(|text|chrono::DateTime::parse_from_rfc3339(text).ok());
-    let last_code=time(&incoming["last_cod_oper"]).or_else(||time(&incoming["first_cod_oper"]));
-    let recovered=current["episode_history"].as_array().into_iter().flatten().filter_map(|episode|time(&episode["recovered"])).max();
-    let already_recovered=last_code.zip(recovered).is_some_and(|(last,end)|end>=last);
-    if !already_recovered {
-        for key in ["last_cod_oper","restriction_until"] {if incoming[key].as_str().unwrap_or("")>current[key].as_str().unwrap_or(""){current[key]=incoming[key].clone();}}
-        if !incoming["first_cod_oper"].is_null()&&(current["first_cod_oper"].is_null()||incoming["first_cod_oper"].as_str()<current["first_cod_oper"].as_str()){current["first_cod_oper"]=incoming["first_cod_oper"].clone();}
+}
+fn budget_time(value:&serde_json::Value)->Option<chrono::DateTime<chrono::Utc>> {
+    value.as_str().and_then(|text|chrono::DateTime::parse_from_rfc3339(text).ok()).map(|at|at.to_utc())
+}
+fn merged_restriction(current:&serde_json::Value,incoming:&serde_json::Value)->serde_json::Value {
+    let mut merged=current.clone();
+    union_array(&mut merged,incoming,"episode_history");
+    let recovered=merged["episode_history"].as_array().into_iter().flatten().filter_map(|episode|budget_time(&episode["recovered"])).max();
+    for key in ["first_cod_oper","last_cod_oper","restriction_until"] {merged[key]=serde_json::Value::Null;}
+    merged["episode_offices"]=serde_json::json!([]);
+    let mut active_offices:Option<u64>=None;
+    for source in [current,incoming] {
+        let last=budget_time(&source["last_cod_oper"]).or_else(||budget_time(&source["first_cod_oper"]))
+            .or_else(||budget_time(&source["restriction_until"]));
+        let Some(last)=last else {continue};
+        if recovered.is_some_and(|end|end>=last) {continue;}
+        let mut facts=source.clone();
+        if recovered.is_some_and(|end|budget_time(&source["first_cod_oper"]).is_some_and(|first|first<=end)) {
+            // This source did not observe the local recovery. Its genuinely later response
+            // starts a new episode; pre-recovery offices must stay in the closed history.
+            facts["first_cod_oper"]=source["last_cod_oper"].clone();
+            let offices=source["episode_offices"].as_array().into_iter().flatten()
+                .filter(|office|budget_time(&office["at"]).is_some_and(|at|recovered.is_none_or(|end|at>end)))
+                .cloned().collect::<Vec<_>>();
+            facts["offices_during_restriction"]=(offices.len() as u64).into();
+            facts["episode_offices"]=offices.into();
+        }
+        for key in ["first_cod_oper","last_cod_oper","restriction_until"] {
+            if let Some(at)=budget_time(&facts[key]) {
+                let previous=budget_time(&merged[key]);
+                if previous.is_none_or(|old|if key=="first_cod_oper" {at<old} else {at>old}) {merged[key]=facts[key].clone();}
+            }
+        }
+        union_array(&mut merged,&facts,"episode_offices");
+        active_offices=Some(active_offices.unwrap_or(0).max(facts["offices_during_restriction"].as_u64().unwrap_or(0)));
     }
-    for key in ["target_override","next_target"] {if current[key].is_null(){current[key]=incoming[key].clone();}}
-    union_array(current,incoming,"episode_offices");
-    // Old windows were computed before the merged observations; let the scheduler rebuild them.
-    if current["sent"]!=prior_sent || current["last_submission"]!=prior_submission {current["windows"]=serde_json::json!([]);}
+    // Outside an active episode the core retains the last known office count as well.
+    merged["offices_during_restriction"]=active_offices.unwrap_or_else(||current["offices_during_restriction"].as_u64().unwrap_or(0)
+        .max(incoming["offices_during_restriction"].as_u64().unwrap_or(0))).into();
+    merged
 }
 fn union_array(current:&mut serde_json::Value,incoming:&serde_json::Value,key:&str) {
     let Some(other)=incoming[key].as_array() else{return};let Some(values)=current[key].as_array_mut()else{return};
