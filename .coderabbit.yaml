@@ -67,6 +67,8 @@ reviews:
 
   auto_review:
     enabled: false
+    base_branches:
+      - "^santacita-beta$"
     labels:
       - "coderabbit-ready"
     drafts: false
