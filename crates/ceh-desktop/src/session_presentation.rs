@@ -65,6 +65,7 @@ impl SessionPresentation {
             playing: false,
         }
     }
+    pub fn set_alert_interval(&mut self, interval_ms: u64) { self.timer.set_interval(interval_ms); }
     /// Controller supplies an increasing sequence and monotonic processing time.
     /// Rejected updates are atomic and cannot resurrect sound after pause/handoff.
     pub fn update(

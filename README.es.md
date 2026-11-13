@@ -31,7 +31,7 @@ macOS: arrastre SantaCita a Applications. No está notarizada; si se bloquea, us
 - Espera y actualiza según los ajustes mientras el formulario indica que no hay citas.
 - Cuando desaparece el mensaje, empieza un nuevo recorrido desde la autenticación y vuelve a comprobar.
 - Selecciona automáticamente una única oficina disponible; si hay varias, pide su elección.
-- Pausa, reanudación y continuación tras elegir fecha desde la aplicación. Los ajustes y tiempos del perfil se aplican durante la búsqueda.
+- Pausa, reanudación y continuación tras elegir fecha desde la aplicación. Los tiempos y la protección contra bloqueos se aplican durante la búsqueda; los demás cambios del perfil, en el siguiente inicio.
 - Las estadísticas y el registro se conservan entre búsquedas. Puede añadir una reserva confirmada al calendario y compartir sus estadísticas.
 
 ## 🔔 Notificaciones
@@ -58,7 +58,7 @@ La descarga e instalación requieren su acción. Se verifican SHA256 y la proced
 
 - Requiere un navegador compatible instalado y acceso al almacén de credenciales para las notificaciones configuradas.
 - Windows usa WebView2. Si falta, instale [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/).
-- Linux se compila en Ubuntu 22.04 y requiere bibliotecas y un entorno gráfico compatibles.
+- Linux se compila en Ubuntu 22.04 y requiere bibliotecas y un entorno gráfico compatibles. En Wayland nativo puede ser necesario abrir la ventana del navegador manualmente.
 - Pueden producirse errores del sitio, límites HTTP 429 y nuevas autenticaciones. No se garantiza obtener cita.
 - [Diagnóstico y privacidad](docs/PRIVACY.md). Elimine datos personales antes de compartir informes.
 

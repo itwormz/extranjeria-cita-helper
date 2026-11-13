@@ -5,6 +5,7 @@ import {fmt,madridClock,showTryNowButton,type BudgetSummary} from './budget';imp
 import Choice from './Choice.svelte';
 import StatisticsHistory from './StatisticsHistory.svelte';
 import AppointmentDialog from './AppointmentDialog.svelte';import AchievementPanel from './AchievementPanel.svelte';
+import {recordForEditing} from './appointment';
 import {loadStatistics,loadAppointmentContext,loadBudget,setDailyTarget,setDistributionToday,tryAppointmentNow,type Achievement,type AppointmentContext,type ProfileSummary,type StatisticsDashboard} from './bridge';
 let {profiles,selected,onselect,t,language,dark,revision=0,live=null,confirmRequest=false,onconfirmed=()=>{}}:{profiles:ProfileSummary[];selected:string|null;onselect:(id:string)=>void;t:(key:string)=>string;language:string;dark:boolean;revision?:number;confirmRequest?:boolean;onconfirmed?:()=>void;live?:{active:boolean;manual:boolean;budget:BudgetSummary|null}|null;}=$props();
 let data=$state<StatisticsDashboard|null>(null);let loading=$state(false);let failed=$state(false);let period=$state('all');
@@ -24,7 +25,7 @@ let values=$derived(data?.[period==='today'?'today':'all']??{});
 $effect(()=>{const id=selected;refresh;let current=true;data=null;failed=false;loading=Boolean(id);if(id)loadStatistics(id).then(value=>{if(current)data=value;}).catch(()=>{if(current)failed=true;}).finally(()=>{if(current)loading=false;});return()=>{current=false;};});
 $effect(()=>{revision;const id=selected;let current=true;if(id)loadStatistics(id).then(value=>{if(current){data=value;failed=false;}}).catch(()=>{if(current)failed=true;});return()=>{current=false;};});
 $effect(()=>{const id=selected;let current=true;const keepAchievement=untrack(()=>view==='achievement');showForm=false;context=null;item=null;actionError=false;if(keepAchievement&&id){actionBusy=true;loadAppointmentContext(id).then(value=>{if(current){context=value;item=value.records.at(-1)??null;}}).catch(()=>{if(current)actionError=true;}).finally(()=>{if(current)actionBusy=false;});}return()=>{current=false;};});
-async function openAppointment(edit=false){if(!selected||actionBusy)return;const id=selected;actionBusy=true;actionError=false;try{const value=await loadAppointmentContext(id);if(selected!==id)return;context=value;editing=edit;showForm=true;}catch{if(selected===id)actionError=true;}finally{actionBusy=false;}}
+async function openAppointment(edit=false){if(!selected||actionBusy)return;const id=selected;actionBusy=true;actionError=false;try{const value=await loadAppointmentContext(id);if(selected!==id)return;context=value;editing=edit;if(edit){item=recordForEditing(value.records,item?.id);if(!item){actionError=true;return;}}showForm=true;}catch{if(selected===id)actionError=true;}finally{actionBusy=false;}}
 async function showAchievement(){if(!selected||actionBusy)return;const id=selected;actionBusy=true;actionError=false;try{const value=await loadAppointmentContext(id);if(selected!==id)return;context=value;item=value.records.at(-1)??null;view='achievement';}catch{if(selected===id)actionError=true;}finally{actionBusy=false;}}
 function saved(value:Achievement){item=value;showForm=false;view='achievement';refresh++;}
 $effect(()=>{view;void tick().then(()=>heading?.scrollIntoView({block:'start'}));});

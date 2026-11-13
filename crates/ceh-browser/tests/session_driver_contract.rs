@@ -55,3 +55,15 @@ fn a_reload_keeps_the_action_it_repeats_and_a_recovery_get_forgets_it() {
         assert_eq!(recovery_memory(action, before.0, before.1.clone()), (None, None));
     }
 }
+#[test]
+fn adapter_samples_each_new_wait_but_keeps_the_current_deadline() {
+    let session=SessionId::new("samples").unwrap();let gate=DispatchGate::new(session.clone());
+    let timings=ceh_core::timings::parse_timings(&serde_json::json!({"recovery_jitter_seconds":[0,10]})).unwrap();
+    let mut d=SessionDriver::new("context",session,profile(),timings,gate).unwrap();
+    let mut o=Observation{document:DocumentId::new("one").unwrap(),kind:PageKind::RateLimited,method:RequestMethod::Get,operation_code:false,variant:String::new()};
+    let facts=ceh_core::flow::PageFacts{recovery:ceh_core::recovery::RecoveryFacts{official_site:true,..Default::default()},..Default::default()};
+    d.sample_waits(0.,0.).unwrap();assert_eq!(d.accept_observation(o.clone(),facts,0).unwrap(),vec![FlowEffect::WaitUntil(180000)]);
+    d.sample_waits(1.,1.).unwrap();assert!(d.accept_observation(o.clone(),facts,1).unwrap().is_empty());
+    o.document=DocumentId::new("two").unwrap();assert!(d.accept_observation(o.clone(),facts,2).unwrap().is_empty());
+    assert_eq!(d.accept_observation(o,facts,3).unwrap(),vec![FlowEffect::WaitUntil(190003)]);
+}

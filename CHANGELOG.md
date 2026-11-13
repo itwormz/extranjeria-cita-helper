@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.0-beta.2 — Search recovery and reliable migration
+
+- Apply timing and ban-protection changes throughout the current search, including new browser sessions. Updating an active recovery pause no longer leaves the search waiting indefinitely.
+- Use the configured click-retry, result-wait and restart delays. Retry only actions proven not to have been sent; uncertain submissions are never replayed. Refresh intervals and recovery jitter are sampled for each new wait, and sound reminders follow the profile interval.
+- Preserve imported attempt budgets when SantaCita already has data. Repeated statistics imports retain `cod. oper` evidence, update existing episodes without duplicating them, and allow an interrupted first import to resume.
+- Correct an existing booking from Statistics without creating another achievement. Enter in a profile field keeps editing; saving remains an explicit action. The Work screen shows today's checks across runs, and Telegram recipient links display their actual lifetime.
+- Show the owned Chrome, Chromium, Brave or Firefox window on macOS, restore the owned browser window on Windows, and request activation under X11/XWayland on Linux. If the desktop cannot activate the window, the app explains how to continue manually.
+- Check console availability before requesting a diagnostic image and again before saving it. An unavailable lock state is reported separately from a confirmed screen lock; Windows/Linux images remain disabled until that state can be verified.
+
 ## 0.4.0-beta.1 — First SantaCita beta
 
 - Introduce SantaCita, a new desktop application built with Rust, Tauri and Svelte for Toma de huellas / TIE and Autorización de regreso searches.

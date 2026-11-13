@@ -39,6 +39,7 @@ pub struct NativeStep {
     update: DriverUpdate,
     now: u64,
     preparation_reload: bool,
+    planned_at: Instant,
 }
 impl NativeStep {
     pub fn diagnostic_snapshot(&self, connection: &mut BidiConnection) -> Option<String> {
@@ -277,6 +278,13 @@ impl SessionDriver {
         self.timings = timings;
         Ok(())
     }
+    /// Supply independent random units for the next new refresh/recovery wait. Existing waits are unchanged.
+    pub fn sample_waits(&mut self, reload_unit: f64, jitter_unit: f64) -> Result<(), BrowserError> {
+        if !jitter_unit.is_finite() || !(0.0..=1.0).contains(&jitter_unit) { return Err(BrowserError::Unsupported); }
+        let reload = self.timings.sample(TimingKind::Reload, reload_unit).map_err(|_|BrowserError::Unsupported)?;
+        let [low,high] = self.timings.recovery_jitter_seconds();
+        self.flow.set_wait_samples(reload, low + (high-low)*jitter_unit).map_err(|_|BrowserError::Unsupported)
+    }
     /// Ask for a new pass from the entry page (Try now). It replaces the next planned step when the
     /// automation owns an official, non-captcha page; on any other page the request is dropped.
     /// Recovery counters that outlive a browser session (blocked streak, 429 reload penalty).
@@ -298,6 +306,7 @@ impl SessionDriver {
         connection: &mut BidiConnection,
         now: u64,
     ) -> Result<NativeStep, BrowserError> {
+        let planned_at = Instant::now();
         match self.flow.control().mode() {
             ControlMode::Paused => return Err(BrowserError::Paused),
             ControlMode::Manual => return Err(BrowserError::ManualOwnership),
@@ -321,7 +330,7 @@ impl SessionDriver {
             let reload=preparation==PreparationDecision::ReloadGet;
             let effects=match preparation{PreparationDecision::WaitUntil(deadline)=>vec![FlowEffect::WaitUntil(deadline)],PreparationDecision::Hold=>vec![FlowEffect::Hold],_=>vec![FlowEffect::ReobserveAt(now)]};
             let update=DriverUpdate{preparing:true,observation:page.observation.clone(),effects,control:self.flow.control(),offices:vec![],details:Default::default(),receipts:vec![],applicant_prepared:false};
-            return Ok(NativeStep{page,recovery:None,update,now,preparation_reload:reload});
+            return Ok(NativeStep{page,recovery:None,update,now,preparation_reload:reload,planned_at});
         }
         let mut facts = PageFacts {
             appointment_ready_at: self.appointment_ready_at,
@@ -427,6 +436,7 @@ impl SessionDriver {
             update,
             now,
             preparation_reload:false,
+            planned_at,
         })
     }
     pub fn execute(
@@ -467,7 +477,9 @@ impl SessionDriver {
             mut update,
             now,
             preparation_reload,
+            planned_at,
         } = step;
+        let executing_since = planned_at;
         if preparation_reload{
             let control=self.flow.control();
             let guard=DocumentGuard{session:control.session().clone(),epoch:control.epoch(),document:page.observation.document.clone(),expected_page:PageKind::Province};
@@ -527,7 +539,7 @@ impl SessionDriver {
                     update.applicant_prepared = *action == ActionKind::Applicant
                         && result == ceh_core::flow::PreparationOutcome::Completed;
                     self.flow
-                        .complete_preparation(guard, *action, result)
+                        .complete_preparation_at(guard, *action, result, now.saturating_add(executing_since.elapsed().as_millis() as u64))
                         .map_err(|_| BrowserError::InvalidControl)?;
                 }
                 FlowEffect::Activate { guard, action } => {
@@ -573,12 +585,12 @@ impl SessionDriver {
                         ),
                         _ => Err(BrowserError::Unsupported),
                     }?;
-                    self.receipt(guard, *action, outcome, &mut receipts)?;
+                    self.receipt(guard, *action, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                 }
                 FlowEffect::AcceptCookies { guard } => {
                     let outcome =
                         crate::cookies::accept(connection, &mut self.observer, &self.gate, guard)?;
-                    self.receipt(guard, ActionKind::Cookie, outcome, &mut receipts)?;
+                    self.receipt(guard, ActionKind::Cookie, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                 }
                 FlowEffect::EnterAuthentication { guard, .. } => {
                     let outcome = crate::auth::enter_portal(
@@ -587,7 +599,7 @@ impl SessionDriver {
                         &self.gate,
                         guard,
                     )?;
-                    self.receipt(guard, ActionKind::Auth, outcome, &mut receipts)?;
+                    self.receipt(guard, ActionKind::Auth, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                 }
                 FlowEffect::SelectCertificate { guard }
                 | FlowEffect::SelectClaveMethod { guard, .. } => {
@@ -616,7 +628,7 @@ impl SessionDriver {
                             );
                         },
                     )?;
-                    self.receipt(guard, ActionKind::Auth, outcome, &mut receipts)?;
+                    self.receipt(guard, ActionKind::Auth, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                 }
                 FlowEffect::Reload { guard } | FlowEffect::FetchApplicant { guard } => {
                     let requested =
@@ -633,7 +645,7 @@ impl SessionDriver {
                     } else {
                         ActionKind::RequestReload
                     };
-                    self.receipt(guard, action, outcome, &mut receipts)?;
+                    self.receipt(guard, action, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                 }
                 FlowEffect::Recover {
                     guard,
@@ -646,11 +658,11 @@ impl SessionDriver {
                         guard,
                         recovery.as_ref().ok_or(BrowserError::NoObservation)?,
                     )?;
-                    self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts)?;
+                    self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                 }
                 FlowEffect::Recover { guard, action: ceh_core::recovery::RecoveryAction::GetEntry } if self.appointment_ready_at.is_some() => {
                     let outcome = crate::refresh::start_fresh_pass(connection, &mut self.observer, &self.gate, guard)?;
-                    self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts)?;
+                    self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                 }
                 FlowEffect::Recover {
                     guard,
@@ -662,7 +674,7 @@ impl SessionDriver {
                         connection, &mut self.observer, &self.gate, guard, *action,
                     )?;
                     let before = (self.last, self.pending.clone());
-                    self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts)?;
+                    self.receipt(guard, ActionKind::Recovery, outcome, &mut receipts, now.saturating_add(executing_since.elapsed().as_millis() as u64))?;
                     if outcome == DispatchOutcome::Dispatched {
                         (self.last, self.pending) = recovery_memory(*action, before.0, before.1);
                     }
@@ -725,9 +737,10 @@ impl SessionDriver {
         action: ActionKind,
         outcome: DispatchOutcome,
         out: &mut Vec<ActionReceipt>,
+        now: u64,
     ) -> Result<(), BrowserError> {
         self.flow
-            .acknowledge_dispatch(guard, action, outcome)
+            .acknowledge_dispatch_at(guard, action, outcome, now)
             .map_err(|_| BrowserError::InvalidControl)?;
         if outcome != DispatchOutcome::NotDispatched {
             self.last = Some(action);

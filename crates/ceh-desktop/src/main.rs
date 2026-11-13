@@ -575,7 +575,7 @@ fn search_resume(
     runtime.search.resume_search()
 }
 #[tauri::command]
-fn search_show(
+async fn search_show(
     window: WebviewWindow,
     runtime: State<'_, DesktopRuntime>,
 ) -> Result<(), &'static str> {
@@ -585,7 +585,9 @@ fn search_show(
         .snapshot()?
         .browser_pid
         .ok_or("browser_not_open")?;
-    ceh_desktop::window_theme::show_firefox(&window,pid)
+    tauri::async_runtime::spawn_blocking(move || {
+        ceh_desktop::window_theme::show_owned_browser(&window,pid)
+    }).await.map_err(|_| "browser_show_failed")?
 }
 
 /// Put text the window composed (the journal table as shown) on the clipboard; bounded like any IPC text.
@@ -675,6 +677,7 @@ async fn legacy_import(
             ceh_store::legacy_import::ImportError::NoProfiles => "legacy_not_found",
             _ => "legacy_import_failed",
         })?;
+        ceh_desktop::finish_legacy_import(&root, &name).map_err(|_| "legacy_import_failed")?;
         Ok(serde_json::json!({"copied": report.copied.len(), "kept": report.kept.len()}))
     })
     .await

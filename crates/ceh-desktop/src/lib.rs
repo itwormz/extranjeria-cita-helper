@@ -9,6 +9,9 @@ pub mod session_presentation;
 pub mod sound;
 pub mod update_job;
 pub mod window_theme;
+pub mod diagnostic_capture;
+#[cfg(all(feature = "shell", not(target_os = "macos")))]
+mod window_activation;
 use ceh_core::profiles::ProfileCatalog;
 use ceh_store::profiles::{DesktopPreferences, read_profiles};
 use serde::Serialize;
@@ -30,6 +33,7 @@ pub struct Bootstrap {
     pub preferences: DesktopPreferences,
     pub selected_profile: Option<String>,
     pub browser_connected: bool,
+    pub import_incomplete: bool,
 }
 static CATALOG: LazyLock<ProfileCatalog> = LazyLock::new(|| {
     let source: Value =
@@ -124,31 +128,42 @@ pub fn apply_portable_update(zip: &std::path::Path, exe: &std::path::Path) -> Re
     }
     result
 }
-/// First start of the installed application: when it has no profile list yet and a Python data folder exists
-/// beside it, bring that data over (merging, never overwriting; the old folder is only read). Returns the
-/// folder name on success; any problem (data in use, unreadable) leaves nothing behind and is retried next start.
+/// First start imports the installed Python data without changing the source. A bounded
+/// preflight rejects known invalid input before mutation. A late I/O failure leaves a private
+/// incomplete marker so the next startup safely resumes, even when tasks.yml already copied.
 pub fn auto_import(
     root: &std::path::Path,
     support_dirs: &[std::path::PathBuf],
     catalog: &ProfileCatalog,
 ) -> Option<String> {
-    if root.join("tasks.yml").symlink_metadata().is_ok() {
-        return None;
+    let marker=root.join(".legacy-import-incomplete");
+    if marker.symlink_metadata().is_ok_and(|m|!m.file_type().is_file() || m.len()>128) {return None;}
+    let pending=std::fs::read_to_string(&marker).ok().filter(|name|ceh_store::legacy_import::SOURCE_NAMES.contains(&name.as_str()));
+    if root.join("tasks.yml").symlink_metadata().is_ok() && pending.is_none() {return None;}
+    let own=root.canonicalize().ok();
+    let found=ceh_store::legacy_import::candidates(support_dirs).into_iter().find(|c|
+        (own.is_none() || c.path().canonicalize().ok()!=own) && pending.as_ref().is_none_or(|name|name==&c.name)
+    )?;
+    ceh_store::legacy_import::preflight(found.path()).ok()?;
+    std::fs::create_dir_all(root).ok()?;
+    let mut options=std::fs::OpenOptions::new();options.create(true).truncate(true).write(true);
+    #[cfg(unix)] {use std::os::unix::fs::OpenOptionsExt;options.mode(0o600);}
+    {use std::io::Write;let mut file=options.open(&marker).ok()?;file.write_all(found.name.as_bytes()).ok()?;file.sync_all().ok()?;}
+    match ceh_store::legacy_import::import(found.path(),root,catalog) {
+        Ok(_)=>{std::fs::remove_file(marker).ok()?;Some(found.name)},
+        Err(_)=>None,
     }
-    let own = root.canonicalize().ok();
-    let found = ceh_store::legacy_import::candidates(support_dirs)
-        .into_iter()
-        .find(|c| own.is_none() || c.path().canonicalize().ok() != own)?;
-    let before_existed = root.exists();
-    match ceh_store::legacy_import::import(found.path(), root, catalog) {
-        Ok(_) => Some(found.name),
-        Err(_) => {
-            if !before_existed {
-                let _ = std::fs::remove_dir(root);
-            }
-            None
-        }
-    }
+}
+/// An interrupted import is visible even if its profile list was already copied.
+pub fn import_incomplete(root: &Path) -> bool {
+    let path = root.join(".legacy-import-incomplete");
+    path.symlink_metadata().is_ok_and(|meta| meta.file_type().is_file() && meta.len() <= 128)
+        && std::fs::read_to_string(path).is_ok_and(|name| ceh_store::legacy_import::SOURCE_NAMES.contains(&name.as_str()))
+}
+pub fn finish_legacy_import(root: &Path, name: &str) -> std::io::Result<()> {
+    let path = root.join(".legacy-import-incomplete");
+    if import_incomplete(root) && std::fs::read_to_string(&path)? == name { std::fs::remove_file(path)?; }
+    Ok(())
 }
 /// What a rejected first navigation means: `None` when the person closed the window while the page loaded
 /// (a stop, nothing to report), otherwise the error to show. Without the prepared certificate chain the
@@ -213,6 +228,7 @@ pub fn bootstrap(root: &Path, language: &str) -> Result<Bootstrap, &'static str>
         preferences: bundle.preferences,
         selected_profile,
         browser_connected: false,
+        import_incomplete: import_incomplete(root),
     })
 }
 /// Both navigation and every command enforce this; no remote capability or caller paths.

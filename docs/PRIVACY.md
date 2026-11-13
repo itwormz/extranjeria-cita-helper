@@ -16,7 +16,7 @@ Authentication takes place on the official website in the selected installed bro
 
 ## Diagnostics and reports
 
-Diagnostics are optional and local. Saved HTML, screenshots and browser/site resources may contain document numbers, names, contacts, cookies or session identifiers. Screenshots stop during manual control and pause. Review and redact any diagnostic material before sharing it; prefer a short timeline excerpt when reporting a problem.
+Diagnostics are optional and local. Saved HTML, screenshots and browser/site resources may contain document numbers, names, contacts, cookies or session identifiers. Screenshots stop during manual control and pause; rendering also requires a confirmed unlocked console before and after capture. Currently this state is available on macOS; images are skipped on Windows/Linux with `lock_state_unavailable`. Review and redact any diagnostic material before sharing it; prefer a short timeline excerpt when reporting a problem.
 
 Startup reports contain bounded technical error information and code locations, not full applicant profiles. **Copy report** copies to the clipboard and does not submit it. Inspect reports before posting.
 

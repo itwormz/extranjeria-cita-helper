@@ -6,6 +6,7 @@ import {timingInputs,parseTimingInputs,timingGroups,timingTitles,type Timings} f
 import NotificationPanel from './NotificationPanel.svelte';
 import {notificationError,type NotificationDraft} from './notifications';
 import {profileErrors} from './validation';
+import {guardProfileSubmit} from './profile-form';
 import Icon from './Icon.svelte';import Field from './Field.svelte';import Choice from './Choice.svelte';
 let {model,editingId,t,language,onclose,onsaved}: {language:string;model:ProfileEditorData;editingId:string|null;t:(key:string)=>string;onclose:()=>void;onsaved:(id:string)=>void}=$props();
 // Each editor owns a draft; cancelling never mutates the loaded profile.
@@ -33,7 +34,7 @@ async function save(){if(saving||notificationLoading)return;if(!['certificate','
  try{const result=await saveProfile(editingId,draft,model.revision,timings,notificationsDirty&&notifications?$state.snapshot(notifications):null,protectionDirty?candidate as unknown as Protection:null);onsaved(result.id);}catch(error){const failure=error as {code?:string;errors?:string[]};errors=failure?.code?.startsWith('secrets_')?[notificationError(failure,t)]:failure?.code==='validation'?profileErrors(failure.errors??['unknown'],t):[t(failure?.code==='conflict'?'Файл изменён извне. Перед сохранением открыть настройки заново.':'Не удалось сохранить профиль')];}finally{saving=false;}}
 </script>
 <dialog class="profile-editor" bind:this={dialog} oncancel={event=>{event.preventDefault();if(!saving)onclose();}}>
-<form novalidate onsubmit={event=>{event.preventDefault();void save();}}>
+<form novalidate use:guardProfileSubmit onsubmit={event=>{event.preventDefault();void save();}}>
  <h1>{t(editingId?'Редактирование профиля':'Новый профиль')}</h1>
  <div class="editor-tabs" role="tablist" aria-label={t('Настройки профиля')}><button type="button" role="tab" aria-selected={tab==='data'} class:selected={tab==='data'} onclick={()=>tab='data'}>{t('Данные')}</button><button type="button" role="tab" aria-selected={tab==='timings'} class:selected={tab==='timings'} onclick={()=>tab='timings'}>{t('Тайминги и повторы')}</button><button type="button" role="tab" aria-selected={tab==='notifications'} class:selected={tab==='notifications'} onclick={()=>void notificationTab()}>{t('Уведомления')}</button></div>
  <div class="editor-scroll"><fieldset disabled={saving}>

@@ -31,7 +31,7 @@ macOS: drag SantaCita into Applications. The app is not notarized; if blocked, u
 - Wait and refresh according to your settings while the applicant form reports no appointments.
 - When the message disappears, start a new pass from sign-in and recheck availability.
 - Automatically select one available office; ask you to choose when there are several.
-- Pause, resume and continue searching after date selection from the app. Profile settings and timings apply during the search.
+- Pause, resume and continue searching after date selection from the app. Timing and ban-protection changes apply during the search; other profile changes apply on the next start.
 - Statistics and the journal persist between runs. A confirmed booking can be added to a calendar and its search statistics shared.
 
 ## 🔔 Notifications
@@ -58,7 +58,7 @@ Download and installation require your action. SHA256 and Sigstore build provena
 
 - An installed supported browser is required. Configured notifications need access to the system credential store.
 - Windows uses WebView2. If missing, install [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/).
-- Linux packages are built on Ubuntu 22.04 and require a compatible graphical environment and system libraries.
+- Linux packages are built on Ubuntu 22.04 and require a compatible graphical environment and system libraries. Under native Wayland, you may need to open the browser window manually.
 - Website errors, HTTP 429 restrictions and reauthentication can occur. An appointment is not guaranteed.
 - [Diagnostics and privacy](docs/PRIVACY.md). Remove personal data before sharing reports.
 

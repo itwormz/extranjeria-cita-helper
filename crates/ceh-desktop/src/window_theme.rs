@@ -91,15 +91,19 @@ fn on_main<T: Send + 'static>(
         .map_err(|_| "theme_unavailable")?
 }
 
-/// Activate only the exact owned Firefox process, never the user's default browser.
+/// Only the supported application at the PID retained by the search controller may be raised.
+pub fn supported_macos_browser(bundle: &str) -> bool {
+    matches!(bundle, "org.mozilla.firefox" | "com.google.Chrome" | "com.brave.Browser" | "org.chromium.Chromium")
+}
+/// Activate the exact owned browser process, never the user's default browser.
 #[cfg(feature = "shell")]
-pub fn show_firefox(window:&tauri::WebviewWindow,pid:u32)->Result<(),&'static str>{
+pub fn show_owned_browser(window:&tauri::WebviewWindow,pid:u32)->Result<(),&'static str>{
  #[cfg(target_os="macos")]
  return on_main(window,move |_|{
   use objc2_app_kit::{NSApplication,NSRunningApplication,NSApplicationActivationOptions};
   let pid=i32::try_from(pid).map_err(|_|"browser_not_open")?;
   let app=NSRunningApplication::runningApplicationWithProcessIdentifier(pid).ok_or("browser_not_open")?;
-  if app.bundleIdentifier().is_none_or(|id|id.to_string()!="org.mozilla.firefox"){return Err("browser_not_open");}
+  if app.bundleIdentifier().is_none_or(|id| !supported_macos_browser(&id.to_string())){return Err("browser_not_open");}
   let current=NSRunningApplication::currentApplication();
   let main=objc2::MainThreadMarker::new().ok_or("browser_show_failed")?;
   NSApplication::sharedApplication(main).yieldActivationToApplication(&app);
@@ -107,5 +111,5 @@ pub fn show_firefox(window:&tauri::WebviewWindow,pid:u32)->Result<(),&'static st
   if !app.activateFromApplication_options(&current,NSApplicationActivationOptions::ActivateAllWindows){return Err("browser_show_failed");}
   Ok(())
  });
- #[cfg(not(target_os="macos"))]{let _=(window,pid);Err("browser_show_unavailable")}
+ #[cfg(not(target_os="macos"))]{let _=window;crate::window_activation::show(pid)}
 }
