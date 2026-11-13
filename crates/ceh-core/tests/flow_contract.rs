@@ -200,7 +200,8 @@ fn failed_or_unknown_fill_cannot_submit() {
             panic!("missing preparation")
         };
         e.complete_preparation(guard, *action, outcome).unwrap();
-        assert_eq!(e.observe(o, 1).unwrap(), vec![FlowEffect::Hold]);
+        assert_eq!(e.observe(o.clone(), 1).unwrap(), vec![FlowEffect::WaitUntil(5000)]);
+        assert_eq!(e.observe(o, 5000).unwrap(), vec![FlowEffect::Hold, FlowEffect::Alert]);
     }
 }
 #[test]
@@ -822,7 +823,7 @@ fn unknown_dispatch_ack_never_replays_applicant_post_after_pause() {
         .unwrap();
     e.pause(2).unwrap();
     e.resume(3).unwrap();
-    assert_eq!(e.observe(o, 4).unwrap(), vec![FlowEffect::Hold]);
+    assert_eq!(e.observe(o, 4).unwrap(), vec![FlowEffect::WaitUntil(5002)]);
     assert_eq!(
         e.dispatch_record(guard, *action).unwrap().outcome,
         Some(DispatchOutcome::Unknown)
@@ -849,7 +850,7 @@ fn dispatch_ack_is_not_transition_confirmation_and_duplicates_are_idempotent() {
     );
     assert_eq!(
         e.observe(observation(PageKind::RequestMenu), 1).unwrap(),
-        vec![FlowEffect::Hold]
+        vec![FlowEffect::WaitUntil(5000)]
     );
 }
 

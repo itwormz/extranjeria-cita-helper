@@ -361,7 +361,11 @@
     "Проверять обновления при запуске и раз в сутки. Скачивание и установка — по кнопке.": "Check at startup and once a day. Download and installation require your confirmation.",
     "Показывать стабильные и тестовые версии. В бета-версиях возможны ошибки. Скачивание и установка — по кнопке.": "Offer stable and beta versions. Betas may contain bugs. Download and installation require your confirmation.",
     "Бета-версия: возможны ошибки.": "Beta version: bugs are possible.",
-    "Контрольная сумма и происхождение пакета проверены. Установка запускается по кнопке.": "Package checksum and provenance verified. Start installation with the button."
+    "Контрольная сумма и происхождение пакета проверены. Установка запускается по кнопке.": "Package checksum and provenance verified. Start installation with the button.",
+    "Для другого получателя — отправить ему ссылку. Срок действия: {minutes} мин.": "For another recipient, send them the link. It expires in {minutes} min.",
+    "Для другого получателя — отправить ему ссылку.": "For another recipient, send them the link.",
+    "Окно браузера нельзя поднять в этой среде. Откройте его вручную.": "The browser window cannot be brought forward in this environment. Open it manually.",
+    "Импорт старых данных не завершён. Повторите импорт в настройках.": "Importing the previous data is incomplete. Retry the import in Settings."
   },
   "es": {
     "Всего": "Total",
@@ -725,6 +729,10 @@
     "Проверять обновления при запуске и раз в сутки. Скачивание и установка — по кнопке.": "Comprobar al iniciar y una vez al día. La descarga e instalación requieren confirmación.",
     "Показывать стабильные и тестовые версии. В бета-версиях возможны ошибки. Скачивание и установка — по кнопке.": "Ofrecer versiones estables y beta. Las betas pueden contener errores. La descarga e instalación requieren confirmación.",
     "Бета-версия: возможны ошибки.": "Versión beta: puede contener errores.",
-    "Контрольная сумма и происхождение пакета проверены. Установка запускается по кнопке.": "Suma de comprobación y procedencia del paquete verificadas. Inicia la instalación con el botón."
+    "Контрольная сумма и происхождение пакета проверены. Установка запускается по кнопке.": "Suma de comprobación y procedencia del paquete verificadas. Inicia la instalación con el botón.",
+    "Для другого получателя — отправить ему ссылку. Срок действия: {minutes} мин.": "Para otro destinatario, enviarle el enlace. Caduca en {minutes} min.",
+    "Для другого получателя — отправить ему ссылку.": "Para otro destinatario, enviarle el enlace.",
+    "Окно браузера нельзя поднять в этой среде. Откройте его вручную.": "No se puede traer al frente la ventana del navegador en este entorno. Ábrala manualmente.",
+    "Импорт старых данных не завершён. Повторите импорт в настройках.": "La importación de los datos anteriores no ha terminado. Repítala en Ajustes."
   }
 }

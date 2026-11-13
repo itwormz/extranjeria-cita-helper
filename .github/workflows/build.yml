@@ -68,6 +68,7 @@ jobs:
       - name: Test Rust and frontend
         run: |
           cargo test --workspace --locked --no-fail-fast
+          cargo test -p ceh-desktop --features shell --locked --no-fail-fast
           node --test desktop-ui/tests/*.test.mjs packaging/tests/*.test.mjs
       - name: Install pinned MSI tools
         if: runner.os == 'Windows'

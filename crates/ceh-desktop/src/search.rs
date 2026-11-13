@@ -497,8 +497,8 @@ enum SessionEnd {
 fn run(
     root: &Path,
     profile: ceh_core::profiles::ProfileDraft,
-    timings: ceh_core::timings::AssistTimings,
-    appointment_policy: ceh_core::appointment_budget::AppointmentPolicy,
+    mut timings: ceh_core::timings::AssistTimings,
+    mut appointment_policy: ceh_core::appointment_budget::AppointmentPolicy,
     receiver: &mpsc::Receiver<Message>,
     live: &mpsc::Receiver<LiveCommand>,
     notifications: &mut crate::notification_worker::LiveNotifications,
@@ -519,7 +519,7 @@ fn run(
     let mut carry = ceh_core::flow::RecoveryCarry::default();
     loop {
         let end = run_session(
-            root, profile.clone(), timings.clone(), appointment_policy.clone(), receiver, live, notifications,
+            root, profile.clone(), &mut timings, &mut appointment_policy, receiver, live, notifications,
             shared_gate, cancelled, state, window, sound, close_browser, &mut journal, &mut log, &mut carry,
         )?;
         match end {
@@ -552,8 +552,8 @@ fn clear_closed_browser(s: &mut SearchSnapshot) {
 fn run_session(
     root: &Path,
     profile: ceh_core::profiles::ProfileDraft,
-    timings: ceh_core::timings::AssistTimings,
-    appointment_policy: ceh_core::appointment_budget::AppointmentPolicy,
+    timings: &mut ceh_core::timings::AssistTimings,
+    appointment_policy: &mut ceh_core::appointment_budget::AppointmentPolicy,
     receiver: &mpsc::Receiver<Message>,
     live: &mpsc::Receiver<LiveCommand>,
     notifications: &mut crate::notification_worker::LiveNotifications,
@@ -600,8 +600,8 @@ fn run_session(
     let result = run_owned(
         root,
         &profile,
-        &timings,
-        &appointment_policy,
+        timings,
+        appointment_policy,
         receiver,
         live,
         notifications,
@@ -650,8 +650,8 @@ fn run_session(
 fn run_owned(
     root: &Path,
     profile: &ceh_core::profiles::ProfileDraft,
-    timings: &ceh_core::timings::AssistTimings,
-    appointment_policy: &ceh_core::appointment_budget::AppointmentPolicy,
+    timings: &mut ceh_core::timings::AssistTimings,
+    appointment_policy: &mut ceh_core::appointment_budget::AppointmentPolicy,
     receiver: &mpsc::Receiver<Message>,
     live: &mpsc::Receiver<LiveCommand>,
     notifications: &mut crate::notification_worker::LiveNotifications,
@@ -666,8 +666,7 @@ fn run_owned(
     carry: &mut ceh_core::flow::RecoveryCarry,
 ) -> Result<SessionEnd, &'static str> {
     // Saved profile changes and budget commands replace these during the run.
-    let mut timings = timings.clone();
-    let mut appointment_policy = appointment_policy.clone();
+
     let session =
         SessionId::new(uuid::Uuid::new_v4().to_string()).map_err(|_| "search_unavailable")?;
     let mut gate = DispatchGate::new(session.clone());
@@ -721,7 +720,7 @@ fn run_owned(
         .event(JournalEvent::Start, None, None, false, wall()?)
         .map_err(|_| "search_unavailable")?;
     let mut diagnostics = crate::search_diagnostics::SearchDiagnostics::new(root, session.as_str().to_owned(), profile);
-    let mut presenter = crate::session_presentation::SessionPresentation::new(session.clone(), 3000);
+    let mut presenter = crate::session_presentation::SessionPresentation::new(session.clone(), (timings.alert_seconds()*1000.).ceil() as u64);
     let mut certificate_clicked: Option<u64> = None;
     let mut hidden_before_action = false;
     let mut certificate_rung = false;
@@ -817,7 +816,7 @@ fn run_owned(
                             continue;
                         }
                         let now = crate::current_time()?;
-                        if apply_budget_command(&mut budget, &mut appointment_policy, command, now).is_ok() {
+                        if apply_budget_command(&mut budget, appointment_policy, command, now).is_ok() {
                             budget_store.save(&budget).map_err(|_| "appointment_budget_unavailable")?;
                         }
                     }
@@ -851,7 +850,7 @@ fn run_owned(
                                     },
                                 )
                                 .map_err(|_| "profile_invalid")?;
-                                presenter = crate::session_presentation::SessionPresentation::new(next, 3000);
+                                presenter = crate::session_presentation::SessionPresentation::new(next, (timings.alert_seconds()*1000.).ceil() as u64);
                                 manual = false;
                                 wait = false;
                                 read_failures = 0;
@@ -895,7 +894,8 @@ fn run_owned(
                                         typing: unit_sample(),
                         };
                         if driver.apply_timings(next.clone(), samples).is_ok() {
-                            timings = next;
+                            presenter.set_alert_interval((next.alert_seconds()*1000.).ceil() as u64);
+                            *timings = next;
                         }
                     }
                 }
@@ -929,6 +929,7 @@ fn run_owned(
                 let ready = budget.next_submission(budget_now, &appointment_policy, observer.hot_retry());
                 let delay = (ready - budget_now).num_milliseconds().max(0) as u64;
                 driver.set_appointment_schedule(mono().saturating_add(delay), appointment_policy.confirm_new_round);
+                driver.sample_waits(unit_sample(), unit_sample()).map_err(|_| "profile_invalid")?;
                 let step = match driver.plan(browser.connection(), mono()) {
                     Ok(step) => {
                         read_failures = 0;
@@ -1299,7 +1300,7 @@ fn run_owned(
                             driver.apply_recovery_carry(carry.clone());
                             diagnostics.rebind(&mut driver);
                             // The new gate starts a new control authority; the presenter follows it.
-                            presenter = crate::session_presentation::SessionPresentation::new(session.clone(), 3000);
+                            presenter = crate::session_presentation::SessionPresentation::new(session.clone(), (timings.alert_seconds()*1000.).ceil() as u64);
                             if browser
                                 .connection()
                                 .call("browsingContext.navigate", json!({"context":context,"url":ceh_browser::recovery_navigation::ENTRY_URL,"wait":"none"}))

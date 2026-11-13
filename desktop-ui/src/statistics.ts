@@ -1,5 +1,7 @@
 /** Display facts without turning absent historical measurements into zero. */
 export type Summary=Record<string,unknown>;
+export function workCheckTotals(value:{today:Summary;all:Summary}|null):{today:number|null;all:number|null}{return {today:metricValue(value?.today??{},'checks'),all:metricValue(value?.all??{},'checks')};}
+export function madridDayKey(now:number):string{return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));}
 export function metricValue(values:Summary,key:string):number|null {
  const value=values[key];if(typeof value!=='number'||!Number.isFinite(value)||value<0)return null;
  const unknown=Array.isArray(values.legacy_unknown_fields)?values.legacy_unknown_fields:[];

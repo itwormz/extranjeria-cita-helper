@@ -85,10 +85,14 @@ enum Phase {
         deadline: u64,
     },
     Recovering {
+        started: u64,
+        jitter: f64,
         deadline: u64,
         plan: RecoveryPlan,
         attempt: usize,
     },
+    ActionWait { deadline: u64, action: ActionKind, unsent: bool, announced: bool },
+    ActionCooldown { deadline: u64 },
     Dispatched,
     Held,
 }
@@ -159,6 +163,7 @@ pub struct FlowEngine {
     last_tick: Option<u64>,
     attempted: Vec<(DocumentId, ActionKind)>,
     dispatches: Vec<DispatchRecord>,
+    unsent_attempts: Vec<((DocumentId, ActionKind), usize)>,
     reload_delay: f64,
     applicant_reload_penalty: f64,
     last_rate_limit_document: Option<DocumentId>,
@@ -187,6 +192,7 @@ impl FlowEngine {
             last_tick: None,
             attempted: vec![],
             dispatches: vec![],
+            unsent_attempts: vec![],
             reload_delay: AssistTimings::default().reload_seconds()[0],
             applicant_reload_penalty: 0.0,
             last_rate_limit_document: None,
@@ -224,6 +230,15 @@ impl FlowEngine {
         self.timings = timings;
         Ok(())
     }
+    /// Samples for the next newly scheduled wait, never an already running deadline.
+    pub fn set_wait_samples(&mut self, reload: f64, jitter: f64) -> Result<(), FlowError> {
+        let [low, high] = self.timings.reload_seconds();
+        if !reload.is_finite() || reload < low || reload > high { return Err(FlowError::InvalidDelay); }
+        self.timings.recovery_delay(RetryKind::ServerRetry, 0, jitter).map_err(|_| FlowError::InvalidDelay)?;
+        self.reload_delay = reload;
+        self.recovery_jitter = jitter;
+        Ok(())
+    }
     /// Supply a sampled delay explicitly; the deterministic core never samples randomness.
     pub fn with_recovery_jitter(mut self, sample: f64) -> Result<Self, FlowError> {
         self.timings
@@ -242,11 +257,15 @@ impl FlowEngine {
             .find(|r| r.guard == *guard && r.action == action)
     }
     pub fn acknowledge_dispatch(
-        &mut self,
-        guard: &DocumentGuard,
-        action: ActionKind,
-        outcome: DispatchOutcome,
+        &mut self, guard: &DocumentGuard, action: ActionKind, outcome: DispatchOutcome,
     ) -> Result<(), FlowError> {
+        self.acknowledge_dispatch_at(guard, action, outcome, self.last_tick.unwrap_or(0))
+    }
+    /// Processing time after the browser acknowledged the action, never a page-provided timestamp.
+    pub fn acknowledge_dispatch_at(
+        &mut self, guard: &DocumentGuard, action: ActionKind, outcome: DispatchOutcome, now: u64,
+    ) -> Result<(), FlowError> {
+        if self.last_tick.is_some_and(|previous| now < previous) { return Err(FlowError::ClockReversed); }
         if self.authority.mode() != ControlMode::Automatic
             || guard.session != self.session
             || guard.epoch != self.authority.epoch()
@@ -262,6 +281,18 @@ impl FlowEngine {
             return Err(FlowError::UnexpectedCompletion);
         }
         record.outcome = Some(outcome);
+        self.last_tick = Some(now);
+        // Only an explicit publication receipt can unlock a retry. Missing/ambiguous delivery is never replayed.
+        if matches!(self.phase, Some(Phase::Dispatched))
+            && self.current.as_ref().is_some_and(|current| current.document == guard.document && current.kind == guard.expected_page)
+        {
+            let unsent = outcome == DispatchOutcome::NotDispatched;
+            let attempt = self.unsent_attempts.iter().find(|(key, _)| key == &(guard.document.clone(), action)).map_or(0, |(_, n)| *n);
+            let seconds = if unsent {
+                self.timings.recovery_delay(RetryKind::UnsentClick, attempt, self.recovery_jitter).map_err(|_| FlowError::InvalidDelay)?
+            } else { self.timings.post_timeout_seconds() };
+            self.phase = Some(Phase::ActionWait { deadline: deadline_millis(now, seconds).map_err(|_|FlowError::ClockOverflow)?, action, unsent, announced: false });
+        }
         if outcome == DispatchOutcome::NotDispatched
             && self.certificate_pending.as_ref() == Some(guard)
         {
@@ -429,10 +460,9 @@ impl FlowEngine {
                     .ok_or(FlowError::ClockOverflow)?,
             )),
             Some(Phase::Recovering {
-                deadline,
-                plan,
-                attempt,
+                started, jitter, deadline, plan, attempt,
             }) => Some(Phase::Recovering {
+                started: started.checked_add(elapsed).ok_or(FlowError::ClockOverflow)?, jitter,
                 deadline: deadline
                     .checked_add(elapsed)
                     .ok_or(FlowError::ClockOverflow)?,
@@ -455,6 +485,8 @@ impl FlowEngine {
                     .checked_add(elapsed)
                     .ok_or(FlowError::ClockOverflow)?,
             }),
+            Some(Phase::ActionWait { deadline, action, unsent, announced }) => Some(Phase::ActionWait { deadline: deadline.checked_add(elapsed).ok_or(FlowError::ClockOverflow)?, action, unsent, announced }),
+            Some(Phase::ActionCooldown { deadline }) => Some(Phase::ActionCooldown { deadline: deadline.checked_add(elapsed).ok_or(FlowError::ClockOverflow)? }),
             other => other,
         };
         let shifted_certificate = self
@@ -476,11 +508,15 @@ impl FlowEngine {
         Ok(snapshot)
     }
     pub fn complete_preparation(
-        &mut self,
-        guard: &DocumentGuard,
-        action: ActionKind,
-        outcome: PreparationOutcome,
+        &mut self, guard: &DocumentGuard, action: ActionKind, outcome: PreparationOutcome,
     ) -> Result<(), FlowError> {
+        self.complete_preparation_at(guard, action, outcome, self.last_tick.unwrap_or(0))
+    }
+    /// Processing time after preparation returned; a slow input must not consume its recovery wait.
+    pub fn complete_preparation_at(
+        &mut self, guard: &DocumentGuard, action: ActionKind, outcome: PreparationOutcome, now: u64,
+    ) -> Result<(), FlowError> {
+        if self.last_tick.is_some_and(|previous| now < previous) { return Err(FlowError::ClockReversed); }
         let current = self
             .current
             .as_ref()
@@ -494,8 +530,12 @@ impl FlowEngine {
         self.phase = Some(if outcome == PreparationOutcome::Completed {
             Phase::Prepared(action)
         } else {
-            Phase::Dispatched
+            Phase::ActionWait {
+                deadline: deadline_millis(now, self.timings.post_timeout_seconds()).map_err(|_|FlowError::ClockOverflow)?,
+                action, unsent: false, announced: false,
+            }
         });
+        self.last_tick = Some(now);
         Ok(())
     }
     fn guard(&self, observed: &Observation) -> DocumentGuard {
@@ -554,27 +594,32 @@ impl FlowEngine {
                         && facts.recovery.endpoint == RecoveryEndpoint::Availability
                         && facts.recovery.pending_action.or(facts.recovery.last_action)
                             == Some(ActionKind::Request));
-                (
-                    ActionKind::RequestReload,
-                    if self.options.no_slots_mode == NoSlotsMode::Salir {
-                        if facts.recovery.own_control {
-                            FlowEffect::Activate {
-                                guard,
-                                action: ActionKind::NoSlotsSalir,
-                            }
-                        } else if facts.appointment_ready_at.is_some() && facts.recovery.official_site {
-                            FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }
-                        } else {
-                            FlowEffect::Hold
+                let effect = if self.options.no_slots_mode == NoSlotsMode::Salir {
+                    if facts.recovery.own_control {
+                        FlowEffect::Activate {
+                            guard,
+                            action: ActionKind::NoSlotsSalir,
                         }
                     } else if facts.appointment_ready_at.is_some() && facts.recovery.official_site {
                         FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }
-                    } else if safe_reload {
-                        FlowEffect::Reload { guard }
                     } else {
                         FlowEffect::Hold
-                    },
-                )
+                    }
+                } else if facts.appointment_ready_at.is_some() && facts.recovery.official_site {
+                    FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }
+                } else if safe_reload {
+                    FlowEffect::Reload { guard }
+                } else {
+                    FlowEffect::Hold
+                };
+                // The planning reservation must use the same key as its publication receipt.
+                // A proven-unsent Salir or entry GET can then release exactly its own reservation.
+                let key = match &effect {
+                    FlowEffect::Activate { action, .. } => *action,
+                    FlowEffect::Recover { .. } => ActionKind::Recovery,
+                    _ => ActionKind::RequestReload,
+                };
+                (key, effect)
             }
             _ => (ActionKind::RequestReload, FlowEffect::Hold),
         }
@@ -788,28 +833,32 @@ impl FlowEngine {
                 &facts.recovery,
                 &self.timings,
                 attempt,
-                self.recovery_jitter,
+                match &self.phase {
+                    Some(Phase::Recovering { jitter, .. }) => { let [low,high]=self.timings.recovery_jitter_seconds(); jitter.clamp(low,high) },
+                    _ => self.recovery_jitter,
+                },
             )
             .map_err(|_| FlowError::InvalidDelay)?;
             if let Some(Phase::Recovering {
-                deadline,
-                plan,
-                attempt: scheduled_attempt,
-            }) = &self.phase
+                started, jitter, deadline, plan, attempt: scheduled_attempt,
+            }) = self.phase.clone()
             {
-                if fresh != *plan || attempt != *scheduled_attempt {
+                if fresh.after != plan.after || attempt != scheduled_attempt {
                     self.phase = Some(Phase::Held);
                     return Ok(vec![FlowEffect::Hold]);
                 }
-                if now < *deadline {
-                    return Ok(vec![]);
+                let changed = fresh.delay_seconds != plan.delay_seconds;
+                let deadline = if changed { deadline_millis(started, fresh.delay_seconds).map_err(|_|FlowError::ClockOverflow)? } else { deadline };
+                self.phase = Some(Phase::Recovering { started, jitter, deadline, plan: fresh.clone(), attempt });
+                if now < deadline {
+                    return Ok(if changed { vec![FlowEffect::WaitUntil(deadline)] } else { vec![] });
                 }
                 if let Some((_, n)) = self.recovery_attempts.iter_mut().find(|(k, _)| *k == key) {
                     *n = n.saturating_add(1);
                 } else {
                     self.recovery_attempts.push((key, 1));
                 }
-                let action = plan.after;
+                let action = fresh.after;
                 self.phase = Some(
                     if matches!(
                         action,
@@ -829,7 +878,7 @@ impl FlowEngine {
             let deadline =
                 deadline_millis(now, fresh.delay_seconds).map_err(|_| FlowError::ClockOverflow)?;
             self.phase = Some(Phase::Recovering {
-                deadline,
+                started: now, jitter: self.recovery_jitter, deadline,
                 plan: fresh,
                 attempt,
             });
@@ -985,6 +1034,37 @@ impl FlowEngine {
                     Phase::Dispatched
                 });
                 return Ok(vec![effect]);
+            }
+            Some(Phase::ActionWait { deadline, action, unsent, announced }) => {
+                if now < deadline {
+                    self.phase = Some(Phase::ActionWait { deadline, action, unsent, announced: true });
+                    return Ok(if announced { vec![] } else { vec![FlowEffect::WaitUntil(deadline)] });
+                }
+                if unsent {
+                    let key = (observed.document.clone(), action);
+                    let count = self.unsent_attempts.iter().find(|(k,_)| k == &key).map_or(0, |(_,n)| *n);
+                    if count < self.timings.unsent_retry_count() {
+                        if let Some((_,n))=self.unsent_attempts.iter_mut().find(|(k,_)| k == &key) { *n+=1; } else { self.unsent_attempts.push((key.clone(),1)); }
+                        self.attempted.retain(|k| k != &key);
+                        self.dispatches.retain(|r| r.guard.document != observed.document || r.action != action);
+                        self.phase = None;
+                        // Replan only against this fresh observation; preparation is repeated safely.
+                        return self.advance(observed, facts, now);
+                    }
+                }
+                // Never repeat an uncertain POST. Give late navigation time, then return through a fixed GET.
+                if !facts.recovery.official_site || action == ActionKind::Contact {
+                    self.phase = Some(Phase::Held);
+                    return Ok(vec![FlowEffect::Hold, FlowEffect::Alert]);
+                }
+                let deadline = deadline_millis(now, self.timings.restart_seconds()).map_err(|_|FlowError::ClockOverflow)?;
+                self.phase = Some(Phase::ActionCooldown { deadline });
+                return Ok(vec![FlowEffect::WaitUntil(deadline)]);
+            }
+            Some(Phase::ActionCooldown { deadline }) => {
+                if now < deadline { return Ok(vec![]); }
+                self.phase = Some(Phase::Held);
+                return Ok(vec![FlowEffect::Recover { guard, action: RecoveryAction::GetEntry }]);
             }
             Some(Phase::Dispatched) => {
                 self.phase = Some(Phase::Held);

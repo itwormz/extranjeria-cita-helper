@@ -12,9 +12,12 @@ node --test packaging/tests/*.test.mjs
 cargo test --workspace --locked
 node desktop-ui/scripts/prepare.mjs
 node --test desktop-ui/tests/*.test.mjs
+cargo test -p ceh-desktop --features shell --locked
 ```
 
 `prepare.mjs` installs the locked frontend dependencies, generates icons, type-checks Svelte and builds the frontend. Its dependencies and generated files stay in `.local/builds/`.
+
+The separate `shell` test run includes desktop controller/runtime tests excluded from the default workspace features. It does not enable ignored native browser or vault tests. Linux needs the desktop build libraries listed below. Native window activation uses the owned PID; Linux requires an X11/XWayland browser window and may be unavailable under native Wayland.
 
 To run a development copy without touching installed profiles:
 

@@ -307,6 +307,10 @@ impl AssistTimings {
     pub fn no_slots_restart_seconds(&self) -> f64 {
         self.0.no_slots_restart_seconds
     }
+    pub fn alert_seconds(&self) -> f64 { self.0.alert_seconds }
+    pub fn post_timeout_seconds(&self) -> f64 { self.0.post_timeout_seconds }
+    pub fn restart_seconds(&self) -> f64 { self.0.restart_seconds }
+    pub fn unsent_retry_count(&self) -> usize { self.0.timeout_retry_seconds.len() }
     pub fn navigation_seconds(&self) -> f64 {
         self.0.navigation_seconds
     }

@@ -182,3 +182,43 @@ mod local_update_request {
         assert_eq!(local_update_request(&args(&["SantaCita.exe", "--apply-update", ""]), true, true), None, "an empty path");
     }
 }
+
+
+#[test]
+fn incomplete_auto_import_retries_after_a_late_io_failure_without_replacing_existing_data() {
+    let support=tempfile::tempdir().unwrap();let old=python_folder(support.path());
+    fs::create_dir_all(old.join("debug/sessions/fixture")).unwrap();
+    fs::write(old.join("debug/sessions/fixture/journal.jsonl"),"{}\n").unwrap();
+    let root=support.path().join("SantaCita");fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("debug"),"existing unrelated file").unwrap();
+    assert_eq!(auto_import(&root,&[support.path().to_owned()],catalog()),None);
+    assert!(root.join("tasks.yml").exists(),"the late failure happened after profiles copied");
+    assert!(root.join(".legacy-import-incomplete").is_file());
+    assert_eq!(fs::read_to_string(root.join("debug")).unwrap(),"existing unrelated file");
+    let marker=root.join(".legacy-import-incomplete");
+    let stamp=std::time::SystemTime::UNIX_EPOCH+std::time::Duration::from_secs(946684800);
+    fs::OpenOptions::new().write(true).open(&marker).unwrap().set_modified(stamp).unwrap();
+    let before=fs::metadata(&marker).unwrap().modified().unwrap();
+    assert_eq!(auto_import(&root,&[support.path().to_owned()],catalog()),None);
+    assert_eq!(fs::metadata(&marker).unwrap().modified().unwrap(),before,"a retry never truncates or rewrites its valid pending marker");
+    assert!(ceh_desktop::import_incomplete(&root));
+    fs::remove_file(root.join("debug")).unwrap();
+    assert_eq!(auto_import(&root,&[support.path().to_owned()],catalog()),Some("Cita Extranjeria Helper".into()));
+    assert!(root.join("debug/sessions/fixture/journal.jsonl").is_file());
+    assert!(!root.join(".legacy-import-incomplete").exists());
+}
+#[test]
+fn incomplete_import_is_visible_until_the_same_source_finishes() {
+    let root=tempfile::tempdir().unwrap();
+    let marker=root.path().join(".legacy-import-incomplete");
+    assert!(!ceh_desktop::import_incomplete(root.path()));
+    let name=ceh_store::legacy_import::SOURCE_NAMES[0];
+    std::fs::write(&marker, name).unwrap();
+    assert!(ceh_desktop::import_incomplete(root.path()));
+    ceh_desktop::finish_legacy_import(root.path(), "other-source").unwrap();
+    assert!(ceh_desktop::import_incomplete(root.path()));
+    ceh_desktop::finish_legacy_import(root.path(), name).unwrap();
+    assert!(!ceh_desktop::import_incomplete(root.path()));
+    std::fs::write(&marker, "arbitrary-source").unwrap();
+    assert!(!ceh_desktop::import_incomplete(root.path()));
+}

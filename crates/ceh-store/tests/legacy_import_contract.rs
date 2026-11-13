@@ -134,7 +134,7 @@ mod merging {
             db.execute("INSERT INTO events(profile,identity,kind,time,session,stage,mode,counted,offices,evidence) VALUES (?1,?2,'check','2026-10-01T10:00:00+00:00','s','x','auto',1,'','')", [profile, identity]).unwrap();
         }
         for n in 0..episodes {
-            db.execute("INSERT INTO episodes(profile,session,kind,stage,mode,document,start,end,last_seen,confirmed) VALUES ('old','s','page','x','auto',?1,'a','b','c',1)", [format!("d{n}")]).unwrap();
+            db.execute("INSERT INTO episodes(profile,session,kind,stage,mode,document,start,end,last_seen,confirmed) VALUES (?2,'s','page','x','auto',?1,'a','b','c',1)", rusqlite::params![format!("d{n}"),events.first().map_or("none", |e|e.0)]).unwrap();
         }
         db.execute("INSERT OR IGNORE INTO baseline(profile,data) VALUES (?1,'{}')", [events.first().map_or("none", |e| e.0)]).unwrap();
     }
@@ -211,5 +211,216 @@ mod profile_merge {
         let report = import(source.path(), target.path()).unwrap();
         assert_eq!(fs::read(target.path().join("tasks.yml")).unwrap(), b"tasks: [SECRET-DONT-ECHO");
         assert!(report.kept.contains(&"tasks.yml".to_owned()));
+    }
+}
+
+
+mod beta2_regressions {
+    use super::*;
+    use ceh_store::appointment_budget::BudgetStore;
+    use ceh_core::appointment_budget::AppointmentPolicy;
+    use rusqlite::Connection;
+
+    fn profile(root: &Path) -> ceh_core::profiles::ProfileDraft {
+        ceh_store::profiles::read_profiles(&root.join("tasks.yml"), &catalog(), "en").unwrap().profiles[0].validation.normalized.clone()
+    }
+    #[test]
+    fn older_day_import_preserves_active_restriction_without_replacing_todays_budget() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());
+        let person=profile(source.path());let policy=AppointmentPolicy::default();
+        let yesterday="2026-11-12T20:00:00Z".parse().unwrap();let today="2026-11-13T10:00:00Z".parse().unwrap();
+        let old=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut history=old.load().unwrap();
+        history.submitted(yesterday,&policy);history.cod_oper(yesterday,&policy);
+        history.office_during_restriction(yesterday,vec!["Synthetic office".into()]);old.save(&history).unwrap();drop(old);
+        let own=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut current=own.load().unwrap();
+        for _ in 0..2 {current.submitted(today,&policy);}current.set_daily_target(Some(40),today,&policy).unwrap();own.save(&current).unwrap();drop(own);
+        import(source.path(),target.path()).unwrap();
+        for _ in 0..2 {
+            let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut budget=store.load().unwrap();
+            let summary=budget.summary(today,&policy,false);
+            assert!(summary.restricted,"active restriction survives midnight and consumed-snapshot reopen");
+            assert_eq!(summary.first_cod_oper,Some(yesterday));assert_eq!(summary.last_cod_oper,Some(yesterday));
+            assert_eq!(summary.sent,2);assert_eq!(summary.manual_target,Some(40));
+            assert_eq!(budget.offices_during_restriction,1);assert_eq!(summary.episode_offices.len(),1);
+        }
+    }
+    #[test]
+    fn newer_day_import_respects_recovery_history_and_keeps_a_genuinely_new_restriction() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());
+        let person=profile(source.path());let policy=AppointmentPolicy::default();
+        let yesterday="2026-11-12T20:00:00Z".parse().unwrap();let today="2026-11-13T10:00:00Z".parse().unwrap();
+        let recovered="2026-11-13T09:00:00Z".parse().unwrap();
+        for root in [source.path(),target.path()] {
+            let store=BudgetStore::open(&root.join("data"),&person).unwrap();let mut budget=store.load().unwrap();
+            budget.submitted(yesterday,&policy);budget.cod_oper(yesterday,&policy);
+            budget.office_during_restriction(yesterday,vec!["Old office".into()]);
+            if root==source.path() {budget.submitted(today,&policy);} else {budget.ordinary_result(recovered);}
+            store.save(&budget).unwrap();
+        }
+        import(source.path(),target.path()).unwrap();
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut merged=store.load().unwrap();
+        assert!(!merged.restricted(),"newer daily snapshot cannot revive an already recovered restriction");
+        assert!(merged.episode_offices.is_empty());assert_eq!(merged.episode_history.len(),1);
+        assert_eq!(merged.summary(today,&policy,false).sent,1);drop(store);
+        let store=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut updated=store.load().unwrap();
+        updated.cod_oper(today,&policy);store.save(&updated).unwrap();drop(store);
+        import(source.path(),target.path()).unwrap();
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut merged=store.load().unwrap();
+        assert!(merged.restricted());assert_eq!(merged.summary(today,&policy,false).last_cod_oper,Some(today));
+        assert_eq!(merged.summary(today,&policy,false).first_cod_oper,Some(today));
+        assert!(merged.episode_offices.is_empty(),"offices before local recovery belong to the closed episode");
+    }
+    #[test]
+    fn recovery_from_an_older_daily_snapshot_closes_the_current_active_episode() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());
+        let person=profile(source.path());let policy=AppointmentPolicy::default();
+        let yesterday="2026-11-12T20:00:00Z".parse().unwrap();let today="2026-11-13T10:00:00Z".parse().unwrap();
+        for root in [source.path(),target.path()] {
+            let store=BudgetStore::open(&root.join("data"),&person).unwrap();let mut budget=store.load().unwrap();
+            budget.submitted(yesterday,&policy);budget.cod_oper(yesterday,&policy);
+            if root==source.path() {budget.ordinary_result(today);} else {budget.submitted(today,&policy);}
+            store.save(&budget).unwrap();
+        }
+        import(source.path(),target.path()).unwrap();
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut merged=store.load().unwrap();
+        assert!(!merged.restricted());assert!(merged.episode_offices.is_empty());
+        assert_eq!(merged.episode_history.len(),1);assert_eq!(merged.summary(today,&policy,false).sent,1);
+    }
+    #[test]
+    fn mixed_budget_keys_keep_imported_document_state_reachable_without_replacing_current_state() {
+        let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        write(source.path(), "tasks.yml", profiles_yaml(&["old"], "").as_bytes());
+        let person = profile(source.path());
+        let source_store = BudgetStore::open(&source.path().join("data"), &person).unwrap();
+        let mut budget = source_store.load().unwrap();
+        budget.submitted("2026-11-12T10:00:00Z".parse().unwrap(), &AppointmentPolicy::default());
+        source_store.save(&budget).unwrap();
+        drop(source_store);
+        // The target already has another document and a different salt.
+        let mut another = person.clone(); another.id = "other".into(); another.document_number = "X1234567L".into();
+        let target_store = BudgetStore::open(&target.path().join("data"), &another).unwrap();
+        let mut own = target_store.load().unwrap();
+        for _ in 0..3 { own.submitted("2026-11-12T10:00:00Z".parse().unwrap(), &AppointmentPolicy::default()); }
+        target_store.save(&own).unwrap(); drop(target_store);
+        let salt = fs::read(target.path().join("data/appointment-budget/key")).unwrap();
+        import(source.path(), target.path()).unwrap();
+        assert_eq!(fs::read(target.path().join("data/appointment-budget/key")).unwrap(), salt);
+        let imported = BudgetStore::open(&target.path().join("data"), &person).unwrap();
+        assert!(imported.exists()); assert_eq!(imported.load().unwrap().sent(), 1);
+        // A second profile with copied identity must lock the exact same file.
+        let mut copied = person.clone(); copied.fill_mode = "copy".into(); copied.id = "copied".into();
+        assert!(BudgetStore::open_for_document(&target.path().join("data"), &copied, Some((&person.document_type,&person.document_number))).is_err());
+        drop(imported);
+        let copied = BudgetStore::open_for_document(&target.path().join("data"), &copied, Some((&person.document_type,&person.document_number))).unwrap();
+        assert_eq!(copied.load().unwrap().sent(), 1); drop(copied);
+        let copied_profile=ceh_core::profiles::ProfileDraft {fill_mode:"copy".into(),id:"copied".into(),..person.clone()};
+        let saved=BudgetStore::open_saved(&target.path().join("data"),&copied_profile).unwrap();
+        assert!(BudgetStore::open(&target.path().join("data"),&person).is_err(),"editing saved copy budget locks the same canonical current identity");drop(saved);
+        assert_eq!(BudgetStore::open(&target.path().join("data"), &another).unwrap().load().unwrap().sent(), 3);
+    }
+    #[test]
+    fn mixed_states_keep_maximum_observations_latest_restriction_and_local_manual_choice() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());let person=profile(source.path());
+        let policy=AppointmentPolicy::default();let at="2026-11-12T10:00:00Z".parse().unwrap();
+        let old=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut history=old.load().unwrap();
+        for _ in 0..3 {history.submitted(at,&policy);}history.cod_oper(at,&policy);old.save(&history).unwrap();drop(old);
+        let own=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut current=own.load().unwrap();current.submitted(at,&policy);current.set_daily_target(Some(40),at,&policy).unwrap();own.save(&current).unwrap();drop(own);
+        import(source.path(),target.path()).unwrap();
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut merged=store.load().unwrap();
+        assert_eq!(merged.sent(),3);assert_eq!(merged.summary(at,&policy,false).manual_target,Some(40));assert!(merged.restricted());
+        store.save(&merged).unwrap();drop(store);
+        import(source.path(),target.path()).unwrap();let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();assert_eq!(store.load().unwrap().sent(),3,"reimport never adds the shared history again");
+        let mut recovered=store.load().unwrap();recovered.ordinary_result("2026-11-12T11:00:00Z".parse().unwrap());
+        assert!(!recovered.restricted());store.save(&recovered).unwrap();drop(store);
+        let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();
+        assert!(!store.load().unwrap().restricted(),"a consumed imported restriction never returns after successful recovery");
+        assert!(!BudgetStore::load_profile(&target.path().join("data"),&person.id).unwrap().unwrap().restricted(),"read-only dashboard agrees with canonical state");
+        drop(store);
+        let source_store=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut grown=source_store.load().unwrap();
+        grown.submitted("2026-11-12T10:30:00Z".parse().unwrap(),&policy);source_store.save(&grown).unwrap();drop(source_store);
+        import(source.path(),target.path()).unwrap();let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();
+        assert_eq!(store.load().unwrap().sent(),4,"changed source snapshots refresh used attempts");
+        assert!(!store.load().unwrap().restricted(),"a changed old snapshot cannot resurrect a restriction recovered later locally");drop(store);
+        let source_store=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut blocked=source_store.load().unwrap();blocked.cod_oper("2026-11-12T12:00:00Z".parse().unwrap(),&policy);source_store.save(&blocked).unwrap();drop(source_store);
+        import(source.path(),target.path()).unwrap();let store=BudgetStore::open(&target.path().join("data"),&person).unwrap();
+        assert!(store.load().unwrap().restricted(),"a genuinely later source restriction is imported");
+
+
+    }
+    #[test]
+    fn same_salt_budget_updates_preserve_local_choices_and_do_not_write_through_active_locks() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",profiles_yaml(&["old"],"").as_bytes());let person=profile(source.path());
+        let policy=AppointmentPolicy::default();let at="2026-11-12T10:00:00Z".parse().unwrap();
+        let old=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut history=old.load().unwrap();history.submitted(at,&policy);old.save(&history).unwrap();drop(old);
+        import(source.path(),target.path()).unwrap();
+        let own=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut local=own.load().unwrap();local.set_daily_target(Some(40),at,&policy).unwrap();own.save(&local).unwrap();
+        let old=BudgetStore::open(&source.path().join("data"),&person).unwrap();let mut history=old.load().unwrap();history.submitted(at,&policy);history.submitted(at,&policy);old.save(&history).unwrap();drop(old);
+        assert!(import(source.path(),target.path()).is_err(),"an import never overwrites the budget owned by an active search");
+        assert_eq!(own.load().unwrap().sent(),1);drop(own);
+        import(source.path(),target.path()).unwrap();let own=BudgetStore::open(&target.path().join("data"),&person).unwrap();let mut result=own.load().unwrap();assert_eq!(result.sent(),3);assert_eq!(result.summary(at,&policy,false).manual_target,Some(40));
+    }
+    #[test]
+    fn episode_merge_uses_real_instants_for_offsets_fractions_and_nullable_times() {
+        let (source,target)=(tempfile::tempdir().unwrap(),tempfile::tempdir().unwrap());
+        write(source.path(),"tasks.yml",b"profiles: []\n");let old=db(source.path(),false);let current=db(target.path(),false);
+        let cases=[
+            (Some("2026-11-12T10:00:00Z"),Some("2026-11-12T10:00:00.500000+00:00"),Some("2026-11-12T10:00:00.500000+00:00")),
+            (Some("2026-11-12T12:00:00+02:00"),Some("2026-11-12T10:00:01Z"),Some("2026-11-12T10:00:01Z")),
+            (Some("2026-11-12T10:00:01+00:00"),Some("2026-11-12T10:00:00.500000Z"),Some("2026-11-12T10:00:01+00:00")),
+            (None,Some("2026-11-12T10:00:00Z"),Some("2026-11-12T10:00:00Z")),
+            (Some("2026-11-12T10:00:00Z"),None,Some("2026-11-12T10:00:00Z")),
+            (None,None,None),
+        ];
+        for (index,(before,incoming,_)) in cases.iter().enumerate() {
+            for (database,value) in [(&current,before),(&old,incoming)] {
+                database.execute("INSERT INTO episodes(profile,session,kind,stage,mode,document,start,end,last_seen) VALUES ('p','s','page','no_slots','auto',?1,'2026-11-12T09:00:00Z',?2,?2)",rusqlite::params![format!("d{index}"),value]).unwrap();
+            }
+        }
+        import(source.path(),target.path()).unwrap();
+        for (index,(_,_,expected)) in cases.iter().enumerate() {
+            let times:(Option<String>,Option<String>)=current.query_row("SELECT end,last_seen FROM episodes WHERE document=?1",[format!("d{index}")],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+            assert_eq!(times,(expected.map(str::to_owned),expected.map(str::to_owned)),"case {index}");
+        }
+    }
+    fn db(root: &Path, rich: bool) -> Connection {
+        fs::create_dir_all(root.join("data")).unwrap();
+        let db = Connection::open(root.join("data/profile-statistics.sqlite3")).unwrap();
+        db.execute_batch(include_str!("../src/schema.sql")).unwrap();
+        if rich { db.execute_batch("ALTER TABLE episodes ADD COLUMN recognition TEXT DEFAULT 'known'; ALTER TABLE episodes ADD COLUMN evidence TEXT DEFAULT '[]'; ALTER TABLE episodes ADD COLUMN variant TEXT DEFAULT '';").unwrap(); }
+        db
+    }
+    #[test]
+    fn growing_source_enriches_an_episode_without_duplication_or_losing_evidence() {
+        let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        write(source.path(), "tasks.yml", b"profiles: []\n");
+        let old = db(source.path(), true); let current = db(target.path(), true);
+        old.execute("INSERT INTO episodes(profile,session,kind,stage,mode,document,start,last_seen,evidence,recognition,variant) VALUES ('p','s','page','no_slots','auto','doc','2026-11-12T10:00:00Z','2026-11-12T10:00:01Z','[\"operation_code\"]','known','special')", []).unwrap();
+        import(source.path(), target.path()).unwrap();
+        let evidence: (String,String) = current.query_row("SELECT evidence,variant FROM episodes",[],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+        assert_eq!(evidence,("[\"operation_code\"]".into(),"special".into()));
+        old.execute("UPDATE episodes SET end='2026-11-12T10:01:00Z',last_seen='2026-11-12T10:01:00Z',confirmed=1", []).unwrap();
+        old.execute("INSERT INTO metadata(key,value) VALUES ('changed',?1)",["a".repeat(6000)]).unwrap();
+        import(source.path(), target.path()).unwrap();
+        let row: (i64,String,i64) = current.query_row("SELECT COUNT(*),MAX(last_seen),MAX(confirmed) FROM episodes",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+        assert_eq!(row,(1,"2026-11-12T10:01:00Z".into(),1));
+    }
+    #[test]
+    fn old_episode_schema_is_supported_and_oversized_journal_is_refused_before_profiles_are_copied() {
+        let (source, target) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        write(source.path(), "tasks.yml", b"profiles: []\n");
+        let old = db(source.path(), false); let current = db(target.path(), false);
+        old.execute("INSERT INTO episodes(profile,session,kind,start) VALUES ('p','s','page','a')",[]).unwrap();
+        import(source.path(), target.path()).unwrap();
+        assert_eq!(current.query_row("SELECT COUNT(*) FROM episodes",[],|r|r.get::<_,i64>(0)).unwrap(),1);
+        let target = tempfile::tempdir().unwrap();
+        let journal=source.path().join("debug/sessions/large/journal.jsonl"); fs::create_dir_all(journal.parent().unwrap()).unwrap();
+        fs::File::create(journal).unwrap().set_len(65*1024*1024).unwrap();
+        assert_eq!(import(source.path(),target.path()),Err(ImportError::Invalid));
+        assert!(!target.path().join("tasks.yml").exists());
     }
 }

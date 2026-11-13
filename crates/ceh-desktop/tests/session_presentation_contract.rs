@@ -259,3 +259,14 @@ fn a_new_pass_starts_a_new_authority_so_the_presenter_must_be_rebuilt_with_it() 
     let mut rebuilt = SessionPresentation::new(session(), 3000);
     assert!(rebuilt.update(&fresh.snapshot(), 3, 2, frame(), &[]).is_ok());
 }
+#[test]
+fn live_alert_interval_retimes_the_repeat_without_rearming_a_new_alert() {
+    let authority=Authority::new(session());let mut p=SessionPresentation::new(session(),3000);
+    assert_eq!(p.update(&authority.snapshot(),1,1000,frame(),&[FlowEffect::Alert]).unwrap().sound,SoundCommand::Play);
+    p.set_alert_interval(10000);
+    assert_eq!(p.update(&authority.snapshot(),2,4000,frame(),&[]).unwrap().sound,SoundCommand::None);
+    assert_eq!(p.update(&authority.snapshot(),3,11000,frame(),&[]).unwrap().sound,SoundCommand::Play);
+    p.set_alert_interval(2000);
+    assert_eq!(p.update(&authority.snapshot(),4,12999,frame(),&[]).unwrap().sound,SoundCommand::None);
+    assert_eq!(p.update(&authority.snapshot(),5,13000,frame(),&[]).unwrap().sound,SoundCommand::Play);
+}

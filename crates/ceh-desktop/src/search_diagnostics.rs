@@ -3,6 +3,7 @@ use crate::session_timeline::{self, SessionHeader, SessionTimeline};
 use ceh_core::profiles::ProfileDraft;
 use ceh_services::diagnostics::ScriptArchive;
 use serde_json::json;
+use crate::diagnostic_capture::{CaptureState, capture_if_allowed};
 use std::{collections::HashSet, path::{Path, PathBuf}};
 
 pub(crate) struct SearchDiagnostics {
@@ -133,16 +134,15 @@ impl SearchDiagnostics {
     fn record_block(&mut self, step: &NativeStep, connection: &mut BidiConnection, context: &str) {
         let observation = &step.update().observation;
         self.blocks += 1;
-        let screenshot = match (console_is_unlocked(), step.block_image(connection)) {
-            (true, Some(image)) => {
+        let screenshot = match capture_if_allowed(console_capture_state, || step.block_image(connection)) {
+            Ok(image) => {
                 let name = format!("block-{}.png", self.blocks);
                 match self.directory.as_ref().map(|d| std::fs::write(d.join(&name), image)) {
                     Some(Ok(())) => name,
                     _ => "write_failed".to_owned(),
                 }
             }
-            (false, _) => "console_locked".to_owned(),
-            (true, None) => "capture_failed".to_owned(),
+            Err(reason) => reason.to_owned(),
         };
         self.timeline.append("block", session_timeline::block_row(observation.kind, observation.method, step.block_marker(), &screenshot));
         self.environment("block", connection, context);
@@ -212,10 +212,7 @@ impl SearchDiagnostics {
         self.index += 1;
         let stem = format!("{:04}", self.index);
         let _ = std::fs::write(directory.join(format!("{stem}.html")), html);
-        if console_is_unlocked()
-            && let Some(image) = step.diagnostic_image(connection)
-            && console_is_unlocked()
-        {
+        if let Ok(image) = capture_if_allowed(console_capture_state, || step.diagnostic_image(connection)) {
             let _ = std::fs::write(directory.join(format!("{stem}.png")), image);
         }
         let metadata = json!({
@@ -229,7 +226,7 @@ impl SearchDiagnostics {
 pub(crate) use crate::session_timeline::madrid_text;
 
 #[cfg(target_os = "macos")]
-fn console_is_unlocked() -> bool {
+fn console_capture_state() -> CaptureState {
     use core_foundation::{
         base::{CFType, TCFType},
         boolean::CFBoolean,
@@ -242,15 +239,20 @@ fn console_is_unlocked() -> bool {
     }
     // Core Graphics returns an owned dictionary for the caller's GUI session.
     let raw = unsafe { CGSessionCopyCurrentDictionary() };
-    if raw.is_null() { return false; }
+    if raw.is_null() { return CaptureState::Unavailable; }
     let info = unsafe { CFDictionary::<CFString, CFType>::wrap_under_create_rule(raw) };
     let boolean = |key: &str| info.find(CFString::new(key)).and_then(|value| value.downcast::<CFBoolean>()).map(bool::from);
-    boolean("kCGSSessionOnConsoleKey") == Some(true) && boolean("CGSSessionScreenIsLocked") != Some(true)
+    match (boolean("kCGSSessionOnConsoleKey"), boolean("CGSSessionScreenIsLocked")) {
+        // An unlocked macOS session normally omits CGSSessionScreenIsLocked.
+        (Some(true), None | Some(false)) => CaptureState::Unlocked,
+        (Some(false), _) | (_, Some(true)) => CaptureState::Locked,
+        _ => CaptureState::Unavailable,
+    }
 }
 
 #[cfg(not(target_os = "macos"))]
-fn console_is_unlocked() -> bool {
-    false
+fn console_capture_state() -> CaptureState {
+    CaptureState::Unavailable
 }
 
 /// Append rows as JSON lines; the file is private to the user, like the rest of the diagnostics.

@@ -1,4 +1,6 @@
 import type {Appointment,AppointmentContext,AppointmentDraft} from './bridge';
+/** Resolve edits against the fresh profile context, never an unrelated cached achievement. */
+export function recordForEditing<T extends {id:string}>(records:T[],id?:string):T|null{return records.find(record=>record.id===id)??records.at(-1)??null;}
 export function maskTime(raw:string):string {const digits=raw.replace(/\D/g,'').slice(0,4);return digits.slice(0,2)+(digits.length>=2?':':'')+digits.slice(2);}
 export function timeValue(raw:string):string|null {if(!/^\d{2}:\d{2}$/.test(raw))return null;const [hour,minute]=raw.split(':').map(Number);return hour<24&&minute<60?raw:null;}
 export function splitOffice(raw:string):{office:string;address:string}{const comma=raw.indexOf(',');return comma<0?{office:raw.trim(),address:''}:{office:raw.slice(0,comma).trim(),address:raw.slice(comma+1).trim()};}

@@ -69,12 +69,14 @@ fn pause_excludes_idle_time_and_clock_correction_does_not_change_measured_effort
 #[test]
 fn lost_ack_never_replays_applicant_post_after_pause() {
     let mut db = database();
-    let report=run(json!({"schema_version":1,"profile":"fixture","session":"session","wall_start_millis":1793361600000_i64,"steps":[{"event":"observe","at_ms":0,"observation":{"document":"form","kind":"applicant"}},{"event":"prepared","at_ms":1,"guard":{"session":"session","epoch":0,"document":"form","expected_page":"applicant"},"action":"applicant","outcome":"completed"},{"event":"observe","at_ms":2,"observation":{"document":"form","kind":"applicant"},"lost_ack":true},{"event":"pause","at_ms":3},{"event":"resume","at_ms":4},{"event":"observe","at_ms":5,"observation":{"document":"form","kind":"applicant"}}]}),&mut db).unwrap();
+    let report=run(json!({"schema_version":1,"profile":"fixture","session":"session","wall_start_millis":1793361600000_i64,"steps":[{"event":"observe","at_ms":0,"observation":{"document":"form","kind":"applicant"},"facts":{"recovery":{"official_site":true}}},{"event":"prepared","at_ms":1,"guard":{"session":"session","epoch":0,"document":"form","expected_page":"applicant"},"action":"applicant","outcome":"completed"},{"event":"observe","at_ms":2,"observation":{"document":"form","kind":"applicant"},"facts":{"recovery":{"official_site":true}},"lost_ack":true},{"event":"pause","at_ms":3},{"event":"resume","at_ms":4},{"event":"observe","at_ms":5,"observation":{"document":"form","kind":"applicant"},"facts":{"recovery":{"official_site":true}}},{"event":"observe","at_ms":5003,"observation":{"document":"form","kind":"applicant"},"facts":{"recovery":{"official_site":true}}},{"event":"observe","at_ms":10003,"observation":{"document":"form","kind":"applicant"},"facts":{"recovery":{"official_site":true}}}]}),&mut db).unwrap();
     assert_eq!(report["browser_actions"].as_array().unwrap().len(), 1);
     assert_eq!(report["statistics"]["checks"], 0);
+    // The protected result wait survives pause; recovery later uses a safe GET, never another POST.
+    assert_eq!(report["trace"][5]["phase"], "waiting");
     assert_eq!(
         report["trace"].as_array().unwrap().last().unwrap()["phase"],
-        "manual"
+        "recovery"
     );
 }
 

@@ -44,3 +44,11 @@ jobs:
           cargo test --workspace --locked --no-fail-fast
           node desktop-ui/scripts/prepare.mjs
           node --test desktop-ui/tests/*.test.mjs
+      - name: Install desktop test libraries
+        if: needs.scope.outputs.mode != 'docs'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: Test desktop controller and runtime
+        if: needs.scope.outputs.mode != 'docs'
+        run: cargo test -p ceh-desktop --features shell --locked --no-fail-fast

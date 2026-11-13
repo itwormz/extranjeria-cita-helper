@@ -5,6 +5,12 @@ export interface NamedValue {name:string;value:string;secret:boolean}
 export interface WebhookConfig {url:string;method:'GET'|'POST';headers:NamedValue[];query:NamedValue[];body_mode:'standard'|'custom';body:string}
 export interface NotificationDraft {telegram:{enabled:boolean;events:NotificationEvent[];recipients:Recipient[];token:string};webhook:{enabled:boolean;events:NotificationEvent[];config:WebhookConfig}}
 export interface NotificationEditorData {revision:string;draft:NotificationDraft}
+export interface PairTicket {id:string;link:string;expires_in_seconds:number}
+export function pairingLinkHint(seconds:number|undefined,t:(key:string)=>string):string{
+ return typeof seconds==='number'&&Number.isFinite(seconds)&&seconds>0
+  ?t('Для другого получателя — отправить ему ссылку. Срок действия: {minutes} мин.').replace('{minutes}',String(Math.ceil(seconds/60)))
+  :t('Для другого получателя — отправить ему ссылку.');
+}
 
 export function notificationError(error:unknown,t:(key:string)=>string):string{
  const failure=error as {code?:string;status?:number};

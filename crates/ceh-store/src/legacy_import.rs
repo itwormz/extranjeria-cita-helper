@@ -3,6 +3,8 @@
 //! (the profile list, statistics and achievements are merged: what the new app already has stays, the old
 //! app's missing entries are added, and the new file is backed up first);
 //! notification secrets stay in the system vault, which both apps use under the same names.
+use rusqlite::{OptionalExtension, params};
+use sha2_budget::{Digest, Sha256};
 use std::{
     fs,
     io::{Read, Write},
@@ -145,11 +147,13 @@ fn merge_achievements(from: &Path, to: &Path, report: &mut Report) -> Result<(),
 /// ignored when they exist; the rest are guarded by a marker naming the imported database, so the same folder is
 /// merged once. The new database is backed up first.
 fn merge_statistics(from: &Path, to: &Path, report: &mut Report) -> Result<(), ImportError> {
-    let marker = {
-        let meta = fs::metadata(from).map_err(|_| ImportError::Io)?;
-        let modified = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs());
-        format!("legacy_statistics_merged:{}:{}", meta.len(), modified)
-    };
+    // File content, not size/second-resolution mtime: a source may grow or close an episode
+    // without changing either old marker component.
+    let mut hash = Sha256::new();
+    let mut source_file = fs::File::open(from).map_err(|_| ImportError::Io)?;
+    let mut block = [0u8; 65536];
+    loop { let n = source_file.read(&mut block).map_err(|_| ImportError::Io)?; if n == 0 { break; } hash.update(&block[..n]); }
+    let marker = format!("legacy_statistics_content:{}", hex(&hash.finalize()));
     let db = rusqlite::Connection::open(to).map_err(|_| ImportError::Io)?;
     db.busy_timeout(std::time::Duration::from_secs(10)).map_err(|_| ImportError::Io)?;
     let done: bool = db
@@ -176,10 +180,10 @@ fn merge_statistics(from: &Path, to: &Path, report: &mut Report) -> Result<(), I
             ("pending_applicant_notices", "profile,document,start"),
             ("events", "profile,identity,kind,time,session,stage,mode,counted,offices,evidence"),
             ("active", "profile,session,start,end,seconds"),
-            ("episodes", "profile,session,kind,stage,mode,document,start,end,last_seen,confirmed"),
         ] {
             db.execute(&format!("INSERT OR IGNORE INTO main.{table}({columns}) SELECT {columns} FROM old.{table}"), [])?;
         }
+        merge_episodes(&db)?;
         db.execute("INSERT OR IGNORE INTO metadata(key,value) VALUES (?1,'1')", [&marker])?;
         db.execute_batch("COMMIT")
     };
@@ -192,16 +196,104 @@ fn merge_statistics(from: &Path, to: &Path, report: &mut Report) -> Result<(), I
     report.merged.push("data/profile-statistics.sqlite3".to_owned());
     Ok(())
 }
-/// Import into `target`; `source` must be a folder returned by [`candidates`] (or an equivalent copy).
-pub fn import(source: &Path, target: &Path, catalog: &ceh_core::profiles::ProfileCatalog) -> Result<Report, ImportError> {
-    if !plain_dir(source) || !regular(&source.join("tasks.yml")) {
-        return Err(ImportError::NoProfiles);
-    }
-    for sidecar in ["data/profile-statistics.sqlite3-wal", "data/profile-statistics.sqlite3-journal"] {
-        if fs::metadata(source.join(sidecar)).is_ok_and(|m| m.len() > 0) {
-            return Err(ImportError::InUse);
+// Episode identity is the original fact, independent of end/last_seen enrichment and row ids
+// assigned by each database. Old sources lack the three additive recognition columns.
+fn merge_episodes(db: &rusqlite::Connection) -> rusqlite::Result<()> {
+    let columns = |schema: &str| -> rusqlite::Result<Vec<String>> {
+        db.prepare(&format!("PRAGMA {schema}.table_info(episodes)"))?.query_map([], |r| r.get(1))?.collect()
+    };
+    let target_columns = columns("main")?;
+    for (name, default) in [("recognition", "'known'"), ("evidence", "'[]'"), ("variant", "''")] {
+        if !target_columns.iter().any(|c| c == name) {
+            db.execute_batch(&format!("ALTER TABLE main.episodes ADD COLUMN {name} TEXT DEFAULT {default}"))?;
         }
     }
+    let old_columns = columns("old")?;
+    let field = |name: &str, default: &str| if old_columns.iter().any(|c| c == name) { name.to_owned() } else { default.to_owned() };
+    let sql = format!("SELECT profile,session,kind,stage,mode,document,start,end,last_seen,confirmed,{},{},{} FROM old.episodes", field("recognition", "'known'"), field("evidence", "'[]'"), field("variant", "''"));
+    let mut rows = db.prepare(&sql)?;
+    let mapped = rows.query_map([], |r| Ok((
+        (0..9).map(|i|r.get::<_,Option<String>>(i)).collect::<rusqlite::Result<Vec<_>>>()?,
+        r.get::<_,Option<i64>>(9)?.unwrap_or(0), r.get::<_,Option<String>>(10)?.unwrap_or_default(),
+        r.get::<_,Option<String>>(11)?.unwrap_or_else(||"[]".into()), r.get::<_,Option<String>>(12)?.unwrap_or_default()
+    )))?;
+    for row in mapped {
+        let (v, confirmed, recognition, evidence, variant) = row?;
+        let identity = params![v[0],v[1],v[2],v[3],v[4],v[5],v[6]];
+        let old: Option<(i64,String,Option<String>,Option<String>)> = db.query_row("SELECT id,COALESCE(evidence,'[]'),end,last_seen FROM main.episodes WHERE profile IS ?1 AND session IS ?2 AND kind IS ?3 AND stage IS ?4 AND mode IS ?5 AND document IS ?6 AND start IS ?7 ORDER BY id LIMIT 1", identity, |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
+        if let Some((id, current_evidence, current_end, current_seen)) = old {
+            let merged = merge_evidence(&current_evidence, &evidence);
+            let end=later_episode_time(current_end.as_deref(),v[7].as_deref())?;
+            let seen=later_episode_time(current_seen.as_deref(),v[8].as_deref())?;
+            db.execute("UPDATE main.episodes SET end=?1,last_seen=?2,confirmed=MAX(COALESCE(confirmed,0),?3),recognition=CASE WHEN recognition IS NULL OR recognition='' OR recognition='known' THEN ?4 ELSE recognition END,evidence=?5,variant=CASE WHEN variant IS NULL OR variant='' THEN ?6 ELSE variant END WHERE id=?7",params![end,seen,confirmed,recognition,merged,variant,id])?;
+        } else {
+            db.execute("INSERT INTO main.episodes(profile,session,kind,stage,mode,document,start,end,last_seen,confirmed,recognition,evidence,variant) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",params![v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],confirmed,recognition,evidence,variant])?;
+        }
+    }
+    Ok(())
+}
+fn later_episode_time(current:Option<&str>,incoming:Option<&str>)->rusqlite::Result<Option<String>> {
+    let chosen=match (current,incoming) {
+        (Some(old),Some(new)) if old!=new=>{
+            let old_time=crate::migrate::parse_time(old).map_err(|_|rusqlite::Error::InvalidQuery)?;
+            let new_time=crate::migrate::parse_time(new).map_err(|_|rusqlite::Error::InvalidQuery)?;
+            if new_time>old_time {Some(new)}else{Some(old)}
+        }
+        (Some(old),_)=>Some(old),
+        (None,new)=>new,
+    };
+    Ok(chosen.map(str::to_owned))
+}
+fn hex(bytes:&[u8])->String {bytes.iter().map(|b|format!("{b:02x}")).collect()}
+fn merge_evidence(current: &str, incoming: &str) -> String {
+    let mut values: Vec<serde_json::Value> = serde_json::from_str(current).unwrap_or_default();
+    for value in serde_json::from_str::<Vec<serde_json::Value>>(incoming).unwrap_or_default() {
+        if !values.contains(&value) { values.push(value); }
+    }
+    serde_json::to_string(&values).unwrap_or_else(|_|"[]".into())
+}
+
+/// Check bounded file sizes before any profile/database mutation. Copying still checks again,
+/// because an external process can change the source between preflight and the actual read.
+pub fn preflight(source: &Path) -> Result<(), ImportError> {
+    if !plain_dir(source) || !regular(&source.join("tasks.yml")) { return Err(ImportError::NoProfiles); }
+    for sidecar in ["data/profile-statistics.sqlite3-wal", "data/profile-statistics.sqlite3-journal"] {
+        if fs::metadata(source.join(sidecar)).is_ok_and(|m|m.len()>0) { return Err(ImportError::InUse); }
+    }
+    let mut files = vec![(source.join("tasks.yml"),MAX_FILE)];
+    for name in ["data/achievements.json","data/profile-statistics.sqlite3","data/state.db"] { files.push((source.join(name),MAX_FILE)); }
+    let budgets=source.join("data/appointment-budget");
+    if plain_dir(&budgets) { for entry in fs::read_dir(budgets).map_err(|_|ImportError::Io)? { let entry=entry.map_err(|_|ImportError::Io)?; let name=entry.file_name(); let Some(name)=name.to_str() else {continue}; if name=="key" || name.ends_with(".json") || crate::appointment_budget::is_import_key(name) {files.push((entry.path(),if name=="key" || crate::appointment_budget::is_import_key(name) {32} else {1024*1024}));} } }
+    let sessions=source.join("debug/sessions");
+    if plain_dir(&sessions) { for entry in fs::read_dir(sessions).map_err(|_|ImportError::Io)? { let path=entry.map_err(|_|ImportError::Io)?.path(); if plain_dir(&path) { files.push((path.join("journal.jsonl"),MAX_JOURNAL)); } } }
+    let mut total=0;
+    for (path,limit) in files { if regular(&path) { let size=fs::metadata(path).map_err(|_|ImportError::Io)?.len();total+=size;if size>limit || total>MAX_TOTAL {return Err(ImportError::Invalid);} } }
+    Ok(())
+}
+// Keep archive growth bounded before any target mutations. Imported archives are secrets,
+// not arbitrary file references: their digest/name must agree and links are never followed.
+fn validate_budget_keys(source:&Path,target:&Path)->Result<(),ImportError> {
+    let mut archives=std::collections::BTreeSet::new();
+    for root in [source,target] {
+        if !plain_dir(root) {continue;}
+        for entry in fs::read_dir(root).map_err(|_|ImportError::Io)? {
+            let entry=entry.map_err(|_|ImportError::Io)?;let name=entry.file_name();let Some(name)=name.to_str() else {continue};
+            if name=="key" || crate::appointment_budget::is_import_key(name) {
+                if !regular(&entry.path()) || fs::metadata(entry.path()).map_err(|_|ImportError::Io)?.len()!=32 {return Err(ImportError::Invalid);}
+                if name!="key" {let bytes=fs::read(entry.path()).map_err(|_|ImportError::Io)?;if name!=format!("import-key-{}.key",hex(&Sha256::digest(bytes))){return Err(ImportError::Invalid);}archives.insert(name.to_owned());}
+            }
+        }
+    }
+    if regular(&source.join("key")) && regular(&target.join("key")) {
+        let old=fs::read(source.join("key")).map_err(|_|ImportError::Io)?;let current=fs::read(target.join("key")).map_err(|_|ImportError::Io)?;
+        if old!=current {archives.insert(format!("import-key-{}.key",hex(&Sha256::digest(old))));}
+    }
+    if archives.len()>32 {return Err(ImportError::Invalid);}Ok(())
+}
+/// Import into `target`; `source` must be a folder returned by [`candidates`] (or an equivalent copy).
+pub fn import(source: &Path, target: &Path, catalog: &ceh_core::profiles::ProfileCatalog) -> Result<Report, ImportError> {
+    preflight(source)?;
+    validate_budget_keys(&source.join("data/appointment-budget"),&target.join("data/appointment-budget"))?;
     fs::create_dir_all(target).map_err(|_| ImportError::Io)?;
     let mut report = Report::default();
     let mut total = 0u64;
@@ -234,6 +326,20 @@ pub fn import(source: &Path, target: &Path, catalog: &ceh_core::profiles::Profil
             Err(error) => return Err(error),
         }
     }
+    // A salt cannot be replaced under the target's existing hashes. Retain extra salts so
+    // BudgetStore can resolve imported hashes when the document is next known in memory.
+    let budget_source = source.join("data/appointment-budget");
+    let budget_target = target.join("data/appointment-budget");
+    if regular(&budget_source.join("key")) && regular(&budget_target.join("key")) {
+        let imported = fs::read(budget_source.join("key")).map_err(|_|ImportError::Io)?;
+        let current = fs::read(budget_target.join("key")).map_err(|_|ImportError::Io)?;
+        if imported.len()!=32 || current.len()!=32 {return Err(ImportError::Invalid);}
+        if imported!=current {
+            let name=format!("import-key-{}.key",hex(&Sha256::digest(&imported)));
+            let relative=format!("data/appointment-budget/{name}");
+            if copy_new(&budget_source.join("key"),&budget_target.join(name),32,&mut total)? {report.copied.push(relative);} else {report.kept.push(relative);}
+        }
+    }
     let mut take = |relative: String, limit: u64, report: &mut Report| -> Result<(), ImportError> {
         let from = source.join(&relative);
         if !regular(&from) {
@@ -264,11 +370,19 @@ pub fn import(source: &Path, target: &Path, catalog: &ceh_core::profiles::Profil
             .map_err(|_| ImportError::Io)?
             .flatten()
             .filter_map(|e| e.file_name().into_string().ok())
-            .filter(|n| n == "key" || (n.ends_with(".json") && n.len() <= 80))
+            .filter(|n| n == "key" || crate::appointment_budget::is_import_key(n) || (n.ends_with(".json") && n.len() <= 80))
             .collect();
         names.sort();
         for name in names {
-            take(format!("data/appointment-budget/{name}"), 1024 * 1024, &mut report)?;
+            let relative=format!("data/appointment-budget/{name}");
+            let (from,to)=(budget_source.join(&name),budget_target.join(&name));
+            let budget_key=name.strip_suffix(".json").filter(|key|key.len()==64&&key.bytes().all(|c|c.is_ascii_digit()||(b'a'..=b'f').contains(&c)));
+            if let Some(key)=budget_key && regular(&from) && regular(&to) && !same_file(&from,&to) {
+                let backup=backup_of(&to)?;
+                if crate::appointment_budget::BudgetStore::merge_imported_snapshot(&from,&to,&target.join("data"),key,&backup).map_err(|_|ImportError::Io)? {
+                    report.backed_up.push(backup.file_name().and_then(|n|n.to_str()).unwrap_or("").to_owned());report.merged.push(relative);
+                } else {report.kept.push(relative);}
+            } else {take(relative,1024*1024,&mut report)?;}
         }
     }
     // Session journals feed the statistics restore; screenshots and page snapshots stay behind.

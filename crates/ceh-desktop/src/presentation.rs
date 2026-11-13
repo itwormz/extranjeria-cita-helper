@@ -164,6 +164,14 @@ impl AttentionTimer {
             repeat: false,
         }
     }
+    pub fn set_interval(&mut self, interval: u64) {
+        let interval = interval.clamp(100, 86_400_000);
+        if let Some(next) = self.next {
+            // Anchor to the last scheduled chime, do not restart the alarm or play a new one now.
+            self.next = Some(next.saturating_sub(self.interval).saturating_add(interval));
+        }
+        self.interval = interval;
+    }
     pub fn start(&mut self, now: u64, repeat: bool) {
         self.next = Some(now);
         self.repeat = repeat;
